@@ -62,8 +62,8 @@ export function SplashPage() {
         style={{ background: "linear-gradient(180deg,#EEF4F1,#F2F5F3)" }}
       >
         <div className="flex flex-1 flex-col items-center justify-center">
-          <div className="animate-grow-in flex h-22 w-22 items-center justify-center rounded-[26px] bg-brand shadow-hero">
-            <span className="font-serif text-[46px] text-white">z</span>
+          <div className=" flex h-36 w-36 items-center justify-center rounded-card-lg bg-brand shadow-hero">
+            <img alt="logo Zelo" src="/zelo_logo.png" className="h-full w-full object-contain animate-grow-in" />
           </div>
           <h1 className="animate-focus-in mt-6.5 font-serif text-display text-ink">Zelo</h1>
           <p className="relative mt-3 max-w-62.5 whitespace-pre-line text-body text-ink-2">

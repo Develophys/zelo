@@ -84,11 +84,11 @@
 
 @keyframes grow-in {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.2); }
+  50% { transform: scale(1.1); }
 }
 
 .animate-grow-in {
-  animation: grow-in 1s ease-in-out 1;
+  animation: grow-in 2s ease-in-out 1;
   will-change: transform;
   backface-visibility: hidden;
 }
