@@ -1,0 +1,93 @@
+name: API
+
+on:
+  push:
+    branches: [main]
+    paths: &api-paths
+      - 'apps/api/**'
+      - 'packages/domain/**'
+      - 'packages/config/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
+      - '.nvmrc'
+      - 'fly.toml'
+      - 'docker/api.Dockerfile'
+      - '.dockerignore'
+      - '.github/workflows/api.yml'
+  pull_request:
+    paths: *api-paths
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ${{ secrets.CI_DB_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.CI_DB_NAME }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://${{ secrets.CI_DB_USER }}:${{ secrets.CI_DB_PASSWORD }}@localhost:5432/${{ secrets.CI_DB_NAME }}?schema=public
+      DIRECT_DATABASE_URL: postgresql://${{ secrets.CI_DB_USER }}:${{ secrets.CI_DB_PASSWORD }}@localhost:5432/${{ secrets.CI_DB_NAME }}?schema=public
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies (api + shared packages only)
+        run: pnpm install --frozen-lockfile --filter=@zelo/api --filter=@zelo/domain --filter=@zelo/config
+
+      - name: Generate Prisma Client
+        run: pnpm --filter @zelo/api exec prisma generate
+
+      - name: Lint boundaries
+        run: pnpm turbo run lint:boundaries --filter=@zelo/api --filter=@zelo/domain
+
+      - name: Lint
+        run: pnpm turbo run lint --filter=@zelo/api --filter=@zelo/domain
+
+      - name: Apply database migrations
+        run: pnpm --filter @zelo/api exec prisma migrate deploy
+
+      - name: Test
+        run: pnpm turbo run test --filter=@zelo/api --filter=@zelo/domain
+
+      - name: Build
+        run: pnpm turbo run build --filter=@zelo/api --filter=@zelo/domain
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io
+        run: flyctl deploy --remote-only --config fly.toml
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Verify deployment
+        run: curl -sf https://zelo-api.fly.dev/health | grep -q '"status":"ok"'
