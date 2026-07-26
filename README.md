@@ -52,7 +52,7 @@ Tear down with `docker compose down` (add `-v` to also wipe the Postgres volume)
 
 ## Deployment
 
-`apps/api` deploys to Fly.io (`zelo-api`), backed by Neon Postgres. `main` pushes that pass CI auto-deploy via `.github/workflows/ci.yml`'s `deploy` job. Migrations are **not** run on container boot — apply them manually before deploying a schema change:
+`apps/api` deploys to Fly.io (`zelo-api`), backed by Neon Postgres. `main` pushes touching `apps/api` or `packages/domain`/`packages/config` that pass CI auto-deploy via `.github/workflows/api.yml`'s `deploy` job. `apps/web` deploys to GitHub Pages the same way via `.github/workflows/web.yml`, gated on `apps/web`/`packages/domain`/`packages/config` changes instead. Migrations are **not** run on container boot — apply them manually before deploying a schema change:
 
 ```bash
 pnpm --filter @zelo/api exec prisma migrate deploy   # DIRECT_DATABASE_URL must point at Neon
