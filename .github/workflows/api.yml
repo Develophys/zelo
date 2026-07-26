@@ -20,6 +20,13 @@ on:
   pull_request:
     paths: *api-paths
 
+permissions:
+  contents: read
+
+concurrency:
+  group: api-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
