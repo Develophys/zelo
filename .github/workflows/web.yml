@@ -12,6 +12,7 @@ on:
       - 'pnpm-workspace.yaml'
       - 'turbo.json'
       - '.nvmrc'
+      - '.npmrc'
       - '.github/workflows/web.yml'
   pull_request:
     paths: *web-paths
@@ -23,7 +24,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.event_name == 'push' && 'prod' || github.ref }}
   cancel-in-progress: false
 
 jobs:

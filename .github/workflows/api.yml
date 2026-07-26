@@ -12,6 +12,7 @@ on:
       - 'pnpm-workspace.yaml'
       - 'turbo.json'
       - '.nvmrc'
+      - '.npmrc'
       - 'fly.toml'
       - 'docker/api.Dockerfile'
       - '.dockerignore'
