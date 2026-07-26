@@ -61,25 +61,25 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies (api + shared packages only)
-        run: pnpm install --frozen-lockfile --filter=@zelo/api --filter=@zelo/domain --filter=@zelo/config
+        run: pnpm install --frozen-lockfile --filter=@zelo/api...
 
       - name: Generate Prisma Client
         run: pnpm --filter @zelo/api exec prisma generate
 
       - name: Lint boundaries
-        run: pnpm turbo run lint:boundaries --filter=@zelo/api --filter=@zelo/domain
+        run: pnpm turbo run lint:boundaries --filter=@zelo/api...
 
       - name: Lint
-        run: pnpm turbo run lint --filter=@zelo/api --filter=@zelo/domain
+        run: pnpm turbo run lint --filter=@zelo/api...
 
       - name: Apply database migrations
         run: pnpm --filter @zelo/api exec prisma migrate deploy
 
       - name: Test
-        run: pnpm turbo run test --filter=@zelo/api --filter=@zelo/domain
+        run: pnpm turbo run test --filter=@zelo/api...
 
       - name: Build
-        run: pnpm turbo run build --filter=@zelo/api --filter=@zelo/domain
+        run: pnpm turbo run build --filter=@zelo/api...
 
   deploy:
     needs: test
