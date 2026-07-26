@@ -34,9 +34,9 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: ${{ secrets.CI_DB_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.CI_DB_NAME }}
+          POSTGRES_USER: zelo
+          POSTGRES_PASSWORD: devpassword
+          POSTGRES_DB: zelo
         ports:
           - 5432:5432
         options: >-
@@ -45,8 +45,8 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://${{ secrets.CI_DB_USER }}:${{ secrets.CI_DB_PASSWORD }}@localhost:5432/${{ secrets.CI_DB_NAME }}?schema=public
-      DIRECT_DATABASE_URL: postgresql://${{ secrets.CI_DB_USER }}:${{ secrets.CI_DB_PASSWORD }}@localhost:5432/${{ secrets.CI_DB_NAME }}?schema=public
+      DATABASE_URL: postgresql://zelo:devpassword@localhost:5432/zelo?schema=public
+      DIRECT_DATABASE_URL: postgresql://zelo:devpassword@localhost:5432/zelo?schema=public
     steps:
       - name: Checkout
         uses: actions/checkout@v4
