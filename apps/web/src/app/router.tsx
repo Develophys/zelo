@@ -85,11 +85,17 @@ export const routeChildren: RouteObject[] = [
   },
 ];
 
-export const router = createBrowserRouter([
-  {
-    id: "root",
-    path: "/",
-    Component: () => <Outlet />,
-    children: routeChildren,
-  },
-]);
+export const router = createBrowserRouter(
+  [
+    {
+      id: "root",
+      path: "/",
+      Component: () => <Outlet />,
+      children: routeChildren,
+    },
+  ],
+  // Vite sets BASE_URL from the resolved `base` config (default "/"; "/zelo/"
+  // when built with --base=/zelo/ for GitHub Pages), so this stays a no-op
+  // for the Vercel deployment and correct for the Pages deployment.
+  { basename: import.meta.env.BASE_URL },
+);
