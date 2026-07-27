@@ -30,6 +30,9 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,24 +47,27 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies (web + shared packages only)
-        run: pnpm install --frozen-lockfile --filter=@zelo/web --filter=@zelo/domain --filter=@zelo/config
+        run: pnpm install --frozen-lockfile --filter=@zelo/web...
 
       - name: Lint boundaries
-        run: pnpm turbo run lint:boundaries --filter=@zelo/web --filter=@zelo/domain
+        run: pnpm turbo run lint:boundaries --filter=@zelo/web...
 
       - name: Lint
-        run: pnpm turbo run lint --filter=@zelo/web --filter=@zelo/domain
+        run: pnpm turbo run lint --filter=@zelo/web...
 
       - name: Test
-        run: pnpm turbo run test --filter=@zelo/web --filter=@zelo/domain
+        run: pnpm turbo run test --filter=@zelo/web...
 
       - name: Build
-        run: pnpm turbo run build --filter=@zelo/web --filter=@zelo/domain
+        run: pnpm turbo run build --filter=@zelo/web...
 
   build:
     needs: test
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -76,14 +82,14 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies (web + shared packages only)
-        run: pnpm install --frozen-lockfile --filter=@zelo/web --filter=@zelo/domain --filter=@zelo/config
+        run: pnpm install --frozen-lockfile --filter=@zelo/web...
 
       - name: Configure Pages
         id: pages
         uses: actions/configure-pages@v5
 
       - name: Build web (and its workspace deps) for deploy
-        run: pnpm turbo run build --filter=@zelo/web --filter=@zelo/domain
+        run: pnpm turbo run build --filter=@zelo/web...
         env:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
           VITE_BASE_PATH: ${{ steps.pages.outputs.base_path }}

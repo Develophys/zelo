@@ -20,6 +20,13 @@ on:
   pull_request:
     paths: *api-paths
 
+permissions:
+  contents: read
+
+concurrency:
+  group: api-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -27,9 +34,9 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: ${{ secrets.CI_DB_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.CI_DB_NAME }}
+          POSTGRES_USER: zelo
+          POSTGRES_PASSWORD: devpassword
+          POSTGRES_DB: zelo
         ports:
           - 5432:5432
         options: >-
@@ -38,8 +45,10 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://${{ secrets.CI_DB_USER }}:${{ secrets.CI_DB_PASSWORD }}@localhost:5432/${{ secrets.CI_DB_NAME }}?schema=public
-      DIRECT_DATABASE_URL: postgresql://${{ secrets.CI_DB_USER }}:${{ secrets.CI_DB_PASSWORD }}@localhost:5432/${{ secrets.CI_DB_NAME }}?schema=public
+      DATABASE_URL: postgresql://zelo:devpassword@localhost:5432/zelo?schema=public
+      DIRECT_DATABASE_URL: postgresql://zelo:devpassword@localhost:5432/zelo?schema=public
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -54,25 +63,25 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies (api + shared packages only)
-        run: pnpm install --frozen-lockfile --filter=@zelo/api --filter=@zelo/domain --filter=@zelo/config
+        run: pnpm install --frozen-lockfile --filter=@zelo/api...
 
       - name: Generate Prisma Client
         run: pnpm --filter @zelo/api exec prisma generate
 
       - name: Lint boundaries
-        run: pnpm turbo run lint:boundaries --filter=@zelo/api --filter=@zelo/domain
+        run: pnpm turbo run lint:boundaries --filter=@zelo/api...
 
       - name: Lint
-        run: pnpm turbo run lint --filter=@zelo/api --filter=@zelo/domain
+        run: pnpm turbo run lint --filter=@zelo/api...
 
       - name: Apply database migrations
         run: pnpm --filter @zelo/api exec prisma migrate deploy
 
       - name: Test
-        run: pnpm turbo run test --filter=@zelo/api --filter=@zelo/domain
+        run: pnpm turbo run test --filter=@zelo/api...
 
       - name: Build
-        run: pnpm turbo run build --filter=@zelo/api --filter=@zelo/domain
+        run: pnpm turbo run build --filter=@zelo/api...
 
   deploy:
     needs: test
