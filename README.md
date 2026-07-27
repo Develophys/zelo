@@ -1,42 +1,107 @@
+<div align="center">
+
+<img src="apps/web/public/zelo_logo.png" alt="Zelo" width="120" />
+
 # Zelo
 
-Mobile-first PWA for confidential medical burnout triage and support. See `general-documentations/documentacao-produto/prd.md` for product requirements and `docs/superpowers/specs/2026-07-07-pwa-architecture.md` for the technical architecture.
+**Confidential burnout triage and peer support for doctors — built so the employer who pays for it never sees who used it.**
 
-## Repository Map
+[![API](https://github.com/Develophys/zelo/actions/workflows/api.yml/badge.svg)](https://github.com/Develophys/zelo/actions/workflows/api.yml)
+[![Web](https://github.com/Develophys/zelo/actions/workflows/web.yml/badge.svg)](https://github.com/Develophys/zelo/actions/workflows/web.yml)
+![Node](https://img.shields.io/badge/node-%E2%89%A520-339933?logo=node.js&logoColor=white)
+![pnpm](https://img.shields.io/badge/pnpm-%E2%89%A59-F69220?logo=pnpm&logoColor=white)
+![License](https://img.shields.io/badge/license-proprietary-lightgrey)
 
-- `general-documentations/` — product docs: PRD, personas, roadmap, problem statement, source briefing PDFs
-- `jornada-checkpoints/` — official Jornada Incubintech checkpoint submission deliverables
-- `imported-skills/` — vendored pm-skills plugin, used to produce the documents above
-- `docs/superpowers/specs/` — technical architecture spec(s)
-- `docs/superpowers/plans/` — step-by-step implementation plans for the application
-- `apps/`, `packages/`, `docker/` — the application itself (see "Monorepo Structure" below)
+🇺🇸 English · [🇧🇷 Português](README.pt-BR.md)
 
-## Monorepo Structure
+</div>
 
-- `apps/web` — React + Vite PWA frontend
-- `apps/api` — NestJS backend
-- `packages/domain` — shared Zod schemas + TS types (no business logic)
-- `packages/config` — shared tsconfig/eslint/prettier/dependency-cruiser base config
+---
 
-## Commands
+## Why Zelo
 
-- `pnpm install` — install all workspace dependencies
-- `pnpm build` — build all packages/apps in dependency order (Turborepo)
-- `pnpm lint` — lint all packages/apps
-- `pnpm lint:boundaries` — enforce Clean Architecture layer boundaries (dependency-cruiser)
-- `pnpm test` — run all test suites
+57% of Brazilian doctors report burnout symptoms; fewer than 12% ever seek help, and physician suicide rates run more than double the general population (CFM/AMB, 2022). The reason isn't a lack of care — it's the fear that admitting distress reaches an employer or the medical board and damages a career.
 
-## Backend local setup
+Zelo is a mobile-first PWA that gives doctors a validated self-assessment (PHQ-9, GAD-7, MBI-HSS) with **scoring computed on-device**, an AI-assisted, human-backed support chat, anonymous peer matching, and opt-in crisis escalation — while hospitals and cooperatives who fund the tool only ever see anonymized, aggregate risk trends, never an individual's identity.
 
-`apps/api` requires a `DATABASE_URL` — copy `apps/api/.env.example` to `apps/api/.env` and point it at a running Postgres instance (see Plan 04 for the Docker Compose setup, or run one manually as shown in `docs/superpowers/plans/2026-07-07-02-backend-foundation.md` Task 2).
+> Built during the **1ª Jornada Incubintech** open-innovation program (27 Jun – 25 Jul 2026) for the "Saúde do Médico" (Physician Health) challenge.
 
-## Frontend local setup
+## How it stays confidential
 
-`apps/web` requires `VITE_API_BASE_URL` — copy `apps/web/.env.example` to `apps/web/.env`. Run `pnpm --filter @zelo/web dev` with `apps/api` (Plan 02) running to see the live health-check banner.
+- **Client-side scoring** — assessment results are computed on the device; raw answers are never persisted server-side in the clear.
+- **Employer sees aggregates only** — the institutional dashboard reports anonymized metrics by shift/department, never per-individual data.
+- **Identity disclosure is opt-in** — a doctor's identity is only exposed if *they* actively choose to escalate to a human.
+- **No AI diagnosis** — the support chat is a humanized triage layer with an always-visible path to a real person, never a diagnostic tool.
 
-## Local Docker Environment
+See [`general-documentations/documentacao-produto/prd.md`](general-documentations/documentacao-produto/prd.md) for full product requirements and [`docs/superpowers/specs/2026-07-07-pwa-architecture.md`](docs/superpowers/specs/2026-07-07-pwa-architecture.md) for the technical architecture.
 
-Runs actual production builds of `apps/api` and `apps/web` against a containerized Postgres — use this to catch build-only issues before a demo, not for day-to-day development (use `pnpm --filter @zelo/api dev` / `pnpm --filter @zelo/web dev` for that).
+## Tech stack
+
+| | |
+| --- | --- |
+| **Frontend** | React 19 + Vite, TanStack Query, Zustand, Tailwind CSS 4, PWA (installable, offline-capable) |
+| **Backend** | NestJS 10, Prisma 7 (Neon serverless Postgres adapter), Groq SDK for LLM inference |
+| **Shared** | Zod-based domain schemas (`packages/domain`), shared lint/tsconfig base (`packages/config`) |
+| **Tooling** | Turborepo, pnpm workspaces, dependency-cruiser for architecture boundaries, Vitest |
+| **Infra** | Fly.io (API), GitHub Pages (Web), Neon Postgres, Docker Compose for local parity |
+
+## Repository map
+
+```text
+apps/
+  web/      React + Vite PWA frontend
+  api/      NestJS backend
+packages/
+  domain/   Shared Zod schemas + TS types (no business logic)
+  config/   Shared tsconfig/eslint/prettier/dependency-cruiser base config
+docker/     Local Docker Compose environment (production-like builds)
+general-documentations/   Product docs: PRD, personas, roadmap, problem statement
+docs/superpowers/         Technical specs and implementation plans
+```
+
+## Getting started
+
+**Prerequisites:** Node ≥20 (repo pins 24 via `.nvmrc`), pnpm ≥9.
+
+```bash
+pnpm install
+```
+
+### Backend (`apps/api`)
+
+Requires `DATABASE_URL`. Copy the example env and point it at a running Postgres instance:
+
+```bash
+cp apps/api/.env.example apps/api/.env
+pnpm --filter @zelo/api dev
+```
+
+See [`docs/superpowers/plans/2026-07-07-02-backend-foundation.md`](docs/superpowers/plans/2026-07-07-02-backend-foundation.md) (Task 2) for a manual Postgres setup, or use the Docker environment below.
+
+### Frontend (`apps/web`)
+
+Requires `VITE_API_BASE_URL`:
+
+```bash
+cp apps/web/.env.example apps/web/.env
+pnpm --filter @zelo/web dev
+```
+
+Run alongside the API to see the live health-check banner.
+
+### Common commands
+
+| Command | Description |
+| --- | --- |
+| `pnpm build` | Build all packages/apps in dependency order (Turborepo) |
+| `pnpm dev` | Run all apps in dev mode |
+| `pnpm lint` | Lint all packages/apps |
+| `pnpm lint:boundaries` | Enforce Clean Architecture layer boundaries (dependency-cruiser) |
+| `pnpm test` | Run all test suites |
+
+## Local Docker environment
+
+Runs actual production builds of `apps/api` and `apps/web` against a containerized Postgres — use this to catch build-only issues before a demo, not for day-to-day development.
 
 ```bash
 cd docker
@@ -46,23 +111,39 @@ docker compose up --build -d
 
 - API: http://localhost:3000 (health check: `curl http://localhost:3000/health`)
 - Web: http://localhost:8080
-- Postgres: localhost:5432 (credentials in `docker/.env.docker`)
+- Postgres: `localhost:5432` (credentials in `docker/.env.docker`)
 
 Tear down with `docker compose down` (add `-v` to also wipe the Postgres volume).
 
 ## Deployment
 
-`apps/api` deploys to Fly.io (`zelo-api`), backed by Neon Postgres. `main` pushes touching `apps/api` or `packages/domain`/`packages/config` that pass CI auto-deploy via `.github/workflows/api.yml`'s `deploy` job. `apps/web` deploys to GitHub Pages the same way via `.github/workflows/web.yml`, gated on `apps/web`/`packages/domain`/`packages/config` changes instead. Migrations are **not** run on container boot — apply them manually before deploying a schema change:
+- **`apps/api`** deploys to Fly.io (`zelo-api`), backed by Neon Postgres.
+- **`apps/web`** deploys to GitHub Pages.
+
+Both auto-deploy from `main` via `.github/workflows/api.yml` / `web.yml`, gated on changes to the relevant app plus `packages/domain`/`packages/config`. Migrations are **not** run on container boot — apply them manually before deploying a schema change:
 
 ```bash
 pnpm --filter @zelo/api exec prisma migrate deploy   # DIRECT_DATABASE_URL must point at Neon
 ```
 
-## Rollback (Fly.io)
+### Rollback (Fly.io)
 
-If a deploy breaks production:
+Rollback is intentionally manual — treat it as a deliberate decision, not an automated safety net:
 
-1. `fly releases --app zelo-api` — lists prior releases with their image references.
-2. `fly deploy --image <previous-image-ref> --app zelo-api` — redeploys a specific prior image.
+```bash
+fly releases --app zelo-api                                    # list prior releases
+fly deploy --image <previous-image-ref> --app zelo-api         # redeploy a specific image
+```
 
-Rollback is intentionally a manual command, not automated — treat it as a deliberate decision, especially close to the demo (2026-07-25).
+## Documentation
+
+- [`general-documentations/documentacao-produto/`](general-documentations/documentacao-produto/) — PRD, personas, lean canvas, OKRs, ADRs, competitive analysis
+- [`general-documentations/jornada-checkpoints/`](general-documentations/jornada-checkpoints) — official Jornada Incubintech checkpoint deliverables
+- [`docs/superpowers/specs/`](docs/superpowers/specs) — technical architecture specs
+- [`docs/superpowers/plans/`](docs/superpowers/plans) — step-by-step implementation plans
+
+---
+
+<div align="center">
+<sub>Private, proprietary project — not licensed for external use or redistribution.</sub>
+</div>
