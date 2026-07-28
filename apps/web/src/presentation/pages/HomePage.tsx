@@ -2,6 +2,7 @@ import { MessageCircle, Users } from "lucide-react";
 import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BottomNav } from "@/presentation/layout/BottomNav";
+import { NAV_TABS, type NavTabId } from "@/presentation/layout/nav-tabs";
 import { Card } from "@/presentation/ui/Card";
 import { Button } from "@/presentation/ui/Button";
 import { IconBadge } from "@/presentation/ui/IconBadge";
@@ -64,11 +65,9 @@ export function HomePage() {
     now: new Date(),
   });
 
-  const handleNavigate = (tab: "home" | "checkin" | "chat" | "you") => {
-    if (tab === "home") navigate(routes.home);
-    if (tab === "checkin") navigate(routes.assessment);
-    if (tab === "chat") navigate(routes.chat);
-    if (tab === "you") navigate(routes.you);
+  const handleNavigate = (tab: NavTabId) => {
+    const target = NAV_TABS.find((t) => t.id === tab);
+    if (target) navigate(target.route);
   };
 
   return (

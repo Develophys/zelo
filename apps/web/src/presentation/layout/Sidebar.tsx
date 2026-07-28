@@ -1,9 +1,5 @@
-import { useLocation, useNavigate } from "react-router";
-import { NAV_TABS, type NavTabId } from "./nav-tabs";
-
-function activeTabFor(pathname: string): NavTabId | null {
-  return NAV_TABS.find((tab) => tab.route === pathname)?.id ?? null;
-}
+import { NavLink } from "react-router";
+import { NAV_TABS } from "./nav-tabs";
 
 // Persistent navigation for tablet/desktop (≥768px) — shown only on the 4
 // médico destination pages (Home, Check-in, Conversar, Você), never on
@@ -12,33 +8,26 @@ function activeTabFor(pathname: string): NavTabId | null {
 // Below 768px this renders nothing visible (`hidden md:flex`); BottomNav
 // remains the mobile nav, unchanged.
 export function Sidebar() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const active = activeTabFor(location.pathname);
-
   return (
     <nav
       aria-label="Navegação principal"
       className="hidden flex-none flex-col gap-1 border-r border-surface-brand bg-surface px-2 py-6 md:flex md:w-[76px] lg:w-[220px]"
     >
-      {NAV_TABS.map(({ id, label, icon: Icon, route }) => {
-        const isActive = id === active;
-        return (
-          <button
-            key={id}
-            type="button"
-            aria-label={label}
-            aria-current={isActive ? "page" : undefined}
-            onClick={() => navigate(route)}
-            className={`flex min-h-[44px] items-center justify-center gap-3 rounded-input px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand lg:justify-start ${
+      {NAV_TABS.map(({ id, label, icon: Icon, route }) => (
+        <NavLink
+          key={id}
+          to={route}
+          aria-label={label}
+          className={({ isActive }) =>
+            `flex min-h-[44px] items-center justify-center gap-3 rounded-input px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand lg:justify-start ${
               isActive ? "bg-surface-brand text-brand" : "text-faint"
-            }`}
-          >
-            <Icon size={22} />
-            <span className="hidden font-sans text-[14px] font-semibold lg:inline">{label}</span>
-          </button>
-        );
-      })}
+            }`
+          }
+        >
+          <Icon size={22} />
+          <span className="hidden font-sans text-[14px] font-semibold lg:inline">{label}</span>
+        </NavLink>
+      ))}
     </nav>
   );
 }

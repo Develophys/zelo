@@ -22,11 +22,23 @@ interface PhoneShellProps {
   footer?: React.ReactNode;
   /** Background token; defaults to "canvas". */
   bg?: "canvas" | "canvas-alt" | "surface";
+  /** Renders a persistent `Sidebar` to the left from the `md:` breakpoint (≥768px) up, and
+   *  hides `footer` from `md:` up (the Sidebar replaces it as the primary nav). Only the 4
+   *  médico destination pages (Home, Check-in, Conversar, Você) pass this — never focused-flow
+   *  screens (assessment in progress, crisis, consent, etc.). Default false. */
+  nav?: boolean;
+  /** Constrains the body to a ~680px centered reading column from the `md:` breakpoint up.
+   *  Independent of `nav` — focused-flow pages set this without `nav`. Default false. */
+  centered?: boolean;
 }
 ```
-- Root: `flex h-full min-h-screen flex-col bg-{bg}`.
-- Body: `flex-1 overflow-y-auto no-scrollbar` + `px-6` unless `bleed`.
-- Footer, if present, is `flex-none`.
+- Root: `flex h-full min-h-screen flex-col bg-{bg}` (`flex-1` is added when `nav` is set, so the
+  content column shares width with the Sidebar).
+- Body: `flex-1 overflow-y-auto no-scrollbar` + `px-6` unless `bleed`; adds
+  `md:mx-auto md:w-full md:max-w-[680px]` when `centered`.
+- Footer, if present, is `flex-none`; gains `md:hidden` when `nav` is set.
+- When `nav` is set, the whole shell is wrapped in a `flex min-h-screen` row with `Sidebar`
+  rendered before the content column.
 
 ---
 
@@ -127,14 +139,55 @@ interface ScoreDialProps {
 
 ---
 
+## `layout/nav-tabs.ts`
+Single source of truth for the médico's 4 primary destinations — consumed by both `BottomNav`
+(mobile) and `Sidebar` (tablet/desktop) so the two navs can never list different destinations.
+```ts
+type NavTabId = "home" | "checkin" | "chat" | "you";
+interface NavTab {
+  id: NavTabId;
+  label: string;                            // PT-BR: Início, Check-in, Conversar, Você
+  icon: React.ComponentType<{ size?: number }>;
+  route: string;
+}
+const NAV_TABS: NavTab[]; // one entry per destination, in nav order
+```
+
+---
+
 ## `layout/BottomNav.tsx`
 ```ts
-type Tab = "home" | "checkin" | "chat" | "you";
-interface BottomNavProps { active: Tab; onNavigate: (tab: Tab) => void; }
+interface BottomNavProps { active: NavTabId; onNavigate: (tab: NavTabId) => void; }
 ```
+- `NavTabId` is imported from `./nav-tabs` (not a locally-defined union).
 - Container: `flex-none flex justify-around border-t border-surface-brand bg-surface px-2 pb-6 pt-3`.
 - Each tab: icon + `font-sans text-[11px] font-semibold`. Active → `text-brand`; else `text-faint`.
 - Labels (PT-BR): Início, Check-in, Conversar, Você. Hit target ≥ 44px.
+
+---
+
+## `layout/Sidebar.tsx`
+Persistent navigation for tablet/desktop (`md:` breakpoint, ≥768px, up). Rendered by `PhoneShell`
+when its `nav` prop is set — screens never mount it directly. Below `md:` it renders nothing
+visible (`hidden md:flex`); `BottomNav` remains the mobile nav, unchanged. Self-contained: takes
+no props, and reads its destinations from the same `NAV_TABS` (`./nav-tabs`) that `BottomNav`
+uses, so the two navs can never drift apart.
+```ts
+// No props — Sidebar is self-contained.
+function Sidebar(): JSX.Element;
+```
+- Container: `nav` with `aria-label="Navegação principal"`, `hidden flex-none flex-col gap-1
+  border-r border-surface-brand bg-surface px-2 py-6 md:flex md:w-[76px] lg:w-[220px]` (icon-only
+  rail at `md:`, icon + label at `lg:`).
+- Each destination is a React Router `NavLink` (not a button + `onClick`/`navigate`), so desktop
+  users get native link behavior — Ctrl/Cmd-click, middle-click to open in a new tab, copy link
+  address, etc. `NavLink` sets `aria-current="page"` automatically on the active route; active vs.
+  inactive styling is driven by its `isActive` render prop: `bg-surface-brand text-brand` when
+  active, `text-faint` when inactive.
+- Each link: `flex min-h-[44px] items-center justify-center gap-3 rounded-input px-3 py-2` +
+  focus ring, `lg:justify-start`; icon (22px) + `aria-label={label}`; label text is
+  `hidden lg:inline`, `font-sans text-[14px] font-semibold`.
+- Labels (PT-BR): Início, Check-in, Conversar, Você — same 4 destinations and order as `BottomNav`.
 
 ---
 

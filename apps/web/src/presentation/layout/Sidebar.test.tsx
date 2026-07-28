@@ -29,15 +29,15 @@ describe("Sidebar", () => {
 
   it("marks the destination matching the current route as active", () => {
     renderAt(routes.chat);
-    expect(screen.getByRole("button", { name: "Conversar" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("button", { name: "Início" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "Conversar" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Início" })).not.toHaveAttribute("aria-current");
   });
 
   it("navigates to the tapped destination's route", async () => {
     const user = userEvent.setup();
     renderAt(routes.home);
-    await user.click(screen.getByRole("button", { name: "Conversar" }));
-    expect(screen.getByRole("button", { name: "Conversar" })).toHaveAttribute("aria-current", "page");
+    await user.click(screen.getByRole("link", { name: "Conversar" }));
+    expect(screen.getByRole("link", { name: "Conversar" })).toHaveAttribute("aria-current", "page");
   });
 
   it("is hidden below the tablet breakpoint and visible from it up", () => {
