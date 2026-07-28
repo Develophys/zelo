@@ -33,6 +33,11 @@ describe("PhoneShell nav mode", () => {
     expect(screen.queryByRole("navigation", { name: "Navegação principal" })).not.toBeInTheDocument();
   });
 
+  it("does not add flex-1 to phone-shell-root when nav is unset", () => {
+    render(<PhoneShell>content</PhoneShell>);
+    expect(screen.getByTestId("phone-shell-root")).not.toHaveClass("flex-1");
+  });
+
   it("renders the Sidebar when nav is set", () => {
     render(
       <MemoryRouter>
@@ -40,6 +45,15 @@ describe("PhoneShell nav mode", () => {
       </MemoryRouter>,
     );
     expect(screen.getByRole("navigation", { name: "Navegação principal" })).toBeInTheDocument();
+  });
+
+  it("adds flex-1 to phone-shell-root when nav is set", () => {
+    render(
+      <MemoryRouter>
+        <PhoneShell nav>content</PhoneShell>
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId("phone-shell-root")).toHaveClass("flex-1");
   });
 
   it("hides the footer at the tablet breakpoint when nav is set", () => {

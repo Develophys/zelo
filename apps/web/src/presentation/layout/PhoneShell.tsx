@@ -32,7 +32,10 @@ export function PhoneShell({
   centered = false,
 }: PhoneShellProps) {
   const column = (
-    <div data-testid="phone-shell-root" className={`flex h-full min-h-screen flex-1 flex-col ${BG_CLASS[bg]}`}>
+    <div
+      data-testid="phone-shell-root"
+      className={`flex h-full min-h-screen ${nav ? "flex-1" : ""} flex-col ${BG_CLASS[bg]}`}
+    >
       <div
         data-testid="phone-shell-body"
         className={`no-scrollbar flex-1 overflow-y-auto ${bleed ? "" : "px-6"} ${
