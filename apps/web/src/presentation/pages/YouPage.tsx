@@ -22,7 +22,7 @@ export function YouPage() {
   };
 
   return (
-    <PhoneShell>
+    <PhoneShell nav centered>
       <div className="pt-[30px]">
         <div className="flex items-center justify-between">
           <BackButton label="Início" onClick={() => navigate(routes.home)} />

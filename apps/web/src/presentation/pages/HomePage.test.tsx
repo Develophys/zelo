@@ -121,13 +121,17 @@ describe("HomePage", () => {
   it("shows Início as the active BottomNav tab", () => {
     vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue(SIX_NULL_POINTS);
     renderHome();
-    expect(screen.getByRole("button", { name: "Início" })).toHaveAttribute("aria-current", "page");
+    const bottomNav = screen.getByTestId("bottom-nav");
+    expect(bottomNav.querySelector('button[aria-label="Início"]')).toHaveAttribute("aria-current", "page");
   });
 
   it("navigates to /you when the Você tab is tapped", async () => {
     vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue(SIX_NULL_POINTS);
     renderHome();
-    await userEvent.click(screen.getByRole("button", { name: "Você" }));
+    const bottomNav = screen.getByTestId("bottom-nav");
+    const vocêButton = bottomNav.querySelector('button[aria-label="Você"]');
+    if (!vocêButton) throw new Error("Você button not found in bottom nav");
+    await userEvent.click(vocêButton);
     expect(screen.getByText("You screen")).toBeInTheDocument();
   });
 });

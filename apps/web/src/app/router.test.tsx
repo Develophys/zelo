@@ -138,7 +138,12 @@ describe("onboarding router flow", () => {
     buildTestRouter("/home");
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole("button", { name: "Você" }));
+    // Click the Você button in the BottomNav
+    const bottomNav = await screen.findByTestId("bottom-nav");
+    const vocêButton = bottomNav.querySelector('button[aria-label="Você"]');
+    if (!vocêButton) throw new Error("Você button not found in BottomNav");
+    await user.click(vocêButton);
+
     expect(await screen.findByText("Consentimento ativo")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Revogar consentimento" }));

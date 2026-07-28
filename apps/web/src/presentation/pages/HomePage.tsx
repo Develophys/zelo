@@ -72,7 +72,7 @@ export function HomePage() {
   };
 
   return (
-    <PhoneShell footer={<BottomNav active="home" onNavigate={handleNavigate} />}>
+    <PhoneShell nav centered footer={<BottomNav active="home" onNavigate={handleNavigate} />}>
       <div className="flex flex-col pt-6">
         <div className="flex items-center justify-between">
           <div>

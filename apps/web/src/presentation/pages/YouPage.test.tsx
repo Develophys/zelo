@@ -36,7 +36,12 @@ describe("YouPage", () => {
 
   it("back button navigates to /home", async () => {
     renderYou();
-    await userEvent.click(screen.getByRole("button", { name: "Início" }));
+    // Click the BackButton specifically, not the sidebar nav button
+    const backButton = screen.getAllByRole("button", { name: "Início" }).find(btn =>
+      btn.className.includes("min-w-[44px]") && btn.className.includes("gap-1")
+    );
+    if (!backButton) throw new Error("BackButton not found");
+    await userEvent.click(backButton);
     expect(screen.getByText("Home screen")).toBeInTheDocument();
   });
 

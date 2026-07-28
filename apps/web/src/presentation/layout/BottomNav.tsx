@@ -7,7 +7,7 @@ interface BottomNavProps {
 
 export function BottomNav({ active, onNavigate }: BottomNavProps) {
   return (
-    <nav className="flex flex-none justify-around border-t border-surface-brand bg-surface px-2 pb-6 pt-3">
+    <nav data-testid="bottom-nav" className="flex flex-none justify-around border-t border-surface-brand bg-surface px-2 pb-6 pt-3">
       {NAV_TABS.map(({ id, label, icon: Icon }) => {
         const isActive = id === active;
         return (

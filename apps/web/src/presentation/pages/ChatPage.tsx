@@ -14,7 +14,7 @@ export function ChatPage() {
     useChatConversation(CONVERSATION_ID);
 
   return (
-    <PhoneShell bg="surface">
+    <PhoneShell nav centered bg="surface">
       <div className="flex min-h-full flex-col">
         <div className="flex items-center gap-3 border-b border-surface-brand bg-surface p-[14px_20px]">
           <BackButton onClick={() => navigate(routes.home)} />

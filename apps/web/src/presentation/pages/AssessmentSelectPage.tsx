@@ -12,7 +12,7 @@ export function AssessmentSelectPage() {
   const [isEncryptionInfoOpen, setIsEncryptionInfoOpen] = useState(false);
 
   return (
-    <PhoneShell>
+    <PhoneShell nav centered>
       <div className="pt-[26px]">
         <div className="flex items-center justify-between">
           <BackButton label="Início" onClick={() => navigate(routes.home)} />
