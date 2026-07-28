@@ -66,6 +66,21 @@
   --shadow-hero: 0 16px 34px -12px rgba(47,107,94,.6);
 }
 
+/* Tablet/desktop type scale (design-tokens.md §2) — overrides the same custom
+   properties the @theme block above defines, so every `text-h1`/`text-h2`/
+   `text-body`/`text-label`/`text-body-strong` utility picks this up
+   automatically from 768px up, with zero component changes. `score` (64px)
+   is deliberately not bumped — see the design spec, §4. */
+@media (width >= 768px) {
+  :root {
+    --text-h1: 32px;
+    --text-h2: 26px;
+    --text-body: 16px;
+    --text-body-strong: 16px;
+    --text-label: 15px;
+  }
+}
+
 @layer base {
   html { -webkit-tap-highlight-color: transparent; }
   body {

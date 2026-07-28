@@ -79,6 +79,19 @@ Three families, each with one job. Never mix headings into the mono, never set b
 | `eyebrow` | 12 | 1.0 | IBM Plex Mono 600 | Uppercase, `letter-spacing: .1em`, muted-2 |
 | `mono-data` | 12–13 | 1.5 | IBM Plex Mono 500 | Counts, tokens, "n=" |
 
+### Tablet/Desktop scale (≥768px)
+
+Same tokens as above, overridden via a `@media (width >= 768px)` block in `apps/web/src/app/index.css` rather than a parallel set of names — every `text-h1`/`text-h2`/`text-body`/`text-label`/`text-body-strong` utility picks up the new value automatically above 768px.
+
+| Token | Mobile (< 768px) | Tablet/Desktop (≥ 768px) |
+|---|---|---|
+| `h1` | 28px | 32px |
+| `h2` | 24px | 26px |
+| `body` | 15px | 16px |
+| `body-strong` | 15px | 16px |
+| `label` | 14px | 15px |
+| `score` | 64px | 64px (unchanged — already large enough; a bump here would unbalance `ResultBandCard`/`ScoreDial`) |
+
 ---
 
 ## 3. Spacing, radius, shadow, motion
