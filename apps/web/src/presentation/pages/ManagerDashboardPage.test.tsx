@@ -163,4 +163,20 @@ describe("ManagerDashboardPage", () => {
     });
     expect(screen.queryAllByTestId("skeleton")).toHaveLength(0);
   });
+
+  it("lays out the three KPI cards in a responsive grid", async () => {
+    renderManager();
+    await waitFor(() => {
+      expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("kpi-grid")).toHaveClass("grid-cols-2", "md:grid-cols-3");
+  });
+
+  it("lays out trend and segments in a responsive grid", async () => {
+    renderManager();
+    await waitFor(() => {
+      expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("trend-segments-grid")).toHaveClass("lg:grid-cols-[2fr_1fr]");
+  });
 });
