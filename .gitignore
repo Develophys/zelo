@@ -186,6 +186,9 @@ common/temp/
 # ---------- Git worktrees ----------
 .worktrees/
 
+# ---------- Superpowers brainstorming companion ----------
+.superpowers/
+
 node_modules/
 dist/
 .turbo/
