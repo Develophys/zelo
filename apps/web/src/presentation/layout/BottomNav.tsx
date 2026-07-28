@@ -1,24 +1,14 @@
-import type { ComponentType } from "react";
-import { Home, ClipboardCheck, MessageCircle, UserRound } from "lucide-react";
-
-type Tab = "home" | "checkin" | "chat" | "you";
+import { NAV_TABS, type NavTabId } from "./nav-tabs";
 
 interface BottomNavProps {
-  active: Tab;
-  onNavigate: (tab: Tab) => void;
+  active: NavTabId;
+  onNavigate: (tab: NavTabId) => void;
 }
-
-const TABS: { id: Tab; label: string; icon: ComponentType<{ size?: number }> }[] = [
-  { id: "home", label: "Início", icon: Home },
-  { id: "checkin", label: "Check-in", icon: ClipboardCheck },
-  { id: "chat", label: "Conversar", icon: MessageCircle },
-  { id: "you", label: "Você", icon: UserRound },
-];
 
 export function BottomNav({ active, onNavigate }: BottomNavProps) {
   return (
     <nav className="flex flex-none justify-around border-t border-surface-brand bg-surface px-2 pb-6 pt-3">
-      {TABS.map(({ id, label, icon: Icon }) => {
+      {NAV_TABS.map(({ id, label, icon: Icon }) => {
         const isActive = id === active;
         return (
           <button
