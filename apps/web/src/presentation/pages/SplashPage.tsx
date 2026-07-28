@@ -56,7 +56,7 @@ export function SplashPage() {
   }, [hasConsented, navigate]);
 
   return (
-    <PhoneShell bleed>
+    <PhoneShell bleed centered>
       <div
         className="flex min-h-screen flex-col items-center justify-center px-8.5 text-center"
         style={{ background: "linear-gradient(180deg,#EEF4F1,#F2F5F3)" }}

@@ -15,7 +15,7 @@ export function CrisisOfferPage() {
   const shortLabel = handoff.externalCrisisLine.label.split(" - ")[0];
 
   return (
-    <PhoneShell>
+    <PhoneShell centered>
       <div className="flex min-h-full flex-col pt-7.5 gap-3">
         <IconBadge icon={HeartHandshake} size={60} />
         <h1 className="text-h1 text-ink">Você não está sozinho(a).</h1>

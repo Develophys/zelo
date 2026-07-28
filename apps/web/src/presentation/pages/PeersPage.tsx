@@ -15,7 +15,7 @@ export function PeersPage() {
   const navigate = useNavigate();
 
   return (
-    <PhoneShell>
+    <PhoneShell centered>
       <div className="pt-[26px]">
         <div className="flex items-center justify-between">
           <BackButton label="Início" onClick={() => navigate(routes.home)} />

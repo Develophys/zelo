@@ -52,7 +52,7 @@ export function Phq9AssessmentPage() {
   };
 
   return (
-    <PhoneShell>
+    <PhoneShell centered>
       <div className="flex min-h-full flex-col pt-6">
         <div className="flex items-center gap-3">
           <BackButton onClick={handleBack} />

@@ -15,7 +15,7 @@ export function PrivacyPage() {
   const navigate = useNavigate();
 
   return (
-    <PhoneShell>
+    <PhoneShell centered>
       <div className="pt-[30px]">
         <SectionLabel>Privacidade primeiro</SectionLabel>
         <h1 className="mb-[22px] mt-[10px] text-h1 text-ink">Como o Zelo protege você</h1>

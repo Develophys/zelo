@@ -20,7 +20,7 @@ export function CrisisAcceptPage() {
   const direction = bond ? getCrisisDirectionUseCase.execute(bond) : null;
 
   return (
-    <PhoneShell>
+    <PhoneShell centered>
       <div className="flex min-h-full flex-col pt-[30px]">
         <BackButton label="Voltar" onClick={() => navigate(routes.crisis)} />
         <h1 className="mb-2 mt-4 text-h1 text-ink">Vamos te direcionar</h1>

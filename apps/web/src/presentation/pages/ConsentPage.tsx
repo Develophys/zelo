@@ -26,7 +26,7 @@ export function ConsentPage() {
   };
 
   return (
-    <PhoneShell>
+    <PhoneShell centered>
       <div className="pt-[30px]">
         <BackButton label="Voltar" onClick={() => navigate(routes.privacy)} />
         <h1 className="mb-[6px] mt-4 text-h1 text-ink">Seu consentimento</h1>

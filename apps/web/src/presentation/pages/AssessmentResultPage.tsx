@@ -48,7 +48,7 @@ export function AssessmentResultPage() {
   const band = bandFor(scaleType, totalScore);
 
   return (
-    <PhoneShell>
+    <PhoneShell centered>
       <div className="pt-7">
         <div className="flex items-center justify-between">
           <button
