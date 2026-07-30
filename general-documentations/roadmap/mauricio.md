@@ -40,9 +40,14 @@
 
 ## Novidades registradas em 11/07/2026 (fora do ciclo semanal original)
 
-- [ ] Provisionar logins reais para a equipe do Dr. David Mendes (PS/UTI) testar o Zelo — piloto de uso real, não simulado. Como esses médicos vão gerar dados de saúde reais (não fictícios), revisar a cadeia de anonimização/cifragem (FR-1, FR-2, FR-14) antes de liberar acesso, não só para a demo.
-- [ ] Buscar mentor jurídico/SST na Jornada para revisar o texto do rótulo NR-1/PGR do painel (FR-16, US-006 AC-4, `adr-001-fr16-nr1-painel-gestor.md`) antes da fala final da banca.
+- [ ] Provisionar logins reais para a equipe do Dr. David Mendes (PS/UTI) testar o Zelo — piloto de uso real, não simulado. Como esses médicos vão gerar dados de saúde reais (não fictícios), revisar a cadeia de anonimização/cifragem (FR-1, FR-2, FR-14) antes de liberar acesso, não só para a demo. **Status (28/07/2026): nunca saiu do papel** — não houve provisionamento de login nem uso real. Fica como item em aberto a retomar (ou descartar) na trilha de evolução independente do produto pós-hackathon, não mais como compromisso do edital.
+- [ ] Buscar mentor jurídico/SST na Jornada para revisar o texto do rótulo NR-1/PGR do painel (FR-16, US-006 AC-4, `adr-001-fr16-nr1-painel-gestor.md`) antes da fala final da banca. **Status (28/07/2026): nunca encontrado** — segue em aberto. Como o rótulo NR-1 continua no painel do produto que Mauricio quer evoluir, esta revisão permanece necessária antes de qualquer uso real com um gestor hospitalar.
 - [ ] Confirmar política de retenção de dados da API do Groq e registrar em `prd.md` (Considerações Técnicas).
+
+## Backlog da trilha de evolução independente (pós-hackathon, 28/07/2026)
+
+- [ ] **Canal WhatsApp para o chat de acolhimento e follow-up** — spec de design pronta e aprovada em brainstorm (28/07/2026): `docs/superpowers/specs/2026-07-28-whatsapp-channel-design.md`, `documentacao-produto/user-stories.md` US-010. **Não agendado para implementação** — nenhum plano de execução foi feito ainda, por decisão explícita de Mauricio ("não vamos fazer nenhum plan pra isso agora"). Retomar com `superpowers:writing-plans` quando for priorizado.
+- [ ] Chat par-a-par via WebSocket entre médicos anônimos (extensão de US-005), com pares adicionados pelo gestor — mencionado no mesmo brainstorm de 28/07/2026, mas ainda **sem spec de design** (o brainstorm cobriu só o canal WhatsApp primeiro). Fazer o brainstorm deste quando for priorizado.
 
 ## Pendências que dependem de decisão do time
 

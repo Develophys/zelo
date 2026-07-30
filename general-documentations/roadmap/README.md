@@ -99,6 +99,10 @@ A ACM (Dr. Marcello Alberton Herdt, Diretor de Inovação) respondeu formalmente
 | Métrica de follow-up (nova) | Aceita como FR-17/US-009, prioridade máxima da Semana 3 | `documentacao-produto/prd.md` (FR-17), `documentacao-produto/user-stories.md` (US-009) |
 | Critério de avaliação da PoC | Confirmado: robustez do fluxo triagem → direcionamento → follow-up | `documentacao-produto/prd.md`, "Perguntas em Aberto" |
 
+## Nota (28/07/2026) — Resultado da Jornada e trilha pós-hackathon
+
+O time **não avançou para a pré-incubação** da 1ª Jornada Incubintech. Mauricio decidiu continuar evoluindo o Zelo por conta própria, fora do vínculo formal com a Incubintech/ACM, rumo a um produto mais completo — não como exigência de edital, mas como iniciativa própria. Isso muda a natureza do roadmap a partir daqui: os itens amarrados a checkpoints eliminatórios (linha do tempo abaixo) estão encerrados; o trabalho passa a ser priorizado por valor de produto, não por prazo de banca. Ver plano de ação `2026-07-28` (gerado via `foundation-prioritized-action-plan`) para o mapeamento do que ficou pendente e os próximos passos.
+
 ## Próximos passos abertos (não datados)
 
 - ~~Confirmar com Dr. David Mendes se o time vai avançar com entrevistas à equipe médica dele~~ — **Resolvido e ampliado em 11/07/2026**: vira piloto de uso real com logins. Ver `raquel-ritter.md` e `mauricio.md` (provisionamento de login).

@@ -1,8 +1,8 @@
 ---
 artefato: prd
-versão: "1.2"
+versão: "1.3"
 criado: 2026-07-02
-atualizado: 2026-07-19
+atualizado: 2026-07-28
 status: rascunho
 ---
 
@@ -185,7 +185,7 @@ Dado bruto de autoavaliação nunca sai do dispositivo em texto claro. Apenas ci
 | Parceiro clínico para validar critérios de risco agudo e escalas | Equipe (Mauricio) | Parceiros confirmados, validação em andamento — ver `roteiro-entrevista-psicologos-parceiros.md`, Bloco 1 | Sem critério clínico validado, o escalonamento de crise vira uma regra hipotética não defensável perante a banca |
 | Psicólogo(a) parceiro(a) para o caminho de aceite (canal operacional) | Equipe (Mauricio) | Parceiros confirmados em papel consultivo; canal operacional do caminho de aceite ainda a definir (Bloco 8 do roteiro) | Caminho de aceite pode precisar ser simulado/mockado na demo, com isso declarado explicitamente |
 | Escolha final do provedor de LLM | Equipe técnica (Mauricio) | **Resolvido**: Groq | — |
-| Revisão jurídica/SST do rótulo NR-1 do painel (FR-16) | Mauricio | Em busca de mentor na Jornada | Sem revisão, o rótulo "insumo para o PGR" fica sem validação externa antes da fala final |
+| Revisão jurídica/SST do rótulo NR-1 do painel (FR-16) | Mauricio | Não encontrado (28/07/2026) — segue em aberto na trilha de evolução independente do produto pós-hackathon | Sem revisão, o rótulo "insumo para o PGR" fica sem validação externa; bloqueia uso real com gestor hospitalar |
 
 ### Riscos
 
@@ -210,15 +210,15 @@ Dado bruto de autoavaliação nunca sai do dispositivo em texto claro. Apenas ci
 
 ## Perguntas em Aberto
 
-- [x] ~~Qual provedor de LLM será usado, e qual sua política de retenção de dados?~~ — **Resolvido em 11/07/2026**: Groq. Política de retenção de dados da API ainda precisa ser confirmada e documentada.
+- [x] ~~Qual provedor de LLM será usado, e qual sua política de retenção de dados?~~ — **Resolvido em 11/07/2026**: Groq. Política de retenção de dados da API ainda precisa ser confirmada e documentada — **status em 28/07/2026: ainda não lida/confirmada**, segue em aberto.
 - [x] ~~Existe parceiro clínico (psicólogo) confirmado?~~ — **Resolvido em 11/07/2026**: sim, dois parceiros, papel consultivo por ora (ver `roteiro-entrevista-psicologos-parceiros.md`).
 - [x] ~~O painel institucional terá uma persona "gestor hospitalar" documentada?~~ — **Resolvido em 11/07/2026**: sim. Ver `persona-gestor-hospitalar.md` (Dra. Beatriz Konder, confiança: Proto — sem entrevista direta ainda).
-- [ ] Qual o limiar mínimo de respostas por segmento no painel agregado? — **Mantido como pendência intencional**: fica n≥5 como placeholder técnico até validação clínica/jurídica (`roteiro-entrevista-psicologos-parceiros.md`, Bloco 6). — Responsável: Mauricio + psicólogos parceiros
+- [x] ~~Qual o limiar mínimo de respostas por segmento no painel agregado?~~ — **Resolvido em 28/07/2026**: n≥5, já implementado em código (`apps/api/src/modules/manager/application/constants.ts`, `K_ANONYMITY_THRESHOLD = 5`). Validação clínica/jurídica formal do valor segue em aberto (`roteiro-entrevista-psicologos-parceiros.md`, Bloco 6) — Responsável: Mauricio + psicólogos parceiros.
 - [x] ~~Qual o texto e a posição exata do atalho "falar com uma pessoa real" (FR-6b)?~~ — **Resolvido em 11/07/2026**: oferece escolha explícita entre par médico e psicólogo (ver FR-6b acima). Texto/posição exata de copy ainda com Raquel.
 - [x] ~~O time ainda não tem uma função de PM/liderança de produto formalmente definida~~ — **Resolvido em 11/07/2026**: Mauricio assume a coordenação de escopo do produto (além de dev full stack/arquitetura/DevOps). Raquel segue com marketing/social media; Yasmin e Kati com dados. A comunicação oficial com a organização da Jornada ainda precisa de um responsável definido — Mauricio decide escopo, mas isso não implica automaticamente ser o ponto de contato oficial com a Jornada.
 - [x] ~~O painel do gestor deve ganhar enquadramento explícito de conformidade NR-1 (PGR/GRO)?~~ — **Resolvido em 11/07/2026**: sim. Ver `adr-001-fr16-nr1-painel-gestor.md` (status: Aceito) e FR-16 acima.
 - [x] ~~Qual subconjunto de escalas cabe no prazo de 28 dias, e qual é o critério de avaliação da PoC?~~ — **Resolvido em 19/07/2026**: a ACM (Dr. Marcello Alberton Herdt, Diretor de Inovação) confirmou, em resposta formal (`Perguntas encaminhadas a ACM.pdf`), que o critério de avaliação está na "robustez desse fluxo de triagem (GAD-2/PHQ-2) → direcionamento (SUS/privado) → follow-up", e recomendou GAD-2/PHQ-2 como primeiro filtro, expandindo para GAD-7/PHQ-9 em caso de pontuação positiva. Não é necessário desenvolver os quatro formulários originalmente mencionados na documentação do desafio. Ver FR-1, FR-3, FR-7–FR-10, FR-17 acima e `adr-003-crisis-protocol-rescope-peer-chat-differentiator.md`.
-- [ ] Qual o intervalo exato entre a interação inicial e o disparo do follow-up (FR-17)? — Pendência intencional, mesma registrada em `user-stories.md` (US-009). Responsável: Mauricio, a decidir antes do início da implementação (timebox de 2 dias, ver `roadmap/mauricio.md`, Semana 3).
+- [x] ~~Qual o intervalo exato entre a interação inicial e o disparo do follow-up (FR-17)?~~ — **Resolvido**: 3 dias, já implementado em código (`apps/web/src/use-cases/should-show-followup-prompt.usecase.ts`, `FOLLOWUP_INTERVAL_DAYS = 3`), com justificativa registrada em `docs/superpowers/specs/2026-07-19-followup-mechanism-design.md` §5.
 
 ## Apêndice
 
@@ -250,6 +250,7 @@ Dado bruto de autoavaliação nunca sai do dispositivo em texto claro. Apenas ci
 
 | Versão | Data | Autor | Mudanças |
 |---|---|---|---|
+| 1.3 | 2026-07-28 | Reconciliação pós-Jornada (via `foundation-prioritized-action-plan` + `deliver-prd`) | "Perguntas em Aberto" sincronizadas com o estado real do código: limiar de k-anonimato (n≥5) e intervalo de follow-up (3 dias) marcados como resolvidos, citando `constants.ts` e `should-show-followup-prompt.usecase.ts` como fonte — ambos já estavam decididos em código, mas o PRD ainda os listava como pendência intencional |
 | 1.0 | 2026-07-02 | Rascunho gerado via pm-skills a partir do edital, brief, pitch deck e fluxo de crise fornecidos; revisão da equipe pendente | Versão inicial |
 | 1.1 | 2026-07-07 | Atualizado a partir da entrevista com Dr. David Mendes e dos documentos de 07/07 (checklist oficial, resumos revisados) | Adicionado FR-6b (atalho humano visível no chat de IA); adicionados marcos legais CID-11/NR-1; registrada decisão de produto sobre IA humanizada vs. desconfiança de IA |
 | 1.2 | 2026-07-19 | Atualizado a partir das respostas formais da ACM (Dr. Marcello Alberton Herdt, Diretor de Inovação) a perguntas encaminhadas pelo time | FR-1/FR-3 revisados (triagem em duas etapas GAD-2/PHQ-2 → GAD-7/PHQ-9); FR-7–FR-10 simplificados (sinalização + direcionamento SUS/privado, sem integração técnica direta — ver ADR-003); adicionado FR-17 (acompanhamento/follow-up, ver US-009); registrado o critério de avaliação da PoC confirmado pela ACM em "Perguntas em Aberto" |

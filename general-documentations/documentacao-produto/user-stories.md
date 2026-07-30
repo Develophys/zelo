@@ -278,3 +278,35 @@ Estas 8 histórias cobrem o escopo "Dentro do Escopo" definido na PRD. Persona d
 **Dependências**: US-001 (autoavaliação concluída); US-003/US-004 (quando o follow-up decorre de um episódio de crise); US-006 (painel do gestor, para exibição das métricas).
 **Fora do Escopo**: Acompanhamento longitudinal contínuo/recorrente (múltiplos follow-ups ao longo do tempo) — considerar como evolução pós-hackathon, mesmo padrão de honestidade de escopo já usado em `adr-001-fr16-nr1-painel-gestor.md` e `adr-002-mbi-hss-direction.md`.
 **Perguntas em Aberto**: Qual o intervalo exato entre a interação inicial e o disparo do follow-up (ex.: 48h? 7 dias?) — decisão de produto pendente, a resolver por Mauricio antes do início da implementação (timebox de 2 dias, ver `roadmap/mauricio.md`, Semana 3).
+
+## US-010 — Canal WhatsApp para o chat de acolhimento e follow-up
+
+| Campo | Valor |
+|---|---|
+| ID | US-010 |
+| Persona | Médica usuária (Dra. Camila Andrade) |
+| Prioridade | A definir (primeira feature priorizada na trilha de evolução independente do produto pós-hackathon, decisão de Mauricio em 28/07/2026) |
+| Épico | Engajamento Contínuo |
+| Estimativa | A definir |
+| Status | **Spec de design pronta e aprovada, não agendada para implementação** — pendência registrada, ver `roadmap/mauricio.md`. |
+
+**Como** médica que não quer depender de abrir o app para manter contato com o Zelo,
+**eu quero** conversar com a IA de acolhimento do Zelo e receber o follow-up (US-009) também pelo WhatsApp, vinculando meu número ao app,
+**para que** o acompanhamento aconteça no canal que já uso no dia a dia.
+
+**Contexto**: Ideia registrada em `general-documentations/ideas.md`, revisada em brainstorm com Mauricio em 28/07/2026: a proposta original de "IA aprender sobre o médico a partir de dados de plantão fornecidos pelo hospital" foi **descartada pelo próprio autor da ideia** antes do brainstorm ("isso foi apenas uma ideia rápida anotada") — não faz parte do escopo desta US. O escopo real é o chat de IA existente (US-002) e o follow-up (US-009) ficarem acessíveis também via WhatsApp, com o médico vinculando o número ao app. Design completo em `docs/superpowers/specs/2026-07-28-whatsapp-channel-design.md`.
+
+**Critérios de Aceite**
+
+- *AC-1 — Vinculação com prova de posse do número*: Dado que a médica já usa o app, quando ela opta por vincular o WhatsApp, então o sistema envia um código OTP via WhatsApp e só confirma o vínculo se ela digitar esse código de volta no app.
+- *AC-2 — Continuidade da conversa*: Dado que o número está vinculado, quando a médica manda uma mensagem livre no WhatsApp, então a IA responde com o mesmo padrão de tom e guardrails do chat do app (US-002), com histórico persistido (anonimizado) para dar continuidade entre os dois canais.
+- *AC-3 — Direcionamento de crise também funciona no WhatsApp*: Dado que a IA detecta risco agudo durante uma conversa no WhatsApp, quando isso acontece, então o mesmo fluxo de direcionamento simplificado (FR-7–FR-10) dispara ali, com aceite/recusa via botões interativos.
+- *AC-4 — Follow-up via WhatsApp*: Dado que um vínculo de WhatsApp existe e o intervalo do follow-up (US-009, 3 dias) foi atingido, quando o gatilho dispara, então o Zelo manda o template de follow-up aprovado pela Meta pelo WhatsApp, e a resposta é contabilizada na mesma métrica já exibida no painel do gestor (US-006).
+- *AC-5 — Sem dado bruto persistido em claro no servidor*: Dado que uma mensagem chega pelo webhook do WhatsApp, quando ela é processada, então o texto é anonimizado em memória no servidor antes de qualquer persistência — exceção documentada ao padrão de anonimização client-side (FR-5), válida só para este canal.
+
+**Notas de Design**: Tom de continuidade de cuidado, não vigilância — mesmo cuidado já aplicado em US-009.
+**Notas Técnicas**: WhatsApp Cloud API da Meta (decisão registrada no spec, não BSP terceiro). Introduz o primeiro conceito de identidade persistente por dispositivo do produto (`deviceLinkToken`) e as primeiras tabelas de conversa/mensagem persistidas (hoje o chat não persiste em lugar nenhum). Ver spec para arquitetura completa, incluindo por que a anonimização precisa migrar para o servidor só neste canal.
+**Dependências**: US-002 (chat de IA), US-009 (follow-up), US-006 (métrica de follow-up no painel).
+**Fora do Escopo**: Qualquer uso de dados de plantão/escala do hospital para customizar respostas da IA (descartado); mídia (áudio/imagem); múltiplos números por dispositivo; chat par-a-par via WebSocket (US separada).
+
+**Perguntas em Aberto**: nenhuma bloqueante para o design — todas resolvidas no brainstorm de 28/07/2026 (ver spec). Falta apenas a decisão de **quando** priorizar a implementação.
