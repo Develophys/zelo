@@ -65,7 +65,7 @@ describe("ManagerDashboardPage", () => {
     const user = userEvent.setup();
     renderManager();
 
-    await user.click(screen.getByRole("button", { name: "Sair da demo" }));
+    await user.click(screen.getByRole("button", { name: "Voltar" }));
     expect(screen.getByText("Home screen")).toBeInTheDocument();
   });
 

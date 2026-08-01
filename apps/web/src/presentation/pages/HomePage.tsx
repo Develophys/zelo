@@ -162,7 +162,7 @@ export function HomePage() {
           onClick={() => navigate(routes.manager)}
           className="mt-4 min-h-[44px] text-left text-label font-semibold text-muted underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
-          Ver painel do gestor (demo)
+          Ver painel do gestor
         </button>
       </div>
     </PhoneShell>

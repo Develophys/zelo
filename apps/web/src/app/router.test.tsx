@@ -105,7 +105,7 @@ describe("onboarding router flow", () => {
     buildTestRouter("/home");
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole("button", { name: "Ver painel do gestor (demo)" }));
+    await user.click(await screen.findByRole("button", { name: "Ver painel do gestor" }));
     expect(await screen.findByText("Acesso do gestor")).toBeInTheDocument();
   });
 

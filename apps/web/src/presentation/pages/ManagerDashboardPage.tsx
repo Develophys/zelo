@@ -87,7 +87,7 @@ export function ManagerDashboardPage() {
     <PhoneShell bg="canvas-alt">
       <div className="pt-[26px]">
         <div className="flex items-center justify-between">
-          <BackButton label="Sair da demo" onClick={() => navigate(routes.home)} />
+          <BackButton label="Voltar" onClick={() => navigate(routes.home)} />
           <PrivacyBadge />
         </div>
         <div className="mt-4">
@@ -184,6 +184,7 @@ export function ManagerDashboardPage() {
                   full={false}
                   disabled={segments.length === 0}
                   onClick={() => downloadPgrReportAsCsv(data)}
+                  className="p-2 cursor-pointer"
                 >
                   Exportar CSV
                 </Button>
@@ -192,6 +193,7 @@ export function ManagerDashboardPage() {
                   full={false}
                   disabled={segments.length === 0}
                   onClick={() => downloadPgrReportAsPdf(data)}
+                  className="p-2 cursor-pointer"
                 >
                   Exportar PDF
                 </Button>
