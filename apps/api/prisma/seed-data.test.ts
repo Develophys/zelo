@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFollowUpSeedRows, buildSeedRows, startOfIsoWeek } from "./seed-data.ts";
+import { buildFollowUpSeedRows, buildSeedRows, startOfIsoWeek, MANAGER_SEED_ROSTER } from "./seed-data.ts";
 
 describe("startOfIsoWeek", () => {
   it("resolves a Wednesday back to that week's Monday", () => {
@@ -61,5 +61,16 @@ describe("buildFollowUpSeedRows", () => {
   it("the most recent week's weekStart is the Monday of the reference date's week", () => {
     const rows = buildFollowUpSeedRows(reference).sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
     expect(rows[rows.length - 1]!.weekStart.toISOString()).toBe("2026-07-06T00:00:00.000Z");
+  });
+});
+
+describe("MANAGER_SEED_ROSTER", () => {
+  it("has at least one manager with a unique name and a non-empty password", () => {
+    expect(MANAGER_SEED_ROSTER.length).toBeGreaterThan(0);
+    const names = MANAGER_SEED_ROSTER.map((manager) => manager.name);
+    expect(new Set(names).size).toBe(names.length);
+    for (const manager of MANAGER_SEED_ROSTER) {
+      expect(manager.password.length).toBeGreaterThan(0);
+    }
   });
 });

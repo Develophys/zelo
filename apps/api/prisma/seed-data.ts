@@ -78,3 +78,17 @@ export function buildFollowUpSeedRows(referenceDate: Date): SimulatedFollowUpSee
 
   return rows;
 }
+
+export interface ManagerSeedRow {
+  name: string;
+  password: string;
+}
+
+// Demo roster — plaintext passwords here are intentional (local/demo data,
+// same transparency MANAGER_ACCESS_CODE=zelo-demo-2026 had in .env.example
+// before this migration). Hashed at seed time by ManagerPasswordService,
+// never stored in plaintext in the database.
+export const MANAGER_SEED_ROSTER: ManagerSeedRow[] = [
+  { name: "Ana Konder", password: "zelo-ana-2026" },
+  { name: "Carlos Mendes", password: "zelo-carlos-2026" },
+];

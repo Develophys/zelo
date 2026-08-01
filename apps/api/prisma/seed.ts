@@ -1,8 +1,10 @@
 import { PrismaService } from "../src/shared/prisma/prisma.service.ts";
-import { buildFollowUpSeedRows, buildSeedRows } from "./seed-data.ts";
+import { ManagerPasswordService } from "../src/modules/manager/application/services/manager-password.service.ts";
+import { buildFollowUpSeedRows, buildSeedRows, MANAGER_SEED_ROSTER } from "./seed-data.ts";
 
 async function main() {
   const prisma = new PrismaService();
+  const passwordService = new ManagerPasswordService();
   const rows = buildSeedRows(new Date());
   const followUpRows = buildFollowUpSeedRows(new Date());
 
@@ -12,7 +14,18 @@ async function main() {
   await prisma.simulatedFollowUp.deleteMany();
   await prisma.simulatedFollowUp.createMany({ data: followUpRows });
 
-  console.log(`Seeded ${rows.length} SimulatedSignal rows and ${followUpRows.length} SimulatedFollowUp rows.`);
+  for (const manager of MANAGER_SEED_ROSTER) {
+    const passwordHash = await passwordService.hash(manager.password);
+    await prisma.manager.upsert({
+      where: { name: manager.name },
+      update: { passwordHash },
+      create: { name: manager.name, passwordHash },
+    });
+  }
+
+  console.log(
+    `Seeded ${rows.length} SimulatedSignal rows, ${followUpRows.length} SimulatedFollowUp rows, and ${MANAGER_SEED_ROSTER.length} Manager accounts.`,
+  );
   await prisma.$disconnect();
 }
 
