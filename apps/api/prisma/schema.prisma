@@ -33,12 +33,22 @@ model SimulatedSignal {
   @@map("simulated_signals")
 }
 
+model Manager {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  @@map("managers")
+}
+
 model ManagerInsight {
-  id               String   @id @default(cuid())
-  interpretation   String
-  suggestedActions String[]
-  summary          String
-  generatedAt      DateTime @default(now())
+  id                   String   @id @default(cuid())
+  interpretation       String
+  suggestedActions     String[]
+  summary              String
+  generatedAt          DateTime @default(now())
+  createdByManagerName String?
 
   @@map("manager_insights")
 }
