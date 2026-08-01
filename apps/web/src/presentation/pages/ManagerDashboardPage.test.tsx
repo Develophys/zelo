@@ -7,6 +7,7 @@ import { ManagerDashboardPage } from "./ManagerDashboardPage";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import * as container from "@/app/container";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
+import * as pgrExport from "@/presentation/lib/download-manager-pgr-report";
 
 function renderManager() {
   const queryClient = new QueryClient();
@@ -178,5 +179,54 @@ describe("ManagerDashboardPage", () => {
       expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
     });
     expect(screen.getByTestId("trend-segments-grid")).toHaveClass("lg:grid-cols-[2fr_1fr]");
+  });
+
+  it("renders the PGR export card with the NR-1 disclaimer", async () => {
+    renderManager();
+    await waitFor(() => {
+      expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Insumo para o PGR")).toBeInTheDocument();
+    expect(screen.getByText(/não uma certificação de conformidade com a NR-1/)).toBeInTheDocument();
+  });
+
+  it("triggers a CSV export when 'Exportar CSV' is clicked", async () => {
+    const csvSpy = vi.spyOn(pgrExport, "downloadPgrReportAsCsv").mockImplementation(() => {});
+    const user = userEvent.setup();
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: "Exportar CSV" }));
+
+    expect(csvSpy).toHaveBeenCalledWith(SIGNALS_RESPONSE);
+  });
+
+  it("triggers a PDF export when 'Exportar PDF' is clicked", async () => {
+    const pdfSpy = vi.spyOn(pgrExport, "downloadPgrReportAsPdf").mockImplementation(async () => {});
+    const user = userEvent.setup();
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: "Exportar PDF" }));
+
+    expect(pdfSpy).toHaveBeenCalledWith(SIGNALS_RESPONSE);
+  });
+
+  it("disables both export buttons when there are no segments", async () => {
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
+      ...SIGNALS_RESPONSE,
+      segments: [],
+    });
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("Insumo para o PGR")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Exportar CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Exportar PDF" })).toBeDisabled();
   });
 });

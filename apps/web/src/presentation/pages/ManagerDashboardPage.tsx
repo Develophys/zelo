@@ -12,6 +12,7 @@ import { useManagerSignals } from "@/presentation/hooks/useManagerSignals";
 import { useManagerInsight } from "@/presentation/hooks/useManagerInsight";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
+import { downloadPgrReportAsCsv, downloadPgrReportAsPdf } from "@/presentation/lib/download-manager-pgr-report";
 
 const MIN_TREND_BAR_HEIGHT = 8;
 const TREND_SKELETON_BAR_COUNT = 6;
@@ -166,6 +167,38 @@ export function ManagerDashboardPage() {
             )}
           </div>
         </div>
+
+        {data && (
+          <div className="mt-3.5">
+            <Card>
+              <SectionLabel>Conformidade NR-1</SectionLabel>
+              <p className="mt-2 text-body font-extrabold text-ink">Insumo para o PGR</p>
+              <p className="mt-2 text-label text-ink-2">
+                Estes sinais mapeiam fatores de risco psicossocial reconhecidos pela NR-1 — sobrecarga,
+                jornada, esgotamento por setor. Isto é um insumo para a gestão de risco psicossocial do
+                empregador, <strong>não uma certificação de conformidade com a NR-1</strong>.
+              </p>
+              <div className="mt-3 flex gap-2">
+                <Button
+                  variant="outline"
+                  full={false}
+                  disabled={segments.length === 0}
+                  onClick={() => downloadPgrReportAsCsv(data)}
+                >
+                  Exportar CSV
+                </Button>
+                <Button
+                  variant="outline"
+                  full={false}
+                  disabled={segments.length === 0}
+                  onClick={() => downloadPgrReportAsPdf(data)}
+                >
+                  Exportar PDF
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
 
         <div className="mt-3.5">
           <Card className="mb-2">
