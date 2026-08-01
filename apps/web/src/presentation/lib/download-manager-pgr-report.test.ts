@@ -44,13 +44,31 @@ describe("buildPgrCsvLines", () => {
   it("includes the disclaimer, summary metrics, and one row per segment", () => {
     const lines = buildPgrCsvLines(DATA, GENERATED_AT);
 
-    expect(lines).toContain(DISCLAIMER);
+    expect(lines).toContain(`"${DISCLAIMER}"`);
     expect(lines).toContain("Sinais de burnout na equipe,41%");
     expect(lines).toContain("Questionários respondidos (4 semanas),111");
     expect(lines).toContain("Taxa de resposta do follow-up,70%");
     expect(lines).toContain("Plantão noturno,52%,18");
     expect(lines).toContain("Pronto-socorro,38%,24");
     expect(lines).toContain("UTI,44%,9");
+  });
+
+  it("quotes the title, date, and disclaimer lines but not the data rows", () => {
+    const lines = buildPgrCsvLines(DATA, GENERATED_AT);
+
+    expect(lines).toContain('"Insumo para o PGR - Zelo"');
+    expect(lines).toContain(`"${DISCLAIMER}"`);
+    expect(lines[1]).toMatch(/^".*"$/);
+
+    // The disclaimer contains a comma; it must be fully wrapped in quotes so
+    // a spreadsheet doesn't split it into two cells at that comma.
+    expect(lines).not.toContain(DISCLAIMER);
+
+    // Data rows are correctly-shaped CSV already and must remain unquoted.
+    expect(lines).not.toContain('"Sinais de burnout na equipe,41%"');
+    expect(lines).not.toContain('"Plantão noturno,52%,18"');
+    expect(lines).toContain("Métrica,Valor");
+    expect(lines).toContain("Setor,Sinais (%),n");
   });
 });
 
@@ -75,6 +93,14 @@ describe("downloadPgrReportAsCsv", () => {
       }
       return element;
     });
+    const OriginalBlob = globalThis.Blob;
+    let capturedBlobParts: BlobPart[] | undefined;
+    const BlobSpy = vi
+      .spyOn(globalThis, "Blob")
+      .mockImplementation((parts?: BlobPart[], options?: BlobPropertyBag) => {
+        capturedBlobParts = parts;
+        return new OriginalBlob(parts, options);
+      });
 
     downloadPgrReportAsCsv(DATA, GENERATED_AT);
 
@@ -84,6 +110,11 @@ describe("downloadPgrReportAsCsv", () => {
     expect(clickSpy).toHaveBeenCalledOnce();
     expect(capturedAnchor?.download).toBe("pgr-zelo-2026-07-01.csv");
     expect(revokeObjectURLMock).toHaveBeenCalledWith("blob:mock-url");
+
+    expect(BlobSpy).toHaveBeenCalledOnce();
+    const csvContent = capturedBlobParts?.[0] as string;
+    expect(csvContent.charCodeAt(0)).toBe(0xfeff);
+    expect(csvContent).toContain(`"${DISCLAIMER}"`);
 
     vi.restoreAllMocks();
   });

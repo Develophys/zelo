@@ -11,6 +11,10 @@ function formatFileDate(generatedAt: Date): string {
   return generatedAt.toISOString().slice(0, 10);
 }
 
+function csvQuote(field: string): string {
+  return `"${field.replace(/"/g, '""')}"`;
+}
+
 function triggerDownload(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
@@ -24,9 +28,9 @@ function triggerDownload(blob: Blob, filename: string): void {
 
 export function buildPgrCsvLines(data: ManagerSignalsResponse, generatedAt: Date): string[] {
   return [
-    "Insumo para o PGR - Zelo",
-    formatDate(generatedAt),
-    DISCLAIMER,
+    csvQuote("Insumo para o PGR - Zelo"),
+    csvQuote(formatDate(generatedAt)),
+    csvQuote(DISCLAIMER),
     "",
     "Métrica,Valor",
     `Sinais de burnout na equipe,${Math.round(data.overallConcerningRate * 100)}%`,
@@ -39,7 +43,9 @@ export function buildPgrCsvLines(data: ManagerSignalsResponse, generatedAt: Date
 }
 
 export function downloadPgrReportAsCsv(data: ManagerSignalsResponse, generatedAt: Date = new Date()): void {
-  const blob = new Blob([buildPgrCsvLines(data, generatedAt).join("\n")], { type: "text/csv;charset=utf-8" });
+  const blob = new Blob(["﻿" + buildPgrCsvLines(data, generatedAt).join("\n")], {
+    type: "text/csv;charset=utf-8",
+  });
   triggerDownload(blob, `pgr-zelo-${formatFileDate(generatedAt)}.csv`);
 }
 
