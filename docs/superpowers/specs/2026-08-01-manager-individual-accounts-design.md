@@ -140,7 +140,10 @@ records who did it.
 ## 4. Frontend changes
 
 - **`ManagerLoginPage.tsx`** — two fields (name, password) instead of one (code), same
-  `PhoneShell`/`Card`/`Button` shell and inline-401-error pattern as today.
+  `PhoneShell`/`Card`/`Button` shell and inline-401-error pattern as today. Stacked vertically
+  (name above password above submit) at every width — login forms read naturally in a single
+  column regardless of screen size, so there's no desktop-only side-by-side field layout to
+  design.
 - **`manager-auth.port.ts`** (the login request/response shape), `useManagerLogin.ts`, the
   frontend `login-manager.usecase.ts`, and `http-manager-auth.adapter.ts` all change from
   `login(code)` to `login(name, password)`.
@@ -150,6 +153,34 @@ records who did it.
 - **`ManagerInsightHistoryPage.tsx`** renders "Gerado por {name}" under the existing date
   line, only when `entry.createdByManagerName` is present — older entries (seeded or
   generated before this migration) simply omit the line, no placeholder text.
+
+### Responsive layout: mobile-first, tablet/desktop via the existing pattern
+
+`ManagerLoginPage.tsx` today renders `<PhoneShell>` with no responsive prop at all — it was
+out of scope for `2026-07-28-responsive-tablet-desktop-ui-design.md` (that spec only covered
+the 4 médico destination pages plus the explicitly-listed focused-flow screens; the manager
+flow's own three pages — login, dashboard, insight history — were left out). Growing this
+page from one field to two is the right moment to close that gap for the login page
+specifically, using the exact pattern already established rather than inventing a new one:
+
+- **Base (mobile, < 768px): unchanged.** Single-column form, full-width within `PhoneShell`'s
+  default `px-6` padding, exactly as it renders today — this spec doesn't touch mobile
+  behavior at all, only adds behavior above the existing breakpoint.
+- **≥ 768px (tablet) and ≥ 1024px (desktop): pass `centered` to `PhoneShell`** — the same prop
+  every other standalone/focused-flow screen already uses (`ConsentPage`, `PrivacyPage`, the
+  assessment flow, the crisis screens, etc. — see the grep-confirmed list of adopters).
+  `centered` constrains the body to a ~680px reading column (`md:mx-auto md:w-full
+  md:max-w-[680px]`, already implemented in `PhoneShell.tsx` and generically tested in
+  `PhoneShell.test.tsx`) and picks up the tablet/desktop type-scale bump already documented in
+  `design-tokens.md`'s "Tablet/Desktop scale (≥768px)" section — both mechanisms exist today
+  and need zero new code, only the one prop on this one page.
+- **No `nav` prop** — `ManagerLoginPage` is a standalone auth gate, not one of the 4
+  persistent-navigation destination screens, matching how the crisis/consent/assessment
+  screens also use `centered` without `nav`.
+- **No new breakpoints, no new typography tokens, no new component.** This is deliberately
+  the smallest possible change: one prop, reusing infrastructure the codebase already built
+  and tested for exactly this "single-column form/content, no sidebar, wider screens get a
+  centered reading column" shape.
 
 ## 5. Seed roster
 
@@ -194,7 +225,11 @@ stays; it still signs the session token.
   generated it).
 
 **Frontend:**
-- `ManagerLoginPage.test.tsx` — two-field submit flow; inline error (not a crash) on 401.
+- `ManagerLoginPage.test.tsx` — two-field submit flow; inline error (not a crash) on 401. No
+  new test for the `centered` prop's responsive mechanism itself — matching the existing
+  convention (`ConsentPage.test.tsx` and every other `centered` adopter), the mechanism is
+  already generically covered by `PhoneShell.test.tsx`'s "centered mode" suite; page-level
+  tests only need to pass the prop, not re-verify what it does.
 - Frontend `login-manager.usecase.test.ts` — signature change to `execute(name, password)`.
 - `router.test.tsx` — login flow updated to the new form fields.
 - `ManagerInsightHistoryPage.test.tsx` — "Gerado por {name}" renders when present, omitted
