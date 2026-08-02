@@ -11,12 +11,89 @@ import { useUpdateSector } from "@/presentation/hooks/useUpdateSector";
 import { useAdminManagers } from "@/presentation/hooks/useAdminManagers";
 import { useCreateManager } from "@/presentation/hooks/useCreateManager";
 import { useUpdateManager } from "@/presentation/hooks/useUpdateManager";
-import type { CreateManagerResult } from "@/ports/manager-admin.port";
+import { useResetManagerPassword } from "@/presentation/hooks/useResetManagerPassword";
+import type { AdminSector, ManagerSummary } from "@/ports/manager-admin.port";
 
 const SUGGESTED_SECTOR_NAMES = ["UTI", "Pronto-Socorro", "Clínica Médica", "Centro Cirúrgico", "Pediatria", "Ambulatório", "Plantão Noturno"];
 
+type ManagerRole = "HOSPITAL_ADMIN" | "SECTOR_MANAGER";
+
+// Shared by the create form and each row's inline edit form. The idPrefix keeps
+// the two sets of inputs from colliding when both are on screen at once.
+function RoleAndSectorFields({
+  idPrefix,
+  role,
+  onRoleChange,
+  sectors,
+  selectedSectorIds,
+  onToggleSector,
+}: {
+  idPrefix: string;
+  role: ManagerRole;
+  onRoleChange: (role: ManagerRole) => void;
+  sectors: AdminSector[];
+  selectedSectorIds: string[];
+  onToggleSector: (id: string) => void;
+}) {
+  return (
+    <>
+      <fieldset className="mt-3">
+        <legend className="text-label font-semibold text-ink-2">Tipo de gestor</legend>
+        <div className="mt-2 flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <input
+              type="radio"
+              id={`${idPrefix}-role-hospital-admin`}
+              name={`${idPrefix}-manager-role`}
+              checked={role === "HOSPITAL_ADMIN"}
+              onChange={() => onRoleChange("HOSPITAL_ADMIN")}
+            />
+            <label htmlFor={`${idPrefix}-role-hospital-admin`} className="text-label text-ink-2">
+              Gestor do hospital
+            </label>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="radio"
+              id={`${idPrefix}-role-sector-manager`}
+              name={`${idPrefix}-manager-role`}
+              checked={role === "SECTOR_MANAGER"}
+              onChange={() => onRoleChange("SECTOR_MANAGER")}
+            />
+            <label htmlFor={`${idPrefix}-role-sector-manager`} className="text-label text-ink-2">
+              Gestor de setor
+            </label>
+          </div>
+        </div>
+      </fieldset>
+
+      {role === "SECTOR_MANAGER" && (
+        <div className="mt-3">
+          <p className="text-label font-semibold text-ink-2">Setores</p>
+          <div className="mt-2 flex flex-col gap-2">
+            {sectors.map((sector) => (
+              <div key={sector.id} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id={`${idPrefix}-sector-checkbox-${sector.id}`}
+                  checked={selectedSectorIds.includes(sector.id)}
+                  onChange={() => onToggleSector(sector.id)}
+                />
+                <label htmlFor={`${idPrefix}-sector-checkbox-${sector.id}`} className="text-label text-ink-2">
+                  {sector.name}
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function SectorsTab() {
   const sectors = useAdminSectors();
+  const managers = useAdminManagers();
   const createSector = useCreateSector();
   const updateSector = useUpdateSector();
   const [name, setName] = useState("");
@@ -82,6 +159,20 @@ function SectorsTab() {
                 {sector.isActive ? "Desativar" : "Ativar"}
               </Button>
             </div>
+
+            <select
+              aria-label={`Gestor de ${sector.name}`}
+              value={sector.managerId ?? ""}
+              onChange={(event) => updateSector.mutate({ id: sector.id, patch: { managerId: event.target.value || null } })}
+              className="mt-3 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink"
+            >
+              <option value="">Sem gestor</option>
+              {(managers.data ?? []).map((manager) => (
+                <option key={manager.id} value={manager.id}>
+                  {manager.name}
+                </option>
+              ))}
+            </select>
           </Card>
         ))}
       </div>
@@ -95,12 +186,23 @@ function ManagersTab() {
   const createManager = useCreateManager();
   const updateManager = useUpdateManager();
   const [name, setName] = useState("");
-  const [role, setRole] = useState<"HOSPITAL_ADMIN" | "SECTOR_MANAGER">("HOSPITAL_ADMIN");
+  const resetPassword = useResetManagerPassword();
+  const [role, setRole] = useState<ManagerRole>("HOSPITAL_ADMIN");
   const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
-  const [lastCreated, setLastCreated] = useState<CreateManagerResult | null>(null);
+  // One-time password display, shared by creation and by a password reset.
+  const [revealedPassword, setRevealedPassword] = useState<{ managerName: string; temporaryPassword: string } | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editRole, setEditRole] = useState<ManagerRole>("SECTOR_MANAGER");
+  const [editSectorIds, setEditSectorIds] = useState<string[]>([]);
+
+  const sectorList = sectors.data ?? [];
 
   const toggleSector = (id: string) => {
     setSelectedSectorIds((current) => (current.includes(id) ? current.filter((sectorId) => sectorId !== id) : [...current, id]));
+  };
+
+  const toggleEditSector = (id: string) => {
+    setEditSectorIds((current) => (current.includes(id) ? current.filter((sectorId) => sectorId !== id) : [...current, id]));
   };
 
   const handleSubmit = (event: FormEvent) => {
@@ -109,7 +211,7 @@ function ManagersTab() {
       { name, role, sectorIds: role === "SECTOR_MANAGER" ? selectedSectorIds : undefined },
       {
         onSuccess: (result) => {
-          setLastCreated(result);
+          setRevealedPassword({ managerName: result.manager.name, temporaryPassword: result.temporaryPassword });
           setName("");
           setRole("HOSPITAL_ADMIN");
           setSelectedSectorIds([]);
@@ -118,14 +220,34 @@ function ManagersTab() {
     );
   };
 
+  const handleResetPassword = (manager: ManagerSummary) => {
+    resetPassword.mutate(manager.id, {
+      onSuccess: (result) => setRevealedPassword({ managerName: manager.name, temporaryPassword: result.temporaryPassword }),
+    });
+  };
+
+  const handleStartEdit = (manager: ManagerSummary) => {
+    setEditingId(manager.id);
+    setEditRole(manager.role);
+    // ManagerSummary carries sector NAMES; map them back to ids via the sector list.
+    setEditSectorIds(sectorList.filter((sector) => manager.sectorNames.includes(sector.name)).map((sector) => sector.id));
+  };
+
+  const handleSaveEdit = (manager: ManagerSummary) => {
+    updateManager.mutate(
+      { id: manager.id, patch: { role: editRole, sectorIds: editRole === "SECTOR_MANAGER" ? editSectorIds : undefined } },
+      { onSuccess: () => setEditingId(null) },
+    );
+  };
+
   const isSubmitDisabled = name.trim().length === 0 || (role === "SECTOR_MANAGER" && selectedSectorIds.length === 0);
 
   return (
     <div>
-      {lastCreated && (
+      {revealedPassword && (
         <Card tone="brand-tint" className="mt-4">
           <p className="text-label font-semibold text-ink-2">
-            Senha temporária de {lastCreated.manager.name}: <span className="font-mono">{lastCreated.temporaryPassword}</span>
+            Senha temporária de {revealedPassword.managerName}: <span className="font-mono">{revealedPassword.temporaryPassword}</span>
           </p>
         </Card>
       )}
@@ -142,56 +264,14 @@ function ManagersTab() {
             className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink"
           />
 
-          <fieldset className="mt-3">
-            <legend className="text-label font-semibold text-ink-2">Tipo de gestor</legend>
-            <div className="mt-2 flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  id="role-hospital-admin"
-                  name="manager-role"
-                  checked={role === "HOSPITAL_ADMIN"}
-                  onChange={() => setRole("HOSPITAL_ADMIN")}
-                />
-                <label htmlFor="role-hospital-admin" className="text-label text-ink-2">
-                  Gestor do hospital
-                </label>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  id="role-sector-manager"
-                  name="manager-role"
-                  checked={role === "SECTOR_MANAGER"}
-                  onChange={() => setRole("SECTOR_MANAGER")}
-                />
-                <label htmlFor="role-sector-manager" className="text-label text-ink-2">
-                  Gestor de setor
-                </label>
-              </div>
-            </div>
-          </fieldset>
-
-          {role === "SECTOR_MANAGER" && (
-            <div className="mt-3">
-              <p className="text-label font-semibold text-ink-2">Setores</p>
-              <div className="mt-2 flex flex-col gap-2">
-                {(sectors.data ?? []).map((sector) => (
-                  <div key={sector.id} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id={`sector-checkbox-${sector.id}`}
-                      checked={selectedSectorIds.includes(sector.id)}
-                      onChange={() => toggleSector(sector.id)}
-                    />
-                    <label htmlFor={`sector-checkbox-${sector.id}`} className="text-label text-ink-2">
-                      {sector.name}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <RoleAndSectorFields
+            idPrefix="create"
+            role={role}
+            onRoleChange={setRole}
+            sectors={sectorList}
+            selectedSectorIds={selectedSectorIds}
+            onToggleSector={toggleSector}
+          />
         </Card>
         <div className="mt-3">
           <Button type="submit" variant="primary" loading={createManager.isPending} disabled={isSubmitDisabled}>
@@ -220,6 +300,42 @@ function ManagersTab() {
                 {manager.isActive ? "Desativar" : "Ativar"}
               </Button>
             </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button variant="outline" full={false} aria-label={`Editar ${manager.name}`} onClick={() => handleStartEdit(manager)}>
+                Editar
+              </Button>
+              <Button
+                variant="outline"
+                full={false}
+                aria-label={`Redefinir senha de ${manager.name}`}
+                loading={resetPassword.isPending && resetPassword.variables === manager.id}
+                onClick={() => handleResetPassword(manager)}
+              >
+                Redefinir senha
+              </Button>
+            </div>
+
+            {editingId === manager.id && (
+              <div role="group" aria-label={`Editando ${manager.name}`} className="mt-3 border-t border-line pt-3">
+                <RoleAndSectorFields
+                  idPrefix={`edit-${manager.id}`}
+                  role={editRole}
+                  onRoleChange={setEditRole}
+                  sectors={sectorList}
+                  selectedSectorIds={editSectorIds}
+                  onToggleSector={toggleEditSector}
+                />
+                <div className="mt-3 flex gap-2">
+                  <Button variant="primary" full={false} loading={updateManager.isPending} onClick={() => handleSaveEdit(manager)}>
+                    Salvar
+                  </Button>
+                  <Button variant="outline" full={false} onClick={() => setEditingId(null)}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         ))}
       </div>

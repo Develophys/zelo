@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -88,5 +88,135 @@ describe("ManagerAdminPage", () => {
         sectorIds: undefined,
       }),
     );
+  });
+
+  it("resets a manager's password and reveals the new temporary password once", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
+      { id: "manager-5", name: "Paulo", role: "SECTOR_MANAGER", isActive: true, sectorNames: ["UTI"] },
+    ]);
+    vi.spyOn(container.resetManagerPasswordUseCase, "execute").mockResolvedValue({ temporaryPassword: "nova-senha-789" });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Gestores" }));
+    await user.click(await screen.findByRole("button", { name: "Redefinir senha de Paulo" }));
+
+    await waitFor(() => expect(container.resetManagerPasswordUseCase.execute).toHaveBeenCalledWith("token", "manager-5"));
+    await waitFor(() => expect(screen.getByText("nova-senha-789")).toBeInTheDocument());
+    expect(screen.getByText(/Senha temporária de Paulo/)).toBeInTheDocument();
+  });
+
+  it("assigns a manager to a sector from the sector row's selector", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
+    ]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
+      { id: "manager-5", name: "Paulo", role: "SECTOR_MANAGER", isActive: true, sectorNames: [] },
+    ]);
+    vi.spyOn(container.updateSectorUseCase, "execute").mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.selectOptions(await screen.findByLabelText("Gestor de UTI"), "manager-5");
+
+    await waitFor(() =>
+      expect(container.updateSectorUseCase.execute).toHaveBeenCalledWith("token", "sector-1", { managerId: "manager-5" }),
+    );
+  });
+
+  it("clears a sector's manager assignment through the same selector", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+      { id: "sector-1", name: "UTI", isActive: true, managerId: "manager-5", managerName: "Paulo" },
+    ]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
+      { id: "manager-5", name: "Paulo", role: "SECTOR_MANAGER", isActive: true, sectorNames: ["UTI"] },
+    ]);
+    vi.spyOn(container.updateSectorUseCase, "execute").mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.selectOptions(await screen.findByLabelText("Gestor de UTI"), "");
+
+    await waitFor(() =>
+      expect(container.updateSectorUseCase.execute).toHaveBeenCalledWith("token", "sector-1", { managerId: null }),
+    );
+  });
+
+  it("edits an existing manager's role and sectors inline, pre-filled from their current assignment", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
+      { id: "sector-2", name: "Pronto-Socorro", isActive: true, managerId: null, managerName: null },
+    ]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
+      { id: "manager-5", name: "Paulo", role: "SECTOR_MANAGER", isActive: true, sectorNames: ["UTI"] },
+    ]);
+    vi.spyOn(container.updateManagerAdminUseCase, "execute").mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Gestores" }));
+    await user.click(await screen.findByRole("button", { name: "Editar Paulo" }));
+
+    const editForm = within(screen.getByRole("group", { name: "Editando Paulo" }));
+    expect(editForm.getByLabelText("Gestor de setor")).toBeChecked();
+    expect(editForm.getByLabelText("UTI")).toBeChecked();
+    expect(editForm.getByLabelText("Pronto-Socorro")).not.toBeChecked();
+
+    await user.click(editForm.getByLabelText("Pronto-Socorro"));
+    await user.click(editForm.getByRole("button", { name: "Salvar" }));
+
+    await waitFor(() =>
+      expect(container.updateManagerAdminUseCase.execute).toHaveBeenCalledWith("token", "manager-5", {
+        role: "SECTOR_MANAGER",
+        sectorIds: ["sector-1", "sector-2"],
+      }),
+    );
+    await waitFor(() => expect(screen.queryByRole("group", { name: "Editando Paulo" })).not.toBeInTheDocument());
+  });
+
+  it("promotes an existing manager to hospital admin from the inline edit form", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
+    ]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
+      { id: "manager-5", name: "Paulo", role: "SECTOR_MANAGER", isActive: true, sectorNames: ["UTI"] },
+    ]);
+    vi.spyOn(container.updateManagerAdminUseCase, "execute").mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Gestores" }));
+    await user.click(await screen.findByRole("button", { name: "Editar Paulo" }));
+
+    const editForm = within(screen.getByRole("group", { name: "Editando Paulo" }));
+    await user.click(editForm.getByLabelText("Gestor do hospital"));
+    await user.click(editForm.getByRole("button", { name: "Salvar" }));
+
+    await waitFor(() =>
+      expect(container.updateManagerAdminUseCase.execute).toHaveBeenCalledWith("token", "manager-5", {
+        role: "HOSPITAL_ADMIN",
+        sectorIds: undefined,
+      }),
+    );
+  });
+
+  it("discards inline edits on Cancelar without calling the update mutation", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
+    ]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
+      { id: "manager-5", name: "Paulo", role: "SECTOR_MANAGER", isActive: true, sectorNames: ["UTI"] },
+    ]);
+    const updateSpy = vi.spyOn(container.updateManagerAdminUseCase, "execute").mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Gestores" }));
+    await user.click(await screen.findByRole("button", { name: "Editar Paulo" }));
+    await user.click(within(screen.getByRole("group", { name: "Editando Paulo" })).getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.queryByRole("group", { name: "Editando Paulo" })).not.toBeInTheDocument();
+    expect(updateSpy).not.toHaveBeenCalled();
   });
 });
