@@ -23,18 +23,18 @@ describe("startOfIsoWeek", () => {
 describe("buildSeedRows", () => {
   const reference = new Date("2026-07-08T12:00:00.000Z"); // a Wednesday, week of 2026-07-06
 
-  it("produces 6 weeks x 4 departments = 24 rows", () => {
+  it("produces 6 weeks x 4 sectors = 24 rows", () => {
     expect(buildSeedRows(reference, ZELO_DEMO_SCENARIOS)).toHaveLength(24);
   });
 
   it("keeps Ambulatório under the k=5 threshold every week", () => {
-    const rows = buildSeedRows(reference, ZELO_DEMO_SCENARIOS).filter((r) => r.department === "Ambulatório");
+    const rows = buildSeedRows(reference, ZELO_DEMO_SCENARIOS).filter((r) => r.sectorName === "Ambulatório");
     expect(rows.every((r) => r.checkIns < 5)).toBe(true);
   });
 
   it("UTI's concerning rate climbs from week 1 to week 6, ending at 60%", () => {
     const rows = buildSeedRows(reference, ZELO_DEMO_SCENARIOS)
-      .filter((r) => r.department === "UTI")
+      .filter((r) => r.sectorName === "UTI")
       .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
 
     const firstRate = rows[0]!.concerning / rows[0]!.checkIns;
@@ -44,7 +44,7 @@ describe("buildSeedRows", () => {
   });
 
   it("the most recent week's weekStart is the Monday of the reference date's week", () => {
-    const rows = buildSeedRows(reference, ZELO_DEMO_SCENARIOS).filter((r) => r.department === "UTI");
+    const rows = buildSeedRows(reference, ZELO_DEMO_SCENARIOS).filter((r) => r.sectorName === "UTI");
     const mostRecent = rows.reduce((a, b) => (a.weekStart > b.weekStart ? a : b));
     expect(mostRecent.weekStart.toISOString()).toBe("2026-07-06T00:00:00.000Z");
   });
