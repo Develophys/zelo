@@ -37,6 +37,7 @@ routes with their own spec file, following the same template:
 |---|---|---|---|
 | 14 | Manager login | `/manager/login` | `14-manager-login.md` |
 | 15 | Você (consent status & revoke) | `/you` | `15-you.md` |
+| 16 | Vincular ao hospital (institution linking) | `/you/link` | `16-link-institution.md` |
 
 ## Global conventions (apply to every screen)
 - Wrap in `PhoneShell`. Screen padding `px-6`.

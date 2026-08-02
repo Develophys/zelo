@@ -28,7 +28,8 @@ the existing use-cases on submit.
 | `/manager/login` | `ManagerLoginPage` | Individual manager-account gate for the manager dashboard (see §5) |
 | `/manager` | `ManagerDashboardPage` | Aggregated, k-anonymized; gated by `/manager/login`'s session (see §5) |
 | `/manager/history` | `ManagerInsightHistoryPage` | Past AI-generated analyses, newest first; each downloadable as PDF or plain text (see `2026-07-12-manager-insight-history-design.md`) |
-| `/you` | `YouPage` | Consent status + revoke; added after the original 13 (see `screens/15-you.md`) |
+| `/you` | `YouPage` | Consent status + revoke; institution-link status + entry point (see below); added after the original 13 (see `screens/15-you.md`) |
+| `/you/link` | `LinkInstitutionPage` | Optional invite-code → department linking flow, gated by consent like `/you`/`/home`; added by `2026-08-02-multi-institution-data-partitioning-design.md` (see `screens/16-link-institution.md`) |
 
 > Keep the current data-router shape (`id: "root"`, `Component: () => <Outlet/>`). Add a
 > loader on `/` that checks the consent store and `redirect("/home")` if already consented.
@@ -43,7 +44,10 @@ Chat → Crisis            (persistent "falar com uma pessoa real")
 Crisis → Crisis/connect  (accept)  → Chat (secure)
 Crisis → Crisis/line     (decline) → Home
 Home → Chat | Peers | Manager | Você
+Home → Você/Link      (banner CTA, shown only while no institution is linked)
 Você → Splash        (after "Sim, revogar")
+Você → Você/Link      (entry point, shown only while no institution is linked)
+Você/Link → Você      (after linking, or via back button before completing)
 Manager → Manager/login (if no valid session) → Manager (on correct name+password)
 ```
 
@@ -117,7 +121,8 @@ export const routes = {
   assessment: "/assessment", phq9: "/assessment/phq9", gad7: "/assessment/gad7",
   result: "/assessment/result", crisis: "/crisis", crisisConnect: "/crisis/connect",
   crisisLine: "/crisis/line", chat: "/chat", peers: "/peers", manager: "/manager",
-  managerHistory: "/manager/history",
+  managerLogin: "/manager/login", managerHistory: "/manager/history", you: "/you",
+  linkInstitution: "/you/link",
 } as const;
 ```
 
@@ -148,9 +153,12 @@ enforces, not just a client-side redirect a curious user could bypass by editing
 
 - **`ManagerLoginPage`** (`/manager/login`) collects individual manager credentials — name and
   password, one account per manager, not a single shared institutional code (see
-  `2026-08-01-manager-individual-accounts-design.md` for the full design and why this still
-  doesn't imply multi-institution data partitioning — this PoC targets one institution) — and
-  calls `POST /manager/login` with `{ name, password }`.
+  `2026-08-01-manager-individual-accounts-design.md` for the original design) — and calls
+  `POST /manager/login` with `{ name, password }`. Every `Manager` row now also carries an
+  `institutionId`, and the signed session token embeds it alongside `id`/`name`: real
+  multi-institution partitioning, not just individual accounts within one institution, per
+  `2026-08-02-multi-institution-data-partitioning-design.md` — a manager from one hospital can
+  never see another hospital's signals or insight history.
 - The backend looks up the `Manager` row by `name` and verifies `password` against its stored
   scrypt hash via `ManagerPasswordService`, always performing the real hash-and-compare even
   when `name` doesn't match any account — this prevents a timing side-channel that could
@@ -176,12 +184,17 @@ enforces, not just a client-side redirect a curious user could bypass by editing
 
 A doctor's anonymity is the thing being protected — adding a login would work *against* the
 product's purpose. A manager viewing aggregate data about doctors is the opposite case: here,
-keeping an unauthorized party *out* is the whole point, even though (today) the data behind the
-gate is simulated, not real per-doctor data — see
-`2026-07-11-manager-login-simulated-dashboard-design.md` §1 for why the manager dashboard
-structurally cannot read real assessment data anyway (it's end-to-end encrypted; the server
-never holds a key that can decrypt it). The login exists to make the *access control pattern*
-real and testable now, independent of whether the data behind it is real yet.
+keeping an unauthorized party *out* is the whole point. This holds regardless of whether the
+data behind the gate is simulated or real: the manager dashboard structurally cannot read a
+doctor's individual assessment anyway (`Assessment.ciphertext` is end-to-end encrypted; the
+server never holds a key that can decrypt it — see
+`2026-07-11-manager-login-simulated-dashboard-design.md` §1). What changed since that spec was
+written: the dashboard's *aggregate* numbers are no longer 100% synthetic seed data for every
+institution — `2026-08-02-multi-institution-data-partitioning-design.md` added a real,
+k-anonymous, deduplicated signal pipeline (`POST /signals/checkin`, fired by a médico's device
+after an optional institution link) that feeds real `Signal` counters alongside the still-seeded
+demo institution's fabricated ones. The login's job is unchanged either way: gate *who* can see
+the aggregate, real or simulated.
 
 ---
 
@@ -194,3 +207,5 @@ real and testable now, independent of whether the data behind it is real yet.
 - No route change ever posts `riskSignal` to the API (verify in network tab).
 - Revoking consent on `/you` clears `zelo.consent` in `localStorage` and lands the doctor back
   on Splash as a cold start (verified via reload, not just React state — see `screens/15-you.md`).
+- `/you/link` redirects to `/privacy` the same way `/you`/`/home` do when consent hasn't been
+  given; linking never blocks self-assessment or chat for a doctor who skips or backs out of it.

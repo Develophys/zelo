@@ -1,14 +1,18 @@
 # Identity & Aggregation — design spec (not yet implemented)
 
-**Status:** design-only, **partially superseded**. The full multi-user `User` model +
-magic-link auth designed below was never built. Instead, `ManagerDashboardPage` shipped with a
-narrower approach: real, server-enforced manager login (a single shared institutional code, no
-per-doctor accounts) gating simulated (not real-encrypted-doctor) aggregate data — see
-`2026-07-11-manager-login-simulated-dashboard-design.md` and `routing-and-state.md` §5 for what
-actually got built and why the narrower scope was sufficient. This file remains the design to
-pick back up if/when `PeersPage` (still on its `// TODO(week2)` placeholder) or a real
-per-doctor identity layer is greenlit — nothing below was invalidated, just not all of it was
-needed yet.
+**Status:** design-only, **partially superseded, twice over**. The full multi-user `User` model
++ magic-link auth designed below was never built. Instead, three narrower, incremental specs
+shipped real pieces of this problem without ever building doctor-side identity:
+`2026-07-11-manager-login-simulated-dashboard-design.md` (a single shared manager code gating
+simulated aggregate data), `2026-08-01-manager-individual-accounts-design.md` (individual named
+manager accounts, replacing the shared code), and
+`2026-08-02-multi-institution-data-partitioning-design.md` (a real `Institution` model, real
+per-institution manager scoping, and a real — if fully anonymous, no-login — signal pipeline
+from médicos' devices). Each solved a real, narrower problem than this spec's full `User` model
+without needing one. **What remains genuinely unbuilt, exactly as this spec left it:** any
+doctor-side login/identity (`PeersPage` is still on its placeholder), and the full `User` model
+below is still the design to pick back up if/when that's greenlit — nothing below was
+invalidated, just not all of it was needed yet.
 
 **Why this is separate from the data-implementation plan being written alongside it:** that
 plan wires `HomePage`'s history chart to real (on-device) data with zero backend or auth

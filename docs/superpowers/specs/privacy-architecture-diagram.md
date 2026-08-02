@@ -97,9 +97,14 @@ flowchart TD
 
 ## Known simplifications (declare these to the board, don't hide them)
 
-- The diagram shows the target architecture from the PRD (FR-1 through FR-14). Where the current
-  build still has `// TODO` placeholders (see `identity-and-aggregation.md` for `Peers`/`Manager`
-  specifically), say so live rather than letting the diagram imply it's all already wired.
+- The diagram shows the target architecture from the PRD (FR-1 through FR-14). `PeersPage` still
+  has a `// TODO` placeholder (no doctor-side identity exists — see `identity-and-aggregation.md`).
+  `ManagerDashboardPage` no longer belongs in that "not wired yet" bucket: `G`→`M` (the
+  k-anonymous aggregator feeding the manager dashboard) is real and institution-scoped as of
+  `2026-08-02-multi-institution-data-partitioning-design.md` — a médico's device fires an
+  anonymous, deduplicated signal (`POST /signals/checkin`) that increments real counters,
+  separate from the encrypted `Assessment` write `B -.-> F` already shows. Say so live rather
+  than letting the diagram imply either extreme (all real, or all still mocked).
 - The LLM provider box (`J`) is generic by design — the PRD still lists "Escolha final do
   provedor de LLM" as an open dependency. If that gets locked (see the team's action-plan P5),
   update this label with the real provider name.

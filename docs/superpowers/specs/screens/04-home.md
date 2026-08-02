@@ -1,5 +1,15 @@
 # 04 — Home / hub
 
+> **Note:** this doc predates several shipped changes to `HomePage.tsx` (a real history chart via
+> `GetAssessmentHistoryUseCase`, the follow-up-prompt banner from
+> `2026-07-19-followup-mechanism-design.md`, the manager link's "(demo)" framing since removed,
+> and — most recently — a discoverability banner added by
+> `2026-08-02-multi-institution-data-partitioning-design.md`: a `Card` shown only while
+> `useInstitutionLinkStore`'s `institutionId` is `null`, with a "Vincular agora" CTA to
+> `/you/link` — see `screens/16-link-institution.md`). Treat the `Layout`/`Data-logic` sections
+> below as the original intent, not the current implementation; `HomePage.tsx` and
+> `HomePage.test.tsx` are the source of truth for exact current behavior.
+
 **Route / File:** `/home` · `src/presentation/pages/HomePage.tsx` (replaces current scaffold)
 
 **Purpose:** Calm daily landing. One primary action (check-in), a glance at history, quick

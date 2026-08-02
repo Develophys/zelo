@@ -8,6 +8,12 @@
 > `BottomNav`'s fourth tab (`id: "you"`, label "Você") has rendered since Phase 2 of the design
 > system but has been wired to a no-op in `HomePage.handleNavigate` — this screen is what it
 > should have navigated to all along.
+>
+> **Extended by `2026-08-02-multi-institution-data-partitioning-design.md`:** this screen gained
+> a second Card, between the consent-status card and the "Revogar não apaga..." explanation card
+> (§Layout step 4.5 below), showing institution-link status and the entry point into
+> `/you/link` (see `screens/16-link-institution.md`). The consent-revoke flow described below is
+> otherwise unchanged.
 
 **Route / File:** `/you` · `src/presentation/pages/YouPage.tsx`
 
@@ -32,7 +38,17 @@ controls: whether they've consented.
        (e.g. "12 de julho de 2026"). If `consentedAt` is somehow null on this screen (shouldn't
        happen — see loader below), omit the "Desde" line entirely rather than showing "Invalid
        Date".
-5. **Explanation card** — `Card size="md"`, `mt-[14px]`: reuses the three consent claims already
+4.5. **Institution-link card** — `Card size="md"`, `mt-3.5`, between the status card and the
+   explanation card: two mutually-exclusive states read from `useInstitutionLinkStore`.
+   - **Linked** (`institutionName !== null`): `IconBadge icon={Building2} tone="neutral"` + text
+     stack ("Vinculado a {institutionName}" / `department` below it) on the left, `Button
+     variant="outline"` "Desvincular" on the right — a single tap, no confirm step (unlike
+     consent revoke below: unlinking has no consequence, since nothing identifiable was ever
+     sent server-side and relinking is instant — see
+     `2026-08-02-multi-institution-data-partitioning-design.md` §4).
+   - **Not linked** (`institutionName === null`): explanatory text "Ainda não vinculado a nenhum
+     hospital." + `Button variant="outline"` "Vincular a um hospital" → `navigate(routes.linkInstitution)`.
+5. **Explanation card** — `Card size="md"`, `mt-3.5`: reuses the three consent claims already
    promised on `ConsentPage`, condensed to reassure the doctor what revoking does and doesn't
    affect:
    - `text-label text-ink-2` "Revogar não apaga o histórico anônimo já enviado — os dados
@@ -59,6 +75,10 @@ o consentimento novamente para voltar." · "Cancelar" · "Sim, revogar".
 - Reads `hasConsented` / `consentedAt` directly from `useConsentStore` (no new use-case, no new
   port — this is presentation-layer only, same constraint `AGENTS.md` sets for the original 13
   screens).
+- Reads `institutionName` / `department` / `unlink` directly from `useInstitutionLinkStore`
+  (`apps/web/src/stores/institution-link.store.ts`) — same presentation-layer-only pattern.
+  `unlink()` clears the store's four fields (including `deviceSignalId`); there is nothing to
+  call server-side, since nothing identifiable was ever transmitted while linked.
 - Calls the store's existing `revoke()` action (`apps/web/src/stores/consent.store.ts:8`,
   already implemented and unit-tested in `consent.store.test.ts` — this screen is its first
   caller).
@@ -95,4 +115,9 @@ o consentimento novamente para voltar." · "Cancelar" · "Sim, revogar".
   in-memory state — a full reload afterward must land back on Splash, not Home) and navigates to
   `/`.
 - The `Você` tab on `HomePage`'s `BottomNav` navigates here instead of doing nothing.
+- When linked, shows "Vinculado a {institutionName}" and the department; "Desvincular" clears
+  the link with a single tap (no confirm step) and the "Vincular a um hospital" entry point
+  reappears immediately.
+- When not linked, "Vincular a um hospital" navigates to `/you/link`
+  (`screens/16-link-institution.md`); the two states never render simultaneously.
 - axe-core clean, consistent with every other screen in `a11y.test.tsx`.

@@ -1,7 +1,16 @@
 # Manager Login + Simulated Dashboard Data — design spec
 
-**Status:** approved design, not yet implemented. This is the spec an implementation plan
-will be written against next.
+**Status:** implemented (2026-07-11 for this spec's own scope; the manager login itself was
+later replaced by individual accounts in `2026-08-01-manager-individual-accounts-design.md`).
+**§1's core claim is still true and unaffected by later work:** the manager dashboard still
+cannot and does not decrypt `Assessment.ciphertext` — that table remains structurally
+unreadable server-side, by design, forever. What *did* change: the dashboard's aggregate
+numbers are no longer 100% simulated for every institution.
+`2026-08-02-multi-institution-data-partitioning-design.md` added a real, k-anonymous,
+deduplicated signal pipeline (`POST /signals/checkin`) that a médico's device fires
+separately from — and with zero link to — the encrypted `Assessment` submission this section
+describes. Real institutions' `Signal` counters fill in from that pipeline; the seeded demo
+institution keeps this spec's original simulated data. See that spec for the full design.
 
 **Relationship to `identity-and-aggregation.md`:** that earlier spec designed a full
 multi-user identity layer (per-doctor `User` rows, magic-link auth, real per-user
