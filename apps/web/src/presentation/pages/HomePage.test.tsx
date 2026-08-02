@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HomePage } from "./HomePage";
 import * as container from "@/app/container";
 import { useFollowUpStore } from "@/stores/followup.store";
+import { useInstitutionLinkStore } from "@/stores/institution-link.store";
 
 function renderHome() {
   const queryClient = new QueryClient();
@@ -19,6 +20,7 @@ function renderHome() {
           <Route path="/peers" element={<div>Peers screen</div>} />
           <Route path="/manager" element={<div>Manager screen</div>} />
           <Route path="/you" element={<div>You screen</div>} />
+          <Route path="/you/link" element={<div>Link institution screen</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -37,6 +39,12 @@ describe("HomePage", () => {
   beforeEach(() => {
     localStorage.clear();
     useFollowUpStore.setState({ answer: null, answeredAt: null });
+    useInstitutionLinkStore.setState({
+      institutionId: null,
+      institutionName: null,
+      department: null,
+      deviceSignalId: null,
+    });
   });
 
   it("shows the follow-up prompt when the most recent assessment is old enough and unanswered", async () => {
@@ -133,5 +141,25 @@ describe("HomePage", () => {
     if (!vocêButton) throw new Error("Você button not found in bottom nav");
     await userEvent.click(vocêButton);
     expect(screen.getByText("You screen")).toBeInTheDocument();
+  });
+
+  it("shows the institution-link banner when no institution is linked", () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue(SIX_NULL_POINTS);
+    renderHome();
+    expect(screen.getByText("Ainda não vinculado a um hospital")).toBeInTheDocument();
+  });
+
+  it("hides the institution-link banner once an institution is linked", () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue(SIX_NULL_POINTS);
+    useInstitutionLinkStore.getState().link({ institutionId: "inst-1", institutionName: "Hospital São Lucas", department: "UTI" });
+    renderHome();
+    expect(screen.queryByText("Ainda não vinculado a um hospital")).not.toBeInTheDocument();
+  });
+
+  it("tapping the banner's CTA navigates to /you/link", async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue(SIX_NULL_POINTS);
+    renderHome();
+    await userEvent.click(screen.getByRole("button", { name: "Vincular agora" }));
+    expect(screen.getByText("Link institution screen")).toBeInTheDocument();
   });
 });

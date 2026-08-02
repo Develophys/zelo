@@ -12,6 +12,7 @@ import { useAssessmentHistory } from "@/presentation/hooks/useAssessmentHistory"
 import type { WeeklyHistoryPoint } from "@/use-cases/get-assessment-history.usecase";
 import { ShouldShowFollowUpPromptUseCase } from "@/use-cases/should-show-followup-prompt.usecase";
 import { useFollowUpStore } from "@/stores/followup.store";
+import { useInstitutionLinkStore } from "@/stores/institution-link.store";
 
 const shouldShowFollowUpPromptUseCase = new ShouldShowFollowUpPromptUseCase();
 
@@ -65,6 +66,8 @@ export function HomePage() {
     now: new Date(),
   });
 
+  const institutionId = useInstitutionLinkStore((state) => state.institutionId);
+
   const handleNavigate = (tab: NavTabId) => {
     const target = NAV_TABS.find((t) => t.id === tab);
     if (target) navigate(target.route);
@@ -91,6 +94,22 @@ export function HomePage() {
                 </Button>
                 <Button className="p-2" variant="outline" full={false} onClick={() => recordAnswer("no")}>
                   Não estou bem
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {institutionId === null && (
+          <div className="mt-4">
+            <Card>
+              <p className="text-body font-extrabold text-ink">Ainda não vinculado a um hospital</p>
+              <p className="mt-1 text-caption text-muted">
+                Vincule para aparecer nos números do seu time, de forma anônima.
+              </p>
+              <div className="mt-3">
+                <Button variant="outline" full={false} onClick={() => navigate(routes.linkInstitution)}>
+                  Vincular agora
                 </Button>
               </div>
             </Card>
