@@ -1,10 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { K_ANONYMITY_THRESHOLD } from "../constants.ts";
-import {
-  SIMULATED_SIGNAL_REPOSITORY,
-  type SimulatedSignalRepository,
-  type SimulatedSignalRow,
-} from "../ports/simulated-signal-repository.port.ts";
+import { SIGNAL_REPOSITORY, type SignalRepository, type SignalRow } from "../ports/signal-repository.port.ts";
 import {
   SIMULATED_FOLLOW_UP_REPOSITORY,
   type SimulatedFollowUpRepository,
@@ -23,12 +19,12 @@ const RECENT_WEEKS_FOR_VOLUME = 4;
 @Injectable()
 export class GetManagerSignalsUseCase {
   constructor(
-    @Inject(SIMULATED_SIGNAL_REPOSITORY) private readonly repository: SimulatedSignalRepository,
+    @Inject(SIGNAL_REPOSITORY) private readonly repository: SignalRepository,
     @Inject(SIMULATED_FOLLOW_UP_REPOSITORY) private readonly followUpRepository: SimulatedFollowUpRepository,
   ) {}
 
-  async execute(): Promise<ManagerSignalsResponse> {
-    const rows = await this.repository.findAll();
+  async execute(institutionId: string): Promise<ManagerSignalsResponse> {
+    const rows = await this.repository.findAll(institutionId);
     const followUpResponseRate = await this.computeFollowUpResponseRate();
 
     if (rows.length === 0) {
@@ -38,7 +34,7 @@ export class GetManagerSignalsUseCase {
     const weekTimes = [...new Set(rows.map((r) => r.weekStart.getTime()))].sort((a, b) => a - b);
     const mostRecentWeek = weekTimes[weekTimes.length - 1]!;
 
-    const byDepartment = new Map<string, SimulatedSignalRow[]>();
+    const byDepartment = new Map<string, SignalRow[]>();
     for (const row of rows) {
       const list = byDepartment.get(row.department) ?? [];
       list.push(row);
