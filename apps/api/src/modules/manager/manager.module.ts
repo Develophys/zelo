@@ -14,6 +14,8 @@ import { LoginManagerUseCase } from "./application/use-cases/login-manager.use-c
 import { GetManagerSignalsUseCase } from "./application/use-cases/get-manager-signals.use-case.ts";
 import { GenerateManagerInsightUseCase } from "./application/use-cases/generate-manager-insight.use-case.ts";
 import { GetManagerInsightHistoryUseCase } from "./application/use-cases/get-manager-insight-history.use-case.ts";
+import { ResolveAccessibleSectorIdsUseCase } from "./application/use-cases/resolve-accessible-sector-ids.use-case.ts";
+import { GetAccessibleSectorsUseCase } from "./application/use-cases/get-accessible-sectors.use-case.ts";
 import { CreateManagerUseCase } from "./application/use-cases/create-manager.use-case.ts";
 import { UpdateManagerUseCase } from "./application/use-cases/update-manager.use-case.ts";
 import { ResetManagerPasswordUseCase } from "./application/use-cases/reset-manager-password.use-case.ts";
@@ -41,6 +43,8 @@ const aiInsightPortProvider =
     GetManagerSignalsUseCase,
     GenerateManagerInsightUseCase,
     GetManagerInsightHistoryUseCase,
+    ResolveAccessibleSectorIdsUseCase,
+    GetAccessibleSectorsUseCase,
     CreateManagerUseCase,
     UpdateManagerUseCase,
     ResetManagerPasswordUseCase,

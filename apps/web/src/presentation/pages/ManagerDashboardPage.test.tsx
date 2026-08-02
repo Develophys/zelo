@@ -45,6 +45,7 @@ describe("ManagerDashboardPage", () => {
     sessionStorage.clear();
     useManagerSessionStore.setState({ token: "abc.def", expiresAt: new Date(Date.now() + 60_000).toISOString() });
     vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue(SIGNALS_RESPONSE);
+    vi.spyOn(container.listAccessibleSectorsUseCase, "execute").mockResolvedValue([]);
   });
 
   it("renders segments and trend bars from the real signals response, suppressing n<5 departments", async () => {
@@ -248,5 +249,35 @@ describe("ManagerDashboardPage", () => {
     });
     expect(screen.getByRole("button", { name: "Exportar CSV" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Exportar PDF" })).toBeDisabled();
+  });
+
+  it("shows a sector filter when more than one sector is accessible, and narrows the signals request when a sector is unchecked", async () => {
+    vi.spyOn(container.listAccessibleSectorsUseCase, "execute").mockResolvedValue([
+      { id: "sector-1", name: "UTI" },
+      { id: "sector-2", name: "Pronto-Socorro" },
+    ]);
+    const user = userEvent.setup();
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("UTI")).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText("Pronto-Socorro")).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText("UTI"));
+
+    await waitFor(() => {
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", ["sector-2"]);
+    });
+  });
+
+  it("does not show the sector filter when only one sector is accessible", async () => {
+    vi.spyOn(container.listAccessibleSectorsUseCase, "execute").mockResolvedValue([{ id: "sector-1", name: "UTI" }]);
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+    });
+    expect(screen.queryByLabelText("UTI")).not.toBeInTheDocument();
   });
 });

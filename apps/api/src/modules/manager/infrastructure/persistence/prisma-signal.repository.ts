@@ -6,9 +6,9 @@ import { PrismaService } from "../../../../shared/prisma/prisma.service.ts";
 export class PrismaSignalRepository implements SignalRepository {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  async findAll(institutionId: string): Promise<SignalRow[]> {
+  async findAll(institutionId: string, sectorIds: string[]): Promise<SignalRow[]> {
     const rows = await this.prisma.signal.findMany({
-      where: { institutionId },
+      where: { institutionId, sectorId: { in: sectorIds } },
       select: { sectorId: true, weekStart: true, checkIns: true, concerning: true, sector: { select: { name: true } } },
     });
     return rows.map((row) => ({

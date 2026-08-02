@@ -4,10 +4,10 @@ import type { SignalRepository, SignalRow } from "../ports/signal-repository.por
 import type { SimulatedFollowUpRepository, SimulatedFollowUpRow } from "../ports/simulated-follow-up-repository.port.ts";
 
 class FakeSignalRepository implements SignalRepository {
-  public lastInstitutionId: string | null = null;
+  public lastCall: { institutionId: string; sectorIds: string[] } | null = null;
   constructor(private readonly rows: SignalRow[]) {}
-  async findAll(institutionId: string): Promise<SignalRow[]> {
-    this.lastInstitutionId = institutionId;
+  async findAll(institutionId: string, sectorIds: string[]): Promise<SignalRow[]> {
+    this.lastCall = { institutionId, sectorIds };
     return this.rows;
   }
 }
@@ -23,13 +23,29 @@ const WEEK_1 = new Date("2026-06-15T00:00:00.000Z");
 const WEEK_2 = new Date("2026-06-22T00:00:00.000Z"); // most recent
 
 describe("GetManagerSignalsUseCase", () => {
-  it("passes the given institutionId through to the repository", async () => {
+  it("passes the given institutionId and sectorIds through to the repository", async () => {
     const repository = new FakeSignalRepository([]);
     const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
 
-    await useCase.execute("institution-1");
+    await useCase.execute("institution-1", ["sector-a", "sector-b"]);
 
-    expect(repository.lastInstitutionId).toBe("institution-1");
+    expect(repository.lastCall).toEqual({ institutionId: "institution-1", sectorIds: ["sector-a", "sector-b"] });
+  });
+
+  it("returns the all-zero response without calling the repository when sectorIds is empty", async () => {
+    const repository = new FakeSignalRepository([{ sectorId: "x", sectorName: "X", weekStart: WEEK_1, checkIns: 10, concerning: 5 }]);
+    const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
+
+    const result = await useCase.execute("institution-1", []);
+
+    expect(result).toEqual({
+      overallConcerningRate: 0,
+      checkInsLast4Weeks: 0,
+      weeklyTrend: [],
+      segments: [],
+      followUpResponseRate: 0,
+    });
+    expect(repository.lastCall).toBeNull();
   });
 
   it("computes segments from the most recent week only, excluding sectors under k=5, labeling by sectorName", async () => {
@@ -43,7 +59,7 @@ describe("GetManagerSignalsUseCase", () => {
     ]);
     const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
 
-    const result = await useCase.execute("institution-1");
+    const result = await useCase.execute("institution-1", ["a", "b", "c"]);
 
     expect(result.segments).toEqual(
       expect.arrayContaining([
@@ -62,7 +78,7 @@ describe("GetManagerSignalsUseCase", () => {
     ]);
     const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
 
-    const result = await useCase.execute("institution-1");
+    const result = await useCase.execute("institution-1", ["a", "b", "c"]);
 
     expect(result.overallConcerningRate).toBe(0.5); // (6+4)/(10+10), C excluded
   });
@@ -78,7 +94,7 @@ describe("GetManagerSignalsUseCase", () => {
     ]);
     const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
 
-    const result = await useCase.execute("institution-1");
+    const result = await useCase.execute("institution-1", ["a", "b", "c"]);
 
     expect(result.weeklyTrend).toEqual([
       { weekStart: WEEK_1.toISOString(), concerningRate: 0.375 },
@@ -93,26 +109,11 @@ describe("GetManagerSignalsUseCase", () => {
     ]);
     const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
 
-    const result = await useCase.execute("institution-1");
+    const result = await useCase.execute("institution-1", ["tiny"]);
 
     expect(result.segments).toEqual([]);
     expect(result.overallConcerningRate).toBe(0);
     expect(result.checkInsLast4Weeks).toBe(2);
-  });
-
-  it("returns all-zero/empty output for an unseeded (empty) database, without crashing", async () => {
-    const repository = new FakeSignalRepository([]);
-    const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
-
-    const result = await useCase.execute("institution-1");
-
-    expect(result).toEqual({
-      overallConcerningRate: 0,
-      checkInsLast4Weeks: 0,
-      weeklyTrend: [],
-      segments: [],
-      followUpResponseRate: 0,
-    });
   });
 });
 
@@ -125,7 +126,7 @@ describe("GetManagerSignalsUseCase - followUpResponseRate", () => {
     ]);
     const useCase = new GetManagerSignalsUseCase(repository, followUpRepository);
 
-    const result = await useCase.execute("institution-1");
+    const result = await useCase.execute("institution-1", ["a"]);
 
     expect(result.followUpResponseRate).toBe(0.75);
   });

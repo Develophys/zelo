@@ -70,7 +70,7 @@ describe("GenerateManagerInsightUseCase", () => {
     const insightRepository = new FakeManagerInsightRepository();
     const useCase = new GenerateManagerInsightUseCase(getManagerSignals, aiInsight, insightRepository);
 
-    const result = await useCase.execute("Ana Konder", "institution-1");
+    const result = await useCase.execute("Ana Konder", "institution-1", ["sector-uti"]);
 
     expect(result).toEqual({ interpretation: "texto", suggestedActions: ["ação 1"] });
     expect(aiInsight.lastParams?.systemPrompt).toBe(MANAGER_INSIGHT_SYSTEM_PROMPT);
@@ -94,7 +94,7 @@ describe("GenerateManagerInsightUseCase", () => {
     const insightRepository = new FakeManagerInsightRepository();
     const useCase = new GenerateManagerInsightUseCase(getManagerSignals, new ThrowingAiInsightPort(), insightRepository);
 
-    await expect(useCase.execute("Ana Konder", "institution-1")).rejects.toThrow("boom");
+    await expect(useCase.execute("Ana Konder", "institution-1", ["sector-uti"])).rejects.toThrow("boom");
     expect(insightRepository.savedEntries).toEqual([]);
   });
 
@@ -107,7 +107,7 @@ describe("GenerateManagerInsightUseCase", () => {
     const insightRepository = new FakeManagerInsightRepository();
     const useCase = new GenerateManagerInsightUseCase(getManagerSignals, aiInsight, insightRepository);
 
-    await useCase.execute("Ana Konder", "institution-1");
+    await useCase.execute("Ana Konder", "institution-1", ["sector-uti"]);
 
     expect(insightRepository.savedEntries).toEqual([
       {
@@ -130,7 +130,7 @@ describe("GenerateManagerInsightUseCase", () => {
     insightRepository.shouldFailSave = true;
     const useCase = new GenerateManagerInsightUseCase(getManagerSignals, aiInsight, insightRepository);
 
-    const result = await useCase.execute("Ana Konder", "institution-1");
+    const result = await useCase.execute("Ana Konder", "institution-1", ["sector-uti"]);
 
     expect(result).toEqual({ interpretation: "texto", suggestedActions: ["ação 1"] });
   });

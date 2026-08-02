@@ -15,6 +15,12 @@ export interface ManagerSignalsResponse {
 }
 
 const RECENT_WEEKS_FOR_VOLUME = 4;
+const EMPTY_RESPONSE: Omit<ManagerSignalsResponse, "followUpResponseRate"> = {
+  overallConcerningRate: 0,
+  checkInsLast4Weeks: 0,
+  weeklyTrend: [],
+  segments: [],
+};
 
 @Injectable()
 export class GetManagerSignalsUseCase {
@@ -23,12 +29,16 @@ export class GetManagerSignalsUseCase {
     @Inject(SIMULATED_FOLLOW_UP_REPOSITORY) private readonly followUpRepository: SimulatedFollowUpRepository,
   ) {}
 
-  async execute(institutionId: string): Promise<ManagerSignalsResponse> {
-    const rows = await this.repository.findAll(institutionId);
+  async execute(institutionId: string, sectorIds: string[]): Promise<ManagerSignalsResponse> {
     const followUpResponseRate = await this.computeFollowUpResponseRate();
 
+    if (sectorIds.length === 0) {
+      return { ...EMPTY_RESPONSE, followUpResponseRate };
+    }
+
+    const rows = await this.repository.findAll(institutionId, sectorIds);
     if (rows.length === 0) {
-      return { overallConcerningRate: 0, checkInsLast4Weeks: 0, weeklyTrend: [], segments: [], followUpResponseRate };
+      return { ...EMPTY_RESPONSE, followUpResponseRate };
     }
 
     const weekTimes = [...new Set(rows.map((r) => r.weekStart.getTime()))].sort((a, b) => a - b);
