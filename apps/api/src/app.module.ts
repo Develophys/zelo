@@ -8,6 +8,7 @@ import { ChatModule } from "./modules/chat/chat.module.ts";
 import { AssessmentModule } from "./modules/assessment/assessment.module.ts";
 import { ManagerModule } from "./modules/manager/manager.module.ts";
 import { InstitutionModule } from "./modules/institution/institution.module.ts";
+import { SignalCheckinModule } from "./modules/signal-checkin/signal-checkin.module.ts";
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { InstitutionModule } from "./modules/institution/institution.module.ts";
     AssessmentModule,
     ManagerModule,
     InstitutionModule,
+    SignalCheckinModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
