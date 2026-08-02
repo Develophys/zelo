@@ -1,3 +1,4 @@
+import "./shared/config/load-env.ts";
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module.ts";

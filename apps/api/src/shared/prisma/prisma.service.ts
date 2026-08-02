@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "../config/load-env.ts";
 import { Injectable } from "@nestjs/common";
 import type { OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { PrismaPg } from "@prisma/adapter-pg";

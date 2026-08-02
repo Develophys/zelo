@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { ConfigModule } from "@nestjs/config";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { validateEnv } from "./shared/config/env.validation.ts";
 import { PrismaModule } from "./shared/prisma/prisma.module.ts";
 import { HealthModule } from "./modules/health/health.module.ts";
 import { ChatModule } from "./modules/chat/chat.module.ts";
@@ -12,7 +13,7 @@ import { SignalCheckinModule } from "./modules/signal-checkin/signal-checkin.mod
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     // Global rate limit — 100 requests/60s per IP. Guards every endpoint, including
     // POST /manager/login, which (correctly, per its timing-safety fix) now runs a real
     // scrypt hash on every request, valid or not. Without a cap, that's an easy CPU-flood

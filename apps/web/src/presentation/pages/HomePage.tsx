@@ -108,7 +108,7 @@ export function HomePage() {
                 Vincule para aparecer nos números do seu time, de forma anônima.
               </p>
               <div className="mt-3">
-                <Button variant="outline" full={false} onClick={() => navigate(routes.linkInstitution)}>
+                <Button className="p-2 cursor-pointer" variant="outline" full={false} onClick={() => navigate(routes.linkInstitution)}>
                   Vincular agora
                 </Button>
               </div>
