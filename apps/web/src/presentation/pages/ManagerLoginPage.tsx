@@ -27,9 +27,9 @@ export function ManagerLoginPage() {
 
   return (
     <PhoneShell centered>
-      <div className="pt-[30px]">
+      <div className="pt-7.5">
         <BackButton label="Início" onClick={() => navigate(routes.home)} />
-        <h1 className="mb-[6px] mt-4 text-h1 text-ink">Acesso do gestor</h1>
+        <h1 className="mb-1.5 mt-4 text-h1 text-ink">Acesso do gestor</h1>
         <p className="text-caption text-muted">Entre com seu nome e senha de gestor.</p>
 
         <form onSubmit={handleSubmit}>
@@ -64,7 +64,7 @@ export function ManagerLoginPage() {
             )}
           </Card>
 
-          <div className="mt-[24px]">
+          <div className="mt-6">
             <Button
               type="submit"
               variant="primary"

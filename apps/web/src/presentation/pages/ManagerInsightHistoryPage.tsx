@@ -31,7 +31,7 @@ export function ManagerInsightHistoryPage() {
 
   return (
     <PhoneShell bg="canvas-alt">
-      <div className="pt-[26px]">
+      <div className="pt-6.5">
         <BackButton label="Voltar" onClick={() => navigate(routes.manager)} />
         <div className="mt-4">
           <SectionLabel>Painel do gestor</SectionLabel>

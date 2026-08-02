@@ -25,7 +25,7 @@ function toTrendBarHeights(trend: { concerningRate: number }[]): number[] {
 function KpiCardSkeleton({ className = "" }: { className?: string }) {
   return (
     <Card className={["text-center", className].join(" ")}>
-      <Skeleton className="mx-auto h-[30px] w-16 rounded-md" />
+      <Skeleton className="mx-auto h-7.5 w-16 rounded-md" />
       <Skeleton className="mx-auto mt-2 h-3 w-32 rounded-md" />
     </Card>
   );
@@ -85,7 +85,7 @@ export function ManagerDashboardPage() {
 
   return (
     <PhoneShell bg="canvas-alt">
-      <div className="pt-[26px]">
+      <div className="pt-6.5">
         <div className="flex items-center justify-between">
           <BackButton label="Voltar" onClick={() => navigate(routes.home)} />
           <PrivacyBadge />
@@ -124,7 +124,7 @@ export function ManagerDashboardPage() {
           )}
         </div>
 
-        <div data-testid="trend-segments-grid" className="mt-[14px] grid gap-[14px] lg:grid-cols-[2fr_1fr]">
+        <div data-testid="trend-segments-grid" className="mt-3.5 grid gap-3.5 lg:grid-cols-[2fr_1fr]">
           <div>
             {isLoading ? (
               <TrendCardSkeleton />

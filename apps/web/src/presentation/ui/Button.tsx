@@ -26,7 +26,7 @@ export function Button({
     <button
       className={[
         "rounded-pill py-4 font-sans text-[16px] font-bold transition disabled:opacity-50",
-        "min-h-[52px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
+        "min-h-13 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
         VARIANT_CLASS[variant],
         full ? "w-full" : "",
         className,

@@ -27,7 +27,7 @@ export function YouPage() {
 
   return (
     <PhoneShell nav centered>
-      <div className="pt-[30px]">
+      <div className="pt-7.5">
         <div className="flex items-center justify-between">
           <BackButton label="Início" onClick={() => navigate(routes.home)} />
           <PrivacyBadge />
@@ -50,7 +50,7 @@ export function YouPage() {
           </div>
         </Card>
 
-        <Card size="md" className="mt-[14px]">
+        <Card size="md" className="mt-3.5">
           {institutionName ? (
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -74,7 +74,7 @@ export function YouPage() {
           )}
         </Card>
 
-        <Card size="md" className="mt-[14px]">
+        <Card size="md" className="mt-3.5">
           <p className="text-label text-ink-2">
             Revogar não apaga o histórico anônimo já enviado — os dados agregados não podem ser
             associados a você. Mas você deixa de ter acesso ao check-in, ao chat e ao histórico
@@ -82,7 +82,7 @@ export function YouPage() {
           </p>
         </Card>
 
-        <div className="mt-[14px]">
+        <div className="mt-3.5">
           {step === "idle" ? (
             <Button variant="danger" onClick={() => setStep("confirming")}>
               Revogar consentimento

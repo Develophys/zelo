@@ -39,7 +39,7 @@ export function PhoneShell({
       <div
         data-testid="phone-shell-body"
         className={`no-scrollbar flex-1 overflow-y-auto ${bleed ? "" : "px-6"} ${
-          centered ? "md:mx-auto md:w-full md:max-w-[680px]" : ""
+          centered ? "md:mx-auto md:w-full md:max-w-170" : ""
         }`}
       >
         {children}

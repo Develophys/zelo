@@ -71,12 +71,12 @@ describe("PhoneShell nav mode", () => {
 describe("PhoneShell centered mode", () => {
   it("does not constrain body width when centered is unset", () => {
     render(<PhoneShell>content</PhoneShell>);
-    expect(screen.getByTestId("phone-shell-body")).not.toHaveClass("md:max-w-[680px]");
+    expect(screen.getByTestId("phone-shell-body")).not.toHaveClass("md:max-w-170");
   });
 
   it("constrains and centers the body from the tablet breakpoint when centered is set", () => {
     render(<PhoneShell centered>content</PhoneShell>);
     const body = screen.getByTestId("phone-shell-body");
-    expect(body).toHaveClass("md:max-w-[680px]", "md:mx-auto");
+    expect(body).toHaveClass("md:max-w-170", "md:mx-auto");
   });
 });

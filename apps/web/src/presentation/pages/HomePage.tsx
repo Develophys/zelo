@@ -123,14 +123,14 @@ export function HomePage() {
             <button
               type="button"
               onClick={() => navigate(routes.assessment)}
-              className="mt-4 min-h-[52px] w-full rounded-pill bg-white px-4 font-sans text-[16px] font-bold text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="mt-4 min-h-13 w-full rounded-pill bg-white px-4 font-sans text-[16px] font-bold text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               Fazer check-in
             </button>
           </Card>
         </div>
 
-        <div className="mt-[14px]">
+        <div className="mt-3.5">
           <Card>
             <div className="flex items-center justify-between">
               <p className="text-body font-extrabold text-ink">Seu histórico</p>
@@ -157,11 +157,11 @@ export function HomePage() {
           </Card>
         </div>
 
-        <div className="mt-[14px] flex gap-3">
+        <div className="mt-3.5 flex gap-3">
           <button
             type="button"
             onClick={() => navigate(routes.chat)}
-            className="flex-1 rounded-card bg-surface p-[18px] text-left shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            className="flex-1 rounded-card bg-surface p-4.5 text-left shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           >
             <IconBadge icon={MessageCircle} />
             <p className="mt-2 text-body font-extrabold text-ink">Conversar agora</p>
@@ -169,7 +169,7 @@ export function HomePage() {
           <button
             type="button"
             onClick={() => navigate(routes.peers)}
-            className="flex-1 rounded-card bg-surface p-[18px] text-left shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            className="flex-1 rounded-card bg-surface p-4.5 text-left shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           >
             <IconBadge icon={Users} />
             <p className="mt-2 text-body font-extrabold text-ink">Falar com um par</p>
@@ -179,7 +179,7 @@ export function HomePage() {
         <button
           type="button"
           onClick={() => navigate(routes.manager)}
-          className="mt-4 min-h-[44px] text-left text-label font-semibold text-muted underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className="mt-4 min-h-11 text-left text-label font-semibold text-muted underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
           Ver painel do gestor
         </button>
