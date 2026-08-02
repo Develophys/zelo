@@ -21,6 +21,20 @@ model Assessment {
   @@map("assessments")
 }
 
+model SuperAdmin {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  @@map("super_admins")
+}
+
+enum ManagerRole {
+  HOSPITAL_ADMIN
+  SECTOR_MANAGER
+}
+
 model Institution {
   id         String   @id @default(cuid())
   name       String   @unique
@@ -30,21 +44,39 @@ model Institution {
   managers        Manager[]
   managerInsights ManagerInsight[]
   signals         Signal[]
+  sectors         Sector[]
 
   @@map("institutions")
+}
+
+model Sector {
+  id            String      @id @default(cuid())
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  name          String
+  isActive      Boolean     @default(true)
+  managerId     String?
+  manager       Manager?    @relation(fields: [managerId], references: [id])
+  createdAt     DateTime    @default(now())
+
+  signals       Signal[]
+
+  @@unique([institutionId, name])
+  @@map("sectors")
 }
 
 model Signal {
   id            String      @id @default(cuid())
   institutionId String
   institution   Institution @relation(fields: [institutionId], references: [id])
-  department    String
+  sectorId      String
+  sector        Sector      @relation(fields: [sectorId], references: [id])
   weekStart     DateTime
   checkIns      Int         @default(0)
   concerning    Int         @default(0)
   createdAt     DateTime    @default(now())
 
-  @@unique([institutionId, department, weekStart])
+  @@unique([institutionId, sectorId, weekStart])
   @@map("signals")
 }
 
@@ -54,7 +86,11 @@ model Manager {
   passwordHash  String
   institutionId String
   institution   Institution @relation(fields: [institutionId], references: [id])
+  role          ManagerRole @default(HOSPITAL_ADMIN)
+  isActive      Boolean     @default(true)
   createdAt     DateTime    @default(now())
+
+  sectors       Sector[]
 
   @@map("managers")
 }
