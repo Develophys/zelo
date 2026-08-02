@@ -12,7 +12,7 @@ class FakeManagerInsightHistoryPort implements ManagerInsightHistoryPort {
 describe("GetManagerInsightHistoryUseCase", () => {
   it("returns whatever the port's fetchHistory() returns", async () => {
     const rows: StoredManagerInsight[] = [
-      { id: "1", interpretation: "texto", suggestedActions: ["ação"], summary: "resumo", generatedAt: "2026-07-01T00:00:00.000Z" },
+      { id: "1", interpretation: "texto", suggestedActions: ["ação"], summary: "resumo", generatedAt: "2026-07-01T00:00:00.000Z", createdByManagerName: null },
     ];
     const useCase = new GetManagerInsightHistoryUseCase(new FakeManagerInsightHistoryPort(rows));
 
