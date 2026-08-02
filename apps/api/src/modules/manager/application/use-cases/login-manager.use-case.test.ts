@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ConfigService } from "@nestjs/config";
 import { LoginManagerUseCase, InvalidManagerCredentialsError } from "./login-manager.use-case.ts";
 import { ManagerPasswordService } from "../services/manager-password.service.ts";
@@ -48,5 +48,22 @@ describe("LoginManagerUseCase", () => {
     const useCase = new LoginManagerUseCase(repository, passwordService, tokenService);
 
     await expect(useCase.execute("Ana Konder", "wrong-password")).rejects.toThrow(InvalidManagerCredentialsError);
+  });
+
+  it("pays the same password-verification cost for an unknown name as for a known one (no timing side channel to enumerate manager names)", async () => {
+    const passwordService = new ManagerPasswordService();
+    const verifySpy = vi.spyOn(passwordService, "verify");
+    const passwordHash = await passwordService.hash("correct-password");
+    const repository = new FakeManagerRepository([{ id: "manager-1", name: "Ana Konder", passwordHash }]);
+    const tokenService = new ManagerTokenService(fakeConfig("token-secret"));
+    const useCase = new LoginManagerUseCase(repository, passwordService, tokenService);
+
+    await expect(useCase.execute("Unknown Person", "any-password")).rejects.toThrow(InvalidManagerCredentialsError);
+    expect(verifySpy).toHaveBeenCalledTimes(1);
+
+    verifySpy.mockClear();
+
+    await expect(useCase.execute("Ana Konder", "wrong-password")).rejects.toThrow(InvalidManagerCredentialsError);
+    expect(verifySpy).toHaveBeenCalledTimes(1);
   });
 });
