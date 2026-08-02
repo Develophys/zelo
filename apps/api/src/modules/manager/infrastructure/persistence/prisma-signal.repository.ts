@@ -7,9 +7,13 @@ export class PrismaSignalRepository implements SignalRepository {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async findAll(institutionId: string): Promise<SignalRow[]> {
-    const rows = await this.prisma.signal.findMany({ where: { institutionId } });
+    const rows = await this.prisma.signal.findMany({
+      where: { institutionId },
+      select: { sectorId: true, weekStart: true, checkIns: true, concerning: true, sector: { select: { name: true } } },
+    });
     return rows.map((row) => ({
-      department: row.department,
+      sectorId: row.sectorId,
+      sectorName: row.sector.name,
       weekStart: row.weekStart,
       checkIns: row.checkIns,
       concerning: row.concerning,

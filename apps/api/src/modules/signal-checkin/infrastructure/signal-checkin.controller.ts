@@ -1,11 +1,11 @@
 import { BadRequestException, Body, Controller, HttpCode, Inject, Post } from "@nestjs/common";
 import { z } from "zod";
 import { RecordSignalCheckinUseCase } from "../application/use-cases/record-signal-checkin.use-case.ts";
-import { UnknownInstitutionError } from "../application/ports/signal-checkin-repository.port.ts";
+import { UnknownInstitutionOrSectorError } from "../application/ports/signal-checkin-repository.port.ts";
 
 const SignalCheckinSchema = z.object({
   institutionId: z.string().min(1),
-  department: z.string().trim().min(1).max(200),
+  sectorId: z.string().min(1),
   concerning: z.boolean(),
   deviceSignalId: z.string().min(1),
 });
@@ -27,8 +27,8 @@ export class SignalCheckinController {
     try {
       await this.recordSignalCheckin.execute(parsed.data);
     } catch (error) {
-      if (error instanceof UnknownInstitutionError) {
-        throw new BadRequestException("Unknown institutionId");
+      if (error instanceof UnknownInstitutionOrSectorError) {
+        throw new BadRequestException("Unknown institutionId or sectorId");
       }
       throw error;
     }

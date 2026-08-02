@@ -6,7 +6,7 @@ import { SignalCheckinController } from "./signal-checkin.controller.ts";
 import { RecordSignalCheckinUseCase } from "../application/use-cases/record-signal-checkin.use-case.ts";
 import {
   SIGNAL_CHECKIN_REPOSITORY,
-  UnknownInstitutionError,
+  UnknownInstitutionOrSectorError,
 } from "../application/ports/signal-checkin-repository.port.ts";
 import type { RecordCheckinParams, SignalCheckinRepository } from "../application/ports/signal-checkin-repository.port.ts";
 
@@ -15,7 +15,7 @@ class FakeSignalCheckinRepository implements SignalCheckinRepository {
   public shouldThrowUnknownInstitution = false;
   async recordCheckin(params: RecordCheckinParams): Promise<void> {
     if (this.shouldThrowUnknownInstitution) {
-      throw new UnknownInstitutionError();
+      throw new UnknownInstitutionOrSectorError();
     }
     this.calls.push(params);
   }
@@ -46,14 +46,14 @@ describe("signal-checkin controller", () => {
   it("POST /signals/checkin returns 204 for a valid body and forwards it to the repository", async () => {
     const response = await request(app.getHttpServer()).post("/signals/checkin").send({
       institutionId: "inst-1",
-      department: "UTI",
+      sectorId: "UTI",
       concerning: true,
       deviceSignalId: "device-1",
     });
 
     expect(response.status).toBe(204);
     expect(repository.calls).toHaveLength(1);
-    expect(repository.calls[0]).toMatchObject({ institutionId: "inst-1", department: "UTI", concerning: true });
+    expect(repository.calls[0]).toMatchObject({ institutionId: "inst-1", sectorId: "UTI", concerning: true });
   });
 
   it("POST /signals/checkin returns 400 for a malformed body", async () => {
@@ -66,7 +66,7 @@ describe("signal-checkin controller", () => {
     repository.shouldThrowUnknownInstitution = true;
     const response = await request(app.getHttpServer()).post("/signals/checkin").send({
       institutionId: "does-not-exist",
-      department: "UTI",
+      sectorId: "UTI",
       concerning: false,
       deviceSignalId: "device-1",
     });
@@ -78,7 +78,7 @@ describe("signal-checkin controller", () => {
   it("POST /signals/checkin requires no authentication", async () => {
     const response = await request(app.getHttpServer()).post("/signals/checkin").send({
       institutionId: "inst-1",
-      department: "UTI",
+      sectorId: "UTI",
       concerning: false,
       deviceSignalId: "device-2",
     });

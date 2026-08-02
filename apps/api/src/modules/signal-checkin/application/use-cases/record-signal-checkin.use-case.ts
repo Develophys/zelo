@@ -8,7 +8,7 @@ import {
 
 export interface RecordSignalCheckinInput {
   institutionId: string;
-  department: string;
+  sectorId: string;
   concerning: boolean;
   deviceSignalId: string;
 }
@@ -20,12 +20,12 @@ export class RecordSignalCheckinUseCase {
   async execute(input: RecordSignalCheckinInput, now: Date = new Date()): Promise<void> {
     const weekStart = startOfIsoWeek(now);
     const dedupKey = createHash("sha256")
-      .update(`${input.deviceSignalId}:${input.institutionId}:${input.department}:${weekStart.toISOString()}`)
+      .update(`${input.deviceSignalId}:${input.institutionId}:${input.sectorId}:${weekStart.toISOString()}`)
       .digest("hex");
 
     await this.repository.recordCheckin({
       institutionId: input.institutionId,
-      department: input.department,
+      sectorId: input.sectorId,
       weekStart,
       concerning: input.concerning,
       dedupKey,

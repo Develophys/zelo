@@ -25,8 +25,6 @@ export class GetManagerSignalsUseCase {
 
   async execute(institutionId: string): Promise<ManagerSignalsResponse> {
     const rows = await this.repository.findAll(institutionId);
-    // NOT institution-scoped — see technical-debt.md TD-003. SimulatedFollowUp has no
-    // institutionId; every institution currently shares this one KPI.
     const followUpResponseRate = await this.computeFollowUpResponseRate();
 
     if (rows.length === 0) {
@@ -36,23 +34,23 @@ export class GetManagerSignalsUseCase {
     const weekTimes = [...new Set(rows.map((r) => r.weekStart.getTime()))].sort((a, b) => a - b);
     const mostRecentWeek = weekTimes[weekTimes.length - 1]!;
 
-    const byDepartment = new Map<string, SignalRow[]>();
+    const bySector = new Map<string, SignalRow[]>();
     for (const row of rows) {
-      const list = byDepartment.get(row.department) ?? [];
+      const list = bySector.get(row.sectorId) ?? [];
       list.push(row);
-      byDepartment.set(row.department, list);
+      bySector.set(row.sectorId, list);
     }
 
     const segments: { label: string; value: number; n: number }[] = [];
     let visibleConcerning = 0;
     let visibleCheckIns = 0;
 
-    for (const [department, deptRows] of byDepartment) {
-      const currentWeekRow = deptRows.find((r) => r.weekStart.getTime() === mostRecentWeek);
+    for (const [, sectorRows] of bySector) {
+      const currentWeekRow = sectorRows.find((r) => r.weekStart.getTime() === mostRecentWeek);
       if (!currentWeekRow || currentWeekRow.checkIns < K_ANONYMITY_THRESHOLD) continue;
 
       segments.push({
-        label: department,
+        label: currentWeekRow.sectorName,
         value: Math.round((currentWeekRow.concerning / currentWeekRow.checkIns) * 100),
         n: currentWeekRow.checkIns,
       });

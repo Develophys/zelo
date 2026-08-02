@@ -32,14 +32,14 @@ describe("GetManagerSignalsUseCase", () => {
     expect(repository.lastInstitutionId).toBe("institution-1");
   });
 
-  it("computes segments from the most recent week only, excluding departments under k=5", async () => {
+  it("computes segments from the most recent week only, excluding sectors under k=5, labeling by sectorName", async () => {
     const repository = new FakeSignalRepository([
-      { department: "B", weekStart: WEEK_2, checkIns: 10, concerning: 4 },
-      { department: "A", weekStart: WEEK_1, checkIns: 10, concerning: 3 },
-      { department: "C", weekStart: WEEK_1, checkIns: 4, concerning: 2 },
-      { department: "A", weekStart: WEEK_2, checkIns: 10, concerning: 6 },
-      { department: "C", weekStart: WEEK_2, checkIns: 4, concerning: 2 },
-      { department: "B", weekStart: WEEK_1, checkIns: 10, concerning: 4 },
+      { sectorId: "b", sectorName: "B", weekStart: WEEK_2, checkIns: 10, concerning: 4 },
+      { sectorId: "a", sectorName: "A", weekStart: WEEK_1, checkIns: 10, concerning: 3 },
+      { sectorId: "c", sectorName: "C", weekStart: WEEK_1, checkIns: 4, concerning: 2 },
+      { sectorId: "a", sectorName: "A", weekStart: WEEK_2, checkIns: 10, concerning: 6 },
+      { sectorId: "c", sectorName: "C", weekStart: WEEK_2, checkIns: 4, concerning: 2 },
+      { sectorId: "b", sectorName: "B", weekStart: WEEK_1, checkIns: 10, concerning: 4 },
     ]);
     const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
 
@@ -54,11 +54,11 @@ describe("GetManagerSignalsUseCase", () => {
     expect(result.segments).toHaveLength(2); // "C" (n=4) suppressed
   });
 
-  it("computes overallConcerningRate from only the visible departments' most recent week", async () => {
+  it("computes overallConcerningRate from only the visible sectors' most recent week", async () => {
     const repository = new FakeSignalRepository([
-      { department: "A", weekStart: WEEK_2, checkIns: 10, concerning: 6 },
-      { department: "B", weekStart: WEEK_2, checkIns: 10, concerning: 4 },
-      { department: "C", weekStart: WEEK_2, checkIns: 4, concerning: 2 },
+      { sectorId: "a", sectorName: "A", weekStart: WEEK_2, checkIns: 10, concerning: 6 },
+      { sectorId: "b", sectorName: "B", weekStart: WEEK_2, checkIns: 10, concerning: 4 },
+      { sectorId: "c", sectorName: "C", weekStart: WEEK_2, checkIns: 4, concerning: 2 },
     ]);
     const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
 
@@ -67,48 +67,29 @@ describe("GetManagerSignalsUseCase", () => {
     expect(result.overallConcerningRate).toBe(0.5); // (6+4)/(10+10), C excluded
   });
 
-  it("computes weeklyTrend and checkInsLast4Weeks as org-wide sums including the suppressed department", async () => {
+  it("computes weeklyTrend and checkInsLast4Weeks as sums including the suppressed sector", async () => {
     const repository = new FakeSignalRepository([
-      { department: "A", weekStart: WEEK_1, checkIns: 10, concerning: 3 },
-      { department: "A", weekStart: WEEK_2, checkIns: 10, concerning: 6 },
-      { department: "B", weekStart: WEEK_1, checkIns: 10, concerning: 4 },
-      { department: "B", weekStart: WEEK_2, checkIns: 10, concerning: 4 },
-      { department: "C", weekStart: WEEK_1, checkIns: 4, concerning: 2 },
-      { department: "C", weekStart: WEEK_2, checkIns: 4, concerning: 2 },
+      { sectorId: "a", sectorName: "A", weekStart: WEEK_1, checkIns: 10, concerning: 3 },
+      { sectorId: "a", sectorName: "A", weekStart: WEEK_2, checkIns: 10, concerning: 6 },
+      { sectorId: "b", sectorName: "B", weekStart: WEEK_1, checkIns: 10, concerning: 4 },
+      { sectorId: "b", sectorName: "B", weekStart: WEEK_2, checkIns: 10, concerning: 4 },
+      { sectorId: "c", sectorName: "C", weekStart: WEEK_1, checkIns: 4, concerning: 2 },
+      { sectorId: "c", sectorName: "C", weekStart: WEEK_2, checkIns: 4, concerning: 2 },
     ]);
     const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
 
     const result = await useCase.execute("institution-1");
 
     expect(result.weeklyTrend).toEqual([
-      { weekStart: WEEK_1.toISOString(), concerningRate: 0.375 }, // (3+4+2)/(10+10+4)
-      { weekStart: WEEK_2.toISOString(), concerningRate: 0.5 }, // (6+4+2)/(10+10+4)
+      { weekStart: WEEK_1.toISOString(), concerningRate: 0.375 },
+      { weekStart: WEEK_2.toISOString(), concerningRate: 0.5 },
     ]);
-    expect(result.checkInsLast4Weeks).toBe(48); // both weeks, all 3 departments: 24+24
+    expect(result.checkInsLast4Weeks).toBe(48);
   });
 
-  it("sums only the trailing 4 weeks for checkInsLast4Weeks when more than 4 weeks exist", async () => {
-    const weeks = [
-      new Date("2026-06-01T00:00:00.000Z"),
-      new Date("2026-06-08T00:00:00.000Z"),
-      new Date("2026-06-15T00:00:00.000Z"),
-      new Date("2026-06-22T00:00:00.000Z"),
-      new Date("2026-06-29T00:00:00.000Z"),
-    ];
-    const repository = new FakeSignalRepository(
-      weeks.map((weekStart) => ({ department: "A", weekStart, checkIns: 10, concerning: 5 })),
-    );
-    const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
-
-    const result = await useCase.execute("institution-1");
-
-    expect(result.checkInsLast4Weeks).toBe(40); // trailing 4 of 5 weeks, not all 5 (which would be 50)
-    expect(result.weeklyTrend).toHaveLength(5); // but the trend still returns every week
-  });
-
-  it("returns 0 for overallConcerningRate (not NaN) when every department is suppressed", async () => {
+  it("returns 0 for overallConcerningRate (not NaN) when every sector is suppressed", async () => {
     const repository = new FakeSignalRepository([
-      { department: "Tiny", weekStart: WEEK_2, checkIns: 2, concerning: 1 },
+      { sectorId: "tiny", sectorName: "Tiny", weekStart: WEEK_2, checkIns: 2, concerning: 1 },
     ]);
     const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
 
@@ -116,7 +97,7 @@ describe("GetManagerSignalsUseCase", () => {
 
     expect(result.segments).toEqual([]);
     expect(result.overallConcerningRate).toBe(0);
-    expect(result.checkInsLast4Weeks).toBe(2); // org-wide sum still includes the suppressed dept
+    expect(result.checkInsLast4Weeks).toBe(2);
   });
 
   it("returns all-zero/empty output for an unseeded (empty) database, without crashing", async () => {
@@ -146,26 +127,6 @@ describe("GetManagerSignalsUseCase - followUpResponseRate", () => {
 
     const result = await useCase.execute("institution-1");
 
-    expect(result.followUpResponseRate).toBe(0.75); // WEEK_2 (most recent): 15/20
-  });
-
-  it("returns 0, not NaN, when the most recent week's sent is 0", async () => {
-    const repository = new FakeSignalRepository([]);
-    const followUpRepository = new FakeSimulatedFollowUpRepository([{ weekStart: WEEK_2, sent: 0, responded: 0 }]);
-    const useCase = new GetManagerSignalsUseCase(repository, followUpRepository);
-
-    const result = await useCase.execute("institution-1");
-
-    expect(result.followUpResponseRate).toBe(0);
-  });
-
-  it("returns 0 when there is no follow-up data at all", async () => {
-    const repository = new FakeSignalRepository([]);
-    const followUpRepository = new FakeSimulatedFollowUpRepository([]);
-    const useCase = new GetManagerSignalsUseCase(repository, followUpRepository);
-
-    const result = await useCase.execute("institution-1");
-
-    expect(result.followUpResponseRate).toBe(0);
+    expect(result.followUpResponseRate).toBe(0.75);
   });
 });

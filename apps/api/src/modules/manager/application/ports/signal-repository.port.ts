@@ -1,5 +1,6 @@
 export interface SignalRow {
-  department: string;
+  sectorId: string;
+  sectorName: string;
   weekStart: Date;
   checkIns: number;
   concerning: number;
