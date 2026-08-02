@@ -14,6 +14,7 @@ import { CrisisAcceptPage } from "@/presentation/pages/CrisisAcceptPage";
 import { CrisisDeclinePage } from "@/presentation/pages/CrisisDeclinePage";
 import { PeersPage } from "@/presentation/pages/PeersPage";
 import { ManagerDashboardPage } from "@/presentation/pages/ManagerDashboardPage";
+import { ManagerAdminPage } from "@/presentation/pages/ManagerAdminPage";
 import { ManagerLoginPage } from "@/presentation/pages/ManagerLoginPage";
 import { ManagerInsightHistoryPage } from "@/presentation/pages/ManagerInsightHistoryPage";
 import { YouPage } from "@/presentation/pages/YouPage";
@@ -81,6 +82,15 @@ export const routeChildren: RouteObject[] = [
     path: "manager/history",
     Component: ManagerInsightHistoryPage,
     loader: () => (useManagerSessionStore.getState().isValid() ? null : redirect(routes.managerLogin)),
+  },
+  {
+    path: "manager/admin",
+    Component: ManagerAdminPage,
+    loader: () => {
+      if (!useManagerSessionStore.getState().isValid()) return redirect(routes.managerLogin);
+      if (useManagerSessionStore.getState().role !== "HOSPITAL_ADMIN") return redirect(routes.manager);
+      return null;
+    },
   },
   {
     path: "you",

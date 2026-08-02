@@ -31,6 +31,7 @@ describe("ManagerLoginPage", () => {
     vi.spyOn(container.loginManagerUseCase, "execute").mockResolvedValue({
       token: "abc.def",
       expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      role: "HOSPITAL_ADMIN",
     });
     const user = userEvent.setup();
     renderPage();

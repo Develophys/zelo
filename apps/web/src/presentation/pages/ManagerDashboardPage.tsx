@@ -66,6 +66,7 @@ function SegmentsCardSkeleton() {
 export function ManagerDashboardPage() {
   const navigate = useNavigate();
   const clearSession = useManagerSessionStore((state) => state.clearSession);
+  const role = useManagerSessionStore((state) => state.role);
   const { data, error, isError, isLoading } = useManagerSignals();
   const insight = useManagerInsight();
 
@@ -90,8 +91,13 @@ export function ManagerDashboardPage() {
           <BackButton label="Voltar" onClick={() => navigate(routes.home)} />
           <PrivacyBadge />
         </div>
-        <div className="mt-4">
+        <div className="mt-4 flex items-center justify-between">
           <SectionLabel>Painel do gestor</SectionLabel>
+          {role === "HOSPITAL_ADMIN" && (
+            <Link to={routes.managerAdmin} className="text-label font-bold text-brand">
+              Administração
+            </Link>
+          )}
         </div>
         <h1 className="mt-2 text-h2 text-ink">Tendências da equipe</h1>
         <p className="mt-1 text-caption text-muted">

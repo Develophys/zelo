@@ -28,6 +28,14 @@ import { HttpAdminAuthAdapter } from "@/infrastructure/http/http-admin-auth.adap
 import { CreateInstitutionUseCase } from "@/use-cases/create-institution.usecase";
 import { ListInstitutionsUseCase } from "@/use-cases/list-institutions.usecase";
 import { HttpAdminInstitutionAdapter } from "@/infrastructure/http/http-admin-institution.adapter";
+import { HttpManagerAdminAdapter } from "@/infrastructure/http/http-manager-admin.adapter";
+import { ListSectorsUseCase } from "@/use-cases/list-sectors.usecase";
+import { CreateSectorUseCase } from "@/use-cases/create-sector.usecase";
+import { UpdateSectorUseCase } from "@/use-cases/update-sector.usecase";
+import { ListManagersUseCase } from "@/use-cases/list-managers.usecase";
+import { CreateManagerUseCase as CreateManagerAdminUseCase } from "@/use-cases/create-manager.usecase";
+import { UpdateManagerUseCase as UpdateManagerAdminUseCase } from "@/use-cases/update-manager.usecase";
+import { ResetManagerPasswordUseCase } from "@/use-cases/reset-manager-password.usecase";
 
 export const checkApiHealthUseCase = new CheckApiHealthUseCase(new HttpApiHealthAdapter());
 export const sendChatMessageUseCase = new SendChatMessageUseCase(
@@ -55,3 +63,12 @@ export const recordSignalCheckinUseCase = new RecordSignalCheckinUseCase(new Htt
 export const loginAdminUseCase = new LoginAdminUseCase(new HttpAdminAuthAdapter());
 export const createInstitutionUseCase = new CreateInstitutionUseCase(new HttpAdminInstitutionAdapter());
 export const listInstitutionsUseCase = new ListInstitutionsUseCase(new HttpAdminInstitutionAdapter());
+
+const managerAdminAdapter = new HttpManagerAdminAdapter();
+export const listSectorsUseCase = new ListSectorsUseCase(managerAdminAdapter);
+export const createSectorUseCase = new CreateSectorUseCase(managerAdminAdapter);
+export const updateSectorUseCase = new UpdateSectorUseCase(managerAdminAdapter);
+export const listManagersUseCase = new ListManagersUseCase(managerAdminAdapter);
+export const createManagerAdminUseCase = new CreateManagerAdminUseCase(managerAdminAdapter);
+export const updateManagerAdminUseCase = new UpdateManagerAdminUseCase(managerAdminAdapter);
+export const resetManagerPasswordUseCase = new ResetManagerPasswordUseCase(managerAdminAdapter);

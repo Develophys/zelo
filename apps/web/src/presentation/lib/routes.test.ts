@@ -29,6 +29,7 @@ describe("routes", () => {
       chat: "/chat",
       peers: "/peers",
       manager: "/manager",
+      managerAdmin: "/manager/admin",
       managerLogin: "/manager/login",
       you: "/you",
       managerHistory: "/manager/history",

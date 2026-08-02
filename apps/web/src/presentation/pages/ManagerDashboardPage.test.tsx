@@ -216,6 +216,26 @@ describe("ManagerDashboardPage", () => {
     expect(pdfSpy).toHaveBeenCalledWith(SIGNALS_RESPONSE);
   });
 
+  it("hides the Administração link for a SECTOR_MANAGER", async () => {
+    useManagerSessionStore.setState({ role: "SECTOR_MANAGER" });
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Administração")).not.toBeInTheDocument();
+  });
+
+  it("shows the Administração link for a HOSPITAL_ADMIN", async () => {
+    useManagerSessionStore.setState({ role: "HOSPITAL_ADMIN" });
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Administração")).toBeInTheDocument();
+  });
+
   it("disables both export buttons when there are no segments", async () => {
     vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
       ...SIGNALS_RESPONSE,
