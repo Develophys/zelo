@@ -27,6 +27,21 @@ class FakeManagerRepository implements ManagerRepository {
   async findByName(name: string): Promise<ManagerRow | null> {
     return this.rows.find((row) => row.name === name) ?? null;
   }
+  async findById(): Promise<ManagerRow | null> {
+    throw new Error("not used in this test");
+  }
+  async findAllByInstitution(): Promise<never> {
+    throw new Error("not used in this test");
+  }
+  async create(): Promise<never> {
+    throw new Error("not used in this test");
+  }
+  async update(): Promise<void> {
+    throw new Error("not used in this test");
+  }
+  async countActiveHospitalAdmins(): Promise<number> {
+    throw new Error("not used in this test");
+  }
 }
 
 class FakeSignalRepository implements SignalRepository {
@@ -94,12 +109,16 @@ describe("manager controller", () => {
         name: "Ana Konder",
         passwordHash: await passwordService.hash("test-password"),
         institutionId: "institution-a",
+        role: "HOSPITAL_ADMIN",
+        isActive: true,
       },
       {
         id: "manager-2",
         name: "Beatriz Lima",
         passwordHash: await passwordService.hash("test-password-2"),
         institutionId: "institution-b",
+        role: "HOSPITAL_ADMIN",
+        isActive: true,
       },
     ];
     signalRepository = new FakeSignalRepository();
@@ -178,11 +197,11 @@ describe("manager controller", () => {
 
   it("GET /manager/signals returns only the authenticated manager's own institution's data, suppressing n<5 departments", async () => {
     signalRepository.setRowsForInstitution("institution-a", [
-      { department: "A", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 10, concerning: 6 },
-      { department: "Tiny", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 3, concerning: 1 },
+      { sectorId: "sector-a", sectorName: "A", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 10, concerning: 6 },
+      { sectorId: "sector-tiny", sectorName: "Tiny", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 3, concerning: 1 },
     ]);
     signalRepository.setRowsForInstitution("institution-b", [
-      { department: "A", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 20, concerning: 2 },
+      { sectorId: "sector-a", sectorName: "A", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 20, concerning: 2 },
     ]);
 
     const tokenA = await getToken("Ana Konder", "test-password");

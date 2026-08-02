@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ManagerController } from "./infrastructure/manager.controller.ts";
 import { ManagerAuthGuard } from "./infrastructure/manager-auth.guard.ts";
+import { HospitalAdminGuard } from "./infrastructure/hospital-admin.guard.ts";
 import { PrismaSignalRepository } from "./infrastructure/persistence/prisma-signal.repository.ts";
 import { PrismaSimulatedFollowUpRepository } from "./infrastructure/persistence/prisma-simulated-follow-up.repository.ts";
 import { PrismaManagerInsightRepository } from "./infrastructure/persistence/prisma-manager-insight.repository.ts";
@@ -37,6 +38,7 @@ const aiInsightPortProvider =
     ManagerTokenService,
     ManagerPasswordService,
     ManagerAuthGuard,
+    HospitalAdminGuard,
     { provide: SIGNAL_REPOSITORY, useClass: PrismaSignalRepository },
     { provide: SIMULATED_FOLLOW_UP_REPOSITORY, useClass: PrismaSimulatedFollowUpRepository },
     aiInsightPortProvider,

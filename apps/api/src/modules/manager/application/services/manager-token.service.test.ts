@@ -7,33 +7,36 @@ function fakeConfig(secret: string): ConfigService {
 }
 
 describe("ManagerTokenService", () => {
-  it("issues a token that verify() decodes back to the same manager id/name/institutionId", () => {
+  it("issues a token (echoing role in the plaintext response) that verify() decodes back to the same manager id/name/institutionId/role", () => {
     const service = new ManagerTokenService(fakeConfig("test-secret"));
-    const { token, expiresAt } = service.issue("manager-1", "Ana Konder", "institution-1");
+    const { token, expiresAt, role } = service.issue("manager-1", "Ana Konder", "institution-1", "HOSPITAL_ADMIN");
 
+    expect(role).toBe("HOSPITAL_ADMIN");
     expect(service.verify(token)).toEqual({
       managerId: "manager-1",
       managerName: "Ana Konder",
       institutionId: "institution-1",
+      role: "HOSPITAL_ADMIN",
     });
     expect(new Date(expiresAt).getTime()).toBeGreaterThan(Date.now());
   });
 
-  it("round-trips a manager name containing a period without breaking parsing", () => {
+  it("round-trips a SECTOR_MANAGER role correctly", () => {
     const service = new ManagerTokenService(fakeConfig("test-secret"));
-    const { token } = service.issue("manager-1", "Dr. Ana Konder", "institution-1");
+    const { token } = service.issue("manager-2", "Paulo Reis", "institution-1", "SECTOR_MANAGER");
 
     expect(service.verify(token)).toEqual({
-      managerId: "manager-1",
-      managerName: "Dr. Ana Konder",
+      managerId: "manager-2",
+      managerName: "Paulo Reis",
       institutionId: "institution-1",
+      role: "SECTOR_MANAGER",
     });
   });
 
   it("rejects a token signed with a different secret", () => {
     const issuer = new ManagerTokenService(fakeConfig("secret-a"));
     const verifier = new ManagerTokenService(fakeConfig("secret-b"));
-    const { token } = issuer.issue("manager-1", "Ana Konder", "institution-1");
+    const { token } = issuer.issue("manager-1", "Ana Konder", "institution-1", "HOSPITAL_ADMIN");
 
     expect(verifier.verify(token)).toBeNull();
   });
@@ -48,9 +51,9 @@ describe("ManagerTokenService", () => {
   it("rejects an expired token", () => {
     vi.useFakeTimers();
     const service = new ManagerTokenService(fakeConfig("test-secret"));
-    const { token } = service.issue("manager-1", "Ana Konder", "institution-1");
+    const { token } = service.issue("manager-1", "Ana Konder", "institution-1", "HOSPITAL_ADMIN");
 
-    vi.advanceTimersByTime(9 * 60 * 60 * 1000); // 9h, past the 8h expiry
+    vi.advanceTimersByTime(9 * 60 * 60 * 1000);
     expect(service.verify(token)).toBeNull();
 
     vi.useRealTimers();

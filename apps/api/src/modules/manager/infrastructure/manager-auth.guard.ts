@@ -2,11 +2,12 @@ import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import type { CanActivate, ExecutionContext } from "@nestjs/common";
 import type { Request } from "express";
 import { ManagerTokenService } from "../application/services/manager-token.service.ts";
+import type { ManagerRole } from "../application/ports/manager-repository.port.ts";
 
 declare global {
   namespace Express {
     interface Request {
-      manager?: { id: string; name: string; institutionId: string };
+      manager?: { id: string; name: string; institutionId: string; role: ManagerRole };
     }
   }
 }
@@ -31,7 +32,7 @@ export class ManagerAuthGuard implements CanActivate {
       throw new UnauthorizedException();
     }
 
-    request.manager = { id: decoded.managerId, name: decoded.managerName, institutionId: decoded.institutionId };
+    request.manager = { id: decoded.managerId, name: decoded.managerName, institutionId: decoded.institutionId, role: decoded.role };
     return true;
   }
 }
