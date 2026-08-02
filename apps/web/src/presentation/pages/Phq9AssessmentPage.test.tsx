@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Phq9AssessmentPage } from "./Phq9AssessmentPage";
 import * as container from "@/app/container";
 import { PHQ9_QUESTIONS } from "@/domain/assessment-scales/phq9";
+import { useInstitutionLinkStore } from "@/stores/institution-link.store";
 
 function renderPhq9() {
   const queryClient = new QueryClient();
@@ -24,6 +25,12 @@ function renderPhq9() {
 
 describe("Phq9AssessmentPage", () => {
   beforeEach(() => {
+    useInstitutionLinkStore.setState({
+      institutionId: null,
+      institutionName: null,
+      department: null,
+      deviceSignalId: null,
+    });
     vi.spyOn(container.submitAssessmentUseCase, "execute").mockResolvedValue({
       totalScore: 5,
       riskSignal: false,

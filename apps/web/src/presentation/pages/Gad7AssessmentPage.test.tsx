@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Gad7AssessmentPage } from "./Gad7AssessmentPage";
 import * as container from "@/app/container";
 import { GAD7_QUESTIONS } from "@/domain/assessment-scales/gad7";
+import { useInstitutionLinkStore } from "@/stores/institution-link.store";
 
 function renderGad7() {
   const queryClient = new QueryClient();
@@ -24,6 +25,12 @@ function renderGad7() {
 
 describe("Gad7AssessmentPage", () => {
   beforeEach(() => {
+    useInstitutionLinkStore.setState({
+      institutionId: null,
+      institutionName: null,
+      department: null,
+      deviceSignalId: null,
+    });
     vi.spyOn(container.submitAssessmentUseCase, "execute").mockResolvedValue({
       totalScore: 3,
       riskSignal: false,

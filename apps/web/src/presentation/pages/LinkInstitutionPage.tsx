@@ -20,7 +20,7 @@ export function LinkInstitutionPage() {
 
   const handleCodeSubmit = (event: FormEvent) => {
     event.preventDefault();
-    lookup.mutate(code, {
+    lookup.mutate(code.trim(), {
       onSuccess: (result) => {
         setInstitution(result);
         setStep("department");
@@ -31,7 +31,8 @@ export function LinkInstitutionPage() {
   const handleDepartmentSubmit = (event: FormEvent) => {
     event.preventDefault();
     if (!institution) return;
-    link({ institutionId: institution.id, institutionName: institution.name, department });
+    const trimmedDepartment = department.trim();
+    link({ institutionId: institution.id, institutionName: institution.name, department: trimmedDepartment });
     navigate(routes.you);
   };
 
@@ -93,6 +94,9 @@ export function LinkInstitutionPage() {
               value={code}
               onChange={(event) => setCode(event.target.value)}
               placeholder="Digite o código"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink placeholder:text-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             />
 

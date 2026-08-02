@@ -120,6 +120,18 @@ re-running the seed.
 
 ## Re-seeding before a live demo
 
+> **⚠️ Re-seeding now deletes real check-in data too, not just fabricated demo data.**
+> Since the institution-linking branch, real médicos can link their device to either
+> seeded institution via its invite code (`zelo-demo-2026` / `sao-lucas-2026`) and generate
+> real check-ins through `POST /signals/checkin` — and those check-ins land in the exact
+> same `Signal` rows that this seed script deletes and regenerates
+> (`prisma.signal.deleteMany({ where: { institutionId: ... } })` in `seed.ts`). Before
+> re-seeding against any environment where a real device might have linked to "Zelo Demo"
+> or "Hospital São Lucas (Demo)" using those invite codes, confirm that discarding their
+> accumulated check-in history is actually acceptable. For real pilot usage, prefer
+> creating a dedicated, non-seeded institution rather than having real médicos link to
+> either of these two demo institutions.
+
 Migrations and seeding are never run automatically against the deployed Fly.io/Neon
 database (see `docker/api.Dockerfile`) — both are manual steps. Since the seed is
 generated relative to "today," data seeded a few days before a demo will show a stale

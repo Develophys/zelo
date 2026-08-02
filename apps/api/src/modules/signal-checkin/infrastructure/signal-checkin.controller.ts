@@ -5,7 +5,7 @@ import { UnknownInstitutionError } from "../application/ports/signal-checkin-rep
 
 const SignalCheckinSchema = z.object({
   institutionId: z.string().min(1),
-  department: z.string().min(1).max(200),
+  department: z.string().trim().min(1).max(200),
   concerning: z.boolean(),
   deviceSignalId: z.string().min(1),
 });

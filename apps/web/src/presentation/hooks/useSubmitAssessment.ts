@@ -11,15 +11,18 @@ export function useSubmitAssessment() {
 
       // Fully decoupled from the assessment submission above: fire-and-forget,
       // and a failure here must never surface as a failed assessment submission
-      // (linking is optional and never gates core functionality).
+      // (linking is optional and never gates core functionality). An unlinked
+      // device must fire zero check-in network calls, so we skip invoking the
+      // use case entirely rather than calling it with a null link.
       const { institutionId, department, deviceSignalId } = useInstitutionLinkStore.getState();
-      const link =
-        institutionId !== null && department !== null && deviceSignalId !== null
-          ? { institutionId, department, deviceSignalId }
-          : null;
-      void recordSignalCheckinUseCase
-        .execute({ link, concerning: isConcerningScore(result.totalScore) })
-        .catch(() => {});
+      if (institutionId !== null && department !== null && deviceSignalId !== null) {
+        void recordSignalCheckinUseCase
+          .execute({
+            link: { institutionId, department, deviceSignalId },
+            concerning: isConcerningScore(result.totalScore),
+          })
+          .catch(() => {});
+      }
 
       return result;
     },
