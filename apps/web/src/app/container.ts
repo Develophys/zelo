@@ -23,6 +23,11 @@ import { LookupInstitutionUseCase } from "@/use-cases/lookup-institution.usecase
 import { HttpInstitutionLinkAdapter } from "@/infrastructure/http/http-institution-link.adapter";
 import { RecordSignalCheckinUseCase } from "@/use-cases/record-signal-checkin.usecase";
 import { HttpSignalCheckinAdapter } from "@/infrastructure/http/http-signal-checkin.adapter";
+import { LoginAdminUseCase } from "@/use-cases/login-admin.usecase";
+import { HttpAdminAuthAdapter } from "@/infrastructure/http/http-admin-auth.adapter";
+import { CreateInstitutionUseCase } from "@/use-cases/create-institution.usecase";
+import { ListInstitutionsUseCase } from "@/use-cases/list-institutions.usecase";
+import { HttpAdminInstitutionAdapter } from "@/infrastructure/http/http-admin-institution.adapter";
 
 export const checkApiHealthUseCase = new CheckApiHealthUseCase(new HttpApiHealthAdapter());
 export const sendChatMessageUseCase = new SendChatMessageUseCase(
@@ -47,3 +52,6 @@ export const generateManagerInsightUseCase = new GenerateManagerInsightUseCase(n
 export const getManagerInsightHistoryUseCase = new GetManagerInsightHistoryUseCase(new HttpManagerInsightHistoryAdapter());
 export const lookupInstitutionUseCase = new LookupInstitutionUseCase(new HttpInstitutionLinkAdapter());
 export const recordSignalCheckinUseCase = new RecordSignalCheckinUseCase(new HttpSignalCheckinAdapter());
+export const loginAdminUseCase = new LoginAdminUseCase(new HttpAdminAuthAdapter());
+export const createInstitutionUseCase = new CreateInstitutionUseCase(new HttpAdminInstitutionAdapter());
+export const listInstitutionsUseCase = new ListInstitutionsUseCase(new HttpAdminInstitutionAdapter());
