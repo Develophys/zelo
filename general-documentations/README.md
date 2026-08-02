@@ -76,10 +76,16 @@ a anterior.
 
 ## Fase 5 — Deep dive técnico (opcional, se for engenharia)
 
-17. [`../docs/superpowers/specs/`](../docs/superpowers/specs/) — telas, tokens de design,
+17. [`architecture-reference.pt-BR.md`](architecture-reference.pt-BR.md) ·
+    [English version](architecture-reference.md) — visão única e atualizada de como o sistema
+    é construído hoje: modelo de dados, módulos do backend, arquitetura do frontend, privacidade,
+    multi-instituição, segurança, deploy, e seções práticas de "como implementar", "como escalar"
+    e dívida técnica conhecida. O melhor ponto de partida para quem vai planejar os próximos
+    passos de engenharia.
+18. [`../docs/superpowers/specs/`](../docs/superpowers/specs/) — telas, tokens de design,
     arquitetura da PWA (inclui `2026-07-12-mbi-hss-chat-direction-design.md`, o desenho
     técnico da ADR-002).
-18. [`../docs/superpowers/plans/`](../docs/superpowers/plans/) — planos de implementação por
+19. [`../docs/superpowers/plans/`](../docs/superpowers/plans/) — planos de implementação por
     vertical (fundação, backend, frontend, chat de IA, avaliação, etc.).
 
 ---

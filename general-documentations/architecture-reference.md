@@ -1,5 +1,7 @@
 # Architecture Reference
 
+🇺🇸 English · [🇧🇷 Português](architecture-reference.pt-BR.md)
+
 **Last synced:** 2026-08-02, after `2026-08-02-multi-institution-data-partitioning-design.md`'s
 two implementation plans merged to `main`.
 
