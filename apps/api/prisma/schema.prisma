@@ -82,3 +82,10 @@ model SimulatedFollowUp {
   @@unique([weekStart])
   @@map("simulated_follow_ups")
 }
+
+model SignalDedupKey {
+  dedupKey  String   @id
+  createdAt DateTime @default(now())
+
+  @@map("signal_dedup_keys")
+}
