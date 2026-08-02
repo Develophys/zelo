@@ -5,7 +5,7 @@ import { MANAGER_INSIGHT_REPOSITORY, type ManagerInsightRepository, type StoredM
 export class GetManagerInsightHistoryUseCase {
   constructor(@Inject(MANAGER_INSIGHT_REPOSITORY) private readonly repository: ManagerInsightRepository) {}
 
-  async execute(): Promise<StoredManagerInsight[]> {
-    return this.repository.findAll();
+  async execute(institutionId: string): Promise<StoredManagerInsight[]> {
+    return this.repository.findAll(institutionId);
   }
 }

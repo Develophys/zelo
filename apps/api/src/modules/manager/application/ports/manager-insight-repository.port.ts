@@ -5,6 +5,7 @@ export interface StoredManagerInsight {
   summary: string;
   generatedAt: Date;
   createdByManagerName: string | null;
+  institutionId: string;
 }
 
 export interface ManagerInsightRepository {
@@ -13,8 +14,9 @@ export interface ManagerInsightRepository {
     suggestedActions: string[];
     summary: string;
     createdByManagerName: string | null;
+    institutionId: string;
   }): Promise<void>;
-  findAll(): Promise<StoredManagerInsight[]>;
+  findAll(institutionId: string): Promise<StoredManagerInsight[]>;
 }
 
 export const MANAGER_INSIGHT_REPOSITORY = Symbol("MANAGER_INSIGHT_REPOSITORY");

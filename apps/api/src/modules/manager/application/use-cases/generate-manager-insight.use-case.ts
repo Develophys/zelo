@@ -14,8 +14,8 @@ export class GenerateManagerInsightUseCase {
     @Inject(MANAGER_INSIGHT_REPOSITORY) private readonly insightRepository: ManagerInsightRepository,
   ) {}
 
-  async execute(managerName: string): Promise<ManagerInsightResponse> {
-    const signals = await this.getManagerSignals.execute();
+  async execute(managerName: string, institutionId: string): Promise<ManagerInsightResponse> {
+    const signals = await this.getManagerSignals.execute(institutionId);
     const summary = this.formatSummary(signals);
     const result = await this.aiInsight.generateInsight({ summary, systemPrompt: MANAGER_INSIGHT_SYSTEM_PROMPT });
 
@@ -25,6 +25,7 @@ export class GenerateManagerInsightUseCase {
         suggestedActions: result.suggestedActions,
         summary,
         createdByManagerName: managerName,
+        institutionId,
       });
     } catch (error) {
       this.logger.error(

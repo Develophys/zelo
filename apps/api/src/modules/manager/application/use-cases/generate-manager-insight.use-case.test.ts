@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { GenerateManagerInsightUseCase } from "./generate-manager-insight.use-case.ts";
 import { GetManagerSignalsUseCase } from "./get-manager-signals.use-case.ts";
-import type { SimulatedSignalRepository, SimulatedSignalRow } from "../ports/simulated-signal-repository.port.ts";
+import type { SignalRepository, SignalRow } from "../ports/signal-repository.port.ts";
 import type { SimulatedFollowUpRepository, SimulatedFollowUpRow } from "../ports/simulated-follow-up-repository.port.ts";
 import type { AiInsightPort, ManagerInsightResponse } from "../ports/ai-insight.port.ts";
 import { MANAGER_INSIGHT_SYSTEM_PROMPT } from "../prompts/manager-insight-system-prompt.ts";
 import type { ManagerInsightRepository, StoredManagerInsight } from "../ports/manager-insight-repository.port.ts";
 
-class FakeSimulatedSignalRepository implements SimulatedSignalRepository {
-  constructor(private readonly rows: SimulatedSignalRow[]) {}
-  async findAll(): Promise<SimulatedSignalRow[]> {
+class FakeSignalRepository implements SignalRepository {
+  constructor(private readonly rows: SignalRow[]) {}
+  async findAll(): Promise<SignalRow[]> {
     return this.rows;
   }
 }
@@ -31,9 +31,21 @@ class FakeAiInsightPort implements AiInsightPort {
 }
 
 class FakeManagerInsightRepository implements ManagerInsightRepository {
-  public savedEntries: { interpretation: string; suggestedActions: string[]; summary: string; createdByManagerName: string | null }[] = [];
+  public savedEntries: {
+    interpretation: string;
+    suggestedActions: string[];
+    summary: string;
+    createdByManagerName: string | null;
+    institutionId: string;
+  }[] = [];
   public shouldFailSave = false;
-  async save(entry: { interpretation: string; suggestedActions: string[]; summary: string; createdByManagerName: string | null }): Promise<void> {
+  async save(entry: {
+    interpretation: string;
+    suggestedActions: string[];
+    summary: string;
+    createdByManagerName: string | null;
+    institutionId: string;
+  }): Promise<void> {
     if (this.shouldFailSave) {
       throw new Error("save failed");
     }
@@ -49,7 +61,7 @@ const WEEK_2 = new Date("2026-06-22T00:00:00.000Z");
 
 describe("GenerateManagerInsightUseCase", () => {
   it("formats the current ManagerSignalsResponse into a PT-BR summary and forwards it with the system prompt", async () => {
-    const signalsRepository = new FakeSimulatedSignalRepository([
+    const signalsRepository = new FakeSignalRepository([
       { department: "UTI", weekStart: WEEK_1, checkIns: 10, concerning: 3 },
       { department: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 6 },
     ]);
@@ -58,7 +70,7 @@ describe("GenerateManagerInsightUseCase", () => {
     const insightRepository = new FakeManagerInsightRepository();
     const useCase = new GenerateManagerInsightUseCase(getManagerSignals, aiInsight, insightRepository);
 
-    const result = await useCase.execute("Ana Konder");
+    const result = await useCase.execute("Ana Konder", "institution-1");
 
     expect(result).toEqual({ interpretation: "texto", suggestedActions: ["ação 1"] });
     expect(aiInsight.lastParams?.systemPrompt).toBe(MANAGER_INSIGHT_SYSTEM_PROMPT);
@@ -70,7 +82,7 @@ describe("GenerateManagerInsightUseCase", () => {
   });
 
   it("propagates whatever the AiInsightPort throws (e.g. InsightGenerationFailedError from the adapter)", async () => {
-    const signalsRepository = new FakeSimulatedSignalRepository([
+    const signalsRepository = new FakeSignalRepository([
       { department: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 6 },
     ]);
     const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository, new FakeSimulatedFollowUpRepository());
@@ -82,12 +94,12 @@ describe("GenerateManagerInsightUseCase", () => {
     const insightRepository = new FakeManagerInsightRepository();
     const useCase = new GenerateManagerInsightUseCase(getManagerSignals, new ThrowingAiInsightPort(), insightRepository);
 
-    await expect(useCase.execute("Ana Konder")).rejects.toThrow("boom");
+    await expect(useCase.execute("Ana Konder", "institution-1")).rejects.toThrow("boom");
     expect(insightRepository.savedEntries).toEqual([]);
   });
 
-  it("saves the generated insight to the repository, attributed to the manager who generated it", async () => {
-    const signalsRepository = new FakeSimulatedSignalRepository([
+  it("saves the generated insight to the repository, attributed to the manager and institution", async () => {
+    const signalsRepository = new FakeSignalRepository([
       { department: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 6 },
     ]);
     const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository, new FakeSimulatedFollowUpRepository());
@@ -95,15 +107,21 @@ describe("GenerateManagerInsightUseCase", () => {
     const insightRepository = new FakeManagerInsightRepository();
     const useCase = new GenerateManagerInsightUseCase(getManagerSignals, aiInsight, insightRepository);
 
-    await useCase.execute("Ana Konder");
+    await useCase.execute("Ana Konder", "institution-1");
 
     expect(insightRepository.savedEntries).toEqual([
-      { interpretation: "texto", suggestedActions: ["ação 1"], summary: aiInsight.lastParams?.summary, createdByManagerName: "Ana Konder" },
+      {
+        interpretation: "texto",
+        suggestedActions: ["ação 1"],
+        summary: aiInsight.lastParams?.summary,
+        createdByManagerName: "Ana Konder",
+        institutionId: "institution-1",
+      },
     ]);
   });
 
   it("still returns the generated insight even if saving to the repository fails", async () => {
-    const signalsRepository = new FakeSimulatedSignalRepository([
+    const signalsRepository = new FakeSignalRepository([
       { department: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 6 },
     ]);
     const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository, new FakeSimulatedFollowUpRepository());
@@ -112,7 +130,7 @@ describe("GenerateManagerInsightUseCase", () => {
     insightRepository.shouldFailSave = true;
     const useCase = new GenerateManagerInsightUseCase(getManagerSignals, aiInsight, insightRepository);
 
-    const result = await useCase.execute("Ana Konder");
+    const result = await useCase.execute("Ana Konder", "institution-1");
 
     expect(result).toEqual({ interpretation: "texto", suggestedActions: ["ação 1"] });
   });
