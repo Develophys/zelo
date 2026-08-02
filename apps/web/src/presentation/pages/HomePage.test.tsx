@@ -42,7 +42,8 @@ describe("HomePage", () => {
     useInstitutionLinkStore.setState({
       institutionId: null,
       institutionName: null,
-      department: null,
+      sectorId: null,
+      sectorName: null,
       deviceSignalId: null,
     });
   });
@@ -151,7 +152,7 @@ describe("HomePage", () => {
 
   it("hides the institution-link banner once an institution is linked", () => {
     vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue(SIX_NULL_POINTS);
-    useInstitutionLinkStore.getState().link({ institutionId: "inst-1", institutionName: "Hospital São Lucas", department: "UTI" });
+    useInstitutionLinkStore.getState().link({ institutionId: "inst-1", institutionName: "Hospital São Lucas", sectorId: "sector-1", sectorName: "UTI" });
     renderHome();
     expect(screen.queryByText("Ainda não vinculado a um hospital")).not.toBeInTheDocument();
   });

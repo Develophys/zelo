@@ -3,8 +3,10 @@ import { InstitutionController } from "./infrastructure/institution.controller.t
 import { GetInstitutionByInviteCodeUseCase } from "./application/use-cases/get-institution-by-invite-code.use-case.ts";
 import { PrismaInstitutionRepository } from "./infrastructure/persistence/prisma-institution.repository.ts";
 import { INSTITUTION_REPOSITORY } from "./application/ports/institution-repository.port.ts";
+import { SectorModule } from "../sector/sector.module.ts";
 
 @Module({
+  imports: [SectorModule],
   controllers: [InstitutionController],
   providers: [
     GetInstitutionByInviteCodeUseCase,

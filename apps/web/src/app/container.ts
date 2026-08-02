@@ -38,6 +38,7 @@ import { UpdateManagerUseCase as UpdateManagerAdminUseCase } from "@/use-cases/u
 import { ResetManagerPasswordUseCase } from "@/use-cases/reset-manager-password.usecase";
 import { HttpManagerSectorsAdapter } from "@/infrastructure/http/http-manager-sectors.adapter";
 import { ListAccessibleSectorsUseCase } from "@/use-cases/list-accessible-sectors.usecase";
+import { ListInstitutionSectorsUseCase } from "@/use-cases/list-institution-sectors.usecase";
 
 export const checkApiHealthUseCase = new CheckApiHealthUseCase(new HttpApiHealthAdapter());
 export const sendChatMessageUseCase = new SendChatMessageUseCase(
@@ -61,6 +62,7 @@ export const getManagerSignalsUseCase = new GetManagerSignalsUseCase(new HttpMan
 export const generateManagerInsightUseCase = new GenerateManagerInsightUseCase(new HttpManagerInsightAdapter());
 export const getManagerInsightHistoryUseCase = new GetManagerInsightHistoryUseCase(new HttpManagerInsightHistoryAdapter());
 export const lookupInstitutionUseCase = new LookupInstitutionUseCase(new HttpInstitutionLinkAdapter());
+export const listInstitutionSectorsUseCase = new ListInstitutionSectorsUseCase(new HttpInstitutionLinkAdapter());
 export const recordSignalCheckinUseCase = new RecordSignalCheckinUseCase(new HttpSignalCheckinAdapter());
 export const loginAdminUseCase = new LoginAdminUseCase(new HttpAdminAuthAdapter());
 export const createInstitutionUseCase = new CreateInstitutionUseCase(new HttpAdminInstitutionAdapter());

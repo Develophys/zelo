@@ -2,7 +2,7 @@ import type { SignalCheckinPort } from "@/ports/signal-checkin.port";
 
 export interface InstitutionLinkSnapshot {
   institutionId: string;
-  department: string;
+  sectorId: string;
   deviceSignalId: string;
 }
 
@@ -19,7 +19,7 @@ export class RecordSignalCheckinUseCase {
 
     await this.checkinPort.checkin({
       institutionId: link.institutionId,
-      department: link.department,
+      sectorId: link.sectorId,
       deviceSignalId: link.deviceSignalId,
       concerning,
     });

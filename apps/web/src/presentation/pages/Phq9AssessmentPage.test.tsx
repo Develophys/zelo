@@ -28,7 +28,8 @@ describe("Phq9AssessmentPage", () => {
     useInstitutionLinkStore.setState({
       institutionId: null,
       institutionName: null,
-      department: null,
+      sectorId: null,
+      sectorName: null,
       deviceSignalId: null,
     });
     vi.spyOn(container.submitAssessmentUseCase, "execute").mockResolvedValue({

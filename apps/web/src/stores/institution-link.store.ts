@@ -4,9 +4,10 @@ import { persist, createJSONStorage } from "zustand/middleware";
 interface InstitutionLinkState {
   institutionId: string | null;
   institutionName: string | null;
-  department: string | null;
+  sectorId: string | null;
+  sectorName: string | null;
   deviceSignalId: string | null;
-  link: (params: { institutionId: string; institutionName: string; department: string }) => void;
+  link: (params: { institutionId: string; institutionName: string; sectorId: string; sectorName: string }) => void;
   unlink: () => void;
 }
 
@@ -15,11 +16,12 @@ export const useInstitutionLinkStore = create<InstitutionLinkState>()(
     (set) => ({
       institutionId: null,
       institutionName: null,
-      department: null,
+      sectorId: null,
+      sectorName: null,
       deviceSignalId: null,
-      link: ({ institutionId, institutionName, department }) =>
-        set({ institutionId, institutionName, department, deviceSignalId: crypto.randomUUID() }),
-      unlink: () => set({ institutionId: null, institutionName: null, department: null, deviceSignalId: null }),
+      link: ({ institutionId, institutionName, sectorId, sectorName }) =>
+        set({ institutionId, institutionName, sectorId, sectorName, deviceSignalId: crypto.randomUUID() }),
+      unlink: () => set({ institutionId: null, institutionName: null, sectorId: null, sectorName: null, deviceSignalId: null }),
     }),
     { name: "zelo.institution-link", storage: createJSONStorage(() => localStorage) },
   ),

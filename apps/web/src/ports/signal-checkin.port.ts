@@ -1,6 +1,6 @@
 export interface SignalCheckinParams {
   institutionId: string;
-  department: string;
+  sectorId: string;
   deviceSignalId: string;
   concerning: boolean;
 }
