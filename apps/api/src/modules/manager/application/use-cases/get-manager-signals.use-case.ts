@@ -41,8 +41,7 @@ export class GetManagerSignalsUseCase {
       return { ...EMPTY_RESPONSE, followUpResponseRate };
     }
 
-    const weekTimes = [...new Set(rows.map((r) => r.weekStart.getTime()))].sort((a, b) => a - b);
-    const mostRecentWeek = weekTimes[weekTimes.length - 1]!;
+    const mostRecentWeek = Math.max(...rows.map((r) => r.weekStart.getTime()));
 
     const bySector = new Map<string, SignalRow[]>();
     for (const row of rows) {
@@ -51,13 +50,24 @@ export class GetManagerSignalsUseCase {
       bySector.set(row.sectorId, list);
     }
 
+    // A sector is either fully visible or fully suppressed, decided solely by
+    // its most-recent-week check-in count. Every downstream aggregate reads
+    // from this one set, so a narrow sectorIds filter can never leak an
+    // under-k sector's numbers through the institution-wide sums.
+    const visibleSectorIds = new Set<string>();
+    for (const [sectorId, sectorRows] of bySector) {
+      const currentWeekRow = sectorRows.find((r) => r.weekStart.getTime() === mostRecentWeek);
+      if (currentWeekRow && currentWeekRow.checkIns >= K_ANONYMITY_THRESHOLD) {
+        visibleSectorIds.add(sectorId);
+      }
+    }
+
     const segments: { label: string; value: number; n: number }[] = [];
     let visibleConcerning = 0;
     let visibleCheckIns = 0;
 
-    for (const [, sectorRows] of bySector) {
-      const currentWeekRow = sectorRows.find((r) => r.weekStart.getTime() === mostRecentWeek);
-      if (!currentWeekRow || currentWeekRow.checkIns < K_ANONYMITY_THRESHOLD) continue;
+    for (const sectorId of visibleSectorIds) {
+      const currentWeekRow = bySector.get(sectorId)!.find((r) => r.weekStart.getTime() === mostRecentWeek)!;
 
       segments.push({
         label: currentWeekRow.sectorName,
@@ -70,13 +80,16 @@ export class GetManagerSignalsUseCase {
 
     const overallConcerningRate = visibleCheckIns === 0 ? 0 : visibleConcerning / visibleCheckIns;
 
+    const visibleRows = rows.filter((r) => visibleSectorIds.has(r.sectorId));
+    const weekTimes = [...new Set(visibleRows.map((r) => r.weekStart.getTime()))].sort((a, b) => a - b);
+
     const recentWeekTimes = new Set(weekTimes.slice(-RECENT_WEEKS_FOR_VOLUME));
-    const checkInsLast4Weeks = rows
+    const checkInsLast4Weeks = visibleRows
       .filter((r) => recentWeekTimes.has(r.weekStart.getTime()))
       .reduce((sum, r) => sum + r.checkIns, 0);
 
     const weeklyTrend = weekTimes.map((weekTime) => {
-      const weekRows = rows.filter((r) => r.weekStart.getTime() === weekTime);
+      const weekRows = visibleRows.filter((r) => r.weekStart.getTime() === weekTime);
       const totalCheckIns = weekRows.reduce((sum, r) => sum + r.checkIns, 0);
       const totalConcerning = weekRows.reduce((sum, r) => sum + r.concerning, 0);
       return {

@@ -83,7 +83,7 @@ describe("GetManagerSignalsUseCase", () => {
     expect(result.overallConcerningRate).toBe(0.5); // (6+4)/(10+10), C excluded
   });
 
-  it("computes weeklyTrend and checkInsLast4Weeks as sums including the suppressed sector", async () => {
+  it("computes weeklyTrend and checkInsLast4Weeks from the visible sectors only, excluding every week of a suppressed sector", async () => {
     const repository = new FakeSignalRepository([
       { sectorId: "a", sectorName: "A", weekStart: WEEK_1, checkIns: 10, concerning: 3 },
       { sectorId: "a", sectorName: "A", weekStart: WEEK_2, checkIns: 10, concerning: 6 },
@@ -96,11 +96,28 @@ describe("GetManagerSignalsUseCase", () => {
 
     const result = await useCase.execute("institution-1", ["a", "b", "c"]);
 
+    // "C" is suppressed in every week, so its 4+4 check-ins never reach the sums.
     expect(result.weeklyTrend).toEqual([
-      { weekStart: WEEK_1.toISOString(), concerningRate: 0.375 },
+      { weekStart: WEEK_1.toISOString(), concerningRate: 0.35 },
       { weekStart: WEEK_2.toISOString(), concerningRate: 0.5 },
     ]);
-    expect(result.checkInsLast4Weeks).toBe(48);
+    expect(result.checkInsLast4Weeks).toBe(40);
+  });
+
+  it("keeps a visible sector's earlier weeks in the sums even when that week was under k=5, matching how segments decides visibility", async () => {
+    const repository = new FakeSignalRepository([
+      { sectorId: "a", sectorName: "A", weekStart: WEEK_1, checkIns: 2, concerning: 1 },
+      { sectorId: "a", sectorName: "A", weekStart: WEEK_2, checkIns: 10, concerning: 5 },
+    ]);
+    const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
+
+    const result = await useCase.execute("institution-1", ["a"]);
+
+    expect(result.weeklyTrend).toEqual([
+      { weekStart: WEEK_1.toISOString(), concerningRate: 0.5 },
+      { weekStart: WEEK_2.toISOString(), concerningRate: 0.5 },
+    ]);
+    expect(result.checkInsLast4Weeks).toBe(12);
   });
 
   it("returns 0 for overallConcerningRate (not NaN) when every sector is suppressed", async () => {
@@ -113,7 +130,22 @@ describe("GetManagerSignalsUseCase", () => {
 
     expect(result.segments).toEqual([]);
     expect(result.overallConcerningRate).toBe(0);
-    expect(result.checkInsLast4Weeks).toBe(2);
+    expect(result.checkInsLast4Weeks).toBe(0);
+  });
+
+  it("suppresses weeklyTrend and checkInsLast4Weeks entirely when the sector filter narrows to a single under-k sector", async () => {
+    const repository = new FakeSignalRepository([
+      { sectorId: "c", sectorName: "C", weekStart: WEEK_1, checkIns: 3, concerning: 2 },
+      { sectorId: "c", sectorName: "C", weekStart: WEEK_2, checkIns: 4, concerning: 3 },
+    ]);
+    const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
+
+    const result = await useCase.execute("institution-1", ["c"]);
+
+    expect(result.segments).toEqual([]);
+    expect(result.overallConcerningRate).toBe(0);
+    expect(result.weeklyTrend).toEqual([]);
+    expect(result.checkInsLast4Weeks).toBe(0);
   });
 });
 
