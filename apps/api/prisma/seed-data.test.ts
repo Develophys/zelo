@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { buildFollowUpSeedRows, buildSeedRows, startOfIsoWeek, MANAGER_SEED_ROSTER } from "./seed-data.ts";
+import {
+  buildFollowUpSeedRows,
+  buildSeedRows,
+  startOfIsoWeek,
+  MANAGER_SEED_ROSTER,
+  INSTITUTION_SEED_ROSTER,
+  ZELO_DEMO_SCENARIOS,
+} from "./seed-data.ts";
 
 describe("startOfIsoWeek", () => {
   it("resolves a Wednesday back to that week's Monday", () => {
@@ -17,16 +24,16 @@ describe("buildSeedRows", () => {
   const reference = new Date("2026-07-08T12:00:00.000Z"); // a Wednesday, week of 2026-07-06
 
   it("produces 6 weeks x 4 departments = 24 rows", () => {
-    expect(buildSeedRows(reference)).toHaveLength(24);
+    expect(buildSeedRows(reference, ZELO_DEMO_SCENARIOS)).toHaveLength(24);
   });
 
   it("keeps Ambulatório under the k=5 threshold every week", () => {
-    const rows = buildSeedRows(reference).filter((r) => r.department === "Ambulatório");
+    const rows = buildSeedRows(reference, ZELO_DEMO_SCENARIOS).filter((r) => r.department === "Ambulatório");
     expect(rows.every((r) => r.checkIns < 5)).toBe(true);
   });
 
   it("UTI's concerning rate climbs from week 1 to week 6, ending at 60%", () => {
-    const rows = buildSeedRows(reference)
+    const rows = buildSeedRows(reference, ZELO_DEMO_SCENARIOS)
       .filter((r) => r.department === "UTI")
       .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
 
@@ -37,7 +44,7 @@ describe("buildSeedRows", () => {
   });
 
   it("the most recent week's weekStart is the Monday of the reference date's week", () => {
-    const rows = buildSeedRows(reference).filter((r) => r.department === "UTI");
+    const rows = buildSeedRows(reference, ZELO_DEMO_SCENARIOS).filter((r) => r.department === "UTI");
     const mostRecent = rows.reduce((a, b) => (a.weekStart > b.weekStart ? a : b));
     expect(mostRecent.weekStart.toISOString()).toBe("2026-07-06T00:00:00.000Z");
   });
@@ -79,6 +86,29 @@ describe("MANAGER_SEED_ROSTER", () => {
     expect(new Set(envVars).size).toBe(envVars.length);
     for (const manager of MANAGER_SEED_ROSTER) {
       expect(manager.passwordEnvVar.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("INSTITUTION_SEED_ROSTER", () => {
+  it("has at least two institutions with unique names and unique invite codes", () => {
+    expect(INSTITUTION_SEED_ROSTER.length).toBeGreaterThanOrEqual(2);
+    const names = INSTITUTION_SEED_ROSTER.map((institution) => institution.name);
+    const inviteCodes = INSTITUTION_SEED_ROSTER.map((institution) => institution.inviteCode);
+    expect(new Set(names).size).toBe(names.length);
+    expect(new Set(inviteCodes).size).toBe(inviteCodes.length);
+  });
+
+  it("includes 'Zelo Demo' matching the institution the add_institution_scoping migration backfilled existing rows onto", () => {
+    const demo = INSTITUTION_SEED_ROSTER.find((institution) => institution.name === "Zelo Demo");
+    expect(demo).toBeDefined();
+    expect(demo?.inviteCode).toBe("zelo-demo-2026");
+  });
+
+  it("every MANAGER_SEED_ROSTER entry references a name present in INSTITUTION_SEED_ROSTER", () => {
+    const institutionNames = new Set(INSTITUTION_SEED_ROSTER.map((institution) => institution.name));
+    for (const manager of MANAGER_SEED_ROSTER) {
+      expect(institutionNames.has(manager.institutionName)).toBe(true);
     }
   });
 });

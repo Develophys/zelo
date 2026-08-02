@@ -16,23 +16,36 @@ export function startOfIsoWeek(date: Date): Date {
   return d;
 }
 
+export interface SignalScenario {
+  department: string;
+  checkIns: number;
+  concerning: number[];
+}
+
 // Per-department, per-week checkIns and concerning counts, oldest week first (index 0 = 5
 // weeks ago, index 5 = current week). See
 // docs/superpowers/specs/2026-07-11-manager-login-simulated-dashboard-design.md §3 for what
 // "concerning" means and why these specific numbers were chosen. Edit ONLY this table (and
-// the mirrored numbers in prisma/README.md) to change the demo scenario.
-const SCENARIOS: { department: string; checkIns: number; concerning: number[] }[] = [
+// the mirrored numbers in prisma/README.md) to change the Zelo Demo scenario.
+export const ZELO_DEMO_SCENARIOS: SignalScenario[] = [
   { department: "Pronto-socorro", checkIns: 24, concerning: [9, 9, 9, 9, 9, 9] },
   { department: "Plantão noturno", checkIns: 18, concerning: [9, 9, 9, 9, 9, 9] },
   { department: "UTI", checkIns: 10, concerning: [3, 4, 4, 5, 6, 6] },
   { department: "Ambulatório", checkIns: 3, concerning: [1, 1, 1, 1, 1, 1] },
 ];
 
-export function buildSeedRows(referenceDate: Date): SimulatedSignalSeedRow[] {
+// A second, deliberately different scenario for a second seeded institution — exists so
+// running the app locally with two manager accounts visibly proves cross-institution
+// isolation (same department name "UTI", very different numbers, never mixed).
+export const SAO_LUCAS_DEMO_SCENARIOS: SignalScenario[] = [
+  { department: "UTI", checkIns: 8, concerning: [1, 1, 1, 1, 2, 2] },
+];
+
+export function buildSeedRows(referenceDate: Date, scenarios: SignalScenario[]): SimulatedSignalSeedRow[] {
   const currentWeekStart = startOfIsoWeek(referenceDate);
   const rows: SimulatedSignalSeedRow[] = [];
 
-  for (const scenario of SCENARIOS) {
+  for (const scenario of scenarios) {
     for (let i = 0; i < WEEKS_TO_SEED; i++) {
       const weekStart = new Date(currentWeekStart);
       weekStart.setUTCDate(weekStart.getUTCDate() - (WEEKS_TO_SEED - 1 - i) * 7);
@@ -79,10 +92,25 @@ export function buildFollowUpSeedRows(referenceDate: Date): SimulatedFollowUpSee
   return rows;
 }
 
+export interface InstitutionSeedRow {
+  name: string;
+  inviteCode: string;
+}
+
+// "Zelo Demo" MUST keep this exact name and inviteCode — the add_institution_scoping
+// migration inserts a row with these same values (id 'demo-institution') to backfill
+// existing managers/manager_insights. seed.ts upserts by `name`, so this entry finds
+// that same row rather than creating a duplicate.
+export const INSTITUTION_SEED_ROSTER: InstitutionSeedRow[] = [
+  { name: "Zelo Demo", inviteCode: "zelo-demo-2026" },
+  { name: "Hospital São Lucas (Demo)", inviteCode: "sao-lucas-2026" },
+];
+
 export interface ManagerSeedRow {
   name: string;
   password: string;
   passwordEnvVar: string;
+  institutionName: string;
 }
 
 // Demo roster — plaintext passwords here are intentional (local/demo data,
@@ -92,8 +120,10 @@ export interface ManagerSeedRow {
 // environment variable that, if set, overrides `password` at seed time —
 // use it anywhere a real, non-committed password is needed (e.g.
 // production), so the committed plaintext values here are never the actual
-// live credential. See seed.ts and prisma/README.md.
+// live credential. `institutionName` must match a `name` in
+// INSTITUTION_SEED_ROSTER. See seed.ts and prisma/README.md.
 export const MANAGER_SEED_ROSTER: ManagerSeedRow[] = [
-  { name: "Ana Konder", password: "zelo-ana-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_ANA" },
-  { name: "Carlos Mendes", password: "zelo-carlos-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_CARLOS" },
+  { name: "Ana Konder", password: "zelo-ana-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_ANA", institutionName: "Zelo Demo" },
+  { name: "Carlos Mendes", password: "zelo-carlos-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_CARLOS", institutionName: "Zelo Demo" },
+  { name: "Beatriz Lima", password: "zelo-beatriz-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_BEATRIZ", institutionName: "Hospital São Lucas (Demo)" },
 ];
