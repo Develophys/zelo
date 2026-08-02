@@ -46,6 +46,26 @@ sent/responded counts climbing from 20 sent / 9 responded (45%) to 30 sent / 21 
 (70%) — a believable, improving-but-imperfect response rate for the demo. Edit only that
 table to change the scenario.
 
+## Seeding manager accounts
+
+The same `prisma:seed` run also upserts two named manager accounts into the `managers`
+table, replacing the old single shared `MANAGER_ACCESS_CODE`:
+
+| Name | Password |
+|---|---|
+| Ana Konder | zelo-ana-2026 |
+| Carlos Mendes | zelo-carlos-2026 |
+
+Plaintext passwords in this table are intentional — this is local/demo data, matching the
+same transparency `MANAGER_ACCESS_CODE=zelo-demo-2026` had in `.env.example` before this
+migration. Passwords are hashed (scrypt, salted) before being stored; the table above is
+the seed source, not what's in the database.
+
+The upsert is keyed on `name`, so re-running the seed never duplicates managers or
+changes an existing manager's password unless the roster in `seed-data.ts`'s
+`MANAGER_SEED_ROSTER` changes. No signup endpoint exists — new manager accounts are added
+by editing that array and re-running the seed.
+
 ## Re-seeding before a live demo
 
 Migrations and seeding are never run automatically against the deployed Fly.io/Neon
