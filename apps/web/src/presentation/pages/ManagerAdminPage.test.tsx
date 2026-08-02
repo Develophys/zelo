@@ -39,7 +39,7 @@ describe("ManagerAdminPage", () => {
     await waitFor(() => expect(container.createSectorUseCase.execute).toHaveBeenCalledWith("token", "UTI"));
   });
 
-  it("switches to the managers tab and creates a SECTOR_MANAGER", async () => {
+  it("switches to the managers tab and creates a SECTOR_MANAGER with the selected sectors", async () => {
     vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
       { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
     ]);
@@ -53,8 +53,40 @@ describe("ManagerAdminPage", () => {
 
     await user.click(await screen.findByRole("button", { name: "Gestores" }));
     await user.type(screen.getByLabelText("Nome do gestor"), "Paulo");
+    await user.click(screen.getByLabelText("Gestor de setor"));
+    await user.click(await screen.findByLabelText("UTI"));
     await user.click(screen.getByRole("button", { name: "Adicionar gestor" }));
 
+    await waitFor(() =>
+      expect(container.createManagerAdminUseCase.execute).toHaveBeenCalledWith("token", {
+        name: "Paulo",
+        role: "SECTOR_MANAGER",
+        sectorIds: ["sector-1"],
+      }),
+    );
     await waitFor(() => expect(screen.getByText("temp-pass-123")).toBeInTheDocument());
+  });
+
+  it("creates a HOSPITAL_ADMIN by default, without a role change", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.createManagerAdminUseCase, "execute").mockResolvedValue({
+      manager: { id: "manager-3", name: "Ana" },
+      temporaryPassword: "temp-pass-456",
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Gestores" }));
+    await user.type(screen.getByLabelText("Nome do gestor"), "Ana");
+    await user.click(screen.getByRole("button", { name: "Adicionar gestor" }));
+
+    await waitFor(() =>
+      expect(container.createManagerAdminUseCase.execute).toHaveBeenCalledWith("token", {
+        name: "Ana",
+        role: "HOSPITAL_ADMIN",
+        sectorIds: undefined,
+      }),
+    );
   });
 });

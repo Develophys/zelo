@@ -90,24 +90,35 @@ function SectorsTab() {
 }
 
 function ManagersTab() {
+  const sectors = useAdminSectors();
   const managers = useAdminManagers();
   const createManager = useCreateManager();
   const updateManager = useUpdateManager();
   const [name, setName] = useState("");
+  const [role, setRole] = useState<"HOSPITAL_ADMIN" | "SECTOR_MANAGER">("HOSPITAL_ADMIN");
+  const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
   const [lastCreated, setLastCreated] = useState<CreateManagerResult | null>(null);
+
+  const toggleSector = (id: string) => {
+    setSelectedSectorIds((current) => (current.includes(id) ? current.filter((sectorId) => sectorId !== id) : [...current, id]));
+  };
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     createManager.mutate(
-      { name, role: "HOSPITAL_ADMIN" },
+      { name, role, sectorIds: role === "SECTOR_MANAGER" ? selectedSectorIds : undefined },
       {
         onSuccess: (result) => {
           setLastCreated(result);
           setName("");
+          setRole("HOSPITAL_ADMIN");
+          setSelectedSectorIds([]);
         },
       },
     );
   };
+
+  const isSubmitDisabled = name.trim().length === 0 || (role === "SECTOR_MANAGER" && selectedSectorIds.length === 0);
 
   return (
     <div>
@@ -130,9 +141,60 @@ function ManagersTab() {
             onChange={(event) => setName(event.target.value)}
             className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink"
           />
+
+          <fieldset className="mt-3">
+            <legend className="text-label font-semibold text-ink-2">Tipo de gestor</legend>
+            <div className="mt-2 flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  id="role-hospital-admin"
+                  name="manager-role"
+                  checked={role === "HOSPITAL_ADMIN"}
+                  onChange={() => setRole("HOSPITAL_ADMIN")}
+                />
+                <label htmlFor="role-hospital-admin" className="text-label text-ink-2">
+                  Gestor do hospital
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  id="role-sector-manager"
+                  name="manager-role"
+                  checked={role === "SECTOR_MANAGER"}
+                  onChange={() => setRole("SECTOR_MANAGER")}
+                />
+                <label htmlFor="role-sector-manager" className="text-label text-ink-2">
+                  Gestor de setor
+                </label>
+              </div>
+            </div>
+          </fieldset>
+
+          {role === "SECTOR_MANAGER" && (
+            <div className="mt-3">
+              <p className="text-label font-semibold text-ink-2">Setores</p>
+              <div className="mt-2 flex flex-col gap-2">
+                {(sectors.data ?? []).map((sector) => (
+                  <div key={sector.id} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id={`sector-checkbox-${sector.id}`}
+                      checked={selectedSectorIds.includes(sector.id)}
+                      onChange={() => toggleSector(sector.id)}
+                    />
+                    <label htmlFor={`sector-checkbox-${sector.id}`} className="text-label text-ink-2">
+                      {sector.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </Card>
         <div className="mt-3">
-          <Button type="submit" variant="primary" loading={createManager.isPending} disabled={name.trim().length === 0}>
+          <Button type="submit" variant="primary" loading={createManager.isPending} disabled={isSubmitDisabled}>
             Adicionar gestor
           </Button>
         </div>
