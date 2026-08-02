@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { YouPage } from "./YouPage";
 import { useConsentStore } from "@/stores/consent.store";
+import { useInstitutionLinkStore } from "@/stores/institution-link.store";
 
 function renderYou() {
   return render(
@@ -12,6 +13,7 @@ function renderYou() {
         <Route path="/you" element={<YouPage />} />
         <Route path="/home" element={<div>Home screen</div>} />
         <Route path="/" element={<div>Splash screen</div>} />
+        <Route path="/you/link" element={<div>Link institution screen</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -21,6 +23,12 @@ describe("YouPage", () => {
   beforeEach(() => {
     localStorage.clear();
     useConsentStore.setState({ hasConsented: true, consentedAt: "2026-07-12T12:00:00.000Z" });
+    useInstitutionLinkStore.setState({
+      institutionId: null,
+      institutionName: null,
+      department: null,
+      deviceSignalId: null,
+    });
   });
 
   it("shows consent status with the formatted consent date", () => {
@@ -62,5 +70,34 @@ describe("YouPage", () => {
     expect(useConsentStore.getState().hasConsented).toBe(false);
     expect(useConsentStore.getState().consentedAt).toBeNull();
     expect(screen.getByText("Splash screen")).toBeInTheDocument();
+  });
+
+  it("shows a 'link to a hospital' entry point when not linked", () => {
+    renderYou();
+    expect(screen.getByRole("button", { name: "Vincular a um hospital" })).toBeInTheDocument();
+  });
+
+  it("tapping the link entry point navigates to /you/link", async () => {
+    renderYou();
+    await userEvent.click(screen.getByRole("button", { name: "Vincular a um hospital" }));
+    expect(screen.getByText("Link institution screen")).toBeInTheDocument();
+  });
+
+  it("shows the linked institution and department when linked, instead of the entry point", () => {
+    useInstitutionLinkStore.getState().link({ institutionId: "inst-1", institutionName: "Hospital São Lucas", department: "UTI" });
+    renderYou();
+    expect(screen.getByText("Vinculado a Hospital São Lucas")).toBeInTheDocument();
+    expect(screen.getByText("UTI")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Vincular a um hospital" })).not.toBeInTheDocument();
+  });
+
+  it("Desvincular clears the institution link immediately, without a confirm step", async () => {
+    useInstitutionLinkStore.getState().link({ institutionId: "inst-1", institutionName: "Hospital São Lucas", department: "UTI" });
+    renderYou();
+
+    await userEvent.click(screen.getByRole("button", { name: "Desvincular" }));
+
+    expect(useInstitutionLinkStore.getState().institutionId).toBeNull();
+    expect(screen.getByRole("button", { name: "Vincular a um hospital" })).toBeInTheDocument();
   });
 });

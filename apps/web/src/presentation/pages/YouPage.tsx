@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { Check, Building2 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BackButton } from "@/presentation/ui/BackButton";
@@ -8,12 +8,16 @@ import { Card } from "@/presentation/ui/Card";
 import { IconBadge } from "@/presentation/ui/IconBadge";
 import { PrivacyBadge } from "@/presentation/ui/PrivacyBadge";
 import { useConsentStore } from "@/stores/consent.store";
+import { useInstitutionLinkStore } from "@/stores/institution-link.store";
 import { routes } from "@/presentation/lib/routes";
 
 export function YouPage() {
   const navigate = useNavigate();
   const consentedAt = useConsentStore((state) => state.consentedAt);
   const revoke = useConsentStore((state) => state.revoke);
+  const institutionName = useInstitutionLinkStore((state) => state.institutionName);
+  const department = useInstitutionLinkStore((state) => state.department);
+  const unlink = useInstitutionLinkStore((state) => state.unlink);
   const [step, setStep] = useState<"idle" | "confirming">("idle");
 
   const handleRevoke = () => {
@@ -44,6 +48,30 @@ export function YouPage() {
               )}
             </div>
           </div>
+        </Card>
+
+        <Card size="md" className="mt-[14px]">
+          {institutionName ? (
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <IconBadge icon={Building2} tone="neutral" />
+                <div>
+                  <p className="text-body font-extrabold text-ink">Vinculado a {institutionName}</p>
+                  <p className="text-caption text-muted">{department}</p>
+                </div>
+              </div>
+              <Button variant="outline" full={false} onClick={unlink}>
+                Desvincular
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-body text-ink-2">Ainda não vinculado a nenhum hospital.</p>
+              <Button variant="outline" full={false} onClick={() => navigate(routes.linkInstitution)}>
+                Vincular a um hospital
+              </Button>
+            </div>
+          )}
         </Card>
 
         <Card size="md" className="mt-[14px]">
