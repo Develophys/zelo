@@ -31,8 +31,9 @@ class FakeManagerRepository implements ManagerRepository {
   async findByName(name: string): Promise<ManagerRow | null> {
     return this.rows.find((row) => row.name === name) ?? null;
   }
-  async findById(): Promise<ManagerRow | null> {
-    throw new Error("not used in this test");
+  // ManagerAuthGuard re-reads the row on every authenticated request.
+  async findById(id: string): Promise<ManagerRow | null> {
+    return this.rows.find((row) => row.id === id) ?? null;
   }
   async findAllByInstitution(): Promise<never> {
     throw new Error("not used in this test");
@@ -305,6 +306,22 @@ describe("manager controller", () => {
       segments: [],
       followUpResponseRate: 0,
     });
+  });
+
+  it("GET /manager/signals rejects a still-valid token once the manager has been deactivated", async () => {
+    const token = await getToken("Beatriz Lima", "test-password-2");
+    const beatriz = managerRepository.rows.find((row) => row.id === "manager-2")!;
+
+    const before = await request(app.getHttpServer()).get("/manager/signals").set("Authorization", `Bearer ${token}`);
+    expect(before.status).toBe(200);
+
+    beatriz.isActive = false;
+    try {
+      const after = await request(app.getHttpServer()).get("/manager/signals").set("Authorization", `Bearer ${token}`);
+      expect(after.status).toBe(401);
+    } finally {
+      beatriz.isActive = true;
+    }
   });
 
   it("POST /manager/insights rejects a request with no token", async () => {

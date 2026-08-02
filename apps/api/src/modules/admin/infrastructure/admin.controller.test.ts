@@ -7,6 +7,7 @@ import { AdminController } from "./admin.controller.ts";
 import { LoginAdminUseCase } from "../application/use-cases/login-admin.use-case.ts";
 import { AdminTokenService } from "../application/services/admin-token.service.ts";
 import { AdminPasswordService } from "../application/services/admin-password.service.ts";
+import { ManagerPasswordService } from "../../manager/application/services/manager-password.service.ts";
 import { ADMIN_REPOSITORY } from "../application/ports/admin-repository.port.ts";
 import type { AdminRepository, AdminRow } from "../application/ports/admin-repository.port.ts";
 import { CreateInstitutionUseCase } from "../application/use-cases/create-institution.use-case.ts";
@@ -28,12 +29,14 @@ class FakeAdminRepository implements AdminRepository {
 class FakeAdminInstitutionRepository implements AdminInstitutionRepository {
   public rows: AdminInstitutionRow[] = [];
   public shouldThrowDuplicate = false;
+  public lastCreateParams: { hospitalAdminPasswordHash: string } | null = null;
   async createWithHospitalAdmin(params: {
     institutionName: string;
     inviteCode: string;
     hospitalAdminName: string;
     hospitalAdminPasswordHash: string;
   }) {
+    this.lastCreateParams = params;
     if (this.shouldThrowDuplicate) throw new DuplicateInstitutionOrManagerError();
     return {
       institution: { id: "institution-1", name: params.institutionName, inviteCode: params.inviteCode },
@@ -69,6 +72,7 @@ describe("admin controller", () => {
         ListInstitutionsUseCase,
         AdminTokenService,
         AdminPasswordService,
+        ManagerPasswordService,
         AdminAuthGuard,
         { provide: ADMIN_REPOSITORY, useValue: adminRepository },
         { provide: ADMIN_INSTITUTION_REPOSITORY, useValue: institutionRepository },
@@ -119,6 +123,11 @@ describe("admin controller", () => {
     expect(response.body.institution).toEqual({ id: "institution-1", name: "Hospital Teste", inviteCode: "teste-2026" });
     expect(response.body.hospitalAdmin).toEqual({ id: "manager-1", name: "Mauricio" });
     expect(response.body.temporaryPassword).toEqual(expect.any(String));
+
+    // The stored hash must be verifiable by the service the manager login path
+    // actually uses, otherwise every newly onboarded admin is locked out.
+    const storedHash = institutionRepository.lastCreateParams!.hospitalAdminPasswordHash;
+    expect(await new ManagerPasswordService().verify(response.body.temporaryPassword, storedHash)).toBe(true);
   });
 
   it("POST /admin/institutions returns 409 on a duplicate institution or manager name", async () => {

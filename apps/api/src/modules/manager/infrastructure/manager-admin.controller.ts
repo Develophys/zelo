@@ -92,6 +92,16 @@ export class ManagerAdminController {
       throw new NotFoundException();
     }
 
+    // The DB foreign key only proves the manager exists, not that they belong
+    // here — without this check an admin could assign another institution's
+    // manager to one of their own sectors.
+    if (parsed.data.managerId) {
+      const assignee = await this.managerRepository.findById(parsed.data.managerId);
+      if (!assignee || assignee.institutionId !== request.manager!.institutionId) {
+        throw new BadRequestException("managerId does not belong to this institution");
+      }
+    }
+
     await this.sectorRepository.update(id, parsed.data);
   }
 

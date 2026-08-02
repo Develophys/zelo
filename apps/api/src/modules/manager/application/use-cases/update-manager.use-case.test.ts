@@ -75,6 +75,58 @@ describe("UpdateManagerUseCase", () => {
     expect(sectorRepository.lastReassign).toEqual({ institutionId: "institution-1", managerId: "manager-1", sectorIds: [] });
   });
 
+  it("throws LastActiveHospitalAdminError when demoting the institution's only active HOSPITAL_ADMIN to SECTOR_MANAGER", async () => {
+    const managerRepository = new FakeManagerRepository();
+    managerRepository.rows = [managerRow({ role: "HOSPITAL_ADMIN" })];
+    managerRepository.activeHospitalAdmins = 1;
+    const useCase = new UpdateManagerUseCase(managerRepository, new FakeSectorRepository() as never);
+
+    await expect(
+      useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { role: "SECTOR_MANAGER" } }),
+    ).rejects.toThrow(LastActiveHospitalAdminError);
+    expect(managerRepository.lastUpdate).toBeNull();
+  });
+
+  it("allows demoting a HOSPITAL_ADMIN when another active HOSPITAL_ADMIN exists", async () => {
+    const managerRepository = new FakeManagerRepository();
+    managerRepository.rows = [managerRow({ role: "HOSPITAL_ADMIN" })];
+    managerRepository.activeHospitalAdmins = 2;
+    const sectorRepository = new FakeSectorRepository();
+    sectorRepository.knownSectorIds = new Set(["sector-a"]);
+    const useCase = new UpdateManagerUseCase(managerRepository, sectorRepository as never);
+
+    await useCase.execute({
+      institutionId: "institution-1",
+      managerId: "manager-1",
+      patch: { role: "SECTOR_MANAGER", sectorIds: ["sector-a"] },
+    });
+
+    expect(managerRepository.lastUpdate).toEqual({ id: "manager-1", patch: { isActive: undefined, role: "SECTOR_MANAGER" } });
+    expect(sectorRepository.lastReassign).toEqual({ institutionId: "institution-1", managerId: "manager-1", sectorIds: ["sector-a"] });
+  });
+
+  it("allows re-affirming the HOSPITAL_ADMIN role on the last active hospital admin", async () => {
+    const managerRepository = new FakeManagerRepository();
+    managerRepository.rows = [managerRow({ role: "HOSPITAL_ADMIN" })];
+    managerRepository.activeHospitalAdmins = 1;
+    const useCase = new UpdateManagerUseCase(managerRepository, new FakeSectorRepository() as never);
+
+    await useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { role: "HOSPITAL_ADMIN" } });
+
+    expect(managerRepository.lastUpdate).toEqual({ id: "manager-1", patch: { isActive: undefined, role: "HOSPITAL_ADMIN" } });
+  });
+
+  it("allows demoting a SECTOR_MANAGER-role manager regardless of the hospital-admin count", async () => {
+    const managerRepository = new FakeManagerRepository();
+    managerRepository.rows = [managerRow({ role: "SECTOR_MANAGER" })];
+    managerRepository.activeHospitalAdmins = 0;
+    const useCase = new UpdateManagerUseCase(managerRepository, new FakeSectorRepository() as never);
+
+    await useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { role: "SECTOR_MANAGER" } });
+
+    expect(managerRepository.lastUpdate).toEqual({ id: "manager-1", patch: { isActive: undefined, role: "SECTOR_MANAGER" } });
+  });
+
   it("allows deactivating a SECTOR_MANAGER unconditionally, clearing their sectors", async () => {
     const managerRepository = new FakeManagerRepository();
     managerRepository.rows = [managerRow({ role: "SECTOR_MANAGER" })];

@@ -23,7 +23,12 @@ export class UpdateManagerUseCase {
     }
 
     const deactivating = input.patch.isActive === false;
-    if (deactivating && manager.role === "HOSPITAL_ADMIN" && manager.isActive) {
+    // Demoting the last admin locks the institution out of its own admin panel
+    // just as thoroughly as deactivating them, and there is no recovery path.
+    const demoting = input.patch.role !== undefined && input.patch.role !== "HOSPITAL_ADMIN";
+    const losingAdminRights = deactivating || demoting;
+
+    if (losingAdminRights && manager.role === "HOSPITAL_ADMIN" && manager.isActive) {
       const activeHospitalAdmins = await this.managerRepository.countActiveHospitalAdmins(input.institutionId);
       if (activeHospitalAdmins <= 1) {
         throw new LastActiveHospitalAdminError();

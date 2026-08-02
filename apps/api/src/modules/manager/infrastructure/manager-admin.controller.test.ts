@@ -81,7 +81,11 @@ class FakeManagerRepository implements ManagerRepository {
   }
   async update(id: string, patch: UpdateManagerParams): Promise<void> {
     const row = this.rows.find((r) => r.id === id);
-    if (row) Object.assign(row, patch);
+    if (!row) return;
+    // Mirror Prisma: an undefined field means "leave this column alone".
+    for (const [key, value] of Object.entries(patch)) {
+      if (value !== undefined) Object.assign(row, { [key]: value });
+    }
   }
   async countActiveHospitalAdmins(institutionId: string): Promise<number> {
     return this.activeHospitalAdmins;
@@ -127,10 +131,15 @@ describe("manager admin controller — sectors", () => {
     await app.close();
   });
 
+  // ManagerAuthGuard re-reads the acting manager's row on every request, so the
+  // two callers below must always exist in the repository.
+  const ACTING_ADMIN: ManagerRow = { id: "manager-1", name: "Mauricio", passwordHash: "h", institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: true };
+  const ACTING_SECTOR_MANAGER: ManagerRow = { id: "manager-2", name: "Paulo", passwordHash: "h", institutionId: "institution-1", role: "SECTOR_MANAGER", isActive: true };
+
   beforeEach(() => {
     sectorRepository.rows = [];
     sectorRepository.shouldThrowConflict = false;
-    managerRepository.rows = [];
+    managerRepository.rows = [{ ...ACTING_ADMIN }, { ...ACTING_SECTOR_MANAGER }];
     managerRepository.activeHospitalAdmins = 1;
   });
 
@@ -199,13 +208,70 @@ describe("manager admin controller — sectors", () => {
     expect(response.status).toBe(404);
   });
 
+  it("PATCH /manager/admin/sectors/:id assigns a manager from the same institution", async () => {
+    const token = hospitalAdminToken();
+    sectorRepository.rows.push({ id: "sector-a", name: "UTI", isActive: true, managerId: null, managerName: null, institutionId: "institution-1" });
+    managerRepository.rows.push({ id: "manager-9", name: "Paulo", passwordHash: "h", institutionId: "institution-1", role: "SECTOR_MANAGER", isActive: true });
+
+    const response = await request(app.getHttpServer())
+      .patch("/manager/admin/sectors/sector-a")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ managerId: "manager-9" });
+
+    expect(response.status).toBe(204);
+    expect(sectorRepository.rows[0]!.managerId).toBe("manager-9");
+  });
+
+  it("PATCH /manager/admin/sectors/:id rejects a managerId belonging to a different institution and leaves the sector untouched", async () => {
+    const token = hospitalAdminToken();
+    sectorRepository.rows.push({ id: "sector-a", name: "UTI", isActive: true, managerId: null, managerName: null, institutionId: "institution-1" });
+    managerRepository.rows.push({ id: "foreign-manager", name: "Intruso", passwordHash: "h", institutionId: "institution-2", role: "SECTOR_MANAGER", isActive: true });
+
+    const response = await request(app.getHttpServer())
+      .patch("/manager/admin/sectors/sector-a")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ managerId: "foreign-manager" });
+
+    expect(response.status).toBe(400);
+    expect(sectorRepository.rows[0]!.managerId).toBeNull();
+  });
+
+  it("PATCH /manager/admin/sectors/:id rejects an unknown managerId", async () => {
+    const token = hospitalAdminToken();
+    sectorRepository.rows.push({ id: "sector-a", name: "UTI", isActive: true, managerId: null, managerName: null, institutionId: "institution-1" });
+
+    const response = await request(app.getHttpServer())
+      .patch("/manager/admin/sectors/sector-a")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ managerId: "ghost-manager" });
+
+    expect(response.status).toBe(400);
+    expect(sectorRepository.rows[0]!.managerId).toBeNull();
+  });
+
+  it("PATCH /manager/admin/sectors/:id clears the assignment with an explicit null managerId", async () => {
+    const token = hospitalAdminToken();
+    sectorRepository.rows.push({ id: "sector-a", name: "UTI", isActive: true, managerId: "manager-9", managerName: "Paulo", institutionId: "institution-1" });
+
+    const response = await request(app.getHttpServer())
+      .patch("/manager/admin/sectors/sector-a")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ managerId: null });
+
+    expect(response.status).toBe(204);
+    expect(sectorRepository.rows[0]!.managerId).toBeNull();
+  });
+
   it("GET /manager/admin/managers returns every manager in the institution", async () => {
-    managerRepository.rows = [{ id: "manager-1", name: "Mauricio", passwordHash: "h", institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: true }];
+    managerRepository.rows.push({ id: "manager-3", name: "Elsewhere", passwordHash: "h", institutionId: "institution-2", role: "HOSPITAL_ADMIN", isActive: true });
 
     const response = await request(app.getHttpServer()).get("/manager/admin/managers").set("Authorization", `Bearer ${hospitalAdminToken()}`);
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual([{ id: "manager-1", name: "Mauricio", role: "HOSPITAL_ADMIN", isActive: true, sectorNames: [] }]);
+    expect(response.body).toEqual([
+      { id: "manager-1", name: "Mauricio", role: "HOSPITAL_ADMIN", isActive: true, sectorNames: [] },
+      { id: "manager-2", name: "Paulo", role: "SECTOR_MANAGER", isActive: true, sectorNames: [] },
+    ]);
   });
 
   it("POST /manager/admin/managers creates a SECTOR_MANAGER and returns a temporary password", async () => {
@@ -231,7 +297,6 @@ describe("manager admin controller — sectors", () => {
   });
 
   it("PATCH /manager/admin/managers/:id returns 409 when deactivating the institution's last active HOSPITAL_ADMIN", async () => {
-    managerRepository.rows = [{ id: "manager-1", name: "Mauricio", passwordHash: "h", institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: true }];
     managerRepository.activeHospitalAdmins = 1;
 
     const response = await request(app.getHttpServer())
@@ -242,11 +307,55 @@ describe("manager admin controller — sectors", () => {
     expect(response.status).toBe(409);
   });
 
-  it("POST /manager/admin/managers/:id/reset-password returns a new temporary password", async () => {
-    managerRepository.rows = [{ id: "manager-1", name: "Paulo", passwordHash: "old", institutionId: "institution-1", role: "SECTOR_MANAGER", isActive: true }];
+  it("PATCH /manager/admin/managers/:id returns 409 when demoting the institution's last active HOSPITAL_ADMIN", async () => {
+    managerRepository.activeHospitalAdmins = 1;
 
     const response = await request(app.getHttpServer())
-      .post("/manager/admin/managers/manager-1/reset-password")
+      .patch("/manager/admin/managers/manager-1")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ role: "SECTOR_MANAGER" });
+
+    expect(response.status).toBe(409);
+    expect(managerRepository.rows.find((row) => row.id === "manager-1")!.role).toBe("HOSPITAL_ADMIN");
+  });
+
+  it("revokes admin-panel access on the very next request after a demotion, without waiting for the token to expire", async () => {
+    managerRepository.activeHospitalAdmins = 2;
+    const token = hospitalAdminToken();
+
+    const before = await request(app.getHttpServer()).get("/manager/admin/sectors").set("Authorization", `Bearer ${token}`);
+    expect(before.status).toBe(200);
+
+    const demote = await request(app.getHttpServer())
+      .patch("/manager/admin/managers/manager-1")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ role: "SECTOR_MANAGER" });
+    expect(demote.status).toBe(204);
+
+    // Same, still-unexpired token — the guard now reads the demoted role from the DB.
+    const after = await request(app.getHttpServer()).get("/manager/admin/sectors").set("Authorization", `Bearer ${token}`);
+    expect(after.status).toBe(403);
+  });
+
+  it("revokes all access on the very next request after a deactivation", async () => {
+    managerRepository.activeHospitalAdmins = 2;
+    const token = hospitalAdminToken();
+
+    const deactivate = await request(app.getHttpServer())
+      .patch("/manager/admin/managers/manager-1")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ isActive: false });
+    expect(deactivate.status).toBe(204);
+
+    const after = await request(app.getHttpServer()).get("/manager/admin/sectors").set("Authorization", `Bearer ${token}`);
+    expect(after.status).toBe(401);
+  });
+
+  it("POST /manager/admin/managers/:id/reset-password returns a new temporary password", async () => {
+    managerRepository.rows.push({ id: "manager-7", name: "Renata", passwordHash: "old", institutionId: "institution-1", role: "SECTOR_MANAGER", isActive: true });
+
+    const response = await request(app.getHttpServer())
+      .post("/manager/admin/managers/manager-7/reset-password")
       .set("Authorization", `Bearer ${hospitalAdminToken()}`);
 
     expect(response.status).toBe(200);

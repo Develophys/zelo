@@ -8,6 +8,9 @@ import { CreateInstitutionUseCase } from "./application/use-cases/create-institu
 import { ListInstitutionsUseCase } from "./application/use-cases/list-institutions.use-case.ts";
 import { AdminTokenService } from "./application/services/admin-token.service.ts";
 import { AdminPasswordService } from "./application/services/admin-password.service.ts";
+// CreateInstitutionUseCase hashes the first hospital admin's password with the
+// manager-side service, because LoginManagerUseCase is what verifies it.
+import { ManagerPasswordService } from "../manager/application/services/manager-password.service.ts";
 import { ADMIN_REPOSITORY } from "./application/ports/admin-repository.port.ts";
 import { ADMIN_INSTITUTION_REPOSITORY } from "./application/ports/admin-institution-repository.port.ts";
 
@@ -19,6 +22,7 @@ import { ADMIN_INSTITUTION_REPOSITORY } from "./application/ports/admin-institut
     ListInstitutionsUseCase,
     AdminTokenService,
     AdminPasswordService,
+    ManagerPasswordService,
     AdminAuthGuard,
     { provide: ADMIN_REPOSITORY, useClass: PrismaAdminRepository },
     { provide: ADMIN_INSTITUTION_REPOSITORY, useClass: PrismaAdminInstitutionRepository },

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CreateInstitutionUseCase } from "./create-institution.use-case.ts";
-import { AdminPasswordService } from "../services/admin-password.service.ts";
+import { ManagerPasswordService } from "../../../manager/application/services/manager-password.service.ts";
 import {
   DuplicateInstitutionOrManagerError,
   type AdminInstitutionRepository,
@@ -28,9 +28,11 @@ class FakeAdminInstitutionRepository implements AdminInstitutionRepository {
 }
 
 describe("CreateInstitutionUseCase", () => {
-  it("hashes a generated temporary password and returns it in plaintext alongside the created rows", async () => {
+  // The hospital admin created here logs in through LoginManagerUseCase, which
+  // verifies with ManagerPasswordService — so that is the service that must hash it.
+  it("hashes the first hospital admin's temporary password with ManagerPasswordService, the one that will verify it at login", async () => {
     const repository = new FakeAdminInstitutionRepository();
-    const passwordService = new AdminPasswordService();
+    const passwordService = new ManagerPasswordService();
     const useCase = new CreateInstitutionUseCase(repository, passwordService);
 
     const result = await useCase.execute({
@@ -50,7 +52,7 @@ describe("CreateInstitutionUseCase", () => {
   it("propagates DuplicateInstitutionOrManagerError from the repository", async () => {
     const repository = new FakeAdminInstitutionRepository();
     repository.shouldThrowDuplicate = true;
-    const useCase = new CreateInstitutionUseCase(repository, new AdminPasswordService());
+    const useCase = new CreateInstitutionUseCase(repository, new ManagerPasswordService());
 
     await expect(
       useCase.execute({ institutionName: "Hospital Teste", inviteCode: "teste-2026", hospitalAdminName: "Mauricio" }),
