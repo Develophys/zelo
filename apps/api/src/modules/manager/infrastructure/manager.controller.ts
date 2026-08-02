@@ -69,7 +69,7 @@ export class ManagerController {
   @Get("signals")
   @UseGuards(ManagerAuthGuard)
   async signals(@Req() request: Request, @Query("sectorIds") sectorIdsParam?: string): Promise<ManagerSignalsResponse> {
-    const requestedSectorIds = sectorIdsParam ? sectorIdsParam.split(",").filter((id) => id.length > 0) : undefined;
+    const requestedSectorIds = sectorIdsParam !== undefined ? sectorIdsParam.split(",").filter((id) => id.length > 0) : undefined;
     const sectorIds = await this.resolveAccessibleSectorIds.execute({
       institutionId: request.manager!.institutionId,
       role: request.manager!.role,

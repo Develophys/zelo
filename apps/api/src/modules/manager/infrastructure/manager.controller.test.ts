@@ -285,6 +285,28 @@ describe("manager controller", () => {
     expect(response.body.segments).toEqual([{ label: "UTI", value: 60, n: 10 }]);
   });
 
+  it("GET /manager/signals?sectorIds= (empty value) returns the all-zero response, not the manager's full accessible data", async () => {
+    signalRepository.setRowsForInstitution("institution-a", [
+      { sectorId: "sector-1", sectorName: "UTI", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 10, concerning: 6 },
+      { sectorId: "sector-2", sectorName: "Pronto-Socorro", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 20, concerning: 2 },
+    ]);
+    sectorRepository.activeByInstitution = { "institution-a": [{ id: "sector-1", name: "UTI" }, { id: "sector-2", name: "Pronto-Socorro" }] };
+    const token = await getToken("Ana Konder", "test-password");
+
+    const response = await request(app.getHttpServer())
+      .get("/manager/signals?sectorIds=")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      overallConcerningRate: 0,
+      checkInsLast4Weeks: 0,
+      weeklyTrend: [],
+      segments: [],
+      followUpResponseRate: 0,
+    });
+  });
+
   it("POST /manager/insights rejects a request with no token", async () => {
     const response = await request(app.getHttpServer()).post("/manager/insights");
 

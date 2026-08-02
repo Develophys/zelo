@@ -271,6 +271,43 @@ describe("ManagerDashboardPage", () => {
     });
   });
 
+  it("deselecting every sector calls the signals fetch with an explicit empty array, and the KPIs reflect the resulting all-zero response, not stale full data", async () => {
+    vi.spyOn(container.listAccessibleSectorsUseCase, "execute").mockResolvedValue([
+      { id: "sector-1", name: "UTI" },
+      { id: "sector-2", name: "Pronto-Socorro" },
+    ]);
+    const ALL_ZERO_RESPONSE = {
+      overallConcerningRate: 0,
+      checkInsLast4Weeks: 0,
+      weeklyTrend: [],
+      segments: [],
+      followUpResponseRate: 0,
+    };
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockImplementation(async (_token, sectorIds) =>
+      sectorIds && sectorIds.length === 0 ? ALL_ZERO_RESPONSE : SIGNALS_RESPONSE,
+    );
+    const user = userEvent.setup();
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("UTI")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText("UTI"));
+    await user.click(screen.getByLabelText("Pronto-Socorro"));
+
+    await waitFor(() => {
+      // Must be an explicit [] — NOT undefined, which would silently re-request
+      // the manager's full accessible set instead of "nothing selected".
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", []);
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("Plantão noturno")).not.toBeInTheDocument();
+    });
+    expect(screen.queryByText("111")).not.toBeInTheDocument();
+  });
+
   it("does not show the sector filter when only one sector is accessible", async () => {
     vi.spyOn(container.listAccessibleSectorsUseCase, "execute").mockResolvedValue([{ id: "sector-1", name: "UTI" }]);
     renderManager();
