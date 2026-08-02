@@ -16,4 +16,5 @@ export const routes = {
   managerLogin: "/manager/login",
   you: "/you",
   managerHistory: "/manager/history",
+  linkInstitution: "/you/link",
 } as const;

@@ -157,4 +157,9 @@ describe("onboarding router flow", () => {
     buildTestRouter("/you");
     expect(await screen.findByText("Como o Zelo protege você")).toBeInTheDocument();
   });
+
+  it("an unconsented user hitting /you/link directly is redirected to Privacy via the loader", async () => {
+    buildTestRouter("/you/link");
+    expect(await screen.findByText("Como o Zelo protege você")).toBeInTheDocument();
+  });
 });
