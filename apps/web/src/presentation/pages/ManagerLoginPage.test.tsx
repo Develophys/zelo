@@ -5,7 +5,7 @@ import { MemoryRouter, Routes, Route } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ManagerLoginPage } from "./ManagerLoginPage";
 import * as container from "@/app/container";
-import { InvalidManagerCodeError } from "@/ports/manager-auth.port";
+import { InvalidManagerCredentialsError } from "@/ports/manager-auth.port";
 
 function renderPage() {
   const queryClient = new QueryClient();
@@ -27,7 +27,7 @@ describe("ManagerLoginPage", () => {
     sessionStorage.clear();
   });
 
-  it("navigates to /manager on a correct code", async () => {
+  it("navigates to /manager on a correct name and password", async () => {
     vi.spyOn(container.loginManagerUseCase, "execute").mockResolvedValue({
       token: "abc.def",
       expiresAt: new Date(Date.now() + 60_000).toISOString(),
@@ -35,23 +35,37 @@ describe("ManagerLoginPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText("Código de acesso"), "1234");
+    await user.type(screen.getByLabelText("Nome"), "Ana Konder");
+    await user.type(screen.getByLabelText("Senha"), "senha-correta");
     await user.click(screen.getByRole("button", { name: "Entrar" }));
 
     expect(await screen.findByText("Manager dashboard")).toBeInTheDocument();
   });
 
-  it("shows an inline error on an incorrect code, without navigating", async () => {
-    vi.spyOn(container.loginManagerUseCase, "execute").mockRejectedValue(new InvalidManagerCodeError());
+  it("shows an inline error on incorrect credentials, without navigating", async () => {
+    vi.spyOn(container.loginManagerUseCase, "execute").mockRejectedValue(new InvalidManagerCredentialsError());
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText("Código de acesso"), "wrong");
+    await user.type(screen.getByLabelText("Nome"), "Ana Konder");
+    await user.type(screen.getByLabelText("Senha"), "wrong");
     await user.click(screen.getByRole("button", { name: "Entrar" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("Código incorreto.");
+      expect(screen.getByRole("alert")).toHaveTextContent("Nome ou senha incorretos.");
     });
     expect(screen.queryByText("Manager dashboard")).not.toBeInTheDocument();
+  });
+
+  it("disables the submit button until both fields are filled", async () => {
+    renderPage();
+    expect(screen.getByRole("button", { name: "Entrar" })).toBeDisabled();
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("Nome"), "Ana Konder");
+    expect(screen.getByRole("button", { name: "Entrar" })).toBeDisabled();
+
+    await user.type(screen.getByLabelText("Senha"), "senha-correta");
+    expect(screen.getByRole("button", { name: "Entrar" })).not.toBeDisabled();
   });
 });

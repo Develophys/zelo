@@ -6,8 +6,8 @@ export const ManagerLoginResultSchema = z.object({
 });
 export type ManagerLoginResult = z.infer<typeof ManagerLoginResultSchema>;
 
-export class InvalidManagerCodeError extends Error {}
+export class InvalidManagerCredentialsError extends Error {}
 
 export interface ManagerAuthPort {
-  login(code: string): Promise<ManagerLoginResult>;
+  login(name: string, password: string): Promise<ManagerLoginResult>;
 }
