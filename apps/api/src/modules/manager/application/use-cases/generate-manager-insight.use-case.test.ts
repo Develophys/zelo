@@ -8,9 +8,21 @@ import { MANAGER_INSIGHT_SYSTEM_PROMPT } from "../prompts/manager-insight-system
 import type { ManagerInsightRepository, StoredManagerInsight } from "../ports/manager-insight-repository.port.ts";
 
 class FakeSignalRepository implements SignalRepository {
+  public lastSectorIds: string[] | null = null;
   constructor(private readonly rows: SignalRow[]) {}
-  async findAll(): Promise<SignalRow[]> {
+  async findAll(_institutionId: string, sectorIds: string[]): Promise<SignalRow[]> {
+    this.lastSectorIds = sectorIds;
     return this.rows;
+  }
+}
+
+// Institution-wide by design: insight generation always resolves every
+// active sector in the institution, regardless of the requesting manager's
+// role or assignment (unlike the sector-scoped dashboard signals endpoint).
+class FakeSectorRepository {
+  constructor(private readonly active: { id: string; name: string }[]) {}
+  async findActiveByInstitution() {
+    return this.active;
   }
 }
 
@@ -68,9 +80,10 @@ describe("GenerateManagerInsightUseCase", () => {
     const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository, new FakeSimulatedFollowUpRepository());
     const aiInsight = new FakeAiInsightPort({ interpretation: "texto", suggestedActions: ["ação 1"] });
     const insightRepository = new FakeManagerInsightRepository();
-    const useCase = new GenerateManagerInsightUseCase(getManagerSignals, aiInsight, insightRepository);
+    const sectorRepository = new FakeSectorRepository([{ id: "sector-uti", name: "UTI" }, { id: "sector-er", name: "Pronto-Socorro" }]);
+    const useCase = new GenerateManagerInsightUseCase(getManagerSignals, aiInsight, insightRepository, sectorRepository as never);
 
-    const result = await useCase.execute("Ana Konder", "institution-1", ["sector-uti"]);
+    const result = await useCase.execute("Ana Konder", "institution-1");
 
     expect(result).toEqual({ interpretation: "texto", suggestedActions: ["ação 1"] });
     expect(aiInsight.lastParams?.systemPrompt).toBe(MANAGER_INSIGHT_SYSTEM_PROMPT);
@@ -79,6 +92,9 @@ describe("GenerateManagerInsightUseCase", () => {
     expect(aiInsight.lastParams?.summary).toContain(
       "Tendência semanal (taxa de sinais preocupantes por semana, 2 semanas): 30%, 60%",
     );
+    // Institution-wide, not scoped to any one manager's accessible sectors:
+    // every active sector id gets resolved and forwarded unconditionally.
+    expect(signalsRepository.lastSectorIds).toEqual(["sector-uti", "sector-er"]);
   });
 
   it("propagates whatever the AiInsightPort throws (e.g. InsightGenerationFailedError from the adapter)", async () => {
@@ -92,9 +108,15 @@ describe("GenerateManagerInsightUseCase", () => {
       }
     }
     const insightRepository = new FakeManagerInsightRepository();
-    const useCase = new GenerateManagerInsightUseCase(getManagerSignals, new ThrowingAiInsightPort(), insightRepository);
+    const sectorRepository = new FakeSectorRepository([{ id: "sector-uti", name: "UTI" }]);
+    const useCase = new GenerateManagerInsightUseCase(
+      getManagerSignals,
+      new ThrowingAiInsightPort(),
+      insightRepository,
+      sectorRepository as never,
+    );
 
-    await expect(useCase.execute("Ana Konder", "institution-1", ["sector-uti"])).rejects.toThrow("boom");
+    await expect(useCase.execute("Ana Konder", "institution-1")).rejects.toThrow("boom");
     expect(insightRepository.savedEntries).toEqual([]);
   });
 
@@ -105,9 +127,10 @@ describe("GenerateManagerInsightUseCase", () => {
     const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository, new FakeSimulatedFollowUpRepository());
     const aiInsight = new FakeAiInsightPort({ interpretation: "texto", suggestedActions: ["ação 1"] });
     const insightRepository = new FakeManagerInsightRepository();
-    const useCase = new GenerateManagerInsightUseCase(getManagerSignals, aiInsight, insightRepository);
+    const sectorRepository = new FakeSectorRepository([{ id: "sector-uti", name: "UTI" }]);
+    const useCase = new GenerateManagerInsightUseCase(getManagerSignals, aiInsight, insightRepository, sectorRepository as never);
 
-    await useCase.execute("Ana Konder", "institution-1", ["sector-uti"]);
+    await useCase.execute("Ana Konder", "institution-1");
 
     expect(insightRepository.savedEntries).toEqual([
       {
@@ -128,9 +151,10 @@ describe("GenerateManagerInsightUseCase", () => {
     const aiInsight = new FakeAiInsightPort({ interpretation: "texto", suggestedActions: ["ação 1"] });
     const insightRepository = new FakeManagerInsightRepository();
     insightRepository.shouldFailSave = true;
-    const useCase = new GenerateManagerInsightUseCase(getManagerSignals, aiInsight, insightRepository);
+    const sectorRepository = new FakeSectorRepository([{ id: "sector-uti", name: "UTI" }]);
+    const useCase = new GenerateManagerInsightUseCase(getManagerSignals, aiInsight, insightRepository, sectorRepository as never);
 
-    const result = await useCase.execute("Ana Konder", "institution-1", ["sector-uti"]);
+    const result = await useCase.execute("Ana Konder", "institution-1");
 
     expect(result).toEqual({ interpretation: "texto", suggestedActions: ["ação 1"] });
   });

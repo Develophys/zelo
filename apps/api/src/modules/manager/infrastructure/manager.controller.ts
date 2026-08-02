@@ -84,12 +84,7 @@ export class ManagerController {
   @UseGuards(ManagerAuthGuard)
   async insights(@Req() request: Request): Promise<ManagerInsightResponse> {
     try {
-      const sectorIds = await this.resolveAccessibleSectorIds.execute({
-        institutionId: request.manager!.institutionId,
-        role: request.manager!.role,
-        managerId: request.manager!.id,
-      });
-      return await this.generateManagerInsight.execute(request.manager!.name, request.manager!.institutionId, sectorIds);
+      return await this.generateManagerInsight.execute(request.manager!.name, request.manager!.institutionId);
     } catch (error) {
       if (error instanceof InsightGenerationFailedError) {
         throw new BadGatewayException();
