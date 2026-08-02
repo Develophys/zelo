@@ -6,6 +6,7 @@ export const StoredManagerInsightSchema = z.object({
   suggestedActions: z.array(z.string()),
   summary: z.string(),
   generatedAt: z.string(),
+  createdByManagerName: z.string().nullable(),
 });
 export type StoredManagerInsight = z.infer<typeof StoredManagerInsightSchema>;
 

@@ -31,6 +31,7 @@ const HISTORY_RESPONSE = [
     suggestedActions: ["Agendar conversa com a liderança da UTI"],
     summary: "resumo 1",
     generatedAt: "2026-07-06T00:00:00.000Z",
+    createdByManagerName: "Ana Konder",
   },
   {
     id: "2",
@@ -38,6 +39,7 @@ const HISTORY_RESPONSE = [
     suggestedActions: ["Acompanhar de perto"],
     summary: "resumo 2",
     generatedAt: "2026-06-29T00:00:00.000Z",
+    createdByManagerName: null,
   },
 ];
 
@@ -102,5 +104,15 @@ describe("ManagerInsightHistoryPage", () => {
       expect(screen.getByText("Login screen")).toBeInTheDocument();
     });
     expect(useManagerSessionStore.getState().token).toBeNull();
+  });
+
+  it("shows who generated each analysis when known, and omits the line when not", async () => {
+    renderHistory();
+
+    await waitFor(() => {
+      expect(screen.getByText("A UTI mostra um padrão de aumento nos sinais.")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Gerado por Ana Konder")).toBeInTheDocument();
+    expect(screen.queryByText(/Gerado por$/)).not.toBeInTheDocument();
   });
 });

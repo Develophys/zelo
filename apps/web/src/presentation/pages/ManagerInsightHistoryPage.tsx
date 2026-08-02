@@ -45,6 +45,9 @@ export function ManagerInsightHistoryPage() {
           {entries.map((entry) => (
             <Card key={entry.id}>
               <p className="font-mono text-[12px] text-muted-2">{formatDate(entry.generatedAt)}</p>
+              {entry.createdByManagerName && (
+                <p className="mt-1 text-label text-muted">Gerado por {entry.createdByManagerName}</p>
+              )}
               <p className="mt-2 text-label text-ink-2">{entry.interpretation}</p>
               <ul className="mt-3 flex flex-col gap-2">
                 {entry.suggestedActions.map((action, index) => (
