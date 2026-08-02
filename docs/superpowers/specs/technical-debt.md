@@ -84,3 +84,39 @@ is ever onboarded, insight-history scoping becomes a real requirement again — 
 non-goal note for what that redesign would need (`institutionId` on `Manager`, filtering in
 `GetManagerInsightHistoryUseCase`). That would be tracked as new, separate debt at that time,
 not a reopening of this entry.
+
+**Update, 2026-08-02.** The scenario anticipated above has happened:
+`2026-08-02-multi-institution-data-partitioning-design.md` and its implementation plan added a
+second institution ("Hospital São Lucas (Demo)") to seed data and changed
+`GetManagerInsightHistoryUseCase.execute(institutionId)` to filter by institution. Insight
+history is no longer shared across institutions — the gap this entry's "Revisit when" clause
+predicted is now closed by that separate work, not by a reopening of this entry.
+
+---
+
+## TD-003: `followUpResponseRate` in `GET /manager/signals` is not institution-scoped
+
+- **Date:** 2026-08-02
+- **Area:** `apps/api/src/modules/manager/application/use-cases/get-manager-signals.use-case.ts`
+  (`computeFollowUpResponseRate()`), `apps/api/prisma/README.md`
+- **Status:** Accepted, deferred
+
+**Decision.** `GetManagerSignalsUseCase.execute(institutionId)` filters `signals` by
+`institutionId` (via `SignalRepository.findAll(institutionId)`), but the response's fifth
+field, `followUpResponseRate`, comes from `computeFollowUpResponseRate()`, which calls
+`SimulatedFollowUpRepository.findAll()` with no institution argument. `SimulatedFollowUp` has
+no `institutionId` column, so this one KPI is computed from a single shared 6-week history and
+returned identically to every manager at every institution, unlike the other four fields in
+the response.
+
+**Why this is safe today.** Same reasoning `apps/api/prisma/README.md` already gives for why
+`SimulatedFollowUp` rows aren't institution-scoped: the rows are fabricated demo data ("crisis
+follow-up" send/response counts) seeded to give the KPI believable history, not real
+per-institution follow-up records. There is no real institutional attribution to leak.
+
+**Revisit when:** the follow-up pipeline stops being simulated and starts reflecting real
+crisis-protocol usage. At that point `SimulatedFollowUp` needs an `institutionId` column (seed
+data would need one row set per institution, matching `signals`), and
+`computeFollowUpResponseRate` needs to accept an `institutionId` and filter by it — the same
+pattern this branch (2026-08-02-institution-model-and-manager-scoping) already established for
+`Signal` and `GetManagerInsightHistoryUseCase`.

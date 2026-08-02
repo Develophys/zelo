@@ -30,7 +30,6 @@ class FakeManagerRepository implements ManagerRepository {
 }
 
 class FakeSignalRepository implements SignalRepository {
-  public rows: SignalRow[] = [];
   private byInstitution: Record<string, SignalRow[]> = {};
   setRowsForInstitution(institutionId: string, rows: SignalRow[]): void {
     this.byInstitution[institutionId] = rows;

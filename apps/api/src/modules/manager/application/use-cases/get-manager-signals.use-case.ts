@@ -25,6 +25,8 @@ export class GetManagerSignalsUseCase {
 
   async execute(institutionId: string): Promise<ManagerSignalsResponse> {
     const rows = await this.repository.findAll(institutionId);
+    // NOT institution-scoped — see technical-debt.md TD-003. SimulatedFollowUp has no
+    // institutionId; every institution currently shares this one KPI.
     const followUpResponseRate = await this.computeFollowUpResponseRate();
 
     if (rows.length === 0) {
