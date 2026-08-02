@@ -21,34 +21,53 @@ model Assessment {
   @@map("assessments")
 }
 
-model SimulatedSignal {
+model Institution {
   id         String   @id @default(cuid())
-  department String
-  weekStart  DateTime
-  checkIns   Int
-  concerning Int
+  name       String   @unique
+  inviteCode String   @unique
   createdAt  DateTime @default(now())
 
-  @@unique([department, weekStart])
-  @@map("simulated_signals")
+  managers        Manager[]
+  managerInsights ManagerInsight[]
+  signals         Signal[]
+
+  @@map("institutions")
+}
+
+model Signal {
+  id            String      @id @default(cuid())
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  department    String
+  weekStart     DateTime
+  checkIns      Int         @default(0)
+  concerning    Int         @default(0)
+  createdAt     DateTime    @default(now())
+
+  @@unique([institutionId, department, weekStart])
+  @@map("signals")
 }
 
 model Manager {
-  id           String   @id @default(cuid())
-  name         String   @unique
-  passwordHash String
-  createdAt    DateTime @default(now())
+  id            String      @id @default(cuid())
+  name          String      @unique
+  passwordHash  String
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  createdAt     DateTime    @default(now())
 
   @@map("managers")
 }
 
 model ManagerInsight {
-  id                   String   @id @default(cuid())
+  id                   String      @id @default(cuid())
   interpretation       String
   suggestedActions     String[]
   summary              String
-  generatedAt          DateTime @default(now())
+  generatedAt          DateTime    @default(now())
   createdByManagerName String?
+  institutionId        String
+  institution          Institution @relation(fields: [institutionId], references: [id])
 
   @@map("manager_insights")
 }
