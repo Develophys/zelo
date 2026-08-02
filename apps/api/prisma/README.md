@@ -1,5 +1,17 @@
 # apps/api/prisma
 
+> **⚠️ After any schema change, migrate before you seed — and both before login works.**
+> Neither `prisma migrate deploy` nor the seed script runs automatically against the deployed
+> Fly.io/Neon database (see `docker/api.Dockerfile`) — both are manual steps, always. This
+> matters more than "keep the demo numbers fresh": since this branch added the `Manager`
+> table, a production deploy that skips `prisma migrate deploy` has no `managers` table at
+> all, and `POST /manager/login` will fail with a `500`, not just serve stale data. After
+> *any* deploy that changes `schema.prisma` — and specifically after this branch's `Manager`
+> table addition — run, in order, against the production database: (1) `prisma migrate
+> deploy`, then (2) the seed script (see "Re-seeding before a live demo" below). Skipping
+> either step, or running them out of order, means manager login is broken in production
+> until both have run.
+
 ## Seeding simulated manager-dashboard data
 
 `pnpm --filter @zelo/api prisma:seed` populates the `simulated_signals` table with 6 weeks
@@ -51,20 +63,32 @@ table to change the scenario.
 The same `prisma:seed` run also upserts two named manager accounts into the `managers`
 table, replacing the old single shared `MANAGER_ACCESS_CODE`:
 
-| Name | Password |
-|---|---|
-| Ana Konder | zelo-ana-2026 |
-| Carlos Mendes | zelo-carlos-2026 |
+| Name | Password | Override env var |
+|---|---|---|
+| Ana Konder | zelo-ana-2026 | `MANAGER_SEED_PASSWORD_ANA` |
+| Carlos Mendes | zelo-carlos-2026 | `MANAGER_SEED_PASSWORD_CARLOS` |
 
 Plaintext passwords in this table are intentional — this is local/demo data, matching the
 same transparency `MANAGER_ACCESS_CODE=zelo-demo-2026` had in `.env.example` before this
 migration. Passwords are hashed (scrypt, salted) before being stored; the table above is
 the seed source, not what's in the database.
 
-The upsert is keyed on `name`, so re-running the seed never duplicates managers or
-changes an existing manager's password unless the roster in `seed-data.ts`'s
-`MANAGER_SEED_ROSTER` changes. No signup endpoint exists — new manager accounts are added
-by editing that array and re-running the seed.
+**Production/real deployments must never rely on the committed plaintext passwords above.**
+Each roster entry in `seed-data.ts`'s `MANAGER_SEED_ROSTER` carries a `passwordEnvVar` name;
+if that environment variable is set when the seed runs, it overrides the committed
+`password` for that manager (see `seed.ts`). Set `MANAGER_SEED_PASSWORD_ANA` /
+`MANAGER_SEED_PASSWORD_CARLOS` (or whatever `passwordEnvVar` names) to a real secret before
+seeding a real deployment, so the credential that actually gets hashed and stored is never
+the value sitting in git.
+
+The upsert is keyed on `name` and **only ever sets a password when creating a brand-new
+manager row** (`update: {}` — a re-seed never touches `passwordHash` for a manager that
+already exists). This means re-running the seed never duplicates managers, never changes an
+existing manager's password (even if the roster's committed/env-sourced password value
+differs from what's live — e.g. someone rotated the password out-of-band), and only a truly
+new name in `MANAGER_SEED_ROSTER` ever gets a password set from seed data. No signup
+endpoint exists — new manager accounts are added by adding an entry to that array and
+re-running the seed.
 
 ## Re-seeding before a live demo
 

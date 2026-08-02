@@ -82,13 +82,18 @@ export function buildFollowUpSeedRows(referenceDate: Date): SimulatedFollowUpSee
 export interface ManagerSeedRow {
   name: string;
   password: string;
+  passwordEnvVar: string;
 }
 
 // Demo roster — plaintext passwords here are intentional (local/demo data,
 // same transparency MANAGER_ACCESS_CODE=zelo-demo-2026 had in .env.example
 // before this migration). Hashed at seed time by ManagerPasswordService,
-// never stored in plaintext in the database.
+// never stored in plaintext in the database. `passwordEnvVar` names an
+// environment variable that, if set, overrides `password` at seed time —
+// use it anywhere a real, non-committed password is needed (e.g.
+// production), so the committed plaintext values here are never the actual
+// live credential. See seed.ts and prisma/README.md.
 export const MANAGER_SEED_ROSTER: ManagerSeedRow[] = [
-  { name: "Ana Konder", password: "zelo-ana-2026" },
-  { name: "Carlos Mendes", password: "zelo-carlos-2026" },
+  { name: "Ana Konder", password: "zelo-ana-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_ANA" },
+  { name: "Carlos Mendes", password: "zelo-carlos-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_CARLOS" },
 ];

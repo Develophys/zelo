@@ -15,10 +15,11 @@ async function main() {
   await prisma.simulatedFollowUp.createMany({ data: followUpRows });
 
   for (const manager of MANAGER_SEED_ROSTER) {
-    const passwordHash = await passwordService.hash(manager.password);
+    const password = process.env[manager.passwordEnvVar] ?? manager.password;
+    const passwordHash = await passwordService.hash(password);
     await prisma.manager.upsert({
       where: { name: manager.name },
-      update: { passwordHash },
+      update: {},
       create: { name: manager.name, passwordHash },
     });
   }

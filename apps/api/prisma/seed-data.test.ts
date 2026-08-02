@@ -73,4 +73,12 @@ describe("MANAGER_SEED_ROSTER", () => {
       expect(manager.password.length).toBeGreaterThan(0);
     }
   });
+
+  it("gives every manager a unique, non-empty passwordEnvVar for out-of-band password overrides", () => {
+    const envVars = MANAGER_SEED_ROSTER.map((manager) => manager.passwordEnvVar);
+    expect(new Set(envVars).size).toBe(envVars.length);
+    for (const manager of MANAGER_SEED_ROSTER) {
+      expect(manager.passwordEnvVar.length).toBeGreaterThan(0);
+    }
+  });
 });
