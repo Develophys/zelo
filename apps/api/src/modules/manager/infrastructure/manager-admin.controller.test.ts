@@ -10,6 +10,12 @@ import { ManagerTokenService } from "../application/services/manager-token.servi
 import { SECTOR_REPOSITORY } from "../../sector/application/ports/sector-repository.port.ts";
 import type { AdminSectorRow, SectorRepository, UpdateSectorParams } from "../../sector/application/ports/sector-repository.port.ts";
 import { SectorNameConflictError } from "../../sector/application/ports/sector-repository.port.ts";
+import { CreateManagerUseCase } from "../application/use-cases/create-manager.use-case.ts";
+import { UpdateManagerUseCase } from "../application/use-cases/update-manager.use-case.ts";
+import { ResetManagerPasswordUseCase } from "../application/use-cases/reset-manager-password.use-case.ts";
+import { ManagerPasswordService } from "../application/services/manager-password.service.ts";
+import { MANAGER_REPOSITORY } from "../application/ports/manager-repository.port.ts";
+import type { CreateManagerParams, ManagerRepository, ManagerRow, ManagerSummaryRow, UpdateManagerParams } from "../application/ports/manager-repository.port.ts";
 
 class FakeSectorRepository implements SectorRepository {
   public rows: (AdminSectorRow & { institutionId: string })[] = [];
@@ -45,11 +51,40 @@ class FakeSectorRepository implements SectorRepository {
   async findAssignedSectorIds() {
     throw new Error("not used in this test");
   }
-  async reassignManagerSectors() {
+  async reassignManagerSectors(): Promise<void> {
+    // Manager-tab tests only assert the manager-side response; sector
+    // reassignment side effects aren't checked here, so this is a no-op.
+  }
+  async findByIdsInInstitution(institutionId: string, sectorIds: string[]) {
+    return this.rows.filter((row) => row.institutionId === institutionId && sectorIds.includes(row.id)).map(({ id }) => ({ id }));
+  }
+}
+
+class FakeManagerRepository implements ManagerRepository {
+  public rows: ManagerRow[] = [];
+  public activeHospitalAdmins = 1;
+  async findByName(): Promise<ManagerRow | null> {
     throw new Error("not used in this test");
   }
-  async findByIdsInInstitution() {
-    throw new Error("not used in this test");
+  async findById(id: string): Promise<ManagerRow | null> {
+    return this.rows.find((r) => r.id === id) ?? null;
+  }
+  async findAllByInstitution(institutionId: string): Promise<ManagerSummaryRow[]> {
+    return this.rows
+      .filter((r) => r.institutionId === institutionId)
+      .map((r) => ({ id: r.id, name: r.name, role: r.role, isActive: r.isActive, sectorNames: [] }));
+  }
+  async create(params: CreateManagerParams): Promise<{ id: string; name: string }> {
+    const row: ManagerRow = { id: `manager-${this.rows.length + 10}`, name: params.name, passwordHash: params.passwordHash, institutionId: params.institutionId, role: params.role, isActive: true };
+    this.rows.push(row);
+    return { id: row.id, name: row.name };
+  }
+  async update(id: string, patch: UpdateManagerParams): Promise<void> {
+    const row = this.rows.find((r) => r.id === id);
+    if (row) Object.assign(row, patch);
+  }
+  async countActiveHospitalAdmins(institutionId: string): Promise<number> {
+    return this.activeHospitalAdmins;
   }
 }
 
@@ -61,11 +96,13 @@ function fakeConfig(): ConfigService {
 describe("manager admin controller — sectors", () => {
   let app: INestApplication;
   let sectorRepository: FakeSectorRepository;
+  let managerRepository: FakeManagerRepository;
   let tokenService: ManagerTokenService;
 
   beforeAll(async () => {
     tokenService = new ManagerTokenService(fakeConfig());
     sectorRepository = new FakeSectorRepository();
+    managerRepository = new FakeManagerRepository();
 
     const moduleRef = await Test.createTestingModule({
       controllers: [ManagerAdminController],
@@ -74,6 +111,11 @@ describe("manager admin controller — sectors", () => {
         HospitalAdminGuard,
         { provide: ManagerTokenService, useValue: tokenService },
         { provide: SECTOR_REPOSITORY, useValue: sectorRepository },
+        { provide: MANAGER_REPOSITORY, useValue: managerRepository },
+        CreateManagerUseCase,
+        UpdateManagerUseCase,
+        ResetManagerPasswordUseCase,
+        ManagerPasswordService,
       ],
     }).compile();
 
@@ -88,6 +130,8 @@ describe("manager admin controller — sectors", () => {
   beforeEach(() => {
     sectorRepository.rows = [];
     sectorRepository.shouldThrowConflict = false;
+    managerRepository.rows = [];
+    managerRepository.activeHospitalAdmins = 1;
   });
 
   function hospitalAdminToken(): string {
@@ -153,5 +197,59 @@ describe("manager admin controller — sectors", () => {
       .set("Authorization", `Bearer ${hospitalAdminToken()}`)
       .send({ isActive: false });
     expect(response.status).toBe(404);
+  });
+
+  it("GET /manager/admin/managers returns every manager in the institution", async () => {
+    managerRepository.rows = [{ id: "manager-1", name: "Mauricio", passwordHash: "h", institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: true }];
+
+    const response = await request(app.getHttpServer()).get("/manager/admin/managers").set("Authorization", `Bearer ${hospitalAdminToken()}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([{ id: "manager-1", name: "Mauricio", role: "HOSPITAL_ADMIN", isActive: true, sectorNames: [] }]);
+  });
+
+  it("POST /manager/admin/managers creates a SECTOR_MANAGER and returns a temporary password", async () => {
+    sectorRepository.rows = [{ id: "sector-a", name: "UTI", isActive: true, managerId: null, managerName: null, institutionId: "institution-1" }];
+
+    const response = await request(app.getHttpServer())
+      .post("/manager/admin/managers")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ name: "Paulo", role: "SECTOR_MANAGER", sectorIds: ["sector-a"] });
+
+    expect(response.status).toBe(201);
+    expect(response.body.manager).toEqual({ id: expect.any(String), name: "Paulo" });
+    expect(response.body.temporaryPassword).toEqual(expect.any(String));
+  });
+
+  it("POST /manager/admin/managers rejects a SECTOR_MANAGER request with no sectorIds", async () => {
+    const response = await request(app.getHttpServer())
+      .post("/manager/admin/managers")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ name: "Paulo", role: "SECTOR_MANAGER" });
+
+    expect(response.status).toBe(400);
+  });
+
+  it("PATCH /manager/admin/managers/:id returns 409 when deactivating the institution's last active HOSPITAL_ADMIN", async () => {
+    managerRepository.rows = [{ id: "manager-1", name: "Mauricio", passwordHash: "h", institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: true }];
+    managerRepository.activeHospitalAdmins = 1;
+
+    const response = await request(app.getHttpServer())
+      .patch("/manager/admin/managers/manager-1")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ isActive: false });
+
+    expect(response.status).toBe(409);
+  });
+
+  it("POST /manager/admin/managers/:id/reset-password returns a new temporary password", async () => {
+    managerRepository.rows = [{ id: "manager-1", name: "Paulo", passwordHash: "old", institutionId: "institution-1", role: "SECTOR_MANAGER", isActive: true }];
+
+    const response = await request(app.getHttpServer())
+      .post("/manager/admin/managers/manager-1/reset-password")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.temporaryPassword).toEqual(expect.any(String));
   });
 });

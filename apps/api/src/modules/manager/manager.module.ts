@@ -14,6 +14,9 @@ import { LoginManagerUseCase } from "./application/use-cases/login-manager.use-c
 import { GetManagerSignalsUseCase } from "./application/use-cases/get-manager-signals.use-case.ts";
 import { GenerateManagerInsightUseCase } from "./application/use-cases/generate-manager-insight.use-case.ts";
 import { GetManagerInsightHistoryUseCase } from "./application/use-cases/get-manager-insight-history.use-case.ts";
+import { CreateManagerUseCase } from "./application/use-cases/create-manager.use-case.ts";
+import { UpdateManagerUseCase } from "./application/use-cases/update-manager.use-case.ts";
+import { ResetManagerPasswordUseCase } from "./application/use-cases/reset-manager-password.use-case.ts";
 import { ManagerTokenService } from "./application/services/manager-token.service.ts";
 import { ManagerPasswordService } from "./application/services/manager-password.service.ts";
 import { SIGNAL_REPOSITORY } from "./application/ports/signal-repository.port.ts";
@@ -38,6 +41,9 @@ const aiInsightPortProvider =
     GetManagerSignalsUseCase,
     GenerateManagerInsightUseCase,
     GetManagerInsightHistoryUseCase,
+    CreateManagerUseCase,
+    UpdateManagerUseCase,
+    ResetManagerPasswordUseCase,
     ManagerTokenService,
     ManagerPasswordService,
     ManagerAuthGuard,
