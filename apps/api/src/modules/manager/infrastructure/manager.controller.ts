@@ -53,8 +53,8 @@ export class ManagerController {
 
   @Get("signals")
   @UseGuards(ManagerAuthGuard)
-  async signals(): Promise<ManagerSignalsResponse> {
-    return this.getManagerSignals.execute();
+  async signals(@Req() request: Request): Promise<ManagerSignalsResponse> {
+    return this.getManagerSignals.execute(request.manager!.institutionId);
   }
 
   @Post("insights")
@@ -62,7 +62,7 @@ export class ManagerController {
   @UseGuards(ManagerAuthGuard)
   async insights(@Req() request: Request): Promise<ManagerInsightResponse> {
     try {
-      return await this.generateManagerInsight.execute(request.manager!.name);
+      return await this.generateManagerInsight.execute(request.manager!.name, request.manager!.institutionId);
     } catch (error) {
       if (error instanceof InsightGenerationFailedError) {
         throw new BadGatewayException();
@@ -73,7 +73,7 @@ export class ManagerController {
 
   @Get("insights/history")
   @UseGuards(ManagerAuthGuard)
-  async insightsHistory(): Promise<StoredManagerInsight[]> {
-    return this.getManagerInsightHistory.execute();
+  async insightsHistory(@Req() request: Request): Promise<StoredManagerInsight[]> {
+    return this.getManagerInsightHistory.execute(request.manager!.institutionId);
   }
 }

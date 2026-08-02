@@ -13,8 +13,8 @@ import { ManagerTokenService } from "../application/services/manager-token.servi
 import { ManagerPasswordService } from "../application/services/manager-password.service.ts";
 import { MANAGER_REPOSITORY } from "../application/ports/manager-repository.port.ts";
 import type { ManagerRepository, ManagerRow } from "../application/ports/manager-repository.port.ts";
-import { SIMULATED_SIGNAL_REPOSITORY } from "../application/ports/simulated-signal-repository.port.ts";
-import type { SimulatedSignalRepository, SimulatedSignalRow } from "../application/ports/simulated-signal-repository.port.ts";
+import { SIGNAL_REPOSITORY } from "../application/ports/signal-repository.port.ts";
+import type { SignalRepository, SignalRow } from "../application/ports/signal-repository.port.ts";
 import { SIMULATED_FOLLOW_UP_REPOSITORY } from "../application/ports/simulated-follow-up-repository.port.ts";
 import type { SimulatedFollowUpRepository, SimulatedFollowUpRow } from "../application/ports/simulated-follow-up-repository.port.ts";
 import { AI_INSIGHT_PORT, InsightGenerationFailedError } from "../application/ports/ai-insight.port.ts";
@@ -29,10 +29,14 @@ class FakeManagerRepository implements ManagerRepository {
   }
 }
 
-class FakeSimulatedSignalRepository implements SimulatedSignalRepository {
-  public rows: SimulatedSignalRow[] = [];
-  async findAll(): Promise<SimulatedSignalRow[]> {
-    return this.rows;
+class FakeSignalRepository implements SignalRepository {
+  public rows: SignalRow[] = [];
+  private byInstitution: Record<string, SignalRow[]> = {};
+  setRowsForInstitution(institutionId: string, rows: SignalRow[]): void {
+    this.byInstitution[institutionId] = rows;
+  }
+  async findAll(institutionId: string): Promise<SignalRow[]> {
+    return this.byInstitution[institutionId] ?? [];
   }
 }
 
@@ -55,11 +59,17 @@ class FakeAiInsightPort implements AiInsightPort {
 
 class FakeManagerInsightRepository implements ManagerInsightRepository {
   public rows: StoredManagerInsight[] = [];
-  async save(entry: { interpretation: string; suggestedActions: string[]; summary: string; createdByManagerName: string | null }): Promise<void> {
+  async save(entry: {
+    interpretation: string;
+    suggestedActions: string[];
+    summary: string;
+    createdByManagerName: string | null;
+    institutionId: string;
+  }): Promise<void> {
     this.rows.unshift({ id: `id-${this.rows.length + 1}`, generatedAt: new Date(), ...entry });
   }
-  async findAll(): Promise<StoredManagerInsight[]> {
-    return this.rows;
+  async findAll(institutionId: string): Promise<StoredManagerInsight[]> {
+    return this.rows.filter((row) => row.institutionId === institutionId);
   }
 }
 
@@ -71,7 +81,7 @@ function fakeConfig(): ConfigService {
 describe("manager controller", () => {
   let app: INestApplication;
   let managerRepository: FakeManagerRepository;
-  let repository: FakeSimulatedSignalRepository;
+  let signalRepository: FakeSignalRepository;
   let followUpRepository: FakeSimulatedFollowUpRepository;
   let aiInsightPort: FakeAiInsightPort;
   let insightRepository: FakeManagerInsightRepository;
@@ -80,9 +90,20 @@ describe("manager controller", () => {
     const passwordService = new ManagerPasswordService();
     managerRepository = new FakeManagerRepository();
     managerRepository.rows = [
-      { id: "manager-1", name: "Ana Konder", passwordHash: await passwordService.hash("test-password") },
+      {
+        id: "manager-1",
+        name: "Ana Konder",
+        passwordHash: await passwordService.hash("test-password"),
+        institutionId: "institution-a",
+      },
+      {
+        id: "manager-2",
+        name: "Beatriz Lima",
+        passwordHash: await passwordService.hash("test-password-2"),
+        institutionId: "institution-b",
+      },
     ];
-    repository = new FakeSimulatedSignalRepository();
+    signalRepository = new FakeSignalRepository();
     followUpRepository = new FakeSimulatedFollowUpRepository();
     aiInsightPort = new FakeAiInsightPort();
     insightRepository = new FakeManagerInsightRepository();
@@ -97,7 +118,7 @@ describe("manager controller", () => {
         ManagerPasswordService,
         ManagerAuthGuard,
         { provide: MANAGER_REPOSITORY, useValue: managerRepository },
-        { provide: SIMULATED_SIGNAL_REPOSITORY, useValue: repository },
+        { provide: SIGNAL_REPOSITORY, useValue: signalRepository },
         { provide: SIMULATED_FOLLOW_UP_REPOSITORY, useValue: followUpRepository },
         { provide: AI_INSIGHT_PORT, useValue: aiInsightPort },
         { provide: MANAGER_INSIGHT_REPOSITORY, useValue: insightRepository },
@@ -113,10 +134,8 @@ describe("manager controller", () => {
     await app.close();
   });
 
-  async function getToken(): Promise<string> {
-    const login = await request(app.getHttpServer())
-      .post("/manager/login")
-      .send({ name: "Ana Konder", password: "test-password" });
+  async function getToken(name: string, password: string): Promise<string> {
+    const login = await request(app.getHttpServer()).post("/manager/login").send({ name, password });
     return login.body.token;
   }
 
@@ -158,17 +177,24 @@ describe("manager controller", () => {
     expect(response.status).toBe(401);
   });
 
-  it("GET /manager/signals returns aggregated data for a valid token, suppressing n<5 departments", async () => {
-    repository.rows = [
+  it("GET /manager/signals returns only the authenticated manager's own institution's data, suppressing n<5 departments", async () => {
+    signalRepository.setRowsForInstitution("institution-a", [
       { department: "A", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 10, concerning: 6 },
       { department: "Tiny", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 3, concerning: 1 },
-    ];
-    const token = await getToken();
+    ]);
+    signalRepository.setRowsForInstitution("institution-b", [
+      { department: "A", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 20, concerning: 2 },
+    ]);
 
-    const response = await request(app.getHttpServer()).get("/manager/signals").set("Authorization", `Bearer ${token}`);
+    const tokenA = await getToken("Ana Konder", "test-password");
+    const responseA = await request(app.getHttpServer()).get("/manager/signals").set("Authorization", `Bearer ${tokenA}`);
+    expect(responseA.status).toBe(200);
+    expect(responseA.body.segments).toEqual([{ label: "A", value: 60, n: 10 }]);
 
-    expect(response.status).toBe(200);
-    expect(response.body.segments).toEqual([{ label: "A", value: 60, n: 10 }]);
+    const tokenB = await getToken("Beatriz Lima", "test-password-2");
+    const responseB = await request(app.getHttpServer()).get("/manager/signals").set("Authorization", `Bearer ${tokenB}`);
+    expect(responseB.status).toBe(200);
+    expect(responseB.body.segments).toEqual([{ label: "A", value: 10, n: 20 }]);
   });
 
   it("POST /manager/insights rejects a request with no token", async () => {
@@ -179,7 +205,7 @@ describe("manager controller", () => {
 
   it("POST /manager/insights returns the structured insight for a valid token", async () => {
     aiInsightPort.shouldFail = false;
-    const token = await getToken();
+    const token = await getToken("Ana Konder", "test-password");
 
     const response = await request(app.getHttpServer()).post("/manager/insights").set("Authorization", `Bearer ${token}`);
 
@@ -189,7 +215,7 @@ describe("manager controller", () => {
 
   it("POST /manager/insights returns 502 when insight generation fails", async () => {
     aiInsightPort.shouldFail = true;
-    const token = await getToken();
+    const token = await getToken("Ana Konder", "test-password");
 
     const response = await request(app.getHttpServer()).post("/manager/insights").set("Authorization", `Bearer ${token}`);
 
@@ -203,23 +229,30 @@ describe("manager controller", () => {
     expect(response.status).toBe(401);
   });
 
-  it("POST /manager/insights auto-saves to history with the authenticated manager's name, visible via GET /manager/insights/history", async () => {
+  it("POST /manager/insights auto-saves to history with the authenticated manager's name and institution, visible only to managers at that same institution", async () => {
     insightRepository.rows = [];
     aiInsightPort.shouldFail = false;
-    const token = await getToken();
 
-    await request(app.getHttpServer()).post("/manager/insights").set("Authorization", `Bearer ${token}`);
-    const response = await request(app.getHttpServer())
+    const tokenA = await getToken("Ana Konder", "test-password");
+    await request(app.getHttpServer()).post("/manager/insights").set("Authorization", `Bearer ${tokenA}`);
+
+    const historyForA = await request(app.getHttpServer())
       .get("/manager/insights/history")
-      .set("Authorization", `Bearer ${token}`);
-
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual([
+      .set("Authorization", `Bearer ${tokenA}`);
+    expect(historyForA.status).toBe(200);
+    expect(historyForA.body).toEqual([
       expect.objectContaining({
         interpretation: "análise de teste",
         suggestedActions: ["ação de teste"],
         createdByManagerName: "Ana Konder",
       }),
     ]);
+
+    const tokenB = await getToken("Beatriz Lima", "test-password-2");
+    const historyForB = await request(app.getHttpServer())
+      .get("/manager/insights/history")
+      .set("Authorization", `Bearer ${tokenB}`);
+    expect(historyForB.status).toBe(200);
+    expect(historyForB.body).toEqual([]); // institution-a's insight never leaks to institution-b
   });
 });
