@@ -25,7 +25,7 @@ the existing use-cases on submit.
 | `/crisis/line` | `CrisisDeclinePage` | CVV 188 |
 | `/chat` | `ChatPage` | Existing; restyled |
 | `/peers` | `PeersPage` | Anonymous peer list |
-| `/manager/login` | `ManagerLoginPage` | Shared-code gate for the manager dashboard (see §5) |
+| `/manager/login` | `ManagerLoginPage` | Individual manager-account gate for the manager dashboard (see §5) |
 | `/manager` | `ManagerDashboardPage` | Aggregated, k-anonymized; gated by `/manager/login`'s session (see §5) |
 | `/manager/history` | `ManagerInsightHistoryPage` | Past AI-generated analyses, newest first; each downloadable as PDF or plain text (see `2026-07-12-manager-insight-history-design.md`) |
 | `/you` | `YouPage` | Consent status + revoke; added after the original 13 (see `screens/15-you.md`) |
@@ -44,7 +44,7 @@ Crisis → Crisis/connect  (accept)  → Chat (secure)
 Crisis → Crisis/line     (decline) → Home
 Home → Chat | Peers | Manager | Você
 Você → Splash        (after "Sim, revogar")
-Manager → Manager/login (if no valid session) → Manager (on correct code)
+Manager → Manager/login (if no valid session) → Manager (on correct name+password)
 ```
 
 ---
@@ -146,15 +146,19 @@ about how much of the demo can stay mocked.
 of surface, so it gets a fundamentally different gate: a real login that the backend actually
 enforces, not just a client-side redirect a curious user could bypass by editing localStorage.
 
-- **`ManagerLoginPage`** (`/manager/login`) collects a single shared access code (one
-  institution, one code — not a per-manager account; see
-  `2026-07-11-manager-login-simulated-dashboard-design.md` §2 for why a full multi-account
-  system wasn't built for this scope) and calls `POST /manager/login`.
-- The backend compares the submitted code against `MANAGER_ACCESS_CODE` using
-  `crypto.timingSafeEqual` (not `===`, to avoid leaking the correct code one timing-measurable
-  byte at a time) and, on a match, issues an **HMAC-SHA256-signed opaque token** (8-hour
-  expiry) — not a JWT library, just `node:crypto`, since a single shared secret doesn't need
-  one.
+- **`ManagerLoginPage`** (`/manager/login`) collects individual manager credentials — name and
+  password, one account per manager, not a single shared institutional code (see
+  `2026-08-01-manager-individual-accounts-design.md` for the full design and why this still
+  doesn't imply multi-institution data partitioning — this PoC targets one institution) — and
+  calls `POST /manager/login` with `{ name, password }`.
+- The backend looks up the `Manager` row by `name` and verifies `password` against its stored
+  scrypt hash via `ManagerPasswordService`, always performing the real hash-and-compare even
+  when `name` doesn't match any account — this prevents a timing side-channel that could
+  otherwise reveal whether a given name has an account. Either an unknown name or a wrong
+  password throws the same `InvalidManagerCredentialsError` → `401`. On success the backend
+  issues an **HMAC-SHA256-signed opaque token** (8-hour expiry) carrying the authenticated
+  manager's `id`/`name` in its JSON payload — not a JWT library, just `node:crypto`
+  (`manager-token.service.ts`).
 - The frontend stores `{ token, expiresAt }` in **`sessionStorage`** (`useManagerSessionStore`,
   `apps/web/src/stores/manager-session.store.ts`) — deliberately not `localStorage`: a manager
   session is meant to end when the tab/browser closes, unlike a doctor's consent which should

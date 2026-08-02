@@ -54,18 +54,33 @@ cheap and removes most of the practical risk.
 - **Date:** 2026-07-12
 - **Area:** `apps/api/src/modules/manager/application/use-cases/get-manager-insight-history.use-case.ts`,
   `apps/web/src/presentation/pages/ManagerInsightHistoryPage.tsx`
-- **Status:** Accepted, deferred
+- **Status:** Resolved
 
-**Decision.** `GET /manager/insights/history` returns every saved `ManagerInsight` row to any
-manager who authenticates — there is no per-manager scoping.
+**Original decision.** `GET /manager/insights/history` returns every saved `ManagerInsight`
+row to any manager who authenticates — there was no per-manager scoping. At the time this was
+accepted because manager auth was a single shared institutional code, not individual
+accounts, so "revisit when individual manager logins are built" was the stated trigger.
 
-**Why this is safe today.** Manager auth is a single shared institutional code, not individual
-accounts (see `identity-and-aggregation.md` — a full `User`/`Role.MANAGER` model was explicitly
-deferred). Every manager who has the code represents the same institution, and every saved
-insight is already anonymous, k-anonymized aggregate data — sharing it isn't a privacy issue, it's
-a UX limitation: one institution's history, not one person's.
+**Resolution.** `2026-08-01-manager-individual-accounts-design.md` (this branch) replaced the
+single shared `MANAGER_ACCESS_CODE` with individual named `Manager` accounts (name +
+password, scrypt-hashed). That resolves the identity half of this entry's original
+"revisit when" trigger — but the history-scoping behavior itself is **unchanged, on purpose**:
+`GetManagerInsightHistoryUseCase` still returns every saved insight, unfiltered, to any
+authenticated manager. `ManagerInsight` gained a nullable `createdByManagerName` field, but it
+is **display-only attribution** ("Gerado por {name}" in `ManagerInsightHistoryPage`), not a
+filter key — see the design spec §1 and §3 for why: this PoC still targets a single
+institution, so every manager with a valid account represents the same institution, and every
+saved insight is already anonymous, k-anonymized aggregate data. Sharing it isn't a privacy
+issue, it's the correct behavior for "one institution's history, visible to everyone who
+works there" — there is no second institution yet for scoping to protect against.
 
-**Revisit when:** individual manager logins are built (per `identity-and-aggregation.md`'s
-deferred `User` model). At that point, `ManagerInsight` should gain a manager/team-scoping field
-and `GetManagerInsightHistoryUseCase` should filter by the authenticated manager's team, so each
-manager sees only their own team's saved analyses.
+**Why this closes the entry instead of leaving it deferred.** The original trigger
+("individual manager logins are built") has now happened, and the design spec explicitly
+evaluated whether to add per-manager filtering at that point and declined to, as a deliberate
+scope decision rather than a remaining gap — see
+`2026-08-01-manager-individual-accounts-design.md`'s §3 ("Attribution: wired through insight
+generation, not through history filtering") and §8 ("Out of scope"). If a second institution
+is ever onboarded, insight-history scoping becomes a real requirement again — see that spec's
+non-goal note for what that redesign would need (`institutionId` on `Manager`, filtering in
+`GetManagerInsightHistoryUseCase`). That would be tracked as new, separate debt at that time,
+not a reopening of this entry.
