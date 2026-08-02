@@ -22,12 +22,12 @@ describe("ManagerAuthGuard", () => {
   const tokenService = new ManagerTokenService(fakeConfig("test-secret"));
   const guard = new ManagerAuthGuard(tokenService);
 
-  it("allows a request with a valid Bearer token and attaches the decoded manager to the request", () => {
-    const { token } = tokenService.issue("manager-1", "Ana Konder");
+  it("allows a request with a valid Bearer token and attaches the decoded manager, including institutionId, to the request", () => {
+    const { token } = tokenService.issue("manager-1", "Ana Konder", "institution-1");
     const { context, request } = contextWithHeader(`Bearer ${token}`);
 
     expect(guard.canActivate(context)).toBe(true);
-    expect(request.manager).toEqual({ id: "manager-1", name: "Ana Konder" });
+    expect(request.manager).toEqual({ id: "manager-1", name: "Ana Konder", institutionId: "institution-1" });
   });
 
   it("rejects a request with no Authorization header", () => {

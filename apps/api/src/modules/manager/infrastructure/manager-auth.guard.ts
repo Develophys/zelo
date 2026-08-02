@@ -6,7 +6,7 @@ import { ManagerTokenService } from "../application/services/manager-token.servi
 declare global {
   namespace Express {
     interface Request {
-      manager?: { id: string; name: string };
+      manager?: { id: string; name: string; institutionId: string };
     }
   }
 }
@@ -31,7 +31,7 @@ export class ManagerAuthGuard implements CanActivate {
       throw new UnauthorizedException();
     }
 
-    request.manager = { id: decoded.managerId, name: decoded.managerName };
+    request.manager = { id: decoded.managerId, name: decoded.managerName, institutionId: decoded.institutionId };
     return true;
   }
 }
