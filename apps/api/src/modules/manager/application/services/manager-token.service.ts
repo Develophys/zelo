@@ -13,12 +13,14 @@ export interface IssuedManagerToken {
 export interface DecodedManagerToken {
   managerId: string;
   managerName: string;
+  institutionId: string;
 }
 
 interface TokenPayload {
   sessionId: string;
   managerId: string;
   managerName: string;
+  institutionId: string;
   expiresAtEpoch: number;
 }
 
@@ -26,10 +28,10 @@ interface TokenPayload {
 export class ManagerTokenService {
   constructor(@Inject(ConfigService) private readonly config: ConfigService) {}
 
-  issue(managerId: string, managerName: string): IssuedManagerToken {
+  issue(managerId: string, managerName: string, institutionId: string): IssuedManagerToken {
     const sessionId = randomUUID();
     const expiresAtEpoch = Date.now() + SESSION_DURATION_MS;
-    const payload: TokenPayload = { sessionId, managerId, managerName, expiresAtEpoch };
+    const payload: TokenPayload = { sessionId, managerId, managerName, institutionId, expiresAtEpoch };
     const payloadB64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
     const signature = this.sign(payloadB64);
 
@@ -53,6 +55,7 @@ export class ManagerTokenService {
     if (
       typeof payload.managerId !== "string" ||
       typeof payload.managerName !== "string" ||
+      typeof payload.institutionId !== "string" ||
       !Number.isFinite(payload.expiresAtEpoch)
     ) {
       return null;
@@ -60,7 +63,7 @@ export class ManagerTokenService {
 
     if (Date.now() >= payload.expiresAtEpoch) return null;
 
-    return { managerId: payload.managerId, managerName: payload.managerName };
+    return { managerId: payload.managerId, managerName: payload.managerName, institutionId: payload.institutionId };
   }
 
   private sign(payloadB64: string): string {

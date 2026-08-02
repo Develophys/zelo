@@ -17,10 +17,12 @@ function fakeConfig(secret: string): ConfigService {
 }
 
 describe("LoginManagerUseCase", () => {
-  it("issues a token when the name and password match a stored manager", async () => {
+  it("issues a token carrying the manager's institutionId when the name and password match", async () => {
     const passwordService = new ManagerPasswordService();
     const passwordHash = await passwordService.hash("correct-password");
-    const repository = new FakeManagerRepository([{ id: "manager-1", name: "Ana Konder", passwordHash }]);
+    const repository = new FakeManagerRepository([
+      { id: "manager-1", name: "Ana Konder", passwordHash, institutionId: "institution-1" },
+    ]);
     const tokenService = new ManagerTokenService(fakeConfig("token-secret"));
     const useCase = new LoginManagerUseCase(repository, passwordService, tokenService);
 
@@ -28,7 +30,11 @@ describe("LoginManagerUseCase", () => {
 
     expect(result.token).toEqual(expect.any(String));
     expect(result.expiresAt).toEqual(expect.any(String));
-    expect(tokenService.verify(result.token)).toEqual({ managerId: "manager-1", managerName: "Ana Konder" });
+    expect(tokenService.verify(result.token)).toEqual({
+      managerId: "manager-1",
+      managerName: "Ana Konder",
+      institutionId: "institution-1",
+    });
   });
 
   it("throws InvalidManagerCredentialsError when the name is unknown", async () => {
@@ -43,7 +49,9 @@ describe("LoginManagerUseCase", () => {
   it("throws InvalidManagerCredentialsError when the password is wrong", async () => {
     const passwordService = new ManagerPasswordService();
     const passwordHash = await passwordService.hash("correct-password");
-    const repository = new FakeManagerRepository([{ id: "manager-1", name: "Ana Konder", passwordHash }]);
+    const repository = new FakeManagerRepository([
+      { id: "manager-1", name: "Ana Konder", passwordHash, institutionId: "institution-1" },
+    ]);
     const tokenService = new ManagerTokenService(fakeConfig("token-secret"));
     const useCase = new LoginManagerUseCase(repository, passwordService, tokenService);
 
@@ -54,7 +62,9 @@ describe("LoginManagerUseCase", () => {
     const passwordService = new ManagerPasswordService();
     const verifySpy = vi.spyOn(passwordService, "verify");
     const passwordHash = await passwordService.hash("correct-password");
-    const repository = new FakeManagerRepository([{ id: "manager-1", name: "Ana Konder", passwordHash }]);
+    const repository = new FakeManagerRepository([
+      { id: "manager-1", name: "Ana Konder", passwordHash, institutionId: "institution-1" },
+    ]);
     const tokenService = new ManagerTokenService(fakeConfig("token-secret"));
     const useCase = new LoginManagerUseCase(repository, passwordService, tokenService);
 

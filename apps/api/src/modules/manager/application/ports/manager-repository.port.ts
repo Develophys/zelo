@@ -2,6 +2,7 @@ export interface ManagerRow {
   id: string;
   name: string;
   passwordHash: string;
+  institutionId: string;
 }
 
 export interface ManagerRepository {

@@ -9,6 +9,6 @@ export class PrismaManagerRepository implements ManagerRepository {
   async findByName(name: string): Promise<ManagerRow | null> {
     const row = await this.prisma.manager.findUnique({ where: { name } });
     if (!row) return null;
-    return { id: row.id, name: row.name, passwordHash: row.passwordHash };
+    return { id: row.id, name: row.name, passwordHash: row.passwordHash, institutionId: row.institutionId };
   }
 }

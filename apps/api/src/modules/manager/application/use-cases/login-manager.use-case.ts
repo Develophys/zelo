@@ -29,6 +29,6 @@ export class LoginManagerUseCase {
       throw new InvalidManagerCredentialsError();
     }
 
-    return this.tokenService.issue(manager.id, manager.name);
+    return this.tokenService.issue(manager.id, manager.name, manager.institutionId);
   }
 }
