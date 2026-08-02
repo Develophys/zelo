@@ -22,7 +22,7 @@ import type { StoredManagerInsight } from "../application/ports/manager-insight-
 import type { IssuedManagerToken } from "../application/services/manager-token.service.ts";
 import { ManagerAuthGuard } from "./manager-auth.guard.ts";
 
-const LoginRequestSchema = z.object({ name: z.string().min(1), password: z.string().min(1) });
+const LoginRequestSchema = z.object({ name: z.string().min(1).max(200), password: z.string().min(1).max(200) });
 
 @Controller("manager")
 export class ManagerController {
