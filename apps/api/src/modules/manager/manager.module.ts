@@ -1,5 +1,7 @@
 import { Module } from "@nestjs/common";
+import { SectorModule } from "../sector/sector.module.ts";
 import { ManagerController } from "./infrastructure/manager.controller.ts";
+import { ManagerAdminController } from "./infrastructure/manager-admin.controller.ts";
 import { ManagerAuthGuard } from "./infrastructure/manager-auth.guard.ts";
 import { HospitalAdminGuard } from "./infrastructure/hospital-admin.guard.ts";
 import { PrismaSignalRepository } from "./infrastructure/persistence/prisma-signal.repository.ts";
@@ -29,7 +31,8 @@ const aiInsightPortProvider =
     : { provide: AI_INSIGHT_PORT, useClass: GroqInsightAdapter };
 
 @Module({
-  controllers: [ManagerController],
+  imports: [SectorModule],
+  controllers: [ManagerController, ManagerAdminController],
   providers: [
     LoginManagerUseCase,
     GetManagerSignalsUseCase,
