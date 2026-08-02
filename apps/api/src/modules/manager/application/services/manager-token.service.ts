@@ -10,31 +10,57 @@ export interface IssuedManagerToken {
   expiresAt: string;
 }
 
+export interface DecodedManagerToken {
+  managerId: string;
+  managerName: string;
+}
+
+interface TokenPayload {
+  sessionId: string;
+  managerId: string;
+  managerName: string;
+  expiresAtEpoch: number;
+}
+
 @Injectable()
 export class ManagerTokenService {
   constructor(@Inject(ConfigService) private readonly config: ConfigService) {}
 
-  issue(): IssuedManagerToken {
+  issue(managerId: string, managerName: string): IssuedManagerToken {
     const sessionId = randomUUID();
     const expiresAtEpoch = Date.now() + SESSION_DURATION_MS;
-    const payloadB64 = Buffer.from(`${sessionId}.${expiresAtEpoch}`).toString("base64url");
+    const payload: TokenPayload = { sessionId, managerId, managerName, expiresAtEpoch };
+    const payloadB64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
     const signature = this.sign(payloadB64);
 
     return { token: `${payloadB64}.${signature}`, expiresAt: new Date(expiresAtEpoch).toISOString() };
   }
 
-  verify(token: string): boolean {
+  verify(token: string): DecodedManagerToken | null {
     const [payloadB64, signature] = token.split(".");
-    if (!payloadB64 || !signature) return false;
+    if (!payloadB64 || !signature) return null;
 
     const expectedSignature = this.sign(payloadB64);
-    if (!timingSafeStringEqual(signature, expectedSignature)) return false;
+    if (!timingSafeStringEqual(signature, expectedSignature)) return null;
 
-    const payload = Buffer.from(payloadB64, "base64url").toString("utf-8");
-    const expiresAtEpoch = Number(payload.split(".")[1]);
-    if (!Number.isFinite(expiresAtEpoch)) return false;
+    let payload: TokenPayload;
+    try {
+      payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf-8"));
+    } catch {
+      return null;
+    }
 
-    return Date.now() < expiresAtEpoch;
+    if (
+      typeof payload.managerId !== "string" ||
+      typeof payload.managerName !== "string" ||
+      !Number.isFinite(payload.expiresAtEpoch)
+    ) {
+      return null;
+    }
+
+    if (Date.now() >= payload.expiresAtEpoch) return null;
+
+    return { managerId: payload.managerId, managerName: payload.managerName };
   }
 
   private sign(payloadB64: string): string {

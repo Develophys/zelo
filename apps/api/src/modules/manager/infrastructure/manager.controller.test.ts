@@ -10,6 +10,9 @@ import { GetManagerSignalsUseCase } from "../application/use-cases/get-manager-s
 import { GenerateManagerInsightUseCase } from "../application/use-cases/generate-manager-insight.use-case.ts";
 import { GetManagerInsightHistoryUseCase } from "../application/use-cases/get-manager-insight-history.use-case.ts";
 import { ManagerTokenService } from "../application/services/manager-token.service.ts";
+import { ManagerPasswordService } from "../application/services/manager-password.service.ts";
+import { MANAGER_REPOSITORY } from "../application/ports/manager-repository.port.ts";
+import type { ManagerRepository, ManagerRow } from "../application/ports/manager-repository.port.ts";
 import { SIMULATED_SIGNAL_REPOSITORY } from "../application/ports/simulated-signal-repository.port.ts";
 import type { SimulatedSignalRepository, SimulatedSignalRow } from "../application/ports/simulated-signal-repository.port.ts";
 import { SIMULATED_FOLLOW_UP_REPOSITORY } from "../application/ports/simulated-follow-up-repository.port.ts";
@@ -18,6 +21,13 @@ import { AI_INSIGHT_PORT, InsightGenerationFailedError } from "../application/po
 import type { AiInsightPort, ManagerInsightResponse } from "../application/ports/ai-insight.port.ts";
 import { MANAGER_INSIGHT_REPOSITORY } from "../application/ports/manager-insight-repository.port.ts";
 import type { ManagerInsightRepository, StoredManagerInsight } from "../application/ports/manager-insight-repository.port.ts";
+
+class FakeManagerRepository implements ManagerRepository {
+  public rows: ManagerRow[] = [];
+  async findByName(name: string): Promise<ManagerRow | null> {
+    return this.rows.find((row) => row.name === name) ?? null;
+  }
+}
 
 class FakeSimulatedSignalRepository implements SimulatedSignalRepository {
   public rows: SimulatedSignalRow[] = [];
@@ -45,7 +55,7 @@ class FakeAiInsightPort implements AiInsightPort {
 
 class FakeManagerInsightRepository implements ManagerInsightRepository {
   public rows: StoredManagerInsight[] = [];
-  async save(entry: { interpretation: string; suggestedActions: string[]; summary: string }): Promise<void> {
+  async save(entry: { interpretation: string; suggestedActions: string[]; summary: string; createdByManagerName: string | null }): Promise<void> {
     this.rows.unshift({ id: `id-${this.rows.length + 1}`, generatedAt: new Date(), ...entry });
   }
   async findAll(): Promise<StoredManagerInsight[]> {
@@ -54,18 +64,24 @@ class FakeManagerInsightRepository implements ManagerInsightRepository {
 }
 
 function fakeConfig(): ConfigService {
-  const values: Record<string, string> = { MANAGER_ACCESS_CODE: "test-code", MANAGER_TOKEN_SECRET: "test-secret" };
+  const values: Record<string, string> = { MANAGER_TOKEN_SECRET: "test-secret" };
   return { getOrThrow: (key: string) => values[key], get: () => undefined } as unknown as ConfigService;
 }
 
 describe("manager controller", () => {
   let app: INestApplication;
+  let managerRepository: FakeManagerRepository;
   let repository: FakeSimulatedSignalRepository;
   let followUpRepository: FakeSimulatedFollowUpRepository;
   let aiInsightPort: FakeAiInsightPort;
   let insightRepository: FakeManagerInsightRepository;
 
   beforeAll(async () => {
+    const passwordService = new ManagerPasswordService();
+    managerRepository = new FakeManagerRepository();
+    managerRepository.rows = [
+      { id: "manager-1", name: "Ana Konder", passwordHash: await passwordService.hash("test-password") },
+    ];
     repository = new FakeSimulatedSignalRepository();
     followUpRepository = new FakeSimulatedFollowUpRepository();
     aiInsightPort = new FakeAiInsightPort();
@@ -78,7 +94,9 @@ describe("manager controller", () => {
         GenerateManagerInsightUseCase,
         GetManagerInsightHistoryUseCase,
         ManagerTokenService,
+        ManagerPasswordService,
         ManagerAuthGuard,
+        { provide: MANAGER_REPOSITORY, useValue: managerRepository },
         { provide: SIMULATED_SIGNAL_REPOSITORY, useValue: repository },
         { provide: SIMULATED_FOLLOW_UP_REPOSITORY, useValue: followUpRepository },
         { provide: AI_INSIGHT_PORT, useValue: aiInsightPort },
@@ -96,20 +114,34 @@ describe("manager controller", () => {
   });
 
   async function getToken(): Promise<string> {
-    const login = await request(app.getHttpServer()).post("/manager/login").send({ code: "test-code" });
+    const login = await request(app.getHttpServer())
+      .post("/manager/login")
+      .send({ name: "Ana Konder", password: "test-password" });
     return login.body.token;
   }
 
-  it("POST /manager/login returns a token for the correct code", async () => {
-    const response = await request(app.getHttpServer()).post("/manager/login").send({ code: "test-code" });
+  it("POST /manager/login returns a token for the correct name and password", async () => {
+    const response = await request(app.getHttpServer())
+      .post("/manager/login")
+      .send({ name: "Ana Konder", password: "test-password" });
 
     expect(response.status).toBe(200);
     expect(response.body.token).toEqual(expect.any(String));
     expect(response.body.expiresAt).toEqual(expect.any(String));
   });
 
-  it("POST /manager/login rejects the wrong code with 401", async () => {
-    const response = await request(app.getHttpServer()).post("/manager/login").send({ code: "wrong-code" });
+  it("POST /manager/login rejects an unknown name with 401", async () => {
+    const response = await request(app.getHttpServer())
+      .post("/manager/login")
+      .send({ name: "Unknown Person", password: "test-password" });
+
+    expect(response.status).toBe(401);
+  });
+
+  it("POST /manager/login rejects the wrong password with 401", async () => {
+    const response = await request(app.getHttpServer())
+      .post("/manager/login")
+      .send({ name: "Ana Konder", password: "wrong-password" });
 
     expect(response.status).toBe(401);
   });
@@ -171,7 +203,7 @@ describe("manager controller", () => {
     expect(response.status).toBe(401);
   });
 
-  it("POST /manager/insights auto-saves to history, visible via GET /manager/insights/history", async () => {
+  it("POST /manager/insights auto-saves to history with the authenticated manager's name, visible via GET /manager/insights/history", async () => {
     insightRepository.rows = [];
     aiInsightPort.shouldFail = false;
     const token = await getToken();
@@ -183,7 +215,11 @@ describe("manager controller", () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual([
-      expect.objectContaining({ interpretation: "análise de teste", suggestedActions: ["ação de teste"] }),
+      expect.objectContaining({
+        interpretation: "análise de teste",
+        suggestedActions: ["ação de teste"],
+        createdByManagerName: "Ana Konder",
+      }),
     ]);
   });
 });

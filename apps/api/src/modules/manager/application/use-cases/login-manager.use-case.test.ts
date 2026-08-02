@@ -1,27 +1,52 @@
 import { describe, expect, it } from "vitest";
 import type { ConfigService } from "@nestjs/config";
-import { LoginManagerUseCase, InvalidManagerCodeError } from "./login-manager.use-case.ts";
+import { LoginManagerUseCase, InvalidManagerCredentialsError } from "./login-manager.use-case.ts";
+import { ManagerPasswordService } from "../services/manager-password.service.ts";
 import { ManagerTokenService } from "../services/manager-token.service.ts";
+import type { ManagerRepository, ManagerRow } from "../ports/manager-repository.port.ts";
 
-function fakeConfig(values: Record<string, string>): ConfigService {
-  return { getOrThrow: (key: string) => values[key], get: () => undefined } as unknown as ConfigService;
+class FakeManagerRepository implements ManagerRepository {
+  constructor(private readonly rows: ManagerRow[]) {}
+  async findByName(name: string): Promise<ManagerRow | null> {
+    return this.rows.find((row) => row.name === name) ?? null;
+  }
+}
+
+function fakeConfig(secret: string): ConfigService {
+  return { getOrThrow: () => secret, get: () => undefined } as unknown as ConfigService;
 }
 
 describe("LoginManagerUseCase", () => {
-  it("issues a token when the code matches MANAGER_ACCESS_CODE", () => {
-    const config = fakeConfig({ MANAGER_ACCESS_CODE: "secret-code", MANAGER_TOKEN_SECRET: "token-secret" });
-    const useCase = new LoginManagerUseCase(config, new ManagerTokenService(config));
+  it("issues a token when the name and password match a stored manager", async () => {
+    const passwordService = new ManagerPasswordService();
+    const passwordHash = await passwordService.hash("correct-password");
+    const repository = new FakeManagerRepository([{ id: "manager-1", name: "Ana Konder", passwordHash }]);
+    const tokenService = new ManagerTokenService(fakeConfig("token-secret"));
+    const useCase = new LoginManagerUseCase(repository, passwordService, tokenService);
 
-    const result = useCase.execute("secret-code");
+    const result = await useCase.execute("Ana Konder", "correct-password");
 
     expect(result.token).toEqual(expect.any(String));
     expect(result.expiresAt).toEqual(expect.any(String));
+    expect(tokenService.verify(result.token)).toEqual({ managerId: "manager-1", managerName: "Ana Konder" });
   });
 
-  it("throws InvalidManagerCodeError when the code does not match", () => {
-    const config = fakeConfig({ MANAGER_ACCESS_CODE: "secret-code", MANAGER_TOKEN_SECRET: "token-secret" });
-    const useCase = new LoginManagerUseCase(config, new ManagerTokenService(config));
+  it("throws InvalidManagerCredentialsError when the name is unknown", async () => {
+    const passwordService = new ManagerPasswordService();
+    const repository = new FakeManagerRepository([]);
+    const tokenService = new ManagerTokenService(fakeConfig("token-secret"));
+    const useCase = new LoginManagerUseCase(repository, passwordService, tokenService);
 
-    expect(() => useCase.execute("wrong-code")).toThrow(InvalidManagerCodeError);
+    await expect(useCase.execute("Unknown Person", "any-password")).rejects.toThrow(InvalidManagerCredentialsError);
+  });
+
+  it("throws InvalidManagerCredentialsError when the password is wrong", async () => {
+    const passwordService = new ManagerPasswordService();
+    const passwordHash = await passwordService.hash("correct-password");
+    const repository = new FakeManagerRepository([{ id: "manager-1", name: "Ana Konder", passwordHash }]);
+    const tokenService = new ManagerTokenService(fakeConfig("token-secret"));
+    const useCase = new LoginManagerUseCase(repository, passwordService, tokenService);
+
+    await expect(useCase.execute("Ana Konder", "wrong-password")).rejects.toThrow(InvalidManagerCredentialsError);
   });
 });

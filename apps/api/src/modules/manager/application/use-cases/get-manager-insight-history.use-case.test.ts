@@ -13,10 +13,32 @@ class FakeManagerInsightRepository implements ManagerInsightRepository {
 }
 
 describe("GetManagerInsightHistoryUseCase", () => {
-  it("returns whatever the repository's findAll() returns, unchanged", async () => {
+  it("returns whatever the repository's findAll() returns, unchanged, regardless of which manager generated each entry", async () => {
     const rows: StoredManagerInsight[] = [
-      { id: "1", interpretation: "texto 1", suggestedActions: ["ação"], summary: "resumo 1", generatedAt: new Date("2026-07-01T00:00:00.000Z") },
-      { id: "2", interpretation: "texto 2", suggestedActions: [], summary: "resumo 2", generatedAt: new Date("2026-06-01T00:00:00.000Z") },
+      {
+        id: "1",
+        interpretation: "texto 1",
+        suggestedActions: ["ação"],
+        summary: "resumo 1",
+        generatedAt: new Date("2026-07-01T00:00:00.000Z"),
+        createdByManagerName: "Ana Konder",
+      },
+      {
+        id: "2",
+        interpretation: "texto 2",
+        suggestedActions: [],
+        summary: "resumo 2",
+        generatedAt: new Date("2026-06-01T00:00:00.000Z"),
+        createdByManagerName: "Carlos Mendes",
+      },
+      {
+        id: "3",
+        interpretation: "texto 3",
+        suggestedActions: [],
+        summary: "resumo 3",
+        generatedAt: new Date("2026-05-01T00:00:00.000Z"),
+        createdByManagerName: null,
+      },
     ];
     const repository = new FakeManagerInsightRepository(rows);
     const useCase = new GetManagerInsightHistoryUseCase(repository);

@@ -4,6 +4,7 @@ import { ManagerAuthGuard } from "./infrastructure/manager-auth.guard.ts";
 import { PrismaSimulatedSignalRepository } from "./infrastructure/persistence/prisma-simulated-signal.repository.ts";
 import { PrismaSimulatedFollowUpRepository } from "./infrastructure/persistence/prisma-simulated-follow-up.repository.ts";
 import { PrismaManagerInsightRepository } from "./infrastructure/persistence/prisma-manager-insight.repository.ts";
+import { PrismaManagerRepository } from "./infrastructure/persistence/prisma-manager.repository.ts";
 import { GroqInsightAdapter } from "./infrastructure/ai-providers/groq-insight.adapter.ts";
 import { FakeInsightAdapter } from "./infrastructure/ai-providers/fake-insight.adapter.ts";
 import { LoginManagerUseCase } from "./application/use-cases/login-manager.use-case.ts";
@@ -11,10 +12,12 @@ import { GetManagerSignalsUseCase } from "./application/use-cases/get-manager-si
 import { GenerateManagerInsightUseCase } from "./application/use-cases/generate-manager-insight.use-case.ts";
 import { GetManagerInsightHistoryUseCase } from "./application/use-cases/get-manager-insight-history.use-case.ts";
 import { ManagerTokenService } from "./application/services/manager-token.service.ts";
+import { ManagerPasswordService } from "./application/services/manager-password.service.ts";
 import { SIMULATED_SIGNAL_REPOSITORY } from "./application/ports/simulated-signal-repository.port.ts";
 import { SIMULATED_FOLLOW_UP_REPOSITORY } from "./application/ports/simulated-follow-up-repository.port.ts";
 import { AI_INSIGHT_PORT } from "./application/ports/ai-insight.port.ts";
 import { MANAGER_INSIGHT_REPOSITORY } from "./application/ports/manager-insight-repository.port.ts";
+import { MANAGER_REPOSITORY } from "./application/ports/manager-repository.port.ts";
 
 // Read directly from process.env (not ConfigService) so that only the
 // selected adapter is ever instantiated — AI_PROVIDER=mock must not require
@@ -32,11 +35,13 @@ const aiInsightPortProvider =
     GenerateManagerInsightUseCase,
     GetManagerInsightHistoryUseCase,
     ManagerTokenService,
+    ManagerPasswordService,
     ManagerAuthGuard,
     { provide: SIMULATED_SIGNAL_REPOSITORY, useClass: PrismaSimulatedSignalRepository },
     { provide: SIMULATED_FOLLOW_UP_REPOSITORY, useClass: PrismaSimulatedFollowUpRepository },
     aiInsightPortProvider,
     { provide: MANAGER_INSIGHT_REPOSITORY, useClass: PrismaManagerInsightRepository },
+    { provide: MANAGER_REPOSITORY, useClass: PrismaManagerRepository },
   ],
 })
 export class ManagerModule {}

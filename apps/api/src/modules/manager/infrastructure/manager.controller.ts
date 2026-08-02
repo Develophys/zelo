@@ -7,11 +7,13 @@ import {
   HttpCode,
   Inject,
   Post,
+  Req,
   UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
+import type { Request } from "express";
 import { z } from "zod";
-import { LoginManagerUseCase, InvalidManagerCodeError } from "../application/use-cases/login-manager.use-case.ts";
+import { LoginManagerUseCase, InvalidManagerCredentialsError } from "../application/use-cases/login-manager.use-case.ts";
 import { GetManagerSignalsUseCase, type ManagerSignalsResponse } from "../application/use-cases/get-manager-signals.use-case.ts";
 import { GenerateManagerInsightUseCase } from "../application/use-cases/generate-manager-insight.use-case.ts";
 import { GetManagerInsightHistoryUseCase } from "../application/use-cases/get-manager-insight-history.use-case.ts";
@@ -20,7 +22,7 @@ import type { StoredManagerInsight } from "../application/ports/manager-insight-
 import type { IssuedManagerToken } from "../application/services/manager-token.service.ts";
 import { ManagerAuthGuard } from "./manager-auth.guard.ts";
 
-const LoginRequestSchema = z.object({ code: z.string().min(1) });
+const LoginRequestSchema = z.object({ name: z.string().min(1), password: z.string().min(1) });
 
 @Controller("manager")
 export class ManagerController {
@@ -33,16 +35,16 @@ export class ManagerController {
 
   @Post("login")
   @HttpCode(200)
-  login(@Body() body: unknown): IssuedManagerToken {
+  async login(@Body() body: unknown): Promise<IssuedManagerToken> {
     const parsed = LoginRequestSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.flatten());
     }
 
     try {
-      return this.loginManager.execute(parsed.data.code);
+      return await this.loginManager.execute(parsed.data.name, parsed.data.password);
     } catch (error) {
-      if (error instanceof InvalidManagerCodeError) {
+      if (error instanceof InvalidManagerCredentialsError) {
         throw new UnauthorizedException();
       }
       throw error;
@@ -58,9 +60,9 @@ export class ManagerController {
   @Post("insights")
   @HttpCode(200)
   @UseGuards(ManagerAuthGuard)
-  async insights(): Promise<ManagerInsightResponse> {
+  async insights(@Req() request: Request): Promise<ManagerInsightResponse> {
     try {
-      return await this.generateManagerInsight.execute();
+      return await this.generateManagerInsight.execute(request.manager!.name);
     } catch (error) {
       if (error instanceof InsightGenerationFailedError) {
         throw new BadGatewayException();

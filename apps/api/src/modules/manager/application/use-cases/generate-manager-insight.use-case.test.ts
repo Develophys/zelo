@@ -31,9 +31,9 @@ class FakeAiInsightPort implements AiInsightPort {
 }
 
 class FakeManagerInsightRepository implements ManagerInsightRepository {
-  public savedEntries: { interpretation: string; suggestedActions: string[]; summary: string }[] = [];
+  public savedEntries: { interpretation: string; suggestedActions: string[]; summary: string; createdByManagerName: string | null }[] = [];
   public shouldFailSave = false;
-  async save(entry: { interpretation: string; suggestedActions: string[]; summary: string }): Promise<void> {
+  async save(entry: { interpretation: string; suggestedActions: string[]; summary: string; createdByManagerName: string | null }): Promise<void> {
     if (this.shouldFailSave) {
       throw new Error("save failed");
     }
@@ -58,7 +58,7 @@ describe("GenerateManagerInsightUseCase", () => {
     const insightRepository = new FakeManagerInsightRepository();
     const useCase = new GenerateManagerInsightUseCase(getManagerSignals, aiInsight, insightRepository);
 
-    const result = await useCase.execute();
+    const result = await useCase.execute("Ana Konder");
 
     expect(result).toEqual({ interpretation: "texto", suggestedActions: ["ação 1"] });
     expect(aiInsight.lastParams?.systemPrompt).toBe(MANAGER_INSIGHT_SYSTEM_PROMPT);
@@ -82,11 +82,11 @@ describe("GenerateManagerInsightUseCase", () => {
     const insightRepository = new FakeManagerInsightRepository();
     const useCase = new GenerateManagerInsightUseCase(getManagerSignals, new ThrowingAiInsightPort(), insightRepository);
 
-    await expect(useCase.execute()).rejects.toThrow("boom");
+    await expect(useCase.execute("Ana Konder")).rejects.toThrow("boom");
     expect(insightRepository.savedEntries).toEqual([]);
   });
 
-  it("saves the generated insight to the repository after a successful generation", async () => {
+  it("saves the generated insight to the repository, attributed to the manager who generated it", async () => {
     const signalsRepository = new FakeSimulatedSignalRepository([
       { department: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 6 },
     ]);
@@ -95,10 +95,10 @@ describe("GenerateManagerInsightUseCase", () => {
     const insightRepository = new FakeManagerInsightRepository();
     const useCase = new GenerateManagerInsightUseCase(getManagerSignals, aiInsight, insightRepository);
 
-    await useCase.execute();
+    await useCase.execute("Ana Konder");
 
     expect(insightRepository.savedEntries).toEqual([
-      { interpretation: "texto", suggestedActions: ["ação 1"], summary: aiInsight.lastParams?.summary },
+      { interpretation: "texto", suggestedActions: ["ação 1"], summary: aiInsight.lastParams?.summary, createdByManagerName: "Ana Konder" },
     ]);
   });
 
@@ -112,7 +112,7 @@ describe("GenerateManagerInsightUseCase", () => {
     insightRepository.shouldFailSave = true;
     const useCase = new GenerateManagerInsightUseCase(getManagerSignals, aiInsight, insightRepository);
 
-    const result = await useCase.execute();
+    const result = await useCase.execute("Ana Konder");
 
     expect(result).toEqual({ interpretation: "texto", suggestedActions: ["ação 1"] });
   });
