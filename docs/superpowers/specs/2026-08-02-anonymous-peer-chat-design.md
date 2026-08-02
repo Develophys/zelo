@@ -231,8 +231,9 @@ message-relay protocol is identical from either side once matched.
 
 Additive only: `CREATE TABLE peer_partners (...)` with the FK to `institutions` — no backfill, no
 existing data affected. New env var `PEER_PARTNER_TOKEN_SECRET`, same pattern as
-`MANAGER_TOKEN_SECRET`/`ADMIN_TOKEN_SECRET`. New dependencies: `@nestjs/websockets`,
-`@nestjs/platform-socket.io`, `socket.io`, `socket.io-client`.
+`MANAGER_TOKEN_SECRET`/`ADMIN_TOKEN_SECRET`. New dependencies: `@nestjs/websockets` and
+`socket.io` (server — NestJS's default `@WebSocketGateway()` adapter is socket.io-based once this
+package is present, no separate platform package needed) plus `socket.io-client` (frontend).
 
 ## 9. Out of scope (explicitly)
 
