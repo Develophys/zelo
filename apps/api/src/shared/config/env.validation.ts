@@ -21,11 +21,21 @@ const envSchema = z
     GROQ_MODEL: z.string().default("llama-3.3-70b-versatile"),
     MANAGER_TOKEN_SECRET: z.string().min(1, "MANAGER_TOKEN_SECRET is required"),
     CORS_ALLOWED_ORIGINS: z.string().optional(),
+    EMAIL_PROVIDER: z.enum(["mock", "resend"]).default("mock"),
+    // Only required when a real Resend call will actually be made — ResendEmailAdapter's
+    // constructor is never instantiated when EMAIL_PROVIDER=mock (see email.module.ts).
+    RESEND_API_KEY: z.string().optional(),
+    EMAIL_FROM: z.string().default("onboarding@resend.dev"),
+    WEB_APP_BASE_URL: z.string().default("http://localhost:5173"),
   })
   .passthrough()
   .refine((env) => env.AI_PROVIDER === "mock" || !!env.GROQ_API_KEY, {
     message: "GROQ_API_KEY is required when AI_PROVIDER is not \"mock\"",
     path: ["GROQ_API_KEY"],
+  })
+  .refine((env) => env.EMAIL_PROVIDER === "mock" || !!env.RESEND_API_KEY, {
+    message: "RESEND_API_KEY is required when EMAIL_PROVIDER is not \"mock\"",
+    path: ["RESEND_API_KEY"],
   });
 
 // NestJS's ConfigModule.forRoot({ validate }) contract: receives the raw
