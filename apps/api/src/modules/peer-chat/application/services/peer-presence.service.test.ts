@@ -64,4 +64,39 @@ describe("PeerPresenceService", () => {
     const service = new PeerPresenceService();
     expect(service.getByPeerPartnerId("unknown")).toBeNull();
   });
+
+  it("re-registering the same peer partner under a new socket id supersedes the old socket", () => {
+    const service = new PeerPresenceService();
+    service.register("peer-1", "institution-1", "socket-A", "Clínica médica");
+
+    service.register("peer-1", "institution-1", "socket-B", "Clínica médica"); // reconnect under a new socket id
+
+    expect(service.getBySocketId("socket-A")).toBeNull(); // the superseded socket id no longer resolves
+    expect(service.getBySocketId("socket-B")?.peerPartnerId).toBe("peer-1");
+    expect(service.findAvailable("institution-1", new Set())?.socketId).toBe("socket-B");
+    expect(service.getByPeerPartnerId("peer-1")?.socketId).toBe("socket-B");
+  });
+
+  it("a delayed unregister for a socket that has already been superseded does not evict the live session", () => {
+    const service = new PeerPresenceService();
+    service.register("peer-1", "institution-1", "socket-A", "Clínica médica");
+    service.register("peer-1", "institution-1", "socket-B", "Clínica médica"); // reconnect
+
+    service.unregisterBySocketId("socket-A"); // the dead socket's disconnect event, arriving late
+
+    expect(service.findAvailable("institution-1", new Set())?.socketId).toBe("socket-B");
+    expect(service.getByPeerPartnerId("peer-1")?.socketId).toBe("socket-B");
+    expect(service.getBySocketId("socket-B")?.peerPartnerId).toBe("peer-1");
+  });
+
+  it("unregistering the current socket after a reconnect still removes the peer partner", () => {
+    const service = new PeerPresenceService();
+    service.register("peer-1", "institution-1", "socket-A", "Clínica médica");
+    service.register("peer-1", "institution-1", "socket-B", "Clínica médica");
+
+    service.unregisterBySocketId("socket-B");
+
+    expect(service.getByPeerPartnerId("peer-1")).toBeNull();
+    expect(service.findAvailable("institution-1", new Set())).toBeNull();
+  });
 });
