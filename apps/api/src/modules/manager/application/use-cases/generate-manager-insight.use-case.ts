@@ -3,6 +3,7 @@ import { GetManagerSignalsUseCase, type ManagerSignalsResponse } from "./get-man
 import { AI_INSIGHT_PORT, type AiInsightPort, type ManagerInsightResponse } from "../ports/ai-insight.port.ts";
 import { MANAGER_INSIGHT_SYSTEM_PROMPT } from "../prompts/manager-insight-system-prompt.ts";
 import { MANAGER_INSIGHT_REPOSITORY, type ManagerInsightRepository } from "../ports/manager-insight-repository.port.ts";
+import { SECTOR_REPOSITORY, type SectorRepository } from "../../../sector/application/ports/sector-repository.port.ts";
 
 @Injectable()
 export class GenerateManagerInsightUseCase {
@@ -12,10 +13,18 @@ export class GenerateManagerInsightUseCase {
     @Inject(GetManagerSignalsUseCase) private readonly getManagerSignals: GetManagerSignalsUseCase,
     @Inject(AI_INSIGHT_PORT) private readonly aiInsight: AiInsightPort,
     @Inject(MANAGER_INSIGHT_REPOSITORY) private readonly insightRepository: ManagerInsightRepository,
+    @Inject(SECTOR_REPOSITORY) private readonly sectorRepository: SectorRepository,
   ) {}
 
   async execute(managerName: string, institutionId: string): Promise<ManagerInsightResponse> {
-    const signals = await this.getManagerSignals.execute(institutionId);
+    // Insight generation is always institution-wide, regardless of the
+    // requesting manager's role or sector assignment — unlike the dashboard
+    // signals endpoint (which is scoped per-role), this is a deliberate,
+    // already-approved design decision: a SECTOR_MANAGER's "Gerar análise"
+    // still analyzes the whole institution's signals.
+    const activeSectors = await this.sectorRepository.findActiveByInstitution(institutionId);
+    const sectorIds = activeSectors.map((sector) => sector.id);
+    const signals = await this.getManagerSignals.execute(institutionId, sectorIds);
     const summary = this.formatSummary(signals);
     const result = await this.aiInsight.generateInsight({ summary, systemPrompt: MANAGER_INSIGHT_SYSTEM_PROMPT });
 

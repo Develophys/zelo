@@ -7,6 +7,7 @@ import {
   HttpCode,
   Inject,
   Post,
+  Query,
   Req,
   UnauthorizedException,
   UseGuards,
@@ -17,6 +18,8 @@ import { LoginManagerUseCase, InvalidManagerCredentialsError } from "../applicat
 import { GetManagerSignalsUseCase, type ManagerSignalsResponse } from "../application/use-cases/get-manager-signals.use-case.ts";
 import { GenerateManagerInsightUseCase } from "../application/use-cases/generate-manager-insight.use-case.ts";
 import { GetManagerInsightHistoryUseCase } from "../application/use-cases/get-manager-insight-history.use-case.ts";
+import { ResolveAccessibleSectorIdsUseCase } from "../application/use-cases/resolve-accessible-sector-ids.use-case.ts";
+import { GetAccessibleSectorsUseCase } from "../application/use-cases/get-accessible-sectors.use-case.ts";
 import { InsightGenerationFailedError, type ManagerInsightResponse } from "../application/ports/ai-insight.port.ts";
 import type { StoredManagerInsight } from "../application/ports/manager-insight-repository.port.ts";
 import type { IssuedManagerToken } from "../application/services/manager-token.service.ts";
@@ -31,6 +34,8 @@ export class ManagerController {
     @Inject(GetManagerSignalsUseCase) private readonly getManagerSignals: GetManagerSignalsUseCase,
     @Inject(GenerateManagerInsightUseCase) private readonly generateManagerInsight: GenerateManagerInsightUseCase,
     @Inject(GetManagerInsightHistoryUseCase) private readonly getManagerInsightHistory: GetManagerInsightHistoryUseCase,
+    @Inject(ResolveAccessibleSectorIdsUseCase) private readonly resolveAccessibleSectorIds: ResolveAccessibleSectorIdsUseCase,
+    @Inject(GetAccessibleSectorsUseCase) private readonly getAccessibleSectors: GetAccessibleSectorsUseCase,
   ) {}
 
   @Post("login")
@@ -51,10 +56,27 @@ export class ManagerController {
     }
   }
 
+  @Get("sectors")
+  @UseGuards(ManagerAuthGuard)
+  async sectors(@Req() request: Request): Promise<{ id: string; name: string }[]> {
+    return this.getAccessibleSectors.execute({
+      institutionId: request.manager!.institutionId,
+      role: request.manager!.role,
+      managerId: request.manager!.id,
+    });
+  }
+
   @Get("signals")
   @UseGuards(ManagerAuthGuard)
-  async signals(@Req() request: Request): Promise<ManagerSignalsResponse> {
-    return this.getManagerSignals.execute(request.manager!.institutionId);
+  async signals(@Req() request: Request, @Query("sectorIds") sectorIdsParam?: string): Promise<ManagerSignalsResponse> {
+    const requestedSectorIds = sectorIdsParam !== undefined ? sectorIdsParam.split(",").filter((id) => id.length > 0) : undefined;
+    const sectorIds = await this.resolveAccessibleSectorIds.execute({
+      institutionId: request.manager!.institutionId,
+      role: request.manager!.role,
+      managerId: request.manager!.id,
+      requestedSectorIds,
+    });
+    return this.getManagerSignals.execute(request.manager!.institutionId, sectorIds);
   }
 
   @Post("insights")

@@ -9,6 +9,8 @@ import { LoginManagerUseCase } from "../application/use-cases/login-manager.use-
 import { GetManagerSignalsUseCase } from "../application/use-cases/get-manager-signals.use-case.ts";
 import { GenerateManagerInsightUseCase } from "../application/use-cases/generate-manager-insight.use-case.ts";
 import { GetManagerInsightHistoryUseCase } from "../application/use-cases/get-manager-insight-history.use-case.ts";
+import { ResolveAccessibleSectorIdsUseCase } from "../application/use-cases/resolve-accessible-sector-ids.use-case.ts";
+import { GetAccessibleSectorsUseCase } from "../application/use-cases/get-accessible-sectors.use-case.ts";
 import { ManagerTokenService } from "../application/services/manager-token.service.ts";
 import { ManagerPasswordService } from "../application/services/manager-password.service.ts";
 import { MANAGER_REPOSITORY } from "../application/ports/manager-repository.port.ts";
@@ -21,11 +23,29 @@ import { AI_INSIGHT_PORT, InsightGenerationFailedError } from "../application/po
 import type { AiInsightPort, ManagerInsightResponse } from "../application/ports/ai-insight.port.ts";
 import { MANAGER_INSIGHT_REPOSITORY } from "../application/ports/manager-insight-repository.port.ts";
 import type { ManagerInsightRepository, StoredManagerInsight } from "../application/ports/manager-insight-repository.port.ts";
+import { SECTOR_REPOSITORY } from "../../sector/application/ports/sector-repository.port.ts";
+import type { SectorRepository, AdminSectorRow, UpdateSectorParams } from "../../sector/application/ports/sector-repository.port.ts";
 
 class FakeManagerRepository implements ManagerRepository {
   public rows: ManagerRow[] = [];
   async findByName(name: string): Promise<ManagerRow | null> {
     return this.rows.find((row) => row.name === name) ?? null;
+  }
+  // ManagerAuthGuard re-reads the row on every authenticated request.
+  async findById(id: string): Promise<ManagerRow | null> {
+    return this.rows.find((row) => row.id === id) ?? null;
+  }
+  async findAllByInstitution(): Promise<never> {
+    throw new Error("not used in this test");
+  }
+  async create(): Promise<never> {
+    throw new Error("not used in this test");
+  }
+  async update(): Promise<void> {
+    throw new Error("not used in this test");
+  }
+  async countActiveHospitalAdmins(): Promise<number> {
+    throw new Error("not used in this test");
   }
 }
 
@@ -34,8 +54,39 @@ class FakeSignalRepository implements SignalRepository {
   setRowsForInstitution(institutionId: string, rows: SignalRow[]): void {
     this.byInstitution[institutionId] = rows;
   }
-  async findAll(institutionId: string): Promise<SignalRow[]> {
-    return this.byInstitution[institutionId] ?? [];
+  async findAll(institutionId: string, sectorIds: string[]): Promise<SignalRow[]> {
+    return (this.byInstitution[institutionId] ?? []).filter((row) => sectorIds.includes(row.sectorId));
+  }
+}
+
+class FakeSectorRepository implements SectorRepository {
+  public activeByInstitution: Record<string, { id: string; name: string }[]> = {};
+  async create(): Promise<{ id: string; name: string }> {
+    throw new Error("not used in this test");
+  }
+  async findAllForAdmin(): Promise<AdminSectorRow[]> {
+    throw new Error("not used in this test");
+  }
+  async findById(): Promise<{ id: string; institutionId: string } | null> {
+    throw new Error("not used in this test");
+  }
+  async update(_id: string, _patch: UpdateSectorParams): Promise<void> {
+    throw new Error("not used in this test");
+  }
+  async findActiveByInstitution(institutionId: string): Promise<{ id: string; name: string }[]> {
+    return this.activeByInstitution[institutionId] ?? [];
+  }
+  async findActiveByIds(institutionId: string, sectorIds: string[]): Promise<{ id: string; name: string }[]> {
+    return (this.activeByInstitution[institutionId] ?? []).filter((sector) => sectorIds.includes(sector.id));
+  }
+  async findAssignedSectorIds(): Promise<string[]> {
+    throw new Error("not used in this test");
+  }
+  async reassignManagerSectors(): Promise<void> {
+    throw new Error("not used in this test");
+  }
+  async findByIdsInInstitution(): Promise<{ id: string }[]> {
+    throw new Error("not used in this test");
   }
 }
 
@@ -81,6 +132,7 @@ describe("manager controller", () => {
   let app: INestApplication;
   let managerRepository: FakeManagerRepository;
   let signalRepository: FakeSignalRepository;
+  let sectorRepository: FakeSectorRepository;
   let followUpRepository: FakeSimulatedFollowUpRepository;
   let aiInsightPort: FakeAiInsightPort;
   let insightRepository: FakeManagerInsightRepository;
@@ -94,15 +146,20 @@ describe("manager controller", () => {
         name: "Ana Konder",
         passwordHash: await passwordService.hash("test-password"),
         institutionId: "institution-a",
+        role: "HOSPITAL_ADMIN",
+        isActive: true,
       },
       {
         id: "manager-2",
         name: "Beatriz Lima",
         passwordHash: await passwordService.hash("test-password-2"),
         institutionId: "institution-b",
+        role: "HOSPITAL_ADMIN",
+        isActive: true,
       },
     ];
     signalRepository = new FakeSignalRepository();
+    sectorRepository = new FakeSectorRepository();
     followUpRepository = new FakeSimulatedFollowUpRepository();
     aiInsightPort = new FakeAiInsightPort();
     insightRepository = new FakeManagerInsightRepository();
@@ -113,11 +170,14 @@ describe("manager controller", () => {
         GetManagerSignalsUseCase,
         GenerateManagerInsightUseCase,
         GetManagerInsightHistoryUseCase,
+        ResolveAccessibleSectorIdsUseCase,
+        GetAccessibleSectorsUseCase,
         ManagerTokenService,
         ManagerPasswordService,
         ManagerAuthGuard,
         { provide: MANAGER_REPOSITORY, useValue: managerRepository },
         { provide: SIGNAL_REPOSITORY, useValue: signalRepository },
+        { provide: SECTOR_REPOSITORY, useValue: sectorRepository },
         { provide: SIMULATED_FOLLOW_UP_REPOSITORY, useValue: followUpRepository },
         { provide: AI_INSIGHT_PORT, useValue: aiInsightPort },
         { provide: MANAGER_INSIGHT_REPOSITORY, useValue: insightRepository },
@@ -178,12 +238,16 @@ describe("manager controller", () => {
 
   it("GET /manager/signals returns only the authenticated manager's own institution's data, suppressing n<5 departments", async () => {
     signalRepository.setRowsForInstitution("institution-a", [
-      { department: "A", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 10, concerning: 6 },
-      { department: "Tiny", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 3, concerning: 1 },
+      { sectorId: "sector-a", sectorName: "A", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 10, concerning: 6 },
+      { sectorId: "sector-tiny", sectorName: "Tiny", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 3, concerning: 1 },
     ]);
     signalRepository.setRowsForInstitution("institution-b", [
-      { department: "A", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 20, concerning: 2 },
+      { sectorId: "sector-a", sectorName: "A", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 20, concerning: 2 },
     ]);
+    sectorRepository.activeByInstitution = {
+      "institution-a": [{ id: "sector-a", name: "A" }, { id: "sector-tiny", name: "Tiny" }],
+      "institution-b": [{ id: "sector-a", name: "A" }],
+    };
 
     const tokenA = await getToken("Ana Konder", "test-password");
     const responseA = await request(app.getHttpServer()).get("/manager/signals").set("Authorization", `Bearer ${tokenA}`);
@@ -194,6 +258,70 @@ describe("manager controller", () => {
     const responseB = await request(app.getHttpServer()).get("/manager/signals").set("Authorization", `Bearer ${tokenB}`);
     expect(responseB.status).toBe(200);
     expect(responseB.body.segments).toEqual([{ label: "A", value: 10, n: 20 }]);
+  });
+
+  it("GET /manager/sectors returns every active sector for a HOSPITAL_ADMIN", async () => {
+    sectorRepository.activeByInstitution = { "institution-a": [{ id: "sector-1", name: "UTI" }] };
+    const token = await getToken("Ana Konder", "test-password");
+
+    const response = await request(app.getHttpServer()).get("/manager/sectors").set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([{ id: "sector-1", name: "UTI" }]);
+  });
+
+  it("GET /manager/signals?sectorIds=... narrows the result to the requested, permitted sectors", async () => {
+    signalRepository.setRowsForInstitution("institution-a", [
+      { sectorId: "sector-1", sectorName: "UTI", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 10, concerning: 6 },
+      { sectorId: "sector-2", sectorName: "Pronto-Socorro", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 20, concerning: 2 },
+    ]);
+    sectorRepository.activeByInstitution = { "institution-a": [{ id: "sector-1", name: "UTI" }, { id: "sector-2", name: "Pronto-Socorro" }] };
+    const token = await getToken("Ana Konder", "test-password");
+
+    const response = await request(app.getHttpServer())
+      .get("/manager/signals?sectorIds=sector-1")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.segments).toEqual([{ label: "UTI", value: 60, n: 10 }]);
+  });
+
+  it("GET /manager/signals?sectorIds= (empty value) returns the all-zero response, not the manager's full accessible data", async () => {
+    signalRepository.setRowsForInstitution("institution-a", [
+      { sectorId: "sector-1", sectorName: "UTI", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 10, concerning: 6 },
+      { sectorId: "sector-2", sectorName: "Pronto-Socorro", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 20, concerning: 2 },
+    ]);
+    sectorRepository.activeByInstitution = { "institution-a": [{ id: "sector-1", name: "UTI" }, { id: "sector-2", name: "Pronto-Socorro" }] };
+    const token = await getToken("Ana Konder", "test-password");
+
+    const response = await request(app.getHttpServer())
+      .get("/manager/signals?sectorIds=")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      overallConcerningRate: 0,
+      checkInsLast4Weeks: 0,
+      weeklyTrend: [],
+      segments: [],
+      followUpResponseRate: 0,
+    });
+  });
+
+  it("GET /manager/signals rejects a still-valid token once the manager has been deactivated", async () => {
+    const token = await getToken("Beatriz Lima", "test-password-2");
+    const beatriz = managerRepository.rows.find((row) => row.id === "manager-2")!;
+
+    const before = await request(app.getHttpServer()).get("/manager/signals").set("Authorization", `Bearer ${token}`);
+    expect(before.status).toBe(200);
+
+    beatriz.isActive = false;
+    try {
+      const after = await request(app.getHttpServer()).get("/manager/signals").set("Authorization", `Bearer ${token}`);
+      expect(after.status).toBe(401);
+    } finally {
+      beatriz.isActive = true;
+    }
   });
 
   it("POST /manager/insights rejects a request with no token", async () => {

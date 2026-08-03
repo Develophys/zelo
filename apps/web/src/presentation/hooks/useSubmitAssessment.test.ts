@@ -16,7 +16,8 @@ describe("useSubmitAssessment", () => {
     useInstitutionLinkStore.setState({
       institutionId: null,
       institutionName: null,
-      department: null,
+      sectorId: null,
+      sectorName: null,
       deviceSignalId: null,
     });
   });
@@ -42,7 +43,8 @@ describe("useSubmitAssessment", () => {
     useInstitutionLinkStore.getState().link({
       institutionId: "inst-1",
       institutionName: "Hospital São Lucas",
-      department: "UTI",
+      sectorId: "sector-1",
+      sectorName: "UTI",
     });
     vi.spyOn(container.submitAssessmentUseCase, "execute").mockResolvedValue({
       totalScore: 12,

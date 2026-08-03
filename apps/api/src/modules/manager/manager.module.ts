@@ -1,6 +1,9 @@
 import { Module } from "@nestjs/common";
+import { SectorModule } from "../sector/sector.module.ts";
 import { ManagerController } from "./infrastructure/manager.controller.ts";
+import { ManagerAdminController } from "./infrastructure/manager-admin.controller.ts";
 import { ManagerAuthGuard } from "./infrastructure/manager-auth.guard.ts";
+import { HospitalAdminGuard } from "./infrastructure/hospital-admin.guard.ts";
 import { PrismaSignalRepository } from "./infrastructure/persistence/prisma-signal.repository.ts";
 import { PrismaSimulatedFollowUpRepository } from "./infrastructure/persistence/prisma-simulated-follow-up.repository.ts";
 import { PrismaManagerInsightRepository } from "./infrastructure/persistence/prisma-manager-insight.repository.ts";
@@ -11,6 +14,11 @@ import { LoginManagerUseCase } from "./application/use-cases/login-manager.use-c
 import { GetManagerSignalsUseCase } from "./application/use-cases/get-manager-signals.use-case.ts";
 import { GenerateManagerInsightUseCase } from "./application/use-cases/generate-manager-insight.use-case.ts";
 import { GetManagerInsightHistoryUseCase } from "./application/use-cases/get-manager-insight-history.use-case.ts";
+import { ResolveAccessibleSectorIdsUseCase } from "./application/use-cases/resolve-accessible-sector-ids.use-case.ts";
+import { GetAccessibleSectorsUseCase } from "./application/use-cases/get-accessible-sectors.use-case.ts";
+import { CreateManagerUseCase } from "./application/use-cases/create-manager.use-case.ts";
+import { UpdateManagerUseCase } from "./application/use-cases/update-manager.use-case.ts";
+import { ResetManagerPasswordUseCase } from "./application/use-cases/reset-manager-password.use-case.ts";
 import { ManagerTokenService } from "./application/services/manager-token.service.ts";
 import { ManagerPasswordService } from "./application/services/manager-password.service.ts";
 import { SIGNAL_REPOSITORY } from "./application/ports/signal-repository.port.ts";
@@ -28,15 +36,22 @@ const aiInsightPortProvider =
     : { provide: AI_INSIGHT_PORT, useClass: GroqInsightAdapter };
 
 @Module({
-  controllers: [ManagerController],
+  imports: [SectorModule],
+  controllers: [ManagerController, ManagerAdminController],
   providers: [
     LoginManagerUseCase,
     GetManagerSignalsUseCase,
     GenerateManagerInsightUseCase,
     GetManagerInsightHistoryUseCase,
+    ResolveAccessibleSectorIdsUseCase,
+    GetAccessibleSectorsUseCase,
+    CreateManagerUseCase,
+    UpdateManagerUseCase,
+    ResetManagerPasswordUseCase,
     ManagerTokenService,
     ManagerPasswordService,
     ManagerAuthGuard,
+    HospitalAdminGuard,
     { provide: SIGNAL_REPOSITORY, useClass: PrismaSignalRepository },
     { provide: SIMULATED_FOLLOW_UP_REPOSITORY, useClass: PrismaSimulatedFollowUpRepository },
     aiInsightPortProvider,

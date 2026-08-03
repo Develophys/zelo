@@ -1,5 +1,7 @@
-export interface SimulatedSignalSeedRow {
-  department: string;
+import type { ManagerRole } from "../src/modules/manager/application/ports/manager-repository.port.ts";
+
+export interface SignalSeedRow {
+  sectorName: string;
   weekStart: Date;
   checkIns: number;
   concerning: number;
@@ -17,40 +19,40 @@ export function startOfIsoWeek(date: Date): Date {
 }
 
 export interface SignalScenario {
-  department: string;
+  sectorName: string;
   checkIns: number;
   concerning: number[];
 }
 
-// Per-department, per-week checkIns and concerning counts, oldest week first (index 0 = 5
+// Per-sector, per-week checkIns and concerning counts, oldest week first (index 0 = 5
 // weeks ago, index 5 = current week). See
 // docs/superpowers/specs/2026-07-11-manager-login-simulated-dashboard-design.md §3 for what
 // "concerning" means and why these specific numbers were chosen. Edit ONLY this table (and
 // the mirrored numbers in prisma/README.md) to change the Zelo Demo scenario.
 export const ZELO_DEMO_SCENARIOS: SignalScenario[] = [
-  { department: "Pronto-socorro", checkIns: 24, concerning: [9, 9, 9, 9, 9, 9] },
-  { department: "Plantão noturno", checkIns: 18, concerning: [9, 9, 9, 9, 9, 9] },
-  { department: "UTI", checkIns: 10, concerning: [3, 4, 4, 5, 6, 6] },
-  { department: "Ambulatório", checkIns: 3, concerning: [1, 1, 1, 1, 1, 1] },
+  { sectorName: "Pronto-socorro", checkIns: 24, concerning: [9, 9, 9, 9, 9, 9] },
+  { sectorName: "Plantão noturno", checkIns: 18, concerning: [9, 9, 9, 9, 9, 9] },
+  { sectorName: "UTI", checkIns: 10, concerning: [3, 4, 4, 5, 6, 6] },
+  { sectorName: "Ambulatório", checkIns: 3, concerning: [1, 1, 1, 1, 1, 1] },
 ];
 
 // A second, deliberately different scenario for a second seeded institution — exists so
 // running the app locally with two manager accounts visibly proves cross-institution
-// isolation (same department name "UTI", very different numbers, never mixed).
+// isolation (same sector name "UTI", very different numbers, never mixed).
 export const SAO_LUCAS_DEMO_SCENARIOS: SignalScenario[] = [
-  { department: "UTI", checkIns: 8, concerning: [1, 1, 1, 1, 2, 2] },
+  { sectorName: "UTI", checkIns: 8, concerning: [1, 1, 1, 1, 2, 2] },
 ];
 
-export function buildSeedRows(referenceDate: Date, scenarios: SignalScenario[]): SimulatedSignalSeedRow[] {
+export function buildSeedRows(referenceDate: Date, scenarios: SignalScenario[]): SignalSeedRow[] {
   const currentWeekStart = startOfIsoWeek(referenceDate);
-  const rows: SimulatedSignalSeedRow[] = [];
+  const rows: SignalSeedRow[] = [];
 
   for (const scenario of scenarios) {
     for (let i = 0; i < WEEKS_TO_SEED; i++) {
       const weekStart = new Date(currentWeekStart);
       weekStart.setUTCDate(weekStart.getUTCDate() - (WEEKS_TO_SEED - 1 - i) * 7);
       rows.push({
-        department: scenario.department,
+        sectorName: scenario.sectorName,
         weekStart,
         checkIns: scenario.checkIns,
         concerning: scenario.concerning[i]!,
@@ -106,11 +108,29 @@ export const INSTITUTION_SEED_ROSTER: InstitutionSeedRow[] = [
   { name: "Hospital São Lucas (Demo)", inviteCode: "sao-lucas-2026" },
 ];
 
+export interface SectorSeedRow {
+  institutionName: string;
+  name: string;
+}
+
+// Every sector name referenced by ZELO_DEMO_SCENARIOS/SAO_LUCAS_DEMO_SCENARIOS above MUST
+// have a matching entry here — seed.ts resolves each Signal seed row's sectorName to a real
+// Sector id via this roster, and throws if one is missing (see seed.ts's sectorId() helper).
+export const SECTOR_SEED_ROSTER: SectorSeedRow[] = [
+  { institutionName: "Zelo Demo", name: "Pronto-socorro" },
+  { institutionName: "Zelo Demo", name: "Plantão noturno" },
+  { institutionName: "Zelo Demo", name: "UTI" },
+  { institutionName: "Zelo Demo", name: "Ambulatório" },
+  { institutionName: "Hospital São Lucas (Demo)", name: "UTI" },
+];
+
 export interface ManagerSeedRow {
   name: string;
   password: string;
   passwordEnvVar: string;
   institutionName: string;
+  role: ManagerRole;
+  sectorNames?: string[]; // required in practice when role is SECTOR_MANAGER; ignored for HOSPITAL_ADMIN
 }
 
 // Demo roster — plaintext passwords here are intentional (local/demo data,
@@ -123,7 +143,20 @@ export interface ManagerSeedRow {
 // live credential. `institutionName` must match a `name` in
 // INSTITUTION_SEED_ROSTER. See seed.ts and prisma/README.md.
 export const MANAGER_SEED_ROSTER: ManagerSeedRow[] = [
-  { name: "Ana Konder", password: "zelo-ana-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_ANA", institutionName: "Zelo Demo" },
-  { name: "Carlos Mendes", password: "zelo-carlos-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_CARLOS", institutionName: "Zelo Demo" },
-  { name: "Beatriz Lima", password: "zelo-beatriz-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_BEATRIZ", institutionName: "Hospital São Lucas (Demo)" },
+  { name: "Ana Konder", password: "zelo-ana-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_ANA", institutionName: "Zelo Demo", role: "HOSPITAL_ADMIN" },
+  { name: "Carlos Mendes", password: "zelo-carlos-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_CARLOS", institutionName: "Zelo Demo", role: "HOSPITAL_ADMIN" },
+  { name: "Paulo Reis", password: "zelo-paulo-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_PAULO", institutionName: "Zelo Demo", role: "SECTOR_MANAGER", sectorNames: ["UTI"] },
+  { name: "Beatriz Lima", password: "zelo-beatriz-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_BEATRIZ", institutionName: "Hospital São Lucas (Demo)", role: "HOSPITAL_ADMIN" },
+];
+
+export interface SuperAdminSeedRow {
+  name: string;
+  password: string;
+  passwordEnvVar: string;
+}
+
+// Bootstraps the one seed-created platform super-admin account. Like MANAGER_SEED_ROSTER,
+// passwordEnvVar overrides the committed plaintext password when set — see seed.ts.
+export const SUPER_ADMIN_SEED_ROSTER: SuperAdminSeedRow[] = [
+  { name: "Zelo Ops", password: "zelo-ops-2026", passwordEnvVar: "SUPER_ADMIN_SEED_PASSWORD" },
 ];

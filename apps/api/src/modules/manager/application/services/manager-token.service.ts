@@ -2,18 +2,21 @@ import { createHmac, randomUUID } from "node:crypto";
 import { Inject, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { timingSafeStringEqual } from "./timing-safe-equal.ts";
+import type { ManagerRole } from "../ports/manager-repository.port.ts";
 
 const SESSION_DURATION_MS = 8 * 60 * 60 * 1000; // 8 hours
 
 export interface IssuedManagerToken {
   token: string;
   expiresAt: string;
+  role: ManagerRole;
 }
 
 export interface DecodedManagerToken {
   managerId: string;
   managerName: string;
   institutionId: string;
+  role: ManagerRole;
 }
 
 interface TokenPayload {
@@ -21,6 +24,7 @@ interface TokenPayload {
   managerId: string;
   managerName: string;
   institutionId: string;
+  role: ManagerRole;
   expiresAtEpoch: number;
 }
 
@@ -28,14 +32,14 @@ interface TokenPayload {
 export class ManagerTokenService {
   constructor(@Inject(ConfigService) private readonly config: ConfigService) {}
 
-  issue(managerId: string, managerName: string, institutionId: string): IssuedManagerToken {
+  issue(managerId: string, managerName: string, institutionId: string, role: ManagerRole): IssuedManagerToken {
     const sessionId = randomUUID();
     const expiresAtEpoch = Date.now() + SESSION_DURATION_MS;
-    const payload: TokenPayload = { sessionId, managerId, managerName, institutionId, expiresAtEpoch };
+    const payload: TokenPayload = { sessionId, managerId, managerName, institutionId, role, expiresAtEpoch };
     const payloadB64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
     const signature = this.sign(payloadB64);
 
-    return { token: `${payloadB64}.${signature}`, expiresAt: new Date(expiresAtEpoch).toISOString() };
+    return { token: `${payloadB64}.${signature}`, expiresAt: new Date(expiresAtEpoch).toISOString(), role };
   }
 
   verify(token: string): DecodedManagerToken | null {
@@ -56,6 +60,7 @@ export class ManagerTokenService {
       typeof payload.managerId !== "string" ||
       typeof payload.managerName !== "string" ||
       typeof payload.institutionId !== "string" ||
+      (payload.role !== "HOSPITAL_ADMIN" && payload.role !== "SECTOR_MANAGER") ||
       !Number.isFinite(payload.expiresAtEpoch)
     ) {
       return null;
@@ -63,7 +68,7 @@ export class ManagerTokenService {
 
     if (Date.now() >= payload.expiresAtEpoch) return null;
 
-    return { managerId: payload.managerId, managerName: payload.managerName, institutionId: payload.institutionId };
+    return { managerId: payload.managerId, managerName: payload.managerName, institutionId: payload.institutionId, role: payload.role };
   }
 
   private sign(payloadB64: string): string {

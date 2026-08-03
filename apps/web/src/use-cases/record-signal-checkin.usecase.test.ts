@@ -24,12 +24,12 @@ describe("RecordSignalCheckinUseCase", () => {
     const useCase = new RecordSignalCheckinUseCase(port);
 
     await useCase.execute({
-      link: { institutionId: "inst-1", department: "UTI", deviceSignalId: "device-1" },
+      link: { institutionId: "inst-1", sectorId: "UTI", deviceSignalId: "device-1" },
       concerning: true,
     });
 
     expect(port.calls).toEqual([
-      { institutionId: "inst-1", department: "UTI", deviceSignalId: "device-1", concerning: true },
+      { institutionId: "inst-1", sectorId: "UTI", deviceSignalId: "device-1", concerning: true },
     ]);
   });
 
@@ -42,7 +42,7 @@ describe("RecordSignalCheckinUseCase", () => {
     const useCase = new RecordSignalCheckinUseCase(new ThrowingPort());
 
     await expect(
-      useCase.execute({ link: { institutionId: "inst-1", department: "UTI", deviceSignalId: "device-1" }, concerning: false }),
+      useCase.execute({ link: { institutionId: "inst-1", sectorId: "UTI", deviceSignalId: "device-1" }, concerning: false }),
     ).rejects.toThrow("network down");
   });
 });

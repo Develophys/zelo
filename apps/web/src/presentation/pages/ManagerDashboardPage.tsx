@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BackButton } from "@/presentation/ui/BackButton";
@@ -7,8 +7,10 @@ import { SectionLabel } from "@/presentation/ui/SectionLabel";
 import { Card } from "@/presentation/ui/Card";
 import { Button } from "@/presentation/ui/Button";
 import { Skeleton } from "@/presentation/ui/Skeleton";
+import { SectorMultiSelect } from "@/presentation/ui/SectorMultiSelect";
 import { routes } from "@/presentation/lib/routes";
 import { useManagerSignals } from "@/presentation/hooks/useManagerSignals";
+import { useManagerSectors } from "@/presentation/hooks/useManagerSectors";
 import { useManagerInsight } from "@/presentation/hooks/useManagerInsight";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
@@ -66,7 +68,10 @@ function SegmentsCardSkeleton() {
 export function ManagerDashboardPage() {
   const navigate = useNavigate();
   const clearSession = useManagerSessionStore((state) => state.clearSession);
-  const { data, error, isError, isLoading } = useManagerSignals();
+  const role = useManagerSessionStore((state) => state.role);
+  const sectorsQuery = useManagerSectors();
+  const [selectedSectorIds, setSelectedSectorIds] = useState<string[] | undefined>(undefined);
+  const { data, error, isError, isLoading } = useManagerSignals(selectedSectorIds);
   const insight = useManagerInsight();
 
   useEffect(() => {
@@ -90,14 +95,25 @@ export function ManagerDashboardPage() {
           <BackButton label="Voltar" onClick={() => navigate(routes.home)} />
           <PrivacyBadge />
         </div>
-        <div className="mt-4">
+        <div className="mt-4 flex items-center justify-between">
           <SectionLabel>Painel do gestor</SectionLabel>
+          {role === "HOSPITAL_ADMIN" && (
+            <Link to={routes.managerAdmin} className="text-label font-bold text-brand">
+              Administração
+            </Link>
+          )}
         </div>
         <h1 className="mt-2 text-h2 text-ink">Tendências da equipe</h1>
         <p className="mt-1 text-caption text-muted">
           Somente dados anônimos e agregados. Segmentos com menos de 5 respostas ficam ocultos
           para evitar re-identificação.
         </p>
+
+        {sectorsQuery.data && sectorsQuery.data.length > 1 && (
+          <div className="mt-3">
+            <SectorMultiSelect sectors={sectorsQuery.data} selected={selectedSectorIds} onChange={setSelectedSectorIds} />
+          </div>
+        )}
 
         <div data-testid="kpi-grid" className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3">
           {isLoading ? (

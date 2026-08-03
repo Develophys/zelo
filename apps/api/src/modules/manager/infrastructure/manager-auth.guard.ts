@@ -2,11 +2,12 @@ import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import type { CanActivate, ExecutionContext } from "@nestjs/common";
 import type { Request } from "express";
 import { ManagerTokenService } from "../application/services/manager-token.service.ts";
+import { MANAGER_REPOSITORY, type ManagerRepository, type ManagerRole } from "../application/ports/manager-repository.port.ts";
 
 declare global {
   namespace Express {
     interface Request {
-      manager?: { id: string; name: string; institutionId: string };
+      manager?: { id: string; name: string; institutionId: string; role: ManagerRole };
     }
   }
 }
@@ -15,9 +16,12 @@ declare global {
 // see docs/superpowers/specs/technical-debt.md#td-001.
 @Injectable()
 export class ManagerAuthGuard implements CanActivate {
-  constructor(@Inject(ManagerTokenService) private readonly tokenService: ManagerTokenService) {}
+  constructor(
+    @Inject(ManagerTokenService) private readonly tokenService: ManagerTokenService,
+    @Inject(MANAGER_REPOSITORY) private readonly managerRepository: ManagerRepository,
+  ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
     const authHeader = request.headers.authorization;
 
@@ -31,7 +35,16 @@ export class ManagerAuthGuard implements CanActivate {
       throw new UnauthorizedException();
     }
 
-    request.manager = { id: decoded.managerId, name: decoded.managerName, institutionId: decoded.institutionId };
+    // The token's role and active status are a snapshot from login time. Re-read
+    // the row on every request (one indexed primary-key lookup) so that
+    // deactivating or demoting a manager takes effect immediately instead of
+    // whenever their session happens to expire.
+    const manager = await this.managerRepository.findById(decoded.managerId);
+    if (!manager || !manager.isActive) {
+      throw new UnauthorizedException();
+    }
+
+    request.manager = { id: decoded.managerId, name: decoded.managerName, institutionId: decoded.institutionId, role: manager.role };
     return true;
   }
 }

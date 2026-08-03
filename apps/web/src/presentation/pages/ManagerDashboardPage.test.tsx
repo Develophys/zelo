@@ -45,6 +45,7 @@ describe("ManagerDashboardPage", () => {
     sessionStorage.clear();
     useManagerSessionStore.setState({ token: "abc.def", expiresAt: new Date(Date.now() + 60_000).toISOString() });
     vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue(SIGNALS_RESPONSE);
+    vi.spyOn(container.listAccessibleSectorsUseCase, "execute").mockResolvedValue([]);
   });
 
   it("renders segments and trend bars from the real signals response, suppressing n<5 departments", async () => {
@@ -216,6 +217,26 @@ describe("ManagerDashboardPage", () => {
     expect(pdfSpy).toHaveBeenCalledWith(SIGNALS_RESPONSE);
   });
 
+  it("hides the Administração link for a SECTOR_MANAGER", async () => {
+    useManagerSessionStore.setState({ role: "SECTOR_MANAGER" });
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Administração")).not.toBeInTheDocument();
+  });
+
+  it("shows the Administração link for a HOSPITAL_ADMIN", async () => {
+    useManagerSessionStore.setState({ role: "HOSPITAL_ADMIN" });
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Administração")).toBeInTheDocument();
+  });
+
   it("disables both export buttons when there are no segments", async () => {
     vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
       ...SIGNALS_RESPONSE,
@@ -228,5 +249,72 @@ describe("ManagerDashboardPage", () => {
     });
     expect(screen.getByRole("button", { name: "Exportar CSV" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Exportar PDF" })).toBeDisabled();
+  });
+
+  it("shows a sector filter when more than one sector is accessible, and narrows the signals request when a sector is unchecked", async () => {
+    vi.spyOn(container.listAccessibleSectorsUseCase, "execute").mockResolvedValue([
+      { id: "sector-1", name: "UTI" },
+      { id: "sector-2", name: "Pronto-Socorro" },
+    ]);
+    const user = userEvent.setup();
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("UTI")).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText("Pronto-Socorro")).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText("UTI"));
+
+    await waitFor(() => {
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", ["sector-2"]);
+    });
+  });
+
+  it("deselecting every sector calls the signals fetch with an explicit empty array, and the KPIs reflect the resulting all-zero response, not stale full data", async () => {
+    vi.spyOn(container.listAccessibleSectorsUseCase, "execute").mockResolvedValue([
+      { id: "sector-1", name: "UTI" },
+      { id: "sector-2", name: "Pronto-Socorro" },
+    ]);
+    const ALL_ZERO_RESPONSE = {
+      overallConcerningRate: 0,
+      checkInsLast4Weeks: 0,
+      weeklyTrend: [],
+      segments: [],
+      followUpResponseRate: 0,
+    };
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockImplementation(async (_token, sectorIds) =>
+      sectorIds && sectorIds.length === 0 ? ALL_ZERO_RESPONSE : SIGNALS_RESPONSE,
+    );
+    const user = userEvent.setup();
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("UTI")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText("UTI"));
+    await user.click(screen.getByLabelText("Pronto-Socorro"));
+
+    await waitFor(() => {
+      // Must be an explicit [] — NOT undefined, which would silently re-request
+      // the manager's full accessible set instead of "nothing selected".
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", []);
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("Plantão noturno")).not.toBeInTheDocument();
+    });
+    expect(screen.queryByText("111")).not.toBeInTheDocument();
+  });
+
+  it("does not show the sector filter when only one sector is accessible", async () => {
+    vi.spyOn(container.listAccessibleSectorsUseCase, "execute").mockResolvedValue([{ id: "sector-1", name: "UTI" }]);
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+    });
+    expect(screen.queryByLabelText("UTI")).not.toBeInTheDocument();
   });
 });

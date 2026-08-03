@@ -26,7 +26,8 @@ describe("YouPage", () => {
     useInstitutionLinkStore.setState({
       institutionId: null,
       institutionName: null,
-      department: null,
+      sectorId: null,
+      sectorName: null,
       deviceSignalId: null,
     });
   });
@@ -83,8 +84,8 @@ describe("YouPage", () => {
     expect(screen.getByText("Link institution screen")).toBeInTheDocument();
   });
 
-  it("shows the linked institution and department when linked, instead of the entry point", () => {
-    useInstitutionLinkStore.getState().link({ institutionId: "inst-1", institutionName: "Hospital São Lucas", department: "UTI" });
+  it("shows the linked institution and sector when linked, instead of the entry point", () => {
+    useInstitutionLinkStore.getState().link({ institutionId: "inst-1", institutionName: "Hospital São Lucas", sectorId: "sector-1", sectorName: "UTI" });
     renderYou();
     expect(screen.getByText("Vinculado a Hospital São Lucas")).toBeInTheDocument();
     expect(screen.getByText("UTI")).toBeInTheDocument();
@@ -92,7 +93,7 @@ describe("YouPage", () => {
   });
 
   it("Desvincular clears the institution link immediately, without a confirm step", async () => {
-    useInstitutionLinkStore.getState().link({ institutionId: "inst-1", institutionName: "Hospital São Lucas", department: "UTI" });
+    useInstitutionLinkStore.getState().link({ institutionId: "inst-1", institutionName: "Hospital São Lucas", sectorId: "sector-1", sectorName: "UTI" });
     renderYou();
 
     await userEvent.click(screen.getByRole("button", { name: "Desvincular" }));

@@ -28,6 +28,15 @@ same row — it is never duplicated. All other seeded data (`Signal` rows, `Mana
 scoped to one institution or the other via `institutionId`, so nothing from one institution
 is ever visible to a manager logged into the other.
 
+## Seeding sectors
+
+The same `prisma:seed` run upserts `SECTOR_SEED_ROSTER` (in `seed-data.ts`) — one `Sector`
+row per entry, keyed by the unique `(institutionId, name)` pair. Every sector name referenced
+by `ZELO_DEMO_SCENARIOS`/`SAO_LUCAS_DEMO_SCENARIOS` (below) must have a matching roster entry
+here, or `seed.ts`'s `sectorId()` helper throws — the `Signal` rows those scenarios produce
+now carry a `sectorId` foreign key, not a free-text department string, so a seed scenario
+referencing an unregistered sector name is a seed-data bug, not a silently-accepted string.
+
 ## Seeding simulated manager-dashboard data
 
 The same `prisma:seed` run populates the `signals` table with 6 weeks of fabricated
@@ -52,7 +61,7 @@ returned by `GET /api/manager/signals` for weeks where it has at least this many
 
 **Seed scenario for "Zelo Demo"** (`seed-data.ts`'s `ZELO_DEMO_SCENARIOS`):
 
-| Department | checkIns/week | Concerning rate | Purpose |
+| Sector | checkIns/week | Concerning rate | Purpose |
 |---|---|---|---|
 | Pronto-socorro | 24 | flat 37.5% | baseline "normal" department |
 | Plantão noturno | 18 | flat 50% | baseline "elevated but stable" |
@@ -62,9 +71,9 @@ returned by `GET /api/manager/signals` for weeks where it has at least this many
 **Seed scenario for "Hospital São Lucas (Demo)"** (`seed-data.ts`'s
 `SAO_LUCAS_DEMO_SCENARIOS`):
 
-| Department | checkIns/week | Concerning rate | Purpose |
+| Sector | checkIns/week | Concerning rate | Purpose |
 |---|---|---|---|
-| UTI | 8 | climbing 12.5% → 25% | deliberately overlaps "Zelo Demo"'s UTI department name with different numbers, so a running app visibly proves the two institutions' `UTI` data never merges |
+| UTI | 8 | climbing 12.5% → 25% | deliberately overlaps "Zelo Demo"'s UTI sector name with different numbers, so a running app visibly proves the two institutions' `UTI` data never merges |
 
 ## Seeding simulated follow-up KPI data
 
@@ -85,16 +94,21 @@ table to change the scenario.
 
 ## Seeding manager accounts
 
-The same `prisma:seed` run also upserts three named manager accounts into the `managers`
+The same `prisma:seed` run also upserts named manager accounts into the `managers`
 table, replacing the old single shared `MANAGER_ACCESS_CODE`. Each manager is tied to one
 institution via `institutionName` in `seed-data.ts`'s `MANAGER_SEED_ROSTER` (resolved to
-that institution's id at seed time) — a manager only ever sees their own institution's data:
+that institution's id at seed time) — a manager only ever sees their own institution's data.
+Each manager also has a `role`: `HOSPITAL_ADMIN` sees every sector in their institution and
+can register sectors and manage other managers; `SECTOR_MANAGER` is scoped to only the
+sectors listed in that roster entry's `sectorNames` (assigned via `Sector.managerId` at seed
+time):
 
-| Name | Institution | Password | Override env var |
-|---|---|---|---|
-| Ana Konder | Zelo Demo | zelo-ana-2026 | `MANAGER_SEED_PASSWORD_ANA` |
-| Carlos Mendes | Zelo Demo | zelo-carlos-2026 | `MANAGER_SEED_PASSWORD_CARLOS` |
-| Beatriz Lima | Hospital São Lucas (Demo) | zelo-beatriz-2026 | `MANAGER_SEED_PASSWORD_BEATRIZ` |
+| Name | Institution | Role | Password | Override env var |
+|---|---|---|---|---|
+| Ana Konder | Zelo Demo | Gestora do hospital | zelo-ana-2026 | `MANAGER_SEED_PASSWORD_ANA` |
+| Carlos Mendes | Zelo Demo | Gestor do hospital | zelo-carlos-2026 | `MANAGER_SEED_PASSWORD_CARLOS` |
+| Paulo Reis | Zelo Demo | Gestor de setor (UTI) | zelo-paulo-2026 | `MANAGER_SEED_PASSWORD_PAULO` |
+| Beatriz Lima | Hospital São Lucas (Demo) | Gestora do hospital | zelo-beatriz-2026 | `MANAGER_SEED_PASSWORD_BEATRIZ` |
 
 Plaintext passwords in this table are intentional — this is local/demo data, matching the
 same transparency `MANAGER_ACCESS_CODE=zelo-demo-2026` had in `.env.example` before this
@@ -105,9 +119,10 @@ the seed source, not what's in the database.
 Each roster entry in `seed-data.ts`'s `MANAGER_SEED_ROSTER` carries a `passwordEnvVar` name;
 if that environment variable is set when the seed runs, it overrides the committed
 `password` for that manager (see `seed.ts`). Set `MANAGER_SEED_PASSWORD_ANA` /
-`MANAGER_SEED_PASSWORD_CARLOS` / `MANAGER_SEED_PASSWORD_BEATRIZ` (or whatever
-`passwordEnvVar` names) to a real secret before seeding a real deployment, so the credential
-that actually gets hashed and stored is never the value sitting in git.
+`MANAGER_SEED_PASSWORD_CARLOS` / `MANAGER_SEED_PASSWORD_PAULO` /
+`MANAGER_SEED_PASSWORD_BEATRIZ` (or whatever `passwordEnvVar` names) to a real secret before
+seeding a real deployment, so the credential that actually gets hashed and stored is never
+the value sitting in git.
 
 The upsert is keyed on `name` and **only ever sets a password when creating a brand-new
 manager row** (`update: {}` — a re-seed never touches `passwordHash` for a manager that
@@ -117,6 +132,21 @@ differs from what's live — e.g. someone rotated the password out-of-band), and
 new name in `MANAGER_SEED_ROSTER` ever gets a password set from seed data. No signup
 endpoint exists — new manager accounts are added by adding an entry to that array and
 re-running the seed.
+
+## Seeding the platform super-admin account
+
+The same `prisma:seed` run also upserts `SUPER_ADMIN_SEED_ROSTER` (in `seed-data.ts`) into
+the `super_admins` table — the one platform-level account that can log in at `/admin/login`
+and create new institutions (`POST /admin/institutions`). There is no self-service super-admin
+signup anywhere in the app; new super-admin accounts are added the same way new managers are:
+add an entry to `SUPER_ADMIN_SEED_ROSTER` and re-run the seed.
+
+| Name | Password | Override env var |
+|---|---|---|
+| Zelo Ops | zelo-ops-2026 | `SUPER_ADMIN_SEED_PASSWORD` |
+
+Same plaintext-is-intentional caveat as the manager roster above: set `SUPER_ADMIN_SEED_PASSWORD`
+to a real secret before seeding a real deployment.
 
 ## Re-seeding before a live demo
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { GetManagerSignalsUseCase } from "./get-manager-signals.usecase";
 import type { ManagerSignalsPort, ManagerSignalsResponse } from "@/ports/manager-signals.port";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
@@ -32,5 +32,15 @@ describe("GetManagerSignalsUseCase", () => {
     const useCase = new GetManagerSignalsUseCase(new FakeManagerSignalsPort(new UnauthorizedManagerError()));
 
     await expect(useCase.execute("expired-token")).rejects.toBeInstanceOf(UnauthorizedManagerError);
+  });
+
+  it("forwards sectorIds to the port", async () => {
+    const port = new FakeManagerSignalsPort(SAMPLE_RESPONSE);
+    const spy = vi.spyOn(port, "fetchSignals");
+    const useCase = new GetManagerSignalsUseCase(port);
+
+    await useCase.execute("valid-token", ["sector-1"]);
+
+    expect(spy).toHaveBeenCalledWith("valid-token", ["sector-1"]);
   });
 });

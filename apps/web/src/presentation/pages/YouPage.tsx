@@ -16,7 +16,7 @@ export function YouPage() {
   const consentedAt = useConsentStore((state) => state.consentedAt);
   const revoke = useConsentStore((state) => state.revoke);
   const institutionName = useInstitutionLinkStore((state) => state.institutionName);
-  const department = useInstitutionLinkStore((state) => state.department);
+  const sectorName = useInstitutionLinkStore((state) => state.sectorName);
   const unlink = useInstitutionLinkStore((state) => state.unlink);
   const [step, setStep] = useState<"idle" | "confirming">("idle");
 
@@ -57,7 +57,7 @@ export function YouPage() {
                 <IconBadge icon={Building2} tone="neutral" />
                 <div>
                   <p className="text-body font-extrabold text-ink">Vinculado a {institutionName}</p>
-                  <p className="text-caption text-muted">{department}</p>
+                  <p className="text-caption text-muted">{sectorName}</p>
                 </div>
               </div>
               <Button variant="outline" full={false} onClick={unlink}>

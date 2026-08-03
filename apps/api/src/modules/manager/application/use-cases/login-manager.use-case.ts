@@ -25,10 +25,10 @@ export class LoginManagerUseCase {
     const manager = await this.managerRepository.findByName(name);
 
     const isValid = await this.passwordService.verify(password, manager?.passwordHash ?? DUMMY_PASSWORD_HASH);
-    if (!manager || !isValid) {
+    if (!manager || !isValid || !manager.isActive) {
       throw new InvalidManagerCredentialsError();
     }
 
-    return this.tokenService.issue(manager.id, manager.name, manager.institutionId);
+    return this.tokenService.issue(manager.id, manager.name, manager.institutionId, manager.role);
   }
 }
