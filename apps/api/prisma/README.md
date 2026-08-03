@@ -133,6 +133,23 @@ new name in `MANAGER_SEED_ROSTER` ever gets a password set from seed data. No si
 endpoint exists — new manager accounts are added by adding an entry to that array and
 re-running the seed.
 
+## Seeding a demo peer partner
+
+The same `prisma:seed` run upserts `PEER_PARTNER_SEED_ROSTER` (in `seed-data.ts`) into the
+`peer_partners` table — one demo peer partner, tied to the "Zelo Demo" institution, so the
+anonymous peer-chat flow has someone to match against when running the app locally. New peer
+partners are added by adding an entry to that array and re-running the seed; there is no
+self-service signup, same as the manager and super-admin rosters above.
+
+| Name | Institution | Specialty | Password | Override env var |
+|---|---|---|---|---|
+| Dra. Camila Rocha | Zelo Demo | Clínica médica | zelo-camila-2026 | `PEER_PARTNER_SEED_PASSWORD_CAMILA` |
+
+To try the flow end to end locally: log in at `/peer/login` with the credentials above in one
+browser tab (leave it open so the peer partner shows as available), then in another tab/device,
+link to "Zelo Demo" (`zelo-demo-2026`) via `/you/link`, and tap "Falar com um colega" on
+`/peers`.
+
 ## Seeding the platform super-admin account
 
 The same `prisma:seed` run also upserts `SUPER_ADMIN_SEED_ROSTER` (in `seed-data.ts`) into

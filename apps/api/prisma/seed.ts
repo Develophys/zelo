@@ -6,6 +6,7 @@ import {
   buildSeedRows,
   INSTITUTION_SEED_ROSTER,
   MANAGER_SEED_ROSTER,
+  PEER_PARTNER_SEED_ROSTER,
   SECTOR_SEED_ROSTER,
   SUPER_ADMIN_SEED_ROSTER,
   SAO_LUCAS_DEMO_SCENARIOS,
@@ -108,6 +109,20 @@ async function main() {
     }
   }
 
+  for (const peerPartner of PEER_PARTNER_SEED_ROSTER) {
+    const institution = institutionsByName.get(peerPartner.institutionName);
+    if (!institution) {
+      throw new Error(`PEER_PARTNER_SEED_ROSTER entry "${peerPartner.name}" references unknown institution "${peerPartner.institutionName}"`);
+    }
+    const password = process.env[peerPartner.passwordEnvVar] ?? peerPartner.password;
+    const passwordHash = await managerPasswordService.hash(password);
+    await prisma.peerPartner.upsert({
+      where: { name: peerPartner.name },
+      update: {},
+      create: { name: peerPartner.name, passwordHash, institutionId: institution.id, specialty: peerPartner.specialty },
+    });
+  }
+
   for (const admin of SUPER_ADMIN_SEED_ROSTER) {
     const password = process.env[admin.passwordEnvVar] ?? admin.password;
     const passwordHash = await adminPasswordService.hash(password);
@@ -119,7 +134,7 @@ async function main() {
   }
 
   console.log(
-    `Seeded ${INSTITUTION_SEED_ROSTER.length} Institution rows, ${SECTOR_SEED_ROSTER.length} Sector rows, Signal rows for each institution, ${followUpRows.length} SimulatedFollowUp rows, ${MANAGER_SEED_ROSTER.length} Manager accounts, and ${SUPER_ADMIN_SEED_ROSTER.length} SuperAdmin account(s).`,
+    `Seeded ${INSTITUTION_SEED_ROSTER.length} Institution rows, ${SECTOR_SEED_ROSTER.length} Sector rows, Signal rows for each institution, ${followUpRows.length} SimulatedFollowUp rows, ${MANAGER_SEED_ROSTER.length} Manager accounts, ${PEER_PARTNER_SEED_ROSTER.length} PeerPartner account(s), and ${SUPER_ADMIN_SEED_ROSTER.length} SuperAdmin account(s).`,
   );
   await prisma.$disconnect();
 }

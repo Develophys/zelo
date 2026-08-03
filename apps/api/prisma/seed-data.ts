@@ -160,3 +160,15 @@ export interface SuperAdminSeedRow {
 export const SUPER_ADMIN_SEED_ROSTER: SuperAdminSeedRow[] = [
   { name: "Zelo Ops", password: "zelo-ops-2026", passwordEnvVar: "SUPER_ADMIN_SEED_PASSWORD" },
 ];
+
+export interface PeerPartnerSeedRow {
+  name: string;
+  password: string;
+  passwordEnvVar: string;
+  institutionName: string;
+  specialty: string;
+}
+
+export const PEER_PARTNER_SEED_ROSTER: PeerPartnerSeedRow[] = [
+  { name: "Dra. Camila Rocha", password: "zelo-camila-2026", passwordEnvVar: "PEER_PARTNER_SEED_PASSWORD_CAMILA", institutionName: "Zelo Demo", specialty: "Clínica médica" },
+];
