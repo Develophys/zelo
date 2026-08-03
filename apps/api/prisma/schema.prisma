@@ -23,7 +23,8 @@ model Assessment {
 
 model SuperAdmin {
   id           String   @id @default(cuid())
-  name         String   @unique
+  name         String
+  email        String   @unique
   passwordHash String
   createdAt    DateTime @default(now())
 
@@ -82,14 +83,17 @@ model Signal {
 }
 
 model Manager {
-  id            String      @id @default(cuid())
-  name          String      @unique
-  passwordHash  String
-  institutionId String
-  institution   Institution @relation(fields: [institutionId], references: [id])
-  role          ManagerRole @default(HOSPITAL_ADMIN)
-  isActive      Boolean     @default(true)
-  createdAt     DateTime    @default(now())
+  id                        String      @id @default(cuid())
+  name                      String
+  email                     String      @unique
+  passwordHash              String?
+  setPasswordToken          String?     @unique
+  setPasswordTokenExpiresAt DateTime?
+  institutionId             String
+  institution               Institution @relation(fields: [institutionId], references: [id])
+  role                      ManagerRole @default(HOSPITAL_ADMIN)
+  isActive                  Boolean     @default(true)
+  createdAt                 DateTime    @default(now())
 
   sectors       Sector[]
 
@@ -97,14 +101,17 @@ model Manager {
 }
 
 model PeerPartner {
-  id            String      @id @default(cuid())
-  name          String      @unique
-  passwordHash  String
-  institutionId String
-  institution   Institution @relation(fields: [institutionId], references: [id])
-  specialty     String
-  isActive      Boolean     @default(true)
-  createdAt     DateTime    @default(now())
+  id                        String      @id @default(cuid())
+  name                      String
+  email                     String      @unique
+  passwordHash              String?
+  setPasswordToken          String?     @unique
+  setPasswordTokenExpiresAt DateTime?
+  institutionId             String
+  institution               Institution @relation(fields: [institutionId], references: [id])
+  specialty                 String
+  isActive                  Boolean     @default(true)
+  createdAt                 DateTime    @default(now())
 
   @@map("peer_partners")
 }
