@@ -21,9 +21,12 @@ import { YouPage } from "@/presentation/pages/YouPage";
 import { LinkInstitutionPage } from "@/presentation/pages/LinkInstitutionPage";
 import { AdminLoginPage } from "@/presentation/pages/AdminLoginPage";
 import { AdminInstitutionsPage } from "@/presentation/pages/AdminInstitutionsPage";
+import { PeerPartnerLoginPage } from "@/presentation/pages/PeerPartnerLoginPage";
+import { PeerPartnerInboxPage } from "@/presentation/pages/PeerPartnerInboxPage";
 import { useConsentStore } from "@/stores/consent.store";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { useAdminSessionStore } from "@/stores/admin-session.store";
+import { usePeerPartnerSessionStore } from "@/stores/peer-partner-session.store";
 import { routes } from "@/presentation/lib/routes";
 
 // Single source of truth for the app's route tree. router.test.tsx imports
@@ -107,6 +110,12 @@ export const routeChildren: RouteObject[] = [
     path: "admin",
     Component: AdminInstitutionsPage,
     loader: () => (useAdminSessionStore.getState().isValid() ? null : redirect(routes.adminLogin)),
+  },
+  { path: "peer/login", Component: PeerPartnerLoginPage },
+  {
+    path: "peer",
+    Component: PeerPartnerInboxPage,
+    loader: () => (usePeerPartnerSessionStore.getState().isValid() ? null : redirect(routes.peerPartnerLogin)),
   },
 ];
 
