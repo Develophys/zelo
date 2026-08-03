@@ -156,6 +156,37 @@ describe("PeerChatGateway", () => {
     expect(server.emitted.some((e) => e.event === "no_peer_available" && e.socketId === "medico-socket")).toBe(true);
   });
 
+  it("a stale decline from a candidate the request has already moved past is ignored", async () => {
+    await connectPeerPartner("peer-1", "Dra. Ana", "institution-1", "Clínica médica");
+    const peer2 = await connectPeerPartner("peer-2", "Dr. Bruno", "institution-1", "Residência");
+    const medico = fakeClient("medico-socket");
+    gateway.handleRequestPeer(medico as never, { institutionId: "institution-1" });
+    const requestId = (server.emitted.find((e) => e.event === "incoming_request")!.payload as { requestId: string }).requestId;
+
+    gateway.handleDeclineRequest(fakeClient("socket-peer-1") as never, { requestId }); // legitimate decline — moves the request to peer-2
+    const emittedCountAfterLegitimateDecline = server.emitted.length;
+
+    gateway.handleDeclineRequest(fakeClient("socket-peer-1") as never, { requestId }); // stale duplicate decline from peer-1, who is no longer the candidate
+
+    expect(server.emitted.length).toBe(emittedCountAfterLegitimateDecline); // no additional emit
+    expect(presence.getBySocketId(peer2.id)?.status).toBe("pending"); // peer-2's pending state is untouched
+  });
+
+  it("a stale accept from a candidate the request has already moved past is ignored", async () => {
+    const peer1 = await connectPeerPartner("peer-1", "Dra. Ana", "institution-1", "Clínica médica");
+    const peer2 = await connectPeerPartner("peer-2", "Dr. Bruno", "institution-1", "Residência");
+    const medico = fakeClient("medico-socket");
+    gateway.handleRequestPeer(medico as never, { institutionId: "institution-1" });
+    const requestId = (server.emitted.find((e) => e.event === "incoming_request")!.payload as { requestId: string }).requestId;
+
+    gateway.handleDeclineRequest(fakeClient("socket-peer-1") as never, { requestId }); // legitimate decline — moves the request to peer-2
+    gateway.handleAcceptRequest(peer1 as never, { requestId }); // stale accept from peer-1, who is no longer the candidate
+
+    expect(server.emitted.some((e) => e.event === "matched")).toBe(false);
+    expect(presence.getBySocketId(peer1.id)?.status).toBe("available"); // peer-1 unaffected, stays available
+    expect(presence.getBySocketId(peer2.id)?.status).toBe("pending"); // peer-2's pending state is untouched
+  });
+
   it("a 30-second timeout with no response behaves identically to an explicit decline", async () => {
     vi.useFakeTimers();
     await connectPeerPartner("peer-1", "Dra. Ana", "institution-1", "Clínica médica");
@@ -179,6 +210,19 @@ describe("PeerChatGateway", () => {
 
     const relayed = server.emitted.find((e) => e.event === "message" && e.socketId === "socket-peer-1");
     expect(relayed?.payload).toEqual({ text: "oi" });
+  });
+
+  it("message from a socket that isn't a party to the conversation is ignored", async () => {
+    const peerClient = await connectPeerPartner("peer-1", "Dra. Ana", "institution-1", "Clínica médica");
+    const medico = fakeClient("medico-socket");
+    gateway.handleRequestPeer(medico as never, { institutionId: "institution-1" });
+    const requestId = (server.emitted.find((e) => e.event === "incoming_request")!.payload as { requestId: string }).requestId;
+    gateway.handleAcceptRequest(peerClient as never, { requestId });
+
+    const intruder = fakeClient("intruder-socket");
+    gateway.handleMessage(intruder as never, { requestId, text: "not mine to send" });
+
+    expect(server.emitted.some((e) => e.event === "message")).toBe(false);
   });
 
   it("disconnecting during an active conversation notifies the other side and frees the peer partner", async () => {
@@ -205,6 +249,20 @@ describe("PeerChatGateway", () => {
 
     expect(server.emitted.some((e) => e.event === "peer_left" && e.socketId === "socket-peer-1")).toBe(true);
     expect(presence.getBySocketId("socket-peer-1")?.status).toBe("available");
+  });
+
+  it("leave_conversation from a socket that isn't a party to the conversation is ignored", async () => {
+    const peerClient = await connectPeerPartner("peer-1", "Dra. Ana", "institution-1", "Clínica médica");
+    const medico = fakeClient("medico-socket");
+    gateway.handleRequestPeer(medico as never, { institutionId: "institution-1" });
+    const requestId = (server.emitted.find((e) => e.event === "incoming_request")!.payload as { requestId: string }).requestId;
+    gateway.handleAcceptRequest(peerClient as never, { requestId });
+
+    const intruder = fakeClient("intruder-socket");
+    gateway.handleLeaveConversation(intruder as never, { requestId });
+
+    expect(server.emitted.some((e) => e.event === "peer_left")).toBe(false);
+    expect(presence.getBySocketId("socket-peer-1")?.status).toBe("busy"); // conversation unaffected, still matched
   });
 
   it("forceDisconnect disconnects a connected peer partner's socket", async () => {

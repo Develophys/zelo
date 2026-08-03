@@ -97,9 +97,12 @@ export class PeerChatGateway implements OnGatewayConnection, OnGatewayDisconnect
 
   @SubscribeMessage("accept_request")
   handleAcceptRequest(@ConnectedSocket() client: Socket, @MessageBody() payload: RequestIdPayload): void {
-    this.clearTimeout(payload.requestId);
-    const pending = this.registry.resolvePending(payload.requestId);
+    const pending = this.registry.getPending(payload.requestId);
     if (!pending) return; // already resolved (declined/expired) — a late accept is ignored
+    if (!this.isCurrentCandidate(client, pending.candidatePeerPartnerId)) return; // stale accept from a candidate the request has already moved on from
+
+    this.clearTimeout(payload.requestId);
+    this.registry.resolvePending(payload.requestId);
 
     this.presence.setStatus(pending.candidatePeerPartnerId, "busy");
     this.registry.activate(payload.requestId, pending.medicoSocketId, client.id, pending.candidatePeerPartnerId);
@@ -110,7 +113,11 @@ export class PeerChatGateway implements OnGatewayConnection, OnGatewayDisconnect
   }
 
   @SubscribeMessage("decline_request")
-  handleDeclineRequest(@ConnectedSocket() _client: Socket, @MessageBody() payload: RequestIdPayload): void {
+  handleDeclineRequest(@ConnectedSocket() client: Socket, @MessageBody() payload: RequestIdPayload): void {
+    const pending = this.registry.getPending(payload.requestId);
+    if (!pending) return; // already resolved (declined/expired) — a late decline is ignored
+    if (!this.isCurrentCandidate(client, pending.candidatePeerPartnerId)) return; // stale decline from a candidate the request has already moved on from
+
     this.declineOrExpire(payload.requestId);
   }
 
@@ -118,6 +125,7 @@ export class PeerChatGateway implements OnGatewayConnection, OnGatewayDisconnect
   handleMessage(@ConnectedSocket() client: Socket, @MessageBody() payload: MessagePayload): void {
     const conversation = this.registry.getActive(payload.requestId);
     if (!conversation) return;
+    if (client.id !== conversation.medicoSocketId && client.id !== conversation.peerPartnerSocketId) return; // sender isn't a party to this conversation
 
     const otherSocketId = conversation.medicoSocketId === client.id ? conversation.peerPartnerSocketId : conversation.medicoSocketId;
     this.server.to(otherSocketId).emit("message", { text: payload.text });
@@ -127,6 +135,7 @@ export class PeerChatGateway implements OnGatewayConnection, OnGatewayDisconnect
   handleLeaveConversation(@ConnectedSocket() client: Socket, @MessageBody() payload: RequestIdPayload): void {
     const conversation = this.registry.getActive(payload.requestId);
     if (!conversation) return;
+    if (client.id !== conversation.medicoSocketId && client.id !== conversation.peerPartnerSocketId) return; // sender isn't a party to this conversation
 
     const otherSocketId = conversation.medicoSocketId === client.id ? conversation.peerPartnerSocketId : conversation.medicoSocketId;
     this.server.to(otherSocketId).emit("peer_left");
@@ -139,6 +148,11 @@ export class PeerChatGateway implements OnGatewayConnection, OnGatewayDisconnect
     const entry = this.presence.getByPeerPartnerId(peerPartnerId);
     if (!entry) return;
     this.server.sockets.sockets.get(entry.socketId)?.disconnect(true);
+  }
+
+  /** True when `client` is currently registered as the given peer partner (guards against a stale accept/decline from a candidate the request has already moved past). */
+  private isCurrentCandidate(client: Socket, candidatePeerPartnerId: string): boolean {
+    return this.presence.getBySocketId(client.id)?.peerPartnerId === candidatePeerPartnerId;
   }
 
   private startTimeout(requestId: string): void {
