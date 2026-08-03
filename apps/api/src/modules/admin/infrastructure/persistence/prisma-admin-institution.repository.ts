@@ -16,7 +16,7 @@ export class PrismaAdminInstitutionRepository implements AdminInstitutionReposit
 
   async createWithHospitalAdmin(
     params: CreateInstitutionParams,
-  ): Promise<{ institution: { id: string; name: string; inviteCode: string }; hospitalAdmin: { id: string; name: string } }> {
+  ): Promise<{ institution: { id: string; name: string; inviteCode: string }; hospitalAdmin: { id: string; name: string; email: string } }> {
     try {
       return await this.prisma.$transaction(async (tx) => {
         const institution = await tx.institution.create({
@@ -25,14 +25,16 @@ export class PrismaAdminInstitutionRepository implements AdminInstitutionReposit
         const hospitalAdmin = await tx.manager.create({
           data: {
             name: params.hospitalAdminName,
-            passwordHash: params.hospitalAdminPasswordHash,
+            email: params.hospitalAdminEmail,
             institutionId: institution.id,
             role: "HOSPITAL_ADMIN",
+            setPasswordToken: params.setPasswordToken,
+            setPasswordTokenExpiresAt: params.setPasswordTokenExpiresAt,
           },
         });
         return {
           institution: { id: institution.id, name: institution.name, inviteCode: institution.inviteCode },
-          hospitalAdmin: { id: hospitalAdmin.id, name: hospitalAdmin.name },
+          hospitalAdmin: { id: hospitalAdmin.id, name: hospitalAdmin.name, email: hospitalAdmin.email },
         };
       });
     } catch (error) {

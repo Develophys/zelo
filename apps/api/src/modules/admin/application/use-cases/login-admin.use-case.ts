@@ -15,8 +15,8 @@ export class LoginAdminUseCase {
     @Inject(AdminTokenService) private readonly tokenService: AdminTokenService,
   ) {}
 
-  async execute(name: string, password: string): Promise<IssuedAdminToken> {
-    const admin = await this.adminRepository.findByName(name);
+  async execute(email: string, password: string): Promise<IssuedAdminToken> {
+    const admin = await this.adminRepository.findByEmail(email);
 
     const isValid = await this.passwordService.verify(password, admin?.passwordHash ?? DUMMY_PASSWORD_HASH);
     if (!admin || !isValid) {

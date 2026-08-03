@@ -19,11 +19,12 @@ import { DuplicateInstitutionOrManagerError } from "../application/ports/admin-i
 import type { IssuedAdminToken } from "../application/services/admin-token.service.ts";
 import { AdminAuthGuard } from "./admin-auth.guard.ts";
 
-const LoginRequestSchema = z.object({ name: z.string().min(1).max(200), password: z.string().min(1).max(200) });
+const LoginRequestSchema = z.object({ email: z.string().email().max(200), password: z.string().min(1).max(200) });
 const CreateInstitutionSchema = z.object({
   institutionName: z.string().min(1).max(200),
   inviteCode: z.string().min(1).max(100),
   hospitalAdminName: z.string().min(1).max(200),
+  hospitalAdminEmail: z.string().email().max(200),
 });
 
 @Controller("admin")
@@ -43,7 +44,7 @@ export class AdminController {
     }
 
     try {
-      return await this.loginAdmin.execute(parsed.data.name, parsed.data.password);
+      return await this.loginAdmin.execute(parsed.data.email, parsed.data.password);
     } catch (error) {
       if (error instanceof InvalidAdminCredentialsError) {
         throw new UnauthorizedException();

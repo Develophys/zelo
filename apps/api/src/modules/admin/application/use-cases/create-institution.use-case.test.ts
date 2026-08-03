@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CreateInstitutionUseCase } from "./create-institution.use-case.ts";
-import { ManagerPasswordService } from "../../../manager/application/services/manager-password.service.ts";
+import type { EmailPort, EmailTemplate, SendEmailParams } from "../../../../shared/email/email.port.ts";
 import {
   DuplicateInstitutionOrManagerError,
   type AdminInstitutionRepository,
@@ -18,7 +18,7 @@ class FakeAdminInstitutionRepository implements AdminInstitutionRepository {
     if (this.shouldThrowDuplicate) throw new DuplicateInstitutionOrManagerError();
     return {
       institution: { id: "institution-1", name: params.institutionName, inviteCode: params.inviteCode },
-      hospitalAdmin: { id: "manager-1", name: params.hospitalAdminName },
+      hospitalAdmin: { id: "manager-1", name: params.hospitalAdminName, email: params.hospitalAdminEmail },
     };
   }
 
@@ -27,35 +27,42 @@ class FakeAdminInstitutionRepository implements AdminInstitutionRepository {
   }
 }
 
+class FakeEmailPort implements EmailPort {
+  public lastSend: { to: string; template: EmailTemplate; params: SendEmailParams } | null = null;
+  async send(to: string, template: EmailTemplate, params: SendEmailParams): Promise<void> {
+    this.lastSend = { to, template, params };
+  }
+}
+
 describe("CreateInstitutionUseCase", () => {
-  // The hospital admin created here logs in through LoginManagerUseCase, which
-  // verifies with ManagerPasswordService — so that is the service that must hash it.
-  it("hashes the first hospital admin's temporary password with ManagerPasswordService, the one that will verify it at login", async () => {
+  it("creates the institution and its first hospital admin with a set-password token, sending an invite email", async () => {
     const repository = new FakeAdminInstitutionRepository();
-    const passwordService = new ManagerPasswordService();
-    const useCase = new CreateInstitutionUseCase(repository, passwordService);
+    const emailPort = new FakeEmailPort();
+    const useCase = new CreateInstitutionUseCase(repository, emailPort);
 
     const result = await useCase.execute({
       institutionName: "Hospital Teste",
       inviteCode: "teste-2026",
       hospitalAdminName: "Mauricio",
+      hospitalAdminEmail: "mauricio@zelo-demo.local",
     });
 
     expect(result.institution).toEqual({ id: "institution-1", name: "Hospital Teste", inviteCode: "teste-2026" });
-    expect(result.hospitalAdmin).toEqual({ id: "manager-1", name: "Mauricio" });
-    expect(result.temporaryPassword).toEqual(expect.any(String));
-
-    const passedHash = repository.lastCreateParams!.hospitalAdminPasswordHash;
-    expect(await passwordService.verify(result.temporaryPassword, passedHash)).toBe(true);
+    expect(result.hospitalAdmin).toEqual({ id: "manager-1", name: "Mauricio", email: "mauricio@zelo-demo.local" });
+    expect(repository.lastCreateParams!.setPasswordToken).toEqual(expect.any(String));
+    expect(repository.lastCreateParams!.setPasswordTokenExpiresAt).toBeInstanceOf(Date);
+    expect(emailPort.lastSend?.to).toBe("mauricio@zelo-demo.local");
+    expect(emailPort.lastSend?.template).toBe("invite");
+    expect(emailPort.lastSend?.params.setPasswordUrl).toContain(repository.lastCreateParams!.setPasswordToken);
   });
 
   it("propagates DuplicateInstitutionOrManagerError from the repository", async () => {
     const repository = new FakeAdminInstitutionRepository();
     repository.shouldThrowDuplicate = true;
-    const useCase = new CreateInstitutionUseCase(repository, new ManagerPasswordService());
+    const useCase = new CreateInstitutionUseCase(repository, new FakeEmailPort());
 
     await expect(
-      useCase.execute({ institutionName: "Hospital Teste", inviteCode: "teste-2026", hospitalAdminName: "Mauricio" }),
+      useCase.execute({ institutionName: "Hospital Teste", inviteCode: "teste-2026", hospitalAdminName: "Mauricio", hospitalAdminEmail: "mauricio@zelo-demo.local" }),
     ).rejects.toThrow(DuplicateInstitutionOrManagerError);
   });
 });
