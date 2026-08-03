@@ -126,6 +126,7 @@ export const SECTOR_SEED_ROSTER: SectorSeedRow[] = [
 
 export interface ManagerSeedRow {
   name: string;
+  email: string;
   password: string;
   passwordEnvVar: string;
   institutionName: string;
@@ -143,14 +144,15 @@ export interface ManagerSeedRow {
 // live credential. `institutionName` must match a `name` in
 // INSTITUTION_SEED_ROSTER. See seed.ts and prisma/README.md.
 export const MANAGER_SEED_ROSTER: ManagerSeedRow[] = [
-  { name: "Ana Konder", password: "zelo-ana-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_ANA", institutionName: "Zelo Demo", role: "HOSPITAL_ADMIN" },
-  { name: "Carlos Mendes", password: "zelo-carlos-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_CARLOS", institutionName: "Zelo Demo", role: "HOSPITAL_ADMIN" },
-  { name: "Paulo Reis", password: "zelo-paulo-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_PAULO", institutionName: "Zelo Demo", role: "SECTOR_MANAGER", sectorNames: ["UTI"] },
-  { name: "Beatriz Lima", password: "zelo-beatriz-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_BEATRIZ", institutionName: "Hospital São Lucas (Demo)", role: "HOSPITAL_ADMIN" },
+  { name: "Ana Konder", email: "ana@zelo-demo.local", password: "zelo-ana-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_ANA", institutionName: "Zelo Demo", role: "HOSPITAL_ADMIN" },
+  { name: "Carlos Mendes", email: "carlos@zelo-demo.local", password: "zelo-carlos-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_CARLOS", institutionName: "Zelo Demo", role: "HOSPITAL_ADMIN" },
+  { name: "Paulo Reis", email: "paulo@zelo-demo.local", password: "zelo-paulo-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_PAULO", institutionName: "Zelo Demo", role: "SECTOR_MANAGER", sectorNames: ["UTI"] },
+  { name: "Beatriz Lima", email: "beatriz@sao-lucas-demo.local", password: "zelo-beatriz-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_BEATRIZ", institutionName: "Hospital São Lucas (Demo)", role: "HOSPITAL_ADMIN" },
 ];
 
 export interface SuperAdminSeedRow {
   name: string;
+  email: string;
   password: string;
   passwordEnvVar: string;
 }
@@ -158,11 +160,12 @@ export interface SuperAdminSeedRow {
 // Bootstraps the one seed-created platform super-admin account. Like MANAGER_SEED_ROSTER,
 // passwordEnvVar overrides the committed plaintext password when set — see seed.ts.
 export const SUPER_ADMIN_SEED_ROSTER: SuperAdminSeedRow[] = [
-  { name: "Zelo Ops", password: "zelo-ops-2026", passwordEnvVar: "SUPER_ADMIN_SEED_PASSWORD" },
+  { name: "Zelo Ops", email: "ops@zelo-demo.local", password: "zelo-ops-2026", passwordEnvVar: "SUPER_ADMIN_SEED_PASSWORD" },
 ];
 
 export interface PeerPartnerSeedRow {
   name: string;
+  email: string;
   password: string;
   passwordEnvVar: string;
   institutionName: string;
@@ -170,5 +173,5 @@ export interface PeerPartnerSeedRow {
 }
 
 export const PEER_PARTNER_SEED_ROSTER: PeerPartnerSeedRow[] = [
-  { name: "Dra. Camila Rocha", password: "zelo-camila-2026", passwordEnvVar: "PEER_PARTNER_SEED_PASSWORD_CAMILA", institutionName: "Zelo Demo", specialty: "Clínica médica" },
+  { name: "Dra. Camila Rocha", email: "camila@zelo-demo.local", password: "zelo-camila-2026", passwordEnvVar: "PEER_PARTNER_SEED_PASSWORD_CAMILA", institutionName: "Zelo Demo", specialty: "Clínica médica" },
 ];

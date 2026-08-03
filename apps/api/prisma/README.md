@@ -103,12 +103,20 @@ can register sectors and manage other managers; `SECTOR_MANAGER` is scoped to on
 sectors listed in that roster entry's `sectorNames` (assigned via `Sector.managerId` at seed
 time):
 
-| Name | Institution | Role | Password | Override env var |
-|---|---|---|---|---|
-| Ana Konder | Zelo Demo | Gestora do hospital | zelo-ana-2026 | `MANAGER_SEED_PASSWORD_ANA` |
-| Carlos Mendes | Zelo Demo | Gestor do hospital | zelo-carlos-2026 | `MANAGER_SEED_PASSWORD_CARLOS` |
-| Paulo Reis | Zelo Demo | Gestor de setor (UTI) | zelo-paulo-2026 | `MANAGER_SEED_PASSWORD_PAULO` |
-| Beatriz Lima | Hospital São Lucas (Demo) | Gestora do hospital | zelo-beatriz-2026 | `MANAGER_SEED_PASSWORD_BEATRIZ` |
+| Name | Email | Institution | Role | Password | Override env var |
+|---|---|---|---|---|---|
+| Ana Konder | ana@zelo-demo.local | Zelo Demo | Gestora do hospital | zelo-ana-2026 | `MANAGER_SEED_PASSWORD_ANA` |
+| Carlos Mendes | carlos@zelo-demo.local | Zelo Demo | Gestor do hospital | zelo-carlos-2026 | `MANAGER_SEED_PASSWORD_CARLOS` |
+| Paulo Reis | paulo@zelo-demo.local | Zelo Demo | Gestor de setor (UTI) | zelo-paulo-2026 | `MANAGER_SEED_PASSWORD_PAULO` |
+| Beatriz Lima | beatriz@sao-lucas-demo.local | Hospital São Lucas (Demo) | Gestora do hospital | zelo-beatriz-2026 | `MANAGER_SEED_PASSWORD_BEATRIZ` |
+
+**Login is now by email, not name.** `email` is the unique login key (`Manager.email`); `name`
+stays a display-only field and is no longer unique. New managers created through the admin
+panel (not the seed script) never get a system-generated password — they receive a "set your
+password" email instead (see the design spec
+`docs/superpowers/specs/2026-08-03-email-based-login-and-account-invites-design.md`). Seeded
+accounts bypass that invite flow entirely: the seed script hashes and sets a real password
+directly, so every account in the table above can log in immediately with the listed password.
 
 Plaintext passwords in this table are intentional — this is local/demo data, matching the
 same transparency `MANAGER_ACCESS_CODE=zelo-demo-2026` had in `.env.example` before this
@@ -124,14 +132,12 @@ if that environment variable is set when the seed runs, it overrides the committ
 seeding a real deployment, so the credential that actually gets hashed and stored is never
 the value sitting in git.
 
-The upsert is keyed on `name` and **only ever sets a password when creating a brand-new
+The upsert is keyed on `email` and **only ever sets a password when creating a brand-new
 manager row** (`update: {}` — a re-seed never touches `passwordHash` for a manager that
 already exists). This means re-running the seed never duplicates managers, never changes an
 existing manager's password (even if the roster's committed/env-sourced password value
 differs from what's live — e.g. someone rotated the password out-of-band), and only a truly
-new name in `MANAGER_SEED_ROSTER` ever gets a password set from seed data. No signup
-endpoint exists — new manager accounts are added by adding an entry to that array and
-re-running the seed.
+new email in `MANAGER_SEED_ROSTER` ever gets a password set from seed data.
 
 ## Seeding a demo peer partner
 
@@ -141,14 +147,14 @@ anonymous peer-chat flow has someone to match against when running the app local
 partners are added by adding an entry to that array and re-running the seed; there is no
 self-service signup, same as the manager and super-admin rosters above.
 
-| Name | Institution | Specialty | Password | Override env var |
-|---|---|---|---|---|
-| Dra. Camila Rocha | Zelo Demo | Clínica médica | zelo-camila-2026 | `PEER_PARTNER_SEED_PASSWORD_CAMILA` |
+| Name | Email | Institution | Specialty | Password | Override env var |
+|---|---|---|---|---|---|
+| Dra. Camila Rocha | camila@zelo-demo.local | Zelo Demo | Clínica médica | zelo-camila-2026 | `PEER_PARTNER_SEED_PASSWORD_CAMILA` |
 
-To try the flow end to end locally: log in at `/peer/login` with the credentials above in one
-browser tab (leave it open so the peer partner shows as available), then in another tab/device,
-link to "Zelo Demo" (`zelo-demo-2026`) via `/you/link`, and tap "Falar com um colega" on
-`/peers`.
+To try the flow end to end locally: log in at `/peer/login` with `camila@zelo-demo.local` /
+`zelo-camila-2026` in one browser tab (leave it open so the peer partner shows as available),
+then in another tab/device, link to "Zelo Demo" (`zelo-demo-2026`) via `/you/link`, and tap
+"Falar com um colega" on `/peers`.
 
 ## Seeding the platform super-admin account
 
@@ -158,9 +164,9 @@ and create new institutions (`POST /admin/institutions`). There is no self-servi
 signup anywhere in the app; new super-admin accounts are added the same way new managers are:
 add an entry to `SUPER_ADMIN_SEED_ROSTER` and re-run the seed.
 
-| Name | Password | Override env var |
-|---|---|---|
-| Zelo Ops | zelo-ops-2026 | `SUPER_ADMIN_SEED_PASSWORD` |
+| Name | Email | Password | Override env var |
+|---|---|---|---|
+| Zelo Ops | ops@zelo-demo.local | zelo-ops-2026 | `SUPER_ADMIN_SEED_PASSWORD` |
 
 Same plaintext-is-intentional caveat as the manager roster above: set `SUPER_ADMIN_SEED_PASSWORD`
 to a real secret before seeding a real deployment.

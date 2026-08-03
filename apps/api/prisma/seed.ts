@@ -90,9 +90,9 @@ async function main() {
     const password = process.env[manager.passwordEnvVar] ?? manager.password;
     const passwordHash = await managerPasswordService.hash(password);
     const row = await prisma.manager.upsert({
-      where: { name: manager.name },
+      where: { email: manager.email },
       update: {},
-      create: { name: manager.name, passwordHash, institutionId: institution.id, role: manager.role },
+      create: { name: manager.name, email: manager.email, passwordHash, institutionId: institution.id, role: manager.role },
     });
     managersByName.set(row.name, { id: row.id, name: row.name });
   }
@@ -117,9 +117,9 @@ async function main() {
     const password = process.env[peerPartner.passwordEnvVar] ?? peerPartner.password;
     const passwordHash = await managerPasswordService.hash(password);
     await prisma.peerPartner.upsert({
-      where: { name: peerPartner.name },
+      where: { email: peerPartner.email },
       update: {},
-      create: { name: peerPartner.name, passwordHash, institutionId: institution.id, specialty: peerPartner.specialty },
+      create: { name: peerPartner.name, email: peerPartner.email, passwordHash, institutionId: institution.id, specialty: peerPartner.specialty },
     });
   }
 
@@ -127,9 +127,9 @@ async function main() {
     const password = process.env[admin.passwordEnvVar] ?? admin.password;
     const passwordHash = await adminPasswordService.hash(password);
     await prisma.superAdmin.upsert({
-      where: { name: admin.name },
+      where: { email: admin.email },
       update: {},
-      create: { name: admin.name, passwordHash },
+      create: { name: admin.name, email: admin.email, passwordHash },
     });
   }
 
