@@ -11,6 +11,7 @@ import type { OnGatewayConnection, OnGatewayDisconnect } from "@nestjs/websocket
 import type { Server, Socket } from "socket.io";
 import { PeerPresenceService } from "../application/services/peer-presence.service.ts";
 import { PeerMatchRegistry } from "../application/services/peer-match-registry.service.ts";
+import type { PendingMatch } from "../application/services/peer-match-registry.service.ts";
 import { PeerPartnerTokenService } from "../../peer-partner/application/services/peer-partner-token.service.ts";
 import { PEER_PARTNER_REPOSITORY, type PeerPartnerRepository } from "../../peer-partner/application/ports/peer-partner-repository.port.ts";
 
@@ -69,15 +70,37 @@ export class PeerChatGateway implements OnGatewayConnection, OnGatewayDisconnect
   }
 
   handleDisconnect(client: Socket): void {
-    this.presence.unregisterBySocketId(client.id);
+    const unregistered = this.presence.unregisterBySocketId(client.id);
 
     const conversation = this.registry.findActiveBySocketId(client.id);
-    if (!conversation) return;
+    if (conversation) {
+      const otherSocketId = conversation.medicoSocketId === client.id ? conversation.peerPartnerSocketId : conversation.medicoSocketId;
+      this.server.to(otherSocketId).emit("peer_left");
+      this.registry.endActive(conversation.requestId);
+      this.presence.setStatus(conversation.peerPartnerId, "available");
+      return;
+    }
 
-    const otherSocketId = conversation.medicoSocketId === client.id ? conversation.peerPartnerSocketId : conversation.medicoSocketId;
-    this.server.to(otherSocketId).emit("peer_left");
-    this.registry.endActive(conversation.requestId);
-    this.presence.setStatus(conversation.peerPartnerId, "available");
+    // The médico closed their tab while their request was still waiting on an accept.
+    // Nothing cancels it otherwise: a later accept would match the candidate against a
+    // dead socket (marking them busy and invisible to matching), and a later timeout
+    // would cascade a phantom incoming_request through every peer partner in the
+    // institution, 30 seconds each.
+    const pendingAsMedico = this.registry.findPendingByMedicoSocketId(client.id);
+    if (pendingAsMedico) {
+      this.cancelPending(pendingAsMedico.requestId);
+      return;
+    }
+
+    // The offered candidate's socket died before they answered. Fail over to the next
+    // candidate right away instead of making the médico wait out the full 30s clock.
+    // `unregistered` is only meaningful when the peer partner is really gone — after a
+    // reconnect this same call fires for the superseded socket while the peer partner is
+    // still live under a new one, and that must not cancel their pending request.
+    if (unregistered && !this.presence.getByPeerPartnerId(unregistered.peerPartnerId)) {
+      const pendingAsCandidate = this.registry.findPendingByCandidatePeerPartnerId(unregistered.peerPartnerId);
+      if (pendingAsCandidate) this.declineOrExpire(pendingAsCandidate.requestId);
+    }
   }
 
   @SubscribeMessage("request-peer")
@@ -166,12 +189,31 @@ export class PeerChatGateway implements OnGatewayConnection, OnGatewayDisconnect
     this.pendingTimeouts.delete(requestId);
   }
 
+  /**
+   * The current candidate is out of the running — they declined, let the clock run out, or
+   * their socket died. Free them (a no-op when they disconnected, since presence already
+   * dropped them) and move the request on to the next candidate.
+   */
   private declineOrExpire(requestId: string): void {
     this.clearTimeout(requestId);
     const pending = this.registry.getPending(requestId);
     if (!pending) return; // already accepted — a race between accept and a late decline/timeout
 
     this.presence.setStatus(pending.candidatePeerPartnerId, "available");
+    this.advanceToNextCandidate(pending);
+  }
+
+  /** The médico is gone: drop the request and release the candidate it was holding. */
+  private cancelPending(requestId: string): void {
+    this.clearTimeout(requestId);
+    const pending = this.registry.resolvePending(requestId);
+    if (!pending) return;
+
+    this.presence.setStatus(pending.candidatePeerPartnerId, "available");
+  }
+
+  private advanceToNextCandidate(pending: PendingMatch): void {
+    const { requestId } = pending;
     const next = this.presence.findAvailable(pending.institutionId, pending.triedPeerPartnerIds);
 
     if (!next) {

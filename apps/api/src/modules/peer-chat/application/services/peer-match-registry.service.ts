@@ -44,6 +44,27 @@ export class PeerMatchRegistry {
     match.candidatePeerPartnerId = nextCandidatePeerPartnerId;
   }
 
+  /** Reverse lookup used by the gateway to find a pending match whose médico has disconnected. */
+  findPendingByMedicoSocketId(socketId: string): PendingMatch | undefined {
+    for (const match of this.pending.values()) {
+      if (match.medicoSocketId === socketId) return match;
+    }
+    return undefined;
+  }
+
+  /**
+   * Reverse lookup used by the gateway to find a pending match whose currently-offered
+   * candidate has disconnected. Keyed by peer partner id rather than socket id because a
+   * pending match only ever records the candidate's id — their socket id is owned by
+   * PeerPresenceService and can change under them (reconnect).
+   */
+  findPendingByCandidatePeerPartnerId(peerPartnerId: string): PendingMatch | undefined {
+    for (const match of this.pending.values()) {
+      if (match.candidatePeerPartnerId === peerPartnerId) return match;
+    }
+    return undefined;
+  }
+
   resolvePending(requestId: string): PendingMatch | undefined {
     const match = this.pending.get(requestId);
     this.pending.delete(requestId);

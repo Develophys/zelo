@@ -39,6 +39,35 @@ describe("PeerMatchRegistry", () => {
     expect(registry.getPending("request-1")).toBeUndefined();
   });
 
+  it("findPendingByMedicoSocketId finds a pending match by the requesting médico's socket", () => {
+    const registry = new PeerMatchRegistry();
+    registry.createPending("request-1", "medico-socket", "institution-1", undefined, "peer-1");
+
+    expect(registry.findPendingByMedicoSocketId("medico-socket")?.requestId).toBe("request-1");
+    expect(registry.findPendingByMedicoSocketId("other-socket")).toBeUndefined();
+  });
+
+  it("findPendingByCandidatePeerPartnerId follows the current candidate, not the ones already tried", () => {
+    const registry = new PeerMatchRegistry();
+    registry.createPending("request-1", "medico-socket", "institution-1", undefined, "peer-1");
+    expect(registry.findPendingByCandidatePeerPartnerId("peer-1")?.requestId).toBe("request-1");
+
+    registry.markTried("request-1", "peer-1", "peer-2");
+
+    expect(registry.findPendingByCandidatePeerPartnerId("peer-1")).toBeUndefined();
+    expect(registry.findPendingByCandidatePeerPartnerId("peer-2")?.requestId).toBe("request-1");
+  });
+
+  it("neither pending lookup finds a match once it has been resolved", () => {
+    const registry = new PeerMatchRegistry();
+    registry.createPending("request-1", "medico-socket", "institution-1", undefined, "peer-1");
+
+    registry.resolvePending("request-1");
+
+    expect(registry.findPendingByMedicoSocketId("medico-socket")).toBeUndefined();
+    expect(registry.findPendingByCandidatePeerPartnerId("peer-1")).toBeUndefined();
+  });
+
   it("resolvePending on an unknown requestId returns undefined without throwing", () => {
     const registry = new PeerMatchRegistry();
     expect(registry.resolvePending("unknown")).toBeUndefined();

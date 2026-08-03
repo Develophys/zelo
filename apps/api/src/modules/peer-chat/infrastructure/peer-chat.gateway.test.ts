@@ -265,6 +265,89 @@ describe("PeerChatGateway", () => {
     expect(presence.getBySocketId("socket-peer-1")?.status).toBe("busy"); // conversation unaffected, still matched
   });
 
+  it("médico disconnecting while their request is still pending frees the candidate and cancels the timeout", async () => {
+    vi.useFakeTimers();
+    const peer1 = await connectPeerPartner("peer-1", "Dra. Ana", "institution-1", "Clínica médica");
+    await connectPeerPartner("peer-2", "Dr. Bruno", "institution-1", "Residência");
+    const medico = fakeClient("medico-socket");
+    gateway.handleRequestPeer(medico as never, { institutionId: "institution-1" });
+    const requestId = (server.emitted.find((e) => e.event === "incoming_request")!.payload as { requestId: string }).requestId;
+    expect(presence.getBySocketId(peer1.id)?.status).toBe("pending");
+
+    gateway.handleDisconnect(medico as never);
+
+    expect(presence.getBySocketId(peer1.id)?.status).toBe("available"); // candidate released, matchable again
+    expect(registry.getPending(requestId)).toBeUndefined();
+
+    const emittedCountAfterDisconnect = server.emitted.length;
+    vi.advanceTimersByTime(60_000); // the 30s timeout must not fire against the cancelled request
+
+    expect(server.emitted.length).toBe(emittedCountAfterDisconnect); // no phantom incoming_request cascaded to peer-2
+    expect(presence.getBySocketId("socket-peer-2")?.status).toBe("available");
+    vi.useRealTimers();
+  });
+
+  it("a late accept after the médico disconnected mid-pending does not mark the candidate busy", async () => {
+    const peer1 = await connectPeerPartner("peer-1", "Dra. Ana", "institution-1", "Clínica médica");
+    const medico = fakeClient("medico-socket");
+    gateway.handleRequestPeer(medico as never, { institutionId: "institution-1" });
+    const requestId = (server.emitted.find((e) => e.event === "incoming_request")!.payload as { requestId: string }).requestId;
+
+    gateway.handleDisconnect(medico as never);
+    gateway.handleAcceptRequest(peer1 as never, { requestId });
+
+    expect(presence.getBySocketId(peer1.id)?.status).toBe("available");
+    expect(server.emitted.some((e) => e.event === "matched")).toBe(false);
+  });
+
+  it("candidate peer partner disconnecting while pending immediately offers the request to the next candidate", async () => {
+    vi.useFakeTimers();
+    const peer1 = await connectPeerPartner("peer-1", "Dra. Ana", "institution-1", "Clínica médica");
+    const peer2 = await connectPeerPartner("peer-2", "Dr. Bruno", "institution-1", "Residência");
+    const medico = fakeClient("medico-socket");
+    gateway.handleRequestPeer(medico as never, { institutionId: "institution-1" });
+
+    gateway.handleDisconnect(peer1 as never); // candidate's socket dies before answering
+
+    const incomingRequests = server.emitted.filter((e) => e.event === "incoming_request");
+    expect(incomingRequests).toHaveLength(2); // no waiting out the 30s clock
+    expect(incomingRequests[1]?.socketId).toBe(peer2.id);
+    expect(presence.getBySocketId(peer2.id)?.status).toBe("pending");
+    vi.useRealTimers();
+  });
+
+  it("candidate peer partner disconnecting while pending emits no_peer_available when nobody else is left", async () => {
+    const peer1 = await connectPeerPartner("peer-1", "Dra. Ana", "institution-1", "Clínica médica");
+    const medico = fakeClient("medico-socket");
+    gateway.handleRequestPeer(medico as never, { institutionId: "institution-1" });
+    const requestId = (server.emitted.find((e) => e.event === "incoming_request")!.payload as { requestId: string }).requestId;
+
+    gateway.handleDisconnect(peer1 as never);
+
+    expect(server.emitted.some((e) => e.event === "no_peer_available" && e.socketId === "medico-socket")).toBe(true);
+    expect(registry.getPending(requestId)).toBeUndefined();
+  });
+
+  it("a superseded socket's delayed disconnect does not cancel the reconnected candidate's pending request", async () => {
+    await connectPeerPartner("peer-1", "Dra. Ana", "institution-1", "Clínica médica");
+    const medico = fakeClient("medico-socket");
+    gateway.handleRequestPeer(medico as never, { institutionId: "institution-1" });
+    const requestId = (server.emitted.find((e) => e.event === "incoming_request")!.payload as { requestId: string }).requestId;
+    presence.register("peer-1", "institution-1", "socket-peer-1-reconnected", "Clínica médica"); // reconnect under a new socket id
+
+    gateway.handleDisconnect(fakeClient("socket-peer-1") as never); // the dead socket's disconnect event, arriving late
+
+    expect(registry.getPending(requestId)).toBeDefined(); // still pending — the candidate is live
+    expect(server.emitted.some((e) => e.event === "no_peer_available")).toBe(false);
+  });
+
+  it("an anonymous socket that was never part of any match disconnects without side effects", async () => {
+    await connectPeerPartner("peer-1", "Dra. Ana", "institution-1", "Clínica médica");
+
+    expect(() => gateway.handleDisconnect(fakeClient("unrelated-socket") as never)).not.toThrow();
+    expect(presence.getBySocketId("socket-peer-1")?.status).toBe("available");
+  });
+
   it("forceDisconnect disconnects a connected peer partner's socket", async () => {
     const peerClient = await connectPeerPartner("peer-1", "Dra. Ana", "institution-1", "Clínica médica");
     server.sockets.sockets.set(peerClient.id, peerClient as never);
