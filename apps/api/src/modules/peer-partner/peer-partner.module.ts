@@ -16,6 +16,6 @@ import { PEER_PARTNER_REPOSITORY } from "./application/ports/peer-partner-reposi
     PeerPartnerAuthGuard,
     { provide: PEER_PARTNER_REPOSITORY, useClass: PrismaPeerPartnerRepository },
   ],
-  exports: [PEER_PARTNER_REPOSITORY, PeerPartnerTokenService, PeerPartnerAuthGuard],
+  exports: [PEER_PARTNER_REPOSITORY, PeerPartnerTokenService, PeerPartnerAuthGuard, PeerPartnerPasswordService],
 })
 export class PeerPartnerModule {}
