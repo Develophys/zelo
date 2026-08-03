@@ -45,6 +45,7 @@ model Institution {
   managerInsights ManagerInsight[]
   signals         Signal[]
   sectors         Sector[]
+  peerPartners    PeerPartner[]
 
   @@map("institutions")
 }
@@ -93,6 +94,19 @@ model Manager {
   sectors       Sector[]
 
   @@map("managers")
+}
+
+model PeerPartner {
+  id            String      @id @default(cuid())
+  name          String      @unique
+  passwordHash  String
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  specialty     String
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+
+  @@map("peer_partners")
 }
 
 model ManagerInsight {
