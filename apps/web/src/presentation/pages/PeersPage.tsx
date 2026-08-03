@@ -2,51 +2,90 @@ import { Lock } from "lucide-react";
 import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BackButton } from "@/presentation/ui/BackButton";
+import { Button } from "@/presentation/ui/Button";
 import { PrivacyBadge } from "@/presentation/ui/PrivacyBadge";
+import { PeerChatRoom } from "@/presentation/components/PeerChatRoom";
 import { routes } from "@/presentation/lib/routes";
-
-// TODO(week2): peer-matching gateway — this screen is designed UI over placeholder data.
-const PEERS = [
-  { initial: "C", name: "Colega · Clínica médica", status: "plantão noturno · ● disponível" },
-  { initial: "C", name: "Colega · Residência", status: "responde em ~1h" },
-] as const;
+import { useInstitutionLinkStore } from "@/stores/institution-link.store";
+import { usePeerRequest } from "@/presentation/hooks/usePeerRequest";
 
 export function PeersPage() {
   const navigate = useNavigate();
+  const institutionId = useInstitutionLinkStore((state) => state.institutionId);
+  const sectorName = useInstitutionLinkStore((state) => state.sectorName);
+  const { state, specialty, messages, peerLeft, requestPeer, sendMessage, leave } = usePeerRequest();
+
+  const header = (
+    <div className="flex items-center justify-between">
+      <BackButton label="Início" onClick={() => navigate(routes.home)} />
+      <PrivacyBadge />
+    </div>
+  );
+
+  if (!institutionId) {
+    return (
+      <PhoneShell centered>
+        <div className="pt-[26px]">
+          {header}
+          <h1 className="mt-4 text-h1 text-ink">Pares anônimos</h1>
+          <p className="mt-1 text-caption text-muted">Vincule-se ao seu hospital para falar com um colega.</p>
+          <div className="mt-5">
+            <Button variant="outline" onClick={() => navigate(routes.linkInstitution)}>
+              Vincular ao hospital
+            </Button>
+          </div>
+
+          <div className="mt-6 flex items-center justify-center gap-1 rounded-2xl bg-surface-brand p-[13px]">
+            <Lock size={14} className="text-brand" />
+            <span className="font-mono text-[12.5px] text-brand">conexão sem troca de identidade</span>
+          </div>
+        </div>
+      </PhoneShell>
+    );
+  }
 
   return (
     <PhoneShell centered>
       <div className="pt-[26px]">
-        <div className="flex items-center justify-between">
-          <BackButton label="Início" onClick={() => navigate(routes.home)} />
-          <PrivacyBadge />
-        </div>
+        {header}
         <h1 className="mt-4 text-h1 text-ink">Pares anônimos</h1>
         <p className="mt-1 text-caption text-muted">
           Médicos treinados para ouvir. Nem você nem seu par veem a identidade um do outro.
         </p>
 
-        <div className="mt-5 flex flex-col gap-[12px]">
-          {PEERS.map((peer, index) => (
-            <button
-              key={index}
-              type="button"
-              onClick={() => navigate(routes.chat)}
-              className="flex items-center justify-between rounded-card bg-surface p-[18px] text-left shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-[38px] w-[38px] items-center justify-center rounded-icon bg-surface-brand font-serif text-brand">
-                  {peer.initial}
-                </div>
-                <div>
-                  <p className="text-body font-extrabold text-ink">{peer.name}</p>
-                  <p className="text-caption text-muted-2">{peer.status}</p>
-                </div>
-              </div>
-              <span className="text-brand">→</span>
-            </button>
-          ))}
-        </div>
+        {state === "idle" && (
+          <div className="mt-5">
+            <Button variant="primary" onClick={() => requestPeer(institutionId, sectorName ?? undefined)}>
+              Falar com um colega
+            </Button>
+          </div>
+        )}
+
+        {state === "searching" && (
+          <div className="mt-5">
+            <Button variant="primary" loading disabled>
+              Procurando um colega disponível...
+            </Button>
+          </div>
+        )}
+
+        {state === "no_peer_available" && (
+          <div className="mt-5">
+            <p role="alert" className="mb-2 text-label text-danger">
+              Nenhum colega disponível agora.
+            </p>
+            <Button variant="outline" onClick={() => requestPeer(institutionId, sectorName ?? undefined)}>
+              Tentar novamente
+            </Button>
+          </div>
+        )}
+
+        {state === "matched" && (
+          <div className="mt-5">
+            <p className="mb-3 text-label text-muted">Conectado com um colega de {specialty}.</p>
+            <PeerChatRoom messages={messages} onSend={sendMessage} onLeave={leave} peerLeft={peerLeft} />
+          </div>
+        )}
 
         <div className="mt-6 flex items-center justify-center gap-1 rounded-2xl bg-surface-brand p-[13px]">
           <Lock size={14} className="text-brand" />
