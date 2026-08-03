@@ -1,0 +1,28 @@
+import { Inject, Injectable } from "@nestjs/common";
+import { PEER_PARTNER_REPOSITORY, type PeerPartnerRepository } from "../ports/peer-partner-repository.port.ts";
+import { PeerPartnerPasswordService } from "../services/peer-partner-password.service.ts";
+
+export class InvalidOrExpiredPeerPartnerSetupTokenError extends Error {}
+
+export interface FinishPeerPartnerSetupInput {
+  token: string;
+  password: string;
+}
+
+@Injectable()
+export class FinishPeerPartnerSetupUseCase {
+  constructor(
+    @Inject(PEER_PARTNER_REPOSITORY) private readonly repository: PeerPartnerRepository,
+    @Inject(PeerPartnerPasswordService) private readonly passwordService: PeerPartnerPasswordService,
+  ) {}
+
+  async execute(input: FinishPeerPartnerSetupInput): Promise<void> {
+    const peerPartner = await this.repository.findBySetPasswordToken(input.token);
+    if (!peerPartner || !peerPartner.setPasswordTokenExpiresAt || peerPartner.setPasswordTokenExpiresAt.getTime() < Date.now()) {
+      throw new InvalidOrExpiredPeerPartnerSetupTokenError();
+    }
+
+    const passwordHash = await this.passwordService.hash(input.password);
+    await this.repository.update(peerPartner.id, { passwordHash, setPasswordToken: null, setPasswordTokenExpiresAt: null });
+  }
+}

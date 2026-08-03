@@ -26,7 +26,7 @@ import { SendManagerSetPasswordEmailUseCase } from "../application/use-cases/sen
 import { LastActiveHospitalAdminError, ManagerNotFoundError, SectorNotInInstitutionError, PeerPartnerNotFoundError } from "../application/use-cases/manager-admin-errors.ts";
 import { PEER_PARTNER_REPOSITORY, type PeerPartnerRepository, type PeerPartnerSummaryRow } from "../../peer-partner/application/ports/peer-partner-repository.port.ts";
 import { CreatePeerPartnerUseCase, type CreatePeerPartnerResult } from "../application/use-cases/create-peer-partner.use-case.ts";
-import { ResetPeerPartnerPasswordUseCase } from "../application/use-cases/reset-peer-partner-password.use-case.ts";
+import { SendPeerPartnerSetPasswordEmailUseCase } from "../application/use-cases/send-peer-partner-set-password-email.use-case.ts";
 import { PeerChatGateway } from "../../peer-chat/infrastructure/peer-chat.gateway.ts";
 
 const CreateSectorSchema = z.object({ name: z.string().trim().min(1).max(200) });
@@ -50,7 +50,7 @@ const UpdateManagerSchema = z.object({
   sectorIds: z.array(z.string()).optional(),
 });
 
-const CreatePeerPartnerSchema = z.object({ name: z.string().trim().min(1).max(200), specialty: z.string().trim().min(1).max(200) });
+const CreatePeerPartnerSchema = z.object({ name: z.string().trim().min(1).max(200), email: z.string().trim().email().max(200), specialty: z.string().trim().min(1).max(200) });
 const UpdatePeerPartnerSchema = z.object({ isActive: z.boolean().optional(), specialty: z.string().trim().min(1).max(200).optional() });
 
 @Controller("manager/admin")
@@ -64,7 +64,7 @@ export class ManagerAdminController {
     @Inject(SendManagerSetPasswordEmailUseCase) private readonly sendManagerSetPasswordEmail: SendManagerSetPasswordEmailUseCase,
     @Inject(PEER_PARTNER_REPOSITORY) private readonly peerPartnerRepository: PeerPartnerRepository,
     @Inject(CreatePeerPartnerUseCase) private readonly createPeerPartner: CreatePeerPartnerUseCase,
-    @Inject(ResetPeerPartnerPasswordUseCase) private readonly resetPeerPartnerPassword: ResetPeerPartnerPasswordUseCase,
+    @Inject(SendPeerPartnerSetPasswordEmailUseCase) private readonly sendPeerPartnerSetPasswordEmail: SendPeerPartnerSetPasswordEmailUseCase,
     @Inject(PeerChatGateway) private readonly peerChatGateway: PeerChatGateway,
   ) {}
 
@@ -212,11 +212,11 @@ export class ManagerAdminController {
     }
   }
 
-  @Post("peer-partners/:id/reset-password")
+  @Post("peer-partners/:id/send-set-password-email")
   @HttpCode(200)
-  async resetPeerPartnerPasswordHandler(@Req() request: Request, @Param("id") id: string): Promise<{ temporaryPassword: string }> {
+  async sendPeerPartnerSetPasswordEmailHandler(@Req() request: Request, @Param("id") id: string): Promise<void> {
     try {
-      return await this.resetPeerPartnerPassword.execute({ institutionId: request.manager!.institutionId, peerPartnerId: id });
+      await this.sendPeerPartnerSetPasswordEmail.execute({ institutionId: request.manager!.institutionId, peerPartnerId: id });
     } catch (error) {
       if (error instanceof PeerPartnerNotFoundError) {
         throw new NotFoundException();

@@ -24,7 +24,7 @@ import { UpdateManagerUseCase } from "./application/use-cases/update-manager.use
 import { SendManagerSetPasswordEmailUseCase } from "./application/use-cases/send-manager-set-password-email.use-case.ts";
 import { FinishManagerSetupUseCase } from "./application/use-cases/finish-manager-setup.use-case.ts";
 import { CreatePeerPartnerUseCase } from "./application/use-cases/create-peer-partner.use-case.ts";
-import { ResetPeerPartnerPasswordUseCase } from "./application/use-cases/reset-peer-partner-password.use-case.ts";
+import { SendPeerPartnerSetPasswordEmailUseCase } from "./application/use-cases/send-peer-partner-set-password-email.use-case.ts";
 import { ManagerTokenService } from "./application/services/manager-token.service.ts";
 import { ManagerPasswordService } from "./application/services/manager-password.service.ts";
 import { SIGNAL_REPOSITORY } from "./application/ports/signal-repository.port.ts";
@@ -58,7 +58,7 @@ const aiInsightPortProvider =
     ManagerTokenService,
     ManagerPasswordService,
     CreatePeerPartnerUseCase,
-    ResetPeerPartnerPasswordUseCase,
+    SendPeerPartnerSetPasswordEmailUseCase,
     ManagerAuthGuard,
     HospitalAdminGuard,
     { provide: SIGNAL_REPOSITORY, useClass: PrismaSignalRepository },
