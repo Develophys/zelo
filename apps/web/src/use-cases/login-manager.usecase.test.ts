@@ -15,12 +15,12 @@ class FakeManagerAuthPort implements ManagerAuthPort {
 
 describe("LoginManagerUseCase", () => {
   it("returns the token and expiry on success, forwarding name and password", async () => {
-    const authPort = new FakeManagerAuthPort({ token: "abc.def", expiresAt: "2026-07-11T20:00:00.000Z" });
+    const authPort = new FakeManagerAuthPort({ token: "abc.def", expiresAt: "2026-07-11T20:00:00.000Z", role: "HOSPITAL_ADMIN" });
     const useCase = new LoginManagerUseCase(authPort);
 
     const result = await useCase.execute("Ana Konder", "senha-correta");
 
-    expect(result).toEqual({ token: "abc.def", expiresAt: "2026-07-11T20:00:00.000Z" });
+    expect(result).toEqual({ token: "abc.def", expiresAt: "2026-07-11T20:00:00.000Z", role: "HOSPITAL_ADMIN" });
     expect(authPort.lastArgs).toEqual({ name: "Ana Konder", password: "senha-correta" });
   });
 

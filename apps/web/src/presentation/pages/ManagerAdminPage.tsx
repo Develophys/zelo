@@ -381,11 +381,13 @@ function PeerPartnersTab() {
   return (
     <div>
       {revealedPassword && (
-        <Card tone="brand-tint" className="mt-4" role="status">
-          <p className="text-label font-semibold text-ink-2">
-            Senha temporária de {revealedPassword.name}: <span className="font-mono">{revealedPassword.temporaryPassword}</span>
-          </p>
-        </Card>
+        <div role="status">
+          <Card tone="brand-tint" className="mt-4">
+            <p className="text-label font-semibold text-ink-2">
+              Senha temporária de {revealedPassword.name}: <span className="font-mono">{revealedPassword.temporaryPassword}</span>
+            </p>
+          </Card>
+        </div>
       )}
 
       <form onSubmit={handleSubmit}>

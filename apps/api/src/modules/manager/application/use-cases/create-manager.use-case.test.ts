@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { CreateManagerUseCase } from "./create-manager.use-case.ts";
 import { SectorNotInInstitutionError } from "./manager-admin-errors.ts";
 import { ManagerPasswordService } from "../services/manager-password.service.ts";
-import type { CreateManagerParams, ManagerRepository, ManagerRow, ManagerSummaryRow, UpdateManagerParams } from "../ports/manager-repository.port.ts";
+import type {
+  CreateManagerParams, ManagerRepository, ManagerRow, ManagerSummaryRow
+} from "../ports/manager-repository.port.ts";
 
 class FakeManagerRepository implements ManagerRepository {
   public lastCreateParams: CreateManagerParams | null = null;
@@ -30,7 +32,7 @@ class FakeManagerRepository implements ManagerRepository {
 class FakeSectorRepository {
   public lastReassign: { institutionId: string; managerId: string; sectorIds: string[] } | null = null;
   public knownSectorIds = new Set<string>();
-  async findByIdsInInstitution(institutionId: string, sectorIds: string[]) {
+  async findByIdsInInstitution(_institutionId: string, sectorIds: string[]) {
     return sectorIds.filter((id) => this.knownSectorIds.has(id)).map((id) => ({ id }));
   }
   async reassignManagerSectors(institutionId: string, managerId: string, sectorIds: string[]) {

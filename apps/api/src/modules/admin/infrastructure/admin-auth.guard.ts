@@ -3,14 +3,6 @@ import type { CanActivate, ExecutionContext } from "@nestjs/common";
 import type { Request } from "express";
 import { AdminTokenService } from "../application/services/admin-token.service.ts";
 
-declare global {
-  namespace Express {
-    interface Request {
-      admin?: { id: string; name: string };
-    }
-  }
-}
-
 @Injectable()
 export class AdminAuthGuard implements CanActivate {
   constructor(@Inject(AdminTokenService) private readonly tokenService: AdminTokenService) {}

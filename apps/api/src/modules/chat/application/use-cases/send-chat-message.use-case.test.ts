@@ -16,7 +16,6 @@ class FakeWorkingAiChatPort implements AiChatPort {
 }
 
 class FakeFailingAiChatPort implements AiChatPort {
-  // eslint-disable-next-line require-yield
   async *streamReply(): AsyncGenerator<ChatToken> {
     throw new Error("provider unreachable");
   }

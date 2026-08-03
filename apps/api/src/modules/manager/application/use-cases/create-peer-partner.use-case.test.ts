@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { CreatePeerPartnerUseCase } from "./create-peer-partner.use-case.ts";
-import { PeerPartnerPasswordService } from "../../../peer-partner/application/services/peer-partner-password.service.ts";
-import type { CreatePeerPartnerParams, PeerPartnerRepository, PeerPartnerRow, PeerPartnerSummaryRow, UpdatePeerPartnerParams } from "../../../peer-partner/application/ports/peer-partner-repository.port.ts";
+import { PeerPartnerPasswordService } from "@/modules/peer-partner/application/services/peer-partner-password.service.ts";
+import type {
+  CreatePeerPartnerParams, PeerPartnerRepository, PeerPartnerRow, PeerPartnerSummaryRow
+} from "@/modules/peer-partner/application/ports/peer-partner-repository.port.ts";
 
 class FakePeerPartnerRepository implements PeerPartnerRepository {
   public lastCreateParams: CreatePeerPartnerParams | null = null;

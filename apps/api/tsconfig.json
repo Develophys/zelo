@@ -9,8 +9,20 @@
     "rootDir": ".",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "strictPropertyInitialization": false
+    "strictPropertyInitialization": false,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
   },
-  "include": ["src", "generated"],
-  "exclude": ["src/**/*.test.ts", "dist"]
+  "include": [
+    "src",
+    "generated"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "dist"
+  ]
 }

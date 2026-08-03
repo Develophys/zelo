@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { LookupInstitutionUseCase } from "./lookup-institution.usecase";
-import type { InstitutionLinkPort, InstitutionLookupResult } from "@/ports/institution-link.port";
+import type { InstitutionLinkPort, InstitutionLookupResult, InstitutionSector } from "@/ports/institution-link.port";
 import { InstitutionNotFoundError } from "@/ports/institution-link.port";
 
 class FakeInstitutionLinkPort implements InstitutionLinkPort {
@@ -10,6 +10,9 @@ class FakeInstitutionLinkPort implements InstitutionLinkPort {
     this.lastCode = code;
     if (this.result instanceof Error) throw this.result;
     return this.result;
+  }
+  async listSectors(): Promise<InstitutionSector[]> {
+    throw new Error("not used in this test");
   }
 }
 

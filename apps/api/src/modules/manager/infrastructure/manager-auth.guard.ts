@@ -2,15 +2,7 @@ import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import type { CanActivate, ExecutionContext } from "@nestjs/common";
 import type { Request } from "express";
 import { ManagerTokenService } from "../application/services/manager-token.service.ts";
-import { MANAGER_REPOSITORY, type ManagerRepository, type ManagerRole } from "../application/ports/manager-repository.port.ts";
-
-declare global {
-  namespace Express {
-    interface Request {
-      manager?: { id: string; name: string; institutionId: string; role: ManagerRole };
-    }
-  }
-}
+import { MANAGER_REPOSITORY, type ManagerRepository } from "../application/ports/manager-repository.port.ts";
 
 // Verifies a Bearer token, not an HttpOnly cookie — deliberate,
 // see docs/superpowers/specs/technical-debt.md#td-001.

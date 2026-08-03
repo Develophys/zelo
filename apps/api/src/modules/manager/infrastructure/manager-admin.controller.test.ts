@@ -48,13 +48,13 @@ class FakeSectorRepository implements SectorRepository {
     if (patch.isActive !== undefined) row.isActive = patch.isActive;
     if (patch.managerId !== undefined) row.managerId = patch.managerId;
   }
-  async findActiveByInstitution() {
+  async findActiveByInstitution(): Promise<{ id: string; name: string }[]> {
     throw new Error("not used in this test");
   }
-  async findActiveByIds() {
+  async findActiveByIds(): Promise<{ id: string; name: string }[]> {
     throw new Error("not used in this test");
   }
-  async findAssignedSectorIds() {
+  async findAssignedSectorIds(): Promise<string[]> {
     throw new Error("not used in this test");
   }
   async reassignManagerSectors(): Promise<void> {
@@ -93,7 +93,7 @@ class FakeManagerRepository implements ManagerRepository {
       if (value !== undefined) Object.assign(row, { [key]: value });
     }
   }
-  async countActiveHospitalAdmins(institutionId: string): Promise<number> {
+  async countActiveHospitalAdmins(_institutionId: string): Promise<number> {
     return this.activeHospitalAdmins;
   }
 }

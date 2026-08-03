@@ -3,14 +3,6 @@ import type { CanActivate, ExecutionContext } from "@nestjs/common";
 import type { Request } from "express";
 import { PeerPartnerTokenService } from "../application/services/peer-partner-token.service.ts";
 
-declare global {
-  namespace Express {
-    interface Request {
-      peerPartner?: { id: string; name: string; institutionId: string };
-    }
-  }
-}
-
 @Injectable()
 export class PeerPartnerAuthGuard implements CanActivate {
   constructor(@Inject(PeerPartnerTokenService) private readonly tokenService: PeerPartnerTokenService) {}
