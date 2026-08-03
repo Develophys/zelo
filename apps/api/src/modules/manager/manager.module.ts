@@ -21,7 +21,8 @@ import { ResolveAccessibleSectorIdsUseCase } from "./application/use-cases/resol
 import { GetAccessibleSectorsUseCase } from "./application/use-cases/get-accessible-sectors.use-case.ts";
 import { CreateManagerUseCase } from "./application/use-cases/create-manager.use-case.ts";
 import { UpdateManagerUseCase } from "./application/use-cases/update-manager.use-case.ts";
-import { ResetManagerPasswordUseCase } from "./application/use-cases/reset-manager-password.use-case.ts";
+import { SendManagerSetPasswordEmailUseCase } from "./application/use-cases/send-manager-set-password-email.use-case.ts";
+import { FinishManagerSetupUseCase } from "./application/use-cases/finish-manager-setup.use-case.ts";
 import { CreatePeerPartnerUseCase } from "./application/use-cases/create-peer-partner.use-case.ts";
 import { ResetPeerPartnerPasswordUseCase } from "./application/use-cases/reset-peer-partner-password.use-case.ts";
 import { ManagerTokenService } from "./application/services/manager-token.service.ts";
@@ -52,7 +53,8 @@ const aiInsightPortProvider =
     GetAccessibleSectorsUseCase,
     CreateManagerUseCase,
     UpdateManagerUseCase,
-    ResetManagerPasswordUseCase,
+    SendManagerSetPasswordEmailUseCase,
+    FinishManagerSetupUseCase,
     ManagerTokenService,
     ManagerPasswordService,
     CreatePeerPartnerUseCase,

@@ -12,7 +12,7 @@ import type { AdminSectorRow, SectorRepository, UpdateSectorParams } from "../..
 import { SectorNameConflictError } from "../../sector/application/ports/sector-repository.port.ts";
 import { CreateManagerUseCase } from "../application/use-cases/create-manager.use-case.ts";
 import { UpdateManagerUseCase } from "../application/use-cases/update-manager.use-case.ts";
-import { ResetManagerPasswordUseCase } from "../application/use-cases/reset-manager-password.use-case.ts";
+import { SendManagerSetPasswordEmailUseCase } from "../application/use-cases/send-manager-set-password-email.use-case.ts";
 import { ManagerPasswordService } from "../application/services/manager-password.service.ts";
 import { MANAGER_REPOSITORY } from "../application/ports/manager-repository.port.ts";
 import type { CreateManagerParams, ManagerRepository, ManagerRow, ManagerSummaryRow, UpdateManagerParams } from "../application/ports/manager-repository.port.ts";
@@ -22,6 +22,8 @@ import { PeerPartnerPasswordService } from "../../peer-partner/application/servi
 import { PEER_PARTNER_REPOSITORY } from "../../peer-partner/application/ports/peer-partner-repository.port.ts";
 import type { CreatePeerPartnerParams, PeerPartnerRepository, PeerPartnerRow, PeerPartnerSummaryRow, UpdatePeerPartnerParams } from "../../peer-partner/application/ports/peer-partner-repository.port.ts";
 import { PeerChatGateway } from "../../peer-chat/infrastructure/peer-chat.gateway.ts";
+import { EMAIL_PORT } from "../../../shared/email/email.port.ts";
+import type { EmailPort, EmailTemplate, SendEmailParams } from "../../../shared/email/email.port.ts";
 
 class FakeSectorRepository implements SectorRepository {
   public rows: (AdminSectorRow & { institutionId: string })[] = [];
@@ -69,7 +71,10 @@ class FakeSectorRepository implements SectorRepository {
 class FakeManagerRepository implements ManagerRepository {
   public rows: ManagerRow[] = [];
   public activeHospitalAdmins = 1;
-  async findByName(): Promise<ManagerRow | null> {
+  async findByEmail(): Promise<ManagerRow | null> {
+    throw new Error("not used in this test");
+  }
+  async findBySetPasswordToken(): Promise<ManagerRow | null> {
     throw new Error("not used in this test");
   }
   async findById(id: string): Promise<ManagerRow | null> {
@@ -78,12 +83,30 @@ class FakeManagerRepository implements ManagerRepository {
   async findAllByInstitution(institutionId: string): Promise<ManagerSummaryRow[]> {
     return this.rows
       .filter((r) => r.institutionId === institutionId)
-      .map((r) => ({ id: r.id, name: r.name, role: r.role, isActive: r.isActive, sectorNames: [] }));
+      .map((r) => ({
+        id: r.id,
+        name: r.name,
+        email: r.email,
+        role: r.role,
+        isActive: r.isActive,
+        sectorNames: [],
+        hasPassword: r.passwordHash !== null,
+        setPasswordTokenExpiresAt: r.setPasswordTokenExpiresAt?.toISOString() ?? null,
+      }));
   }
-  async create(params: CreateManagerParams): Promise<{ id: string; name: string }> {
-    const row: ManagerRow = { id: `manager-${this.rows.length + 10}`, name: params.name, passwordHash: params.passwordHash, institutionId: params.institutionId, role: params.role, isActive: true };
+  async create(params: CreateManagerParams): Promise<{ id: string; name: string; email: string }> {
+    const row: ManagerRow = {
+      id: `manager-${this.rows.length + 10}`,
+      name: params.name,
+      email: params.email,
+      passwordHash: null,
+      setPasswordTokenExpiresAt: params.setPasswordTokenExpiresAt,
+      institutionId: params.institutionId,
+      role: params.role,
+      isActive: true,
+    };
     this.rows.push(row);
-    return { id: row.id, name: row.name };
+    return { id: row.id, name: row.name, email: row.email };
   }
   async update(id: string, patch: UpdateManagerParams): Promise<void> {
     const row = this.rows.find((r) => r.id === id);
@@ -95,6 +118,13 @@ class FakeManagerRepository implements ManagerRepository {
   }
   async countActiveHospitalAdmins(_institutionId: string): Promise<number> {
     return this.activeHospitalAdmins;
+  }
+}
+
+class FakeEmailPort implements EmailPort {
+  public lastSend: { to: string; template: EmailTemplate; params: SendEmailParams } | null = null;
+  async send(to: string, template: EmailTemplate, params: SendEmailParams): Promise<void> {
+    this.lastSend = { to, template, params };
   }
 }
 
@@ -136,6 +166,7 @@ describe("manager admin controller — sectors", () => {
   let peerPartnerRepository: FakePeerPartnerRepository;
   let peerChatGateway: FakePeerChatGateway;
   let tokenService: ManagerTokenService;
+  let emailPort: FakeEmailPort;
 
   beforeAll(async () => {
     tokenService = new ManagerTokenService(fakeConfig());
@@ -143,6 +174,7 @@ describe("manager admin controller — sectors", () => {
     managerRepository = new FakeManagerRepository();
     peerPartnerRepository = new FakePeerPartnerRepository();
     peerChatGateway = new FakePeerChatGateway();
+    emailPort = new FakeEmailPort();
 
     const moduleRef = await Test.createTestingModule({
       controllers: [ManagerAdminController],
@@ -154,9 +186,10 @@ describe("manager admin controller — sectors", () => {
         { provide: MANAGER_REPOSITORY, useValue: managerRepository },
         { provide: PEER_PARTNER_REPOSITORY, useValue: peerPartnerRepository },
         { provide: PeerChatGateway, useValue: peerChatGateway },
+        { provide: EMAIL_PORT, useValue: emailPort },
         CreateManagerUseCase,
         UpdateManagerUseCase,
-        ResetManagerPasswordUseCase,
+        SendManagerSetPasswordEmailUseCase,
         ManagerPasswordService,
         CreatePeerPartnerUseCase,
         ResetPeerPartnerPasswordUseCase,
@@ -174,8 +207,8 @@ describe("manager admin controller — sectors", () => {
 
   // ManagerAuthGuard re-reads the acting manager's row on every request, so the
   // two callers below must always exist in the repository.
-  const ACTING_ADMIN: ManagerRow = { id: "manager-1", name: "Mauricio", passwordHash: "h", institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: true };
-  const ACTING_SECTOR_MANAGER: ManagerRow = { id: "manager-2", name: "Paulo", passwordHash: "h", institutionId: "institution-1", role: "SECTOR_MANAGER", isActive: true };
+  const ACTING_ADMIN: ManagerRow = { id: "manager-1", name: "Mauricio", email: "mauricio@institution-1.local", passwordHash: "h", setPasswordTokenExpiresAt: null, institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: true };
+  const ACTING_SECTOR_MANAGER: ManagerRow = { id: "manager-2", name: "Paulo", email: "paulo@institution-1.local", passwordHash: "h", setPasswordTokenExpiresAt: null, institutionId: "institution-1", role: "SECTOR_MANAGER", isActive: true };
 
   beforeEach(() => {
     sectorRepository.rows = [];
@@ -253,7 +286,7 @@ describe("manager admin controller — sectors", () => {
   it("PATCH /manager/admin/sectors/:id assigns a manager from the same institution", async () => {
     const token = hospitalAdminToken();
     sectorRepository.rows.push({ id: "sector-a", name: "UTI", isActive: true, managerId: null, managerName: null, institutionId: "institution-1" });
-    managerRepository.rows.push({ id: "manager-9", name: "Paulo", passwordHash: "h", institutionId: "institution-1", role: "SECTOR_MANAGER", isActive: true });
+    managerRepository.rows.push({ id: "manager-9", name: "Paulo", email: "paulo2@institution-1.local", passwordHash: "h", setPasswordTokenExpiresAt: null, institutionId: "institution-1", role: "SECTOR_MANAGER", isActive: true });
 
     const response = await request(app.getHttpServer())
       .patch("/manager/admin/sectors/sector-a")
@@ -267,7 +300,7 @@ describe("manager admin controller — sectors", () => {
   it("PATCH /manager/admin/sectors/:id rejects a managerId belonging to a different institution and leaves the sector untouched", async () => {
     const token = hospitalAdminToken();
     sectorRepository.rows.push({ id: "sector-a", name: "UTI", isActive: true, managerId: null, managerName: null, institutionId: "institution-1" });
-    managerRepository.rows.push({ id: "foreign-manager", name: "Intruso", passwordHash: "h", institutionId: "institution-2", role: "SECTOR_MANAGER", isActive: true });
+    managerRepository.rows.push({ id: "foreign-manager", name: "Intruso", email: "intruso@institution-2.local", passwordHash: "h", setPasswordTokenExpiresAt: null, institutionId: "institution-2", role: "SECTOR_MANAGER", isActive: true });
 
     const response = await request(app.getHttpServer())
       .patch("/manager/admin/sectors/sector-a")
@@ -305,28 +338,29 @@ describe("manager admin controller — sectors", () => {
   });
 
   it("GET /manager/admin/managers returns every manager in the institution", async () => {
-    managerRepository.rows.push({ id: "manager-3", name: "Elsewhere", passwordHash: "h", institutionId: "institution-2", role: "HOSPITAL_ADMIN", isActive: true });
+    managerRepository.rows.push({ id: "manager-3", name: "Elsewhere", email: "elsewhere@institution-2.local", passwordHash: "h", setPasswordTokenExpiresAt: null, institutionId: "institution-2", role: "HOSPITAL_ADMIN", isActive: true });
 
     const response = await request(app.getHttpServer()).get("/manager/admin/managers").set("Authorization", `Bearer ${hospitalAdminToken()}`);
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual([
-      { id: "manager-1", name: "Mauricio", role: "HOSPITAL_ADMIN", isActive: true, sectorNames: [] },
-      { id: "manager-2", name: "Paulo", role: "SECTOR_MANAGER", isActive: true, sectorNames: [] },
+      { id: "manager-1", name: "Mauricio", email: "mauricio@institution-1.local", role: "HOSPITAL_ADMIN", isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: "manager-2", name: "Paulo", email: "paulo@institution-1.local", role: "SECTOR_MANAGER", isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
   });
 
-  it("POST /manager/admin/managers creates a SECTOR_MANAGER and returns a temporary password", async () => {
+  it("POST /manager/admin/managers creates a SECTOR_MANAGER and sends an invite email", async () => {
     sectorRepository.rows = [{ id: "sector-a", name: "UTI", isActive: true, managerId: null, managerName: null, institutionId: "institution-1" }];
 
     const response = await request(app.getHttpServer())
       .post("/manager/admin/managers")
       .set("Authorization", `Bearer ${hospitalAdminToken()}`)
-      .send({ name: "Paulo", role: "SECTOR_MANAGER", sectorIds: ["sector-a"] });
+      .send({ name: "Paulo", email: "paulo3@institution-1.local", role: "SECTOR_MANAGER", sectorIds: ["sector-a"] });
 
     expect(response.status).toBe(201);
-    expect(response.body.manager).toEqual({ id: expect.any(String), name: "Paulo" });
-    expect(response.body.temporaryPassword).toEqual(expect.any(String));
+    expect(response.body.manager).toEqual({ id: expect.any(String), name: "Paulo", email: "paulo3@institution-1.local" });
+    expect(emailPort.lastSend?.to).toBe("paulo3@institution-1.local");
+    expect(emailPort.lastSend?.template).toBe("invite");
   });
 
   it("POST /manager/admin/managers rejects a SECTOR_MANAGER request with no sectorIds", async () => {
@@ -393,15 +427,16 @@ describe("manager admin controller — sectors", () => {
     expect(after.status).toBe(401);
   });
 
-  it("POST /manager/admin/managers/:id/reset-password returns a new temporary password", async () => {
-    managerRepository.rows.push({ id: "manager-7", name: "Renata", passwordHash: "old", institutionId: "institution-1", role: "SECTOR_MANAGER", isActive: true });
+  it("POST /manager/admin/managers/:id/send-set-password-email sends the manager an email", async () => {
+    managerRepository.rows.push({ id: "manager-7", name: "Renata", email: "renata@institution-1.local", passwordHash: "old", setPasswordTokenExpiresAt: null, institutionId: "institution-1", role: "SECTOR_MANAGER", isActive: true });
 
     const response = await request(app.getHttpServer())
-      .post("/manager/admin/managers/manager-7/reset-password")
+      .post("/manager/admin/managers/manager-7/send-set-password-email")
       .set("Authorization", `Bearer ${hospitalAdminToken()}`);
 
     expect(response.status).toBe(200);
-    expect(response.body.temporaryPassword).toEqual(expect.any(String));
+    expect(emailPort.lastSend?.to).toBe("renata@institution-1.local");
+    expect(emailPort.lastSend?.template).toBe("password-reset");
   });
 
   it("GET /manager/admin/peer-partners returns every peer partner in the institution", async () => {

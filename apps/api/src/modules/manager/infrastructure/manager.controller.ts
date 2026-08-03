@@ -20,12 +20,14 @@ import { GenerateManagerInsightUseCase } from "../application/use-cases/generate
 import { GetManagerInsightHistoryUseCase } from "../application/use-cases/get-manager-insight-history.use-case.ts";
 import { ResolveAccessibleSectorIdsUseCase } from "../application/use-cases/resolve-accessible-sector-ids.use-case.ts";
 import { GetAccessibleSectorsUseCase } from "../application/use-cases/get-accessible-sectors.use-case.ts";
+import { FinishManagerSetupUseCase, InvalidOrExpiredManagerSetupTokenError } from "../application/use-cases/finish-manager-setup.use-case.ts";
 import { InsightGenerationFailedError, type ManagerInsightResponse } from "../application/ports/ai-insight.port.ts";
 import type { StoredManagerInsight } from "../application/ports/manager-insight-repository.port.ts";
 import type { IssuedManagerToken } from "../application/services/manager-token.service.ts";
 import { ManagerAuthGuard } from "./manager-auth.guard.ts";
 
 const LoginRequestSchema = z.object({ email: z.string().email().max(200), password: z.string().min(1).max(200) });
+const FinishSetupRequestSchema = z.object({ token: z.string().min(1), password: z.string().min(8).max(200) });
 
 @Controller("manager")
 export class ManagerController {
@@ -36,6 +38,7 @@ export class ManagerController {
     @Inject(GetManagerInsightHistoryUseCase) private readonly getManagerInsightHistory: GetManagerInsightHistoryUseCase,
     @Inject(ResolveAccessibleSectorIdsUseCase) private readonly resolveAccessibleSectorIds: ResolveAccessibleSectorIdsUseCase,
     @Inject(GetAccessibleSectorsUseCase) private readonly getAccessibleSectors: GetAccessibleSectorsUseCase,
+    @Inject(FinishManagerSetupUseCase) private readonly finishManagerSetup: FinishManagerSetupUseCase,
   ) {}
 
   @Post("login")
@@ -50,6 +53,24 @@ export class ManagerController {
       return await this.loginManager.execute(parsed.data.email, parsed.data.password);
     } catch (error) {
       if (error instanceof InvalidManagerCredentialsError) {
+        throw new UnauthorizedException();
+      }
+      throw error;
+    }
+  }
+
+  @Post("finish-setup")
+  @HttpCode(200)
+  async finishSetup(@Body() body: unknown): Promise<void> {
+    const parsed = FinishSetupRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    try {
+      await this.finishManagerSetup.execute(parsed.data);
+    } catch (error) {
+      if (error instanceof InvalidOrExpiredManagerSetupTokenError) {
         throw new UnauthorizedException();
       }
       throw error;

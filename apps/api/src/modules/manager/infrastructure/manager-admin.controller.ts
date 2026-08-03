@@ -22,7 +22,7 @@ import { SectorNameConflictError } from "../../sector/application/ports/sector-r
 import { MANAGER_REPOSITORY, type ManagerRepository, type ManagerSummaryRow } from "../application/ports/manager-repository.port.ts";
 import { CreateManagerUseCase, type CreateManagerResult } from "../application/use-cases/create-manager.use-case.ts";
 import { UpdateManagerUseCase } from "../application/use-cases/update-manager.use-case.ts";
-import { ResetManagerPasswordUseCase } from "../application/use-cases/reset-manager-password.use-case.ts";
+import { SendManagerSetPasswordEmailUseCase } from "../application/use-cases/send-manager-set-password-email.use-case.ts";
 import { LastActiveHospitalAdminError, ManagerNotFoundError, SectorNotInInstitutionError, PeerPartnerNotFoundError } from "../application/use-cases/manager-admin-errors.ts";
 import { PEER_PARTNER_REPOSITORY, type PeerPartnerRepository, type PeerPartnerSummaryRow } from "../../peer-partner/application/ports/peer-partner-repository.port.ts";
 import { CreatePeerPartnerUseCase, type CreatePeerPartnerResult } from "../application/use-cases/create-peer-partner.use-case.ts";
@@ -35,6 +35,7 @@ const UpdateSectorSchema = z.object({ isActive: z.boolean().optional(), managerI
 const CreateManagerSchema = z
   .object({
     name: z.string().trim().min(1).max(200),
+    email: z.string().trim().email().max(200),
     role: z.enum(["HOSPITAL_ADMIN", "SECTOR_MANAGER"]),
     sectorIds: z.array(z.string()).optional(),
   })
@@ -60,7 +61,7 @@ export class ManagerAdminController {
     @Inject(MANAGER_REPOSITORY) private readonly managerRepository: ManagerRepository,
     @Inject(CreateManagerUseCase) private readonly createManager: CreateManagerUseCase,
     @Inject(UpdateManagerUseCase) private readonly updateManager: UpdateManagerUseCase,
-    @Inject(ResetManagerPasswordUseCase) private readonly resetManagerPassword: ResetManagerPasswordUseCase,
+    @Inject(SendManagerSetPasswordEmailUseCase) private readonly sendManagerSetPasswordEmail: SendManagerSetPasswordEmailUseCase,
     @Inject(PEER_PARTNER_REPOSITORY) private readonly peerPartnerRepository: PeerPartnerRepository,
     @Inject(CreatePeerPartnerUseCase) private readonly createPeerPartner: CreatePeerPartnerUseCase,
     @Inject(ResetPeerPartnerPasswordUseCase) private readonly resetPeerPartnerPassword: ResetPeerPartnerPasswordUseCase,
@@ -163,11 +164,11 @@ export class ManagerAdminController {
     }
   }
 
-  @Post("managers/:id/reset-password")
+  @Post("managers/:id/send-set-password-email")
   @HttpCode(200)
-  async resetManagerPasswordHandler(@Req() request: Request, @Param("id") id: string): Promise<{ temporaryPassword: string }> {
+  async sendManagerSetPasswordEmailHandler(@Req() request: Request, @Param("id") id: string): Promise<void> {
     try {
-      return await this.resetManagerPassword.execute({ institutionId: request.manager!.institutionId, managerId: id });
+      await this.sendManagerSetPasswordEmail.execute({ institutionId: request.manager!.institutionId, managerId: id });
     } catch (error) {
       if (error instanceof ManagerNotFoundError) {
         throw new NotFoundException();

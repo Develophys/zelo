@@ -11,6 +11,7 @@ import { GenerateManagerInsightUseCase } from "../application/use-cases/generate
 import { GetManagerInsightHistoryUseCase } from "../application/use-cases/get-manager-insight-history.use-case.ts";
 import { ResolveAccessibleSectorIdsUseCase } from "../application/use-cases/resolve-accessible-sector-ids.use-case.ts";
 import { GetAccessibleSectorsUseCase } from "../application/use-cases/get-accessible-sectors.use-case.ts";
+import { FinishManagerSetupUseCase } from "../application/use-cases/finish-manager-setup.use-case.ts";
 import { ManagerTokenService } from "../application/services/manager-token.service.ts";
 import { ManagerPasswordService } from "../application/services/manager-password.service.ts";
 import { MANAGER_REPOSITORY } from "../application/ports/manager-repository.port.ts";
@@ -31,8 +32,8 @@ class FakeManagerRepository implements ManagerRepository {
   async findByEmail(email: string): Promise<ManagerRow | null> {
     return this.rows.find((row) => row.email === email) ?? null;
   }
-  async findBySetPasswordToken(): Promise<ManagerRow | null> {
-    throw new Error("not used in this test");
+  async findBySetPasswordToken(token: string): Promise<ManagerRow | null> {
+    return this.rows.find((row) => (row as unknown as { setPasswordToken?: string }).setPasswordToken === token) ?? null;
   }
   // ManagerAuthGuard re-reads the row on every authenticated request.
   async findById(id: string): Promise<ManagerRow | null> {
@@ -44,8 +45,12 @@ class FakeManagerRepository implements ManagerRepository {
   async create(): Promise<never> {
     throw new Error("not used in this test");
   }
-  async update(): Promise<void> {
-    throw new Error("not used in this test");
+  async update(id: string, patch: Partial<ManagerRow> & { setPasswordToken?: string | null }): Promise<void> {
+    const row = this.rows.find((r) => r.id === id);
+    if (!row) return;
+    for (const [key, value] of Object.entries(patch)) {
+      if (value !== undefined) Object.assign(row, { [key]: value });
+    }
   }
   async countActiveHospitalAdmins(): Promise<number> {
     throw new Error("not used in this test");
@@ -179,6 +184,7 @@ describe("manager controller", () => {
         GetManagerInsightHistoryUseCase,
         ResolveAccessibleSectorIdsUseCase,
         GetAccessibleSectorsUseCase,
+        FinishManagerSetupUseCase,
         ManagerTokenService,
         ManagerPasswordService,
         ManagerAuthGuard,
@@ -234,6 +240,37 @@ describe("manager controller", () => {
   it("POST /manager/login rejects a malformed body with 400", async () => {
     const response = await request(app.getHttpServer()).post("/manager/login").send({});
 
+    expect(response.status).toBe(400);
+  });
+
+  it("POST /manager/finish-setup sets the password for a valid, unexpired token", async () => {
+    const passwordService = new ManagerPasswordService();
+    managerRepository.rows.push({
+      id: "manager-pending",
+      name: "Novo Gestor",
+      email: "novo@zelo-demo.local",
+      passwordHash: null,
+      setPasswordTokenExpiresAt: new Date(Date.now() + 60_000),
+      institutionId: "institution-a",
+      role: "HOSPITAL_ADMIN",
+      isActive: true,
+    });
+    (managerRepository.rows[managerRepository.rows.length - 1] as unknown as { setPasswordToken: string }).setPasswordToken = "valid-token";
+
+    const response = await request(app.getHttpServer()).post("/manager/finish-setup").send({ token: "valid-token", password: "new-password-123" });
+
+    expect(response.status).toBe(200);
+    const updated = managerRepository.rows.find((row) => row.id === "manager-pending")!;
+    expect(await passwordService.verify("new-password-123", updated.passwordHash!)).toBe(true);
+  });
+
+  it("POST /manager/finish-setup rejects an unknown token with 401", async () => {
+    const response = await request(app.getHttpServer()).post("/manager/finish-setup").send({ token: "unknown-token", password: "new-password-123" });
+    expect(response.status).toBe(401);
+  });
+
+  it("POST /manager/finish-setup rejects a malformed body with 400", async () => {
+    const response = await request(app.getHttpServer()).post("/manager/finish-setup").send({ token: "x" });
     expect(response.status).toBe(400);
   });
 
