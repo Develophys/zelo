@@ -22,6 +22,8 @@ export function usePeerRequest() {
   }, []);
 
   const requestPeer = useCallback((institutionId: string, sectorName?: string) => {
+    clientRef.current?.disconnect();
+
     setState("searching");
     setMessages([]);
     setPeerLeft(false);

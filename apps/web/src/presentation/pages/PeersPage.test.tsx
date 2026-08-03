@@ -66,6 +66,23 @@ describe("PeersPage", () => {
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Nenhum colega disponível agora."));
   });
 
+  it("disconnects the previous socket before opening a new one when retrying after no_peer_available", async () => {
+    useInstitutionLinkStore.setState({ institutionId: "institution-1", institutionName: "Hospital Teste", sectorId: "sector-1", sectorName: "UTI", deviceSignalId: "device-1" });
+    const user = userEvent.setup();
+    renderPeers();
+    await user.click(screen.getByRole("button", { name: "Falar com um colega" }));
+
+    expect(disconnectSpy).not.toHaveBeenCalled();
+
+    handlers["no_peer_available"]!();
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Nenhum colega disponível agora."));
+
+    await user.click(screen.getByRole("button", { name: "Tentar novamente" }));
+
+    expect(disconnectSpy).toHaveBeenCalledTimes(1);
+    expect(emitSpy).toHaveBeenNthCalledWith(2, "request-peer", { institutionId: "institution-1", sectorName: "UTI" });
+  });
+
   it("renders PeerChatRoom once matched fires, showing the peer's specialty", async () => {
     useInstitutionLinkStore.setState({ institutionId: "institution-1", institutionName: "Hospital Teste", sectorId: "sector-1", sectorName: "UTI", deviceSignalId: "device-1" });
     const user = userEvent.setup();
