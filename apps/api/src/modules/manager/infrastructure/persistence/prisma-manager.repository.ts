@@ -8,12 +8,19 @@ import type {
 } from "../../application/ports/manager-repository.port.ts";
 import { PrismaService } from "../../../../shared/prisma/prisma.service.ts";
 
+const SET_PASSWORD_TOKEN_TTL_MS = 48 * 60 * 60 * 1000;
+
 @Injectable()
 export class PrismaManagerRepository implements ManagerRepository {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  async findByName(name: string): Promise<ManagerRow | null> {
-    const row = await this.prisma.manager.findUnique({ where: { name } });
+  async findByEmail(email: string): Promise<ManagerRow | null> {
+    const row = await this.prisma.manager.findUnique({ where: { email } });
+    return row ? this.toRow(row) : null;
+  }
+
+  async findBySetPasswordToken(token: string): Promise<ManagerRow | null> {
+    const row = await this.prisma.manager.findUnique({ where: { setPasswordToken: token } });
     return row ? this.toRow(row) : null;
   }
 
@@ -30,22 +37,27 @@ export class PrismaManagerRepository implements ManagerRepository {
     return rows.map((row) => ({
       id: row.id,
       name: row.name,
+      email: row.email,
       role: row.role,
       isActive: row.isActive,
       sectorNames: row.sectors.map((sector) => sector.name),
+      hasPassword: row.passwordHash !== null,
+      setPasswordTokenExpiresAt: row.setPasswordTokenExpiresAt?.toISOString() ?? null,
     }));
   }
 
-  async create(params: CreateManagerParams): Promise<{ id: string; name: string }> {
+  async create(params: CreateManagerParams): Promise<{ id: string; name: string; email: string }> {
     const row = await this.prisma.manager.create({
       data: {
         name: params.name,
-        passwordHash: params.passwordHash,
+        email: params.email,
         institutionId: params.institutionId,
         role: params.role,
+        setPasswordToken: params.setPasswordToken,
+        setPasswordTokenExpiresAt: params.setPasswordTokenExpiresAt,
       },
     });
-    return { id: row.id, name: row.name };
+    return { id: row.id, name: row.name, email: row.email };
   }
 
   async update(id: string, patch: UpdateManagerParams): Promise<void> {
@@ -56,11 +68,22 @@ export class PrismaManagerRepository implements ManagerRepository {
     return this.prisma.manager.count({ where: { institutionId, role: "HOSPITAL_ADMIN", isActive: true } });
   }
 
-  private toRow(row: { id: string; name: string; passwordHash: string; institutionId: string; role: string; isActive: boolean }): ManagerRow {
+  private toRow(row: {
+    id: string;
+    name: string;
+    email: string;
+    passwordHash: string | null;
+    setPasswordTokenExpiresAt: Date | null;
+    institutionId: string;
+    role: string;
+    isActive: boolean;
+  }): ManagerRow {
     return {
       id: row.id,
       name: row.name,
+      email: row.email,
       passwordHash: row.passwordHash,
+      setPasswordTokenExpiresAt: row.setPasswordTokenExpiresAt,
       institutionId: row.institutionId,
       role: row.role as ManagerRow["role"],
       isActive: row.isActive,

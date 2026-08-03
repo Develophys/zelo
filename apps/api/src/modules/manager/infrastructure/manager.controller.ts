@@ -25,7 +25,7 @@ import type { StoredManagerInsight } from "../application/ports/manager-insight-
 import type { IssuedManagerToken } from "../application/services/manager-token.service.ts";
 import { ManagerAuthGuard } from "./manager-auth.guard.ts";
 
-const LoginRequestSchema = z.object({ name: z.string().min(1).max(200), password: z.string().min(1).max(200) });
+const LoginRequestSchema = z.object({ email: z.string().email().max(200), password: z.string().min(1).max(200) });
 
 @Controller("manager")
 export class ManagerController {
@@ -47,7 +47,7 @@ export class ManagerController {
     }
 
     try {
-      return await this.loginManager.execute(parsed.data.name, parsed.data.password);
+      return await this.loginManager.execute(parsed.data.email, parsed.data.password);
     } catch (error) {
       if (error instanceof InvalidManagerCredentialsError) {
         throw new UnauthorizedException();

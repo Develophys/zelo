@@ -28,8 +28,11 @@ import type { SectorRepository, AdminSectorRow, UpdateSectorParams } from "../..
 
 class FakeManagerRepository implements ManagerRepository {
   public rows: ManagerRow[] = [];
-  async findByName(name: string): Promise<ManagerRow | null> {
-    return this.rows.find((row) => row.name === name) ?? null;
+  async findByEmail(email: string): Promise<ManagerRow | null> {
+    return this.rows.find((row) => row.email === email) ?? null;
+  }
+  async findBySetPasswordToken(): Promise<ManagerRow | null> {
+    throw new Error("not used in this test");
   }
   // ManagerAuthGuard re-reads the row on every authenticated request.
   async findById(id: string): Promise<ManagerRow | null> {
@@ -144,7 +147,9 @@ describe("manager controller", () => {
       {
         id: "manager-1",
         name: "Ana Konder",
+        email: "ana@zelo-demo.local",
         passwordHash: await passwordService.hash("test-password"),
+        setPasswordTokenExpiresAt: null,
         institutionId: "institution-a",
         role: "HOSPITAL_ADMIN",
         isActive: true,
@@ -152,7 +157,9 @@ describe("manager controller", () => {
       {
         id: "manager-2",
         name: "Beatriz Lima",
+        email: "beatriz@zelo-demo.local",
         passwordHash: await passwordService.hash("test-password-2"),
+        setPasswordTokenExpiresAt: null,
         institutionId: "institution-b",
         role: "HOSPITAL_ADMIN",
         isActive: true,
@@ -193,25 +200,25 @@ describe("manager controller", () => {
     await app.close();
   });
 
-  async function getToken(name: string, password: string): Promise<string> {
-    const login = await request(app.getHttpServer()).post("/manager/login").send({ name, password });
+  async function getToken(email: string, password: string): Promise<string> {
+    const login = await request(app.getHttpServer()).post("/manager/login").send({ email, password });
     return login.body.token;
   }
 
-  it("POST /manager/login returns a token for the correct name and password", async () => {
+  it("POST /manager/login returns a token for the correct email and password", async () => {
     const response = await request(app.getHttpServer())
       .post("/manager/login")
-      .send({ name: "Ana Konder", password: "test-password" });
+      .send({ email: "ana@zelo-demo.local", password: "test-password" });
 
     expect(response.status).toBe(200);
     expect(response.body.token).toEqual(expect.any(String));
     expect(response.body.expiresAt).toEqual(expect.any(String));
   });
 
-  it("POST /manager/login rejects an unknown name with 401", async () => {
+  it("POST /manager/login rejects an unknown email with 401", async () => {
     const response = await request(app.getHttpServer())
       .post("/manager/login")
-      .send({ name: "Unknown Person", password: "test-password" });
+      .send({ email: "unknown@zelo-demo.local", password: "test-password" });
 
     expect(response.status).toBe(401);
   });
@@ -219,7 +226,7 @@ describe("manager controller", () => {
   it("POST /manager/login rejects the wrong password with 401", async () => {
     const response = await request(app.getHttpServer())
       .post("/manager/login")
-      .send({ name: "Ana Konder", password: "wrong-password" });
+      .send({ email: "ana@zelo-demo.local", password: "wrong-password" });
 
     expect(response.status).toBe(401);
   });
@@ -249,12 +256,12 @@ describe("manager controller", () => {
       "institution-b": [{ id: "sector-a", name: "A" }],
     };
 
-    const tokenA = await getToken("Ana Konder", "test-password");
+    const tokenA = await getToken("ana@zelo-demo.local", "test-password");
     const responseA = await request(app.getHttpServer()).get("/manager/signals").set("Authorization", `Bearer ${tokenA}`);
     expect(responseA.status).toBe(200);
     expect(responseA.body.segments).toEqual([{ label: "A", value: 60, n: 10 }]);
 
-    const tokenB = await getToken("Beatriz Lima", "test-password-2");
+    const tokenB = await getToken("beatriz@zelo-demo.local", "test-password-2");
     const responseB = await request(app.getHttpServer()).get("/manager/signals").set("Authorization", `Bearer ${tokenB}`);
     expect(responseB.status).toBe(200);
     expect(responseB.body.segments).toEqual([{ label: "A", value: 10, n: 20 }]);
@@ -262,7 +269,7 @@ describe("manager controller", () => {
 
   it("GET /manager/sectors returns every active sector for a HOSPITAL_ADMIN", async () => {
     sectorRepository.activeByInstitution = { "institution-a": [{ id: "sector-1", name: "UTI" }] };
-    const token = await getToken("Ana Konder", "test-password");
+    const token = await getToken("ana@zelo-demo.local", "test-password");
 
     const response = await request(app.getHttpServer()).get("/manager/sectors").set("Authorization", `Bearer ${token}`);
 
@@ -276,7 +283,7 @@ describe("manager controller", () => {
       { sectorId: "sector-2", sectorName: "Pronto-Socorro", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 20, concerning: 2 },
     ]);
     sectorRepository.activeByInstitution = { "institution-a": [{ id: "sector-1", name: "UTI" }, { id: "sector-2", name: "Pronto-Socorro" }] };
-    const token = await getToken("Ana Konder", "test-password");
+    const token = await getToken("ana@zelo-demo.local", "test-password");
 
     const response = await request(app.getHttpServer())
       .get("/manager/signals?sectorIds=sector-1")
@@ -292,7 +299,7 @@ describe("manager controller", () => {
       { sectorId: "sector-2", sectorName: "Pronto-Socorro", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 20, concerning: 2 },
     ]);
     sectorRepository.activeByInstitution = { "institution-a": [{ id: "sector-1", name: "UTI" }, { id: "sector-2", name: "Pronto-Socorro" }] };
-    const token = await getToken("Ana Konder", "test-password");
+    const token = await getToken("ana@zelo-demo.local", "test-password");
 
     const response = await request(app.getHttpServer())
       .get("/manager/signals?sectorIds=")
@@ -309,7 +316,7 @@ describe("manager controller", () => {
   });
 
   it("GET /manager/signals rejects a still-valid token once the manager has been deactivated", async () => {
-    const token = await getToken("Beatriz Lima", "test-password-2");
+    const token = await getToken("beatriz@zelo-demo.local", "test-password-2");
     const beatriz = managerRepository.rows.find((row) => row.id === "manager-2")!;
 
     const before = await request(app.getHttpServer()).get("/manager/signals").set("Authorization", `Bearer ${token}`);
@@ -332,7 +339,7 @@ describe("manager controller", () => {
 
   it("POST /manager/insights returns the structured insight for a valid token", async () => {
     aiInsightPort.shouldFail = false;
-    const token = await getToken("Ana Konder", "test-password");
+    const token = await getToken("ana@zelo-demo.local", "test-password");
 
     const response = await request(app.getHttpServer()).post("/manager/insights").set("Authorization", `Bearer ${token}`);
 
@@ -342,7 +349,7 @@ describe("manager controller", () => {
 
   it("POST /manager/insights returns 502 when insight generation fails", async () => {
     aiInsightPort.shouldFail = true;
-    const token = await getToken("Ana Konder", "test-password");
+    const token = await getToken("ana@zelo-demo.local", "test-password");
 
     const response = await request(app.getHttpServer()).post("/manager/insights").set("Authorization", `Bearer ${token}`);
 
@@ -360,7 +367,7 @@ describe("manager controller", () => {
     insightRepository.rows = [];
     aiInsightPort.shouldFail = false;
 
-    const tokenA = await getToken("Ana Konder", "test-password");
+    const tokenA = await getToken("ana@zelo-demo.local", "test-password");
     await request(app.getHttpServer()).post("/manager/insights").set("Authorization", `Bearer ${tokenA}`);
 
     const historyForA = await request(app.getHttpServer())
@@ -375,7 +382,7 @@ describe("manager controller", () => {
       }),
     ]);
 
-    const tokenB = await getToken("Beatriz Lima", "test-password-2");
+    const tokenB = await getToken("beatriz@zelo-demo.local", "test-password-2");
     const historyForB = await request(app.getHttpServer())
       .get("/manager/insights/history")
       .set("Authorization", `Bearer ${tokenB}`);

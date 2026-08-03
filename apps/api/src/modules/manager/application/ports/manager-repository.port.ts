@@ -3,7 +3,9 @@ export type ManagerRole = "HOSPITAL_ADMIN" | "SECTOR_MANAGER";
 export interface ManagerRow {
   id: string;
   name: string;
-  passwordHash: string;
+  email: string;
+  passwordHash: string | null;
+  setPasswordTokenExpiresAt: Date | null;
   institutionId: string;
   role: ManagerRole;
   isActive: boolean;
@@ -12,29 +14,37 @@ export interface ManagerRow {
 export interface ManagerSummaryRow {
   id: string;
   name: string;
+  email: string;
   role: ManagerRole;
   isActive: boolean;
   sectorNames: string[];
+  hasPassword: boolean;
+  setPasswordTokenExpiresAt: string | null;
 }
 
 export interface CreateManagerParams {
   name: string;
-  passwordHash: string;
+  email: string;
   institutionId: string;
   role: ManagerRole;
+  setPasswordToken: string;
+  setPasswordTokenExpiresAt: Date;
 }
 
 export interface UpdateManagerParams {
   isActive?: boolean;
   role?: ManagerRole;
-  passwordHash?: string;
+  passwordHash?: string | null;
+  setPasswordToken?: string | null;
+  setPasswordTokenExpiresAt?: Date | null;
 }
 
 export interface ManagerRepository {
-  findByName(name: string): Promise<ManagerRow | null>;
+  findByEmail(email: string): Promise<ManagerRow | null>;
+  findBySetPasswordToken(token: string): Promise<ManagerRow | null>;
   findById(id: string): Promise<ManagerRow | null>;
   findAllByInstitution(institutionId: string): Promise<ManagerSummaryRow[]>;
-  create(params: CreateManagerParams): Promise<{ id: string; name: string }>;
+  create(params: CreateManagerParams): Promise<{ id: string; name: string; email: string }>;
   update(id: string, patch: UpdateManagerParams): Promise<void>;
   countActiveHospitalAdmins(institutionId: string): Promise<number>;
 }
