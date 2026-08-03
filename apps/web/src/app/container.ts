@@ -36,7 +36,7 @@ import { UpdateSectorUseCase } from "@/use-cases/update-sector.usecase";
 import { ListManagersUseCase } from "@/use-cases/list-managers.usecase";
 import { CreateManagerUseCase as CreateManagerAdminUseCase } from "@/use-cases/create-manager.usecase";
 import { UpdateManagerUseCase as UpdateManagerAdminUseCase } from "@/use-cases/update-manager.usecase";
-import { ResetManagerPasswordUseCase } from "@/use-cases/reset-manager-password.usecase";
+import { SendManagerSetPasswordEmailUseCase } from "@/use-cases/send-manager-set-password-email.usecase";
 import { HttpManagerSectorsAdapter } from "@/infrastructure/http/http-manager-sectors.adapter";
 import { ListAccessibleSectorsUseCase } from "@/use-cases/list-accessible-sectors.usecase";
 import { ListInstitutionSectorsUseCase } from "@/use-cases/list-institution-sectors.usecase";
@@ -46,7 +46,7 @@ import { HttpPeerPartnerAuthAdapter } from "@/infrastructure/http/http-peer-part
 import { ListPeerPartnersUseCase } from "@/use-cases/list-peer-partners.usecase";
 import { CreatePeerPartnerUseCase } from "@/use-cases/create-peer-partner.usecase";
 import { UpdatePeerPartnerUseCase } from "@/use-cases/update-peer-partner.usecase";
-import { ResetPeerPartnerPasswordUseCase } from "@/use-cases/reset-peer-partner-password.usecase";
+import { SendPeerPartnerSetPasswordEmailUseCase } from "@/use-cases/send-peer-partner-set-password-email.usecase";
 
 export const checkApiHealthUseCase = new CheckApiHealthUseCase(new HttpApiHealthAdapter());
 export const sendChatMessageUseCase = new SendChatMessageUseCase(
@@ -85,7 +85,7 @@ export const updateSectorUseCase = new UpdateSectorUseCase(managerAdminAdapter);
 export const listManagersUseCase = new ListManagersUseCase(managerAdminAdapter);
 export const createManagerAdminUseCase = new CreateManagerAdminUseCase(managerAdminAdapter);
 export const updateManagerAdminUseCase = new UpdateManagerAdminUseCase(managerAdminAdapter);
-export const resetManagerPasswordUseCase = new ResetManagerPasswordUseCase(managerAdminAdapter);
+export const sendManagerSetPasswordEmailUseCase = new SendManagerSetPasswordEmailUseCase(managerAdminAdapter);
 export const listAccessibleSectorsUseCase = new ListAccessibleSectorsUseCase(new HttpManagerSectorsAdapter());
 const peerPartnerAuthAdapter = new HttpPeerPartnerAuthAdapter();
 export const loginPeerPartnerUseCase = new LoginPeerPartnerUseCase(peerPartnerAuthAdapter);
@@ -93,4 +93,4 @@ export const finishPeerPartnerSetupUseCase = new FinishPeerPartnerSetupUseCase(p
 export const listPeerPartnersUseCase = new ListPeerPartnersUseCase(managerAdminAdapter);
 export const createPeerPartnerUseCase = new CreatePeerPartnerUseCase(managerAdminAdapter);
 export const updatePeerPartnerUseCase = new UpdatePeerPartnerUseCase(managerAdminAdapter);
-export const resetPeerPartnerPasswordUseCase = new ResetPeerPartnerPasswordUseCase(managerAdminAdapter);
+export const sendPeerPartnerSetPasswordEmailUseCase = new SendPeerPartnerSetPasswordEmailUseCase(managerAdminAdapter);

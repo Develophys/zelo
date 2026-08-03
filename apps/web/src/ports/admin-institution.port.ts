@@ -2,8 +2,7 @@ import { z } from "zod";
 
 export const CreateInstitutionResultSchema = z.object({
   institution: z.object({ id: z.string(), name: z.string(), inviteCode: z.string() }),
-  hospitalAdmin: z.object({ id: z.string(), name: z.string() }),
-  temporaryPassword: z.string(),
+  hospitalAdmin: z.object({ id: z.string(), name: z.string(), email: z.string() }),
 });
 export type CreateInstitutionResult = z.infer<typeof CreateInstitutionResultSchema>;
 
@@ -23,6 +22,7 @@ export interface CreateInstitutionParams {
   institutionName: string;
   inviteCode: string;
   hospitalAdminName: string;
+  hospitalAdminEmail: string;
 }
 
 export interface AdminInstitutionPort {

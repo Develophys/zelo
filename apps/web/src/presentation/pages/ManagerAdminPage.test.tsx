@@ -45,14 +45,14 @@ describe("ManagerAdminPage", () => {
     ]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
     vi.spyOn(container.createManagerAdminUseCase, "execute").mockResolvedValue({
-      manager: { id: "manager-2", name: "Paulo" },
-      temporaryPassword: "temp-pass-123",
+      manager: { id: "manager-2", name: "Paulo", email: "paulo@zelo-demo.local" },
     });
     const user = userEvent.setup();
     renderPage();
 
     await user.click(await screen.findByRole("button", { name: "Gestores" }));
     await user.type(screen.getByLabelText("Nome do gestor"), "Paulo");
+    await user.type(screen.getByLabelText("Email do gestor"), "paulo@zelo-demo.local");
     await user.click(screen.getByLabelText("Gestor de setor"));
     await user.click(await screen.findByLabelText("UTI"));
     await user.click(screen.getByRole("button", { name: "Adicionar gestor" }));
@@ -60,51 +60,68 @@ describe("ManagerAdminPage", () => {
     await waitFor(() =>
       expect(container.createManagerAdminUseCase.execute).toHaveBeenCalledWith("token", {
         name: "Paulo",
+        email: "paulo@zelo-demo.local",
         role: "SECTOR_MANAGER",
         sectorIds: ["sector-1"],
       }),
     );
-    await waitFor(() => expect(screen.getByText("temp-pass-123")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Convite enviado para paulo@zelo-demo.local.")).toBeInTheDocument());
   });
 
   it("creates a HOSPITAL_ADMIN by default, without a role change", async () => {
     vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
     vi.spyOn(container.createManagerAdminUseCase, "execute").mockResolvedValue({
-      manager: { id: "manager-3", name: "Ana" },
-      temporaryPassword: "temp-pass-456",
+      manager: { id: "manager-3", name: "Ana", email: "ana@zelo-demo.local" },
     });
     const user = userEvent.setup();
     renderPage();
 
     await user.click(await screen.findByRole("button", { name: "Gestores" }));
     await user.type(screen.getByLabelText("Nome do gestor"), "Ana");
+    await user.type(screen.getByLabelText("Email do gestor"), "ana@zelo-demo.local");
     await user.click(screen.getByRole("button", { name: "Adicionar gestor" }));
 
     await waitFor(() =>
       expect(container.createManagerAdminUseCase.execute).toHaveBeenCalledWith("token", {
         name: "Ana",
+        email: "ana@zelo-demo.local",
         role: "HOSPITAL_ADMIN",
         sectorIds: undefined,
       }),
     );
   });
 
-  it("resets a manager's password and reveals the new temporary password once", async () => {
+  it("shows account status and lets an admin resend a set-password email for an active manager", async () => {
     vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
-      { id: "manager-5", name: "Paulo", role: "SECTOR_MANAGER", isActive: true, sectorNames: ["UTI"] },
+      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
-    vi.spyOn(container.resetManagerPasswordUseCase, "execute").mockResolvedValue({ temporaryPassword: "nova-senha-789" });
+    vi.spyOn(container.sendManagerSetPasswordEmailUseCase, "execute").mockResolvedValue(undefined);
     const user = userEvent.setup();
     renderPage();
 
     await user.click(await screen.findByRole("button", { name: "Gestores" }));
+    expect(screen.getByText(/Ativo/)).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "Redefinir senha de Paulo" }));
 
-    await waitFor(() => expect(container.resetManagerPasswordUseCase.execute).toHaveBeenCalledWith("token", "manager-5"));
-    await waitFor(() => expect(screen.getByText("nova-senha-789")).toBeInTheDocument());
-    expect(screen.getByText(/Senha temporária de Paulo/)).toBeInTheDocument();
+    await waitFor(() => expect(container.sendManagerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("token", "manager-5"));
+  });
+
+  it("shows a pending-invite status and a reenviar-convite button for a manager with no password yet", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
+      { id: "manager-6", name: "Renata", email: "renata@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorNames: [], hasPassword: false, setPasswordTokenExpiresAt: new Date(Date.now() + 60_000).toISOString() },
+    ]);
+    vi.spyOn(container.sendManagerSetPasswordEmailUseCase, "execute").mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Gestores" }));
+    expect(screen.getByText(/Convite pendente/)).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Reenviar convite de Renata" }));
+
+    await waitFor(() => expect(container.sendManagerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("token", "manager-6"));
   });
 
   it("assigns a manager to a sector from the sector row's selector", async () => {
@@ -112,7 +129,7 @@ describe("ManagerAdminPage", () => {
       { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
     ]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
-      { id: "manager-5", name: "Paulo", role: "SECTOR_MANAGER", isActive: true, sectorNames: [] },
+      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     vi.spyOn(container.updateSectorUseCase, "execute").mockResolvedValue(undefined);
     const user = userEvent.setup();
@@ -130,7 +147,7 @@ describe("ManagerAdminPage", () => {
       { id: "sector-1", name: "UTI", isActive: true, managerId: "manager-5", managerName: "Paulo" },
     ]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
-      { id: "manager-5", name: "Paulo", role: "SECTOR_MANAGER", isActive: true, sectorNames: ["UTI"] },
+      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     vi.spyOn(container.updateSectorUseCase, "execute").mockResolvedValue(undefined);
     const user = userEvent.setup();
@@ -149,7 +166,7 @@ describe("ManagerAdminPage", () => {
       { id: "sector-2", name: "Pronto-Socorro", isActive: true, managerId: null, managerName: null },
     ]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
-      { id: "manager-5", name: "Paulo", role: "SECTOR_MANAGER", isActive: true, sectorNames: ["UTI"] },
+      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     vi.spyOn(container.updateManagerAdminUseCase, "execute").mockResolvedValue(undefined);
     const user = userEvent.setup();
@@ -180,7 +197,7 @@ describe("ManagerAdminPage", () => {
       { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
     ]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
-      { id: "manager-5", name: "Paulo", role: "SECTOR_MANAGER", isActive: true, sectorNames: ["UTI"] },
+      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     vi.spyOn(container.updateManagerAdminUseCase, "execute").mockResolvedValue(undefined);
     const user = userEvent.setup();
@@ -206,7 +223,7 @@ describe("ManagerAdminPage", () => {
       { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
     ]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
-      { id: "manager-5", name: "Paulo", role: "SECTOR_MANAGER", isActive: true, sectorNames: ["UTI"] },
+      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     const updateSpy = vi.spyOn(container.updateManagerAdminUseCase, "execute").mockResolvedValue(undefined);
     const user = userEvent.setup();
@@ -225,35 +242,34 @@ describe("ManagerAdminPage", () => {
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
     vi.spyOn(container.listPeerPartnersUseCase, "execute").mockResolvedValue([]);
     vi.spyOn(container.createPeerPartnerUseCase, "execute").mockResolvedValue({
-      peerPartner: { id: "peer-1", name: "Dra. Ana" },
-      temporaryPassword: "temp-pass-456",
+      peerPartner: { id: "peer-1", name: "Dra. Ana", email: "ana@zelo-demo.local" },
     });
     const user = userEvent.setup();
     renderPage();
 
     await user.click(await screen.findByRole("button", { name: "Pares Anônimos" }));
     await user.type(screen.getByLabelText("Nome do par"), "Dra. Ana");
+    await user.type(screen.getByLabelText("Email do par"), "ana@zelo-demo.local");
     await user.type(screen.getByLabelText("Especialidade"), "Clínica médica");
     await user.click(screen.getByRole("button", { name: "Adicionar par" }));
 
-    await waitFor(() => expect(screen.getByText("temp-pass-456")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Convite enviado para ana@zelo-demo.local.")).toBeInTheDocument());
   });
 
-  it("resets a peer partner's password and reveals the new temporary password once", async () => {
+  it("resends a set-password email for an active peer partner", async () => {
     vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
     vi.spyOn(container.listPeerPartnersUseCase, "execute").mockResolvedValue([
-      { id: "peer-5", name: "Dr. Paulo", specialty: "Clínica médica", isActive: true },
+      { id: "peer-5", name: "Dr. Paulo", email: "paulo@zelo-demo.local", specialty: "Clínica médica", isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
-    vi.spyOn(container.resetPeerPartnerPasswordUseCase, "execute").mockResolvedValue({ temporaryPassword: "nova-senha-321" });
+    vi.spyOn(container.sendPeerPartnerSetPasswordEmailUseCase, "execute").mockResolvedValue(undefined);
     const user = userEvent.setup();
     renderPage();
 
     await user.click(await screen.findByRole("button", { name: "Pares Anônimos" }));
+    expect(screen.getByText(/Ativo/)).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "Redefinir senha de Dr. Paulo" }));
 
-    await waitFor(() => expect(container.resetPeerPartnerPasswordUseCase.execute).toHaveBeenCalledWith("token", "peer-5"));
-    await waitFor(() => expect(screen.getByText("nova-senha-321")).toBeInTheDocument());
-    expect(screen.getByText(/Senha temporária de Dr. Paulo/)).toBeInTheDocument();
+    await waitFor(() => expect(container.sendPeerPartnerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("token", "peer-5"));
   });
 });

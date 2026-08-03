@@ -12,16 +12,24 @@ import { useUpdateSector } from "@/presentation/hooks/useUpdateSector";
 import { useAdminManagers } from "@/presentation/hooks/useAdminManagers";
 import { useCreateManager } from "@/presentation/hooks/useCreateManager";
 import { useUpdateManager } from "@/presentation/hooks/useUpdateManager";
-import { useResetManagerPassword } from "@/presentation/hooks/useResetManagerPassword";
+import { useSendManagerSetPasswordEmail } from "@/presentation/hooks/useSendManagerSetPasswordEmail";
 import { useAdminPeerPartners } from "@/presentation/hooks/useAdminPeerPartners";
 import { useCreatePeerPartner } from "@/presentation/hooks/useCreatePeerPartner";
 import { useUpdatePeerPartner } from "@/presentation/hooks/useUpdatePeerPartner";
-import { useResetPeerPartnerPassword } from "@/presentation/hooks/useResetPeerPartnerPassword";
+import { useSendPeerPartnerSetPasswordEmail } from "@/presentation/hooks/useSendPeerPartnerSetPasswordEmail";
 import type { AdminSector, ManagerSummary, PeerPartnerSummary } from "@/ports/manager-admin.port";
 
 const SUGGESTED_SECTOR_NAMES = ["UTI", "Pronto-Socorro", "Clínica Médica", "Centro Cirúrgico", "Pediatria", "Ambulatório", "Plantão Noturno"];
 
 type ManagerRole = "HOSPITAL_ADMIN" | "SECTOR_MANAGER";
+
+// "Ativo" once a password has been set; otherwise "Convite pendente" while the
+// set-password token is still valid, or "Convite expirado" once it lapses.
+function accountStatusLabel(hasPassword: boolean, setPasswordTokenExpiresAt: string | null): string {
+  if (hasPassword) return "Ativo";
+  if (setPasswordTokenExpiresAt && new Date(setPasswordTokenExpiresAt).getTime() > Date.now()) return "Convite pendente";
+  return "Convite expirado";
+}
 
 // Shared by the create form and each row's inline edit form. The idPrefix keeps
 // the two sets of inputs from colliding when both are on screen at once.
@@ -191,11 +199,11 @@ function ManagersTab() {
   const createManager = useCreateManager();
   const updateManager = useUpdateManager();
   const [name, setName] = useState("");
-  const resetPassword = useResetManagerPassword();
+  const [email, setEmail] = useState("");
+  const sendSetPasswordEmail = useSendManagerSetPasswordEmail();
   const [role, setRole] = useState<ManagerRole>("HOSPITAL_ADMIN");
   const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
-  // One-time password display, shared by creation and by a password reset.
-  const [revealedPassword, setRevealedPassword] = useState<{ managerName: string; temporaryPassword: string } | null>(null);
+  const [inviteSentTo, setInviteSentTo] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editRole, setEditRole] = useState<ManagerRole>("SECTOR_MANAGER");
   const [editSectorIds, setEditSectorIds] = useState<string[]>([]);
@@ -213,11 +221,12 @@ function ManagersTab() {
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     createManager.mutate(
-      { name, role, sectorIds: role === "SECTOR_MANAGER" ? selectedSectorIds : undefined },
+      { name, email, role, sectorIds: role === "SECTOR_MANAGER" ? selectedSectorIds : undefined },
       {
         onSuccess: (result) => {
-          setRevealedPassword({ managerName: result.manager.name, temporaryPassword: result.temporaryPassword });
+          setInviteSentTo(result.manager.email);
           setName("");
+          setEmail("");
           setRole("HOSPITAL_ADMIN");
           setSelectedSectorIds([]);
         },
@@ -225,10 +234,8 @@ function ManagersTab() {
     );
   };
 
-  const handleResetPassword = (manager: ManagerSummary) => {
-    resetPassword.mutate(manager.id, {
-      onSuccess: (result) => setRevealedPassword({ managerName: manager.name, temporaryPassword: result.temporaryPassword }),
-    });
+  const handleSendSetPasswordEmail = (manager: ManagerSummary) => {
+    sendSetPasswordEmail.mutate(manager.id);
   };
 
   const handleStartEdit = (manager: ManagerSummary) => {
@@ -245,16 +252,17 @@ function ManagersTab() {
     );
   };
 
-  const isSubmitDisabled = name.trim().length === 0 || (role === "SECTOR_MANAGER" && selectedSectorIds.length === 0);
+  const isSubmitDisabled =
+    name.trim().length === 0 || email.trim().length === 0 || (role === "SECTOR_MANAGER" && selectedSectorIds.length === 0);
 
   return (
     <div>
-      {revealedPassword && (
-        <Card tone="brand-tint" className="mt-4">
-          <p className="text-label font-semibold text-ink-2">
-            Senha temporária de {revealedPassword.managerName}: <span className="font-mono">{revealedPassword.temporaryPassword}</span>
-          </p>
-        </Card>
+      {inviteSentTo && (
+        <div role="status">
+          <Card tone="brand-tint" className="mt-4">
+            <p className="text-label font-semibold text-ink-2">Convite enviado para {inviteSentTo}.</p>
+          </Card>
+        </div>
       )}
 
       <form onSubmit={handleSubmit}>
@@ -266,6 +274,17 @@ function ManagersTab() {
             id="manager-name-input"
             value={name}
             onChange={(event) => setName(event.target.value)}
+            className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink"
+          />
+
+          <label htmlFor="manager-email-input" className="mt-4 block text-label font-semibold text-ink-2">
+            Email do gestor
+          </label>
+          <input
+            id="manager-email-input"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
             className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink"
           />
 
@@ -294,7 +313,8 @@ function ManagersTab() {
                 <p className="text-caption text-muted">
                   {manager.role === "HOSPITAL_ADMIN" ? "Gestor do hospital" : `Gestor de setor · ${manager.sectorNames.join(", ") || "sem setor"}`}
                   {" · "}
-                  {manager.isActive ? "Ativo" : "Inativo"}
+                  {accountStatusLabel(manager.hasPassword, manager.setPasswordTokenExpiresAt)}
+                  {!manager.isActive && " · Inativo"}
                 </p>
               </div>
               <Button
@@ -313,11 +333,11 @@ function ManagersTab() {
               <Button
                 variant="outline"
                 full={false}
-                aria-label={`Redefinir senha de ${manager.name}`}
-                loading={resetPassword.isPending && resetPassword.variables === manager.id}
-                onClick={() => handleResetPassword(manager)}
+                aria-label={manager.hasPassword ? `Redefinir senha de ${manager.name}` : `Reenviar convite de ${manager.name}`}
+                loading={sendSetPasswordEmail.isPending && sendSetPasswordEmail.variables === manager.id}
+                onClick={() => handleSendSetPasswordEmail(manager)}
               >
-                Redefinir senha
+                {manager.hasPassword ? "Redefinir senha" : "Reenviar convite"}
               </Button>
             </div>
 
@@ -352,40 +372,37 @@ function PeerPartnersTab() {
   const peerPartners = useAdminPeerPartners();
   const createPeerPartner = useCreatePeerPartner();
   const updatePeerPartner = useUpdatePeerPartner();
-  const resetPassword = useResetPeerPartnerPassword();
+  const sendSetPasswordEmail = useSendPeerPartnerSetPasswordEmail();
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [specialty, setSpecialty] = useState("");
-  // One-time password display, shared by creation and by a password reset.
-  const [revealedPassword, setRevealedPassword] = useState<{ name: string; temporaryPassword: string } | null>(null);
+  const [inviteSentTo, setInviteSentTo] = useState<string | null>(null);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     createPeerPartner.mutate(
-      { name, specialty },
+      { name, email, specialty },
       {
         onSuccess: (result) => {
-          setRevealedPassword({ name: result.peerPartner.name, temporaryPassword: result.temporaryPassword });
+          setInviteSentTo(result.peerPartner.email);
           setName("");
+          setEmail("");
           setSpecialty("");
         },
       },
     );
   };
 
-  const handleResetPassword = (peerPartner: PeerPartnerSummary) => {
-    resetPassword.mutate(peerPartner.id, {
-      onSuccess: (result) => setRevealedPassword({ name: peerPartner.name, temporaryPassword: result.temporaryPassword }),
-    });
+  const handleSendSetPasswordEmail = (peerPartner: PeerPartnerSummary) => {
+    sendSetPasswordEmail.mutate(peerPartner.id);
   };
 
   return (
     <div>
-      {revealedPassword && (
+      {inviteSentTo && (
         <div role="status">
           <Card tone="brand-tint" className="mt-4">
-            <p className="text-label font-semibold text-ink-2">
-              Senha temporária de {revealedPassword.name}: <span className="font-mono">{revealedPassword.temporaryPassword}</span>
-            </p>
+            <p className="text-label font-semibold text-ink-2">Convite enviado para {inviteSentTo}.</p>
           </Card>
         </div>
       )}
@@ -402,6 +419,17 @@ function PeerPartnersTab() {
             className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink"
           />
 
+          <label htmlFor="peer-partner-email-input" className="mt-4 block text-label font-semibold text-ink-2">
+            Email do par
+          </label>
+          <input
+            id="peer-partner-email-input"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink"
+          />
+
           <label htmlFor="peer-partner-specialty-input" className="mt-4 block text-label font-semibold text-ink-2">
             Especialidade
           </label>
@@ -414,7 +442,12 @@ function PeerPartnersTab() {
           />
         </Card>
         <div className="mt-3">
-          <Button type="submit" variant="primary" loading={createPeerPartner.isPending} disabled={name.trim().length === 0 || specialty.trim().length === 0}>
+          <Button
+            type="submit"
+            variant="primary"
+            loading={createPeerPartner.isPending}
+            disabled={name.trim().length === 0 || email.trim().length === 0 || specialty.trim().length === 0}
+          >
             Adicionar par
           </Button>
         </div>
@@ -427,7 +460,8 @@ function PeerPartnersTab() {
               <div>
                 <p className="text-body font-extrabold text-ink">{peerPartner.name}</p>
                 <p className="text-caption text-muted">
-                  {peerPartner.specialty} · {peerPartner.isActive ? "Ativo" : "Inativo"}
+                  {peerPartner.specialty} · {accountStatusLabel(peerPartner.hasPassword, peerPartner.setPasswordTokenExpiresAt)}
+                  {!peerPartner.isActive && " · Inativo"}
                 </p>
               </div>
               <Button
@@ -443,11 +477,11 @@ function PeerPartnersTab() {
               <Button
                 variant="outline"
                 full={false}
-                aria-label={`Redefinir senha de ${peerPartner.name}`}
-                loading={resetPassword.isPending && resetPassword.variables === peerPartner.id}
-                onClick={() => handleResetPassword(peerPartner)}
+                aria-label={peerPartner.hasPassword ? `Redefinir senha de ${peerPartner.name}` : `Reenviar convite de ${peerPartner.name}`}
+                loading={sendSetPasswordEmail.isPending && sendSetPasswordEmail.variables === peerPartner.id}
+                onClick={() => handleSendSetPasswordEmail(peerPartner)}
               >
-                Redefinir senha
+                {peerPartner.hasPassword ? "Redefinir senha" : "Reenviar convite"}
               </Button>
             </div>
           </Card>

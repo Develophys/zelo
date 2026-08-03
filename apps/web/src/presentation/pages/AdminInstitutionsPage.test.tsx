@@ -35,12 +35,11 @@ describe("AdminInstitutionsPage", () => {
     expect(await screen.findByText("Hospital Teste")).toBeInTheDocument();
   });
 
-  it("creates an institution and shows the one-time temporary password", async () => {
+  it("creates an institution and shows the invite confirmation", async () => {
     vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([]);
     vi.spyOn(container.createInstitutionUseCase, "execute").mockResolvedValue({
       institution: { id: "1", name: "Hospital Teste", inviteCode: "teste-2026" },
-      hospitalAdmin: { id: "m1", name: "Mauricio" },
-      temporaryPassword: "abc123xyz789",
+      hospitalAdmin: { id: "m1", name: "Mauricio", email: "mauricio@zelo-demo.local" },
     });
     const user = userEvent.setup();
     renderPage();
@@ -48,8 +47,9 @@ describe("AdminInstitutionsPage", () => {
     await user.type(screen.getByLabelText("Nome do hospital"), "Hospital Teste");
     await user.type(screen.getByLabelText("Código de convite"), "teste-2026");
     await user.type(screen.getByLabelText("Nome do gestor do hospital"), "Mauricio");
+    await user.type(screen.getByLabelText("Email do gestor do hospital"), "mauricio@zelo-demo.local");
     await user.click(screen.getByRole("button", { name: "Criar instituição" }));
 
-    await waitFor(() => expect(screen.getByText("abc123xyz789")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Convite enviado para mauricio@zelo-demo.local.")).toBeInTheDocument());
   });
 });

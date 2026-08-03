@@ -21,7 +21,6 @@ import {
   ManagerAdminNotFoundError,
   ManagerSummarySchema,
   PeerPartnerSummarySchema,
-  ResetPasswordResultSchema,
   SectorNameConflictError,
 } from "@/ports/manager-admin.port";
 
@@ -88,14 +87,13 @@ export class HttpManagerAdminAdapter implements ManagerAdminPort {
     if (!response.ok) throw new Error(`update manager failed with status ${response.status}`);
   }
 
-  async resetManagerPassword(token: string, id: string): Promise<{ temporaryPassword: string }> {
-    const response = await fetch(`${API_BASE_URL}/manager/admin/managers/${id}/reset-password`, {
+  async sendManagerSetPasswordEmail(token: string, id: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/manager/admin/managers/${id}/send-set-password-email`, {
       method: "POST",
       headers: authHeaders(token),
     });
     if (response.status === 404) throw new ManagerAdminNotFoundError();
-    if (!response.ok) throw new Error(`reset manager password failed with status ${response.status}`);
-    return ResetPasswordResultSchema.parse(await response.json());
+    if (!response.ok) throw new Error(`send manager set-password email failed with status ${response.status}`);
   }
 
   async listPeerPartners(token: string): Promise<PeerPartnerSummary[]> {
@@ -125,13 +123,12 @@ export class HttpManagerAdminAdapter implements ManagerAdminPort {
     if (!response.ok) throw new Error(`update peer partner failed with status ${response.status}`);
   }
 
-  async resetPeerPartnerPassword(token: string, id: string): Promise<{ temporaryPassword: string }> {
-    const response = await fetch(`${API_BASE_URL}/manager/admin/peer-partners/${id}/reset-password`, {
+  async sendPeerPartnerSetPasswordEmail(token: string, id: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/manager/admin/peer-partners/${id}/send-set-password-email`, {
       method: "POST",
       headers: authHeaders(token),
     });
     if (response.status === 404) throw new ManagerAdminNotFoundError();
-    if (!response.ok) throw new Error(`reset peer partner password failed with status ${response.status}`);
-    return ResetPasswordResultSchema.parse(await response.json());
+    if (!response.ok) throw new Error(`send peer partner set-password email failed with status ${response.status}`);
   }
 }

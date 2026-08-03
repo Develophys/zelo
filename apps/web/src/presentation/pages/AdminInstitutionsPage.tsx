@@ -17,18 +17,20 @@ export function AdminInstitutionsPage() {
   const [institutionName, setInstitutionName] = useState("");
   const [inviteCode, setInviteCode] = useState("");
   const [hospitalAdminName, setHospitalAdminName] = useState("");
+  const [hospitalAdminEmail, setHospitalAdminEmail] = useState("");
   const [lastCreated, setLastCreated] = useState<CreateInstitutionResult | null>(null);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     createInstitution.mutate(
-      { institutionName, inviteCode, hospitalAdminName },
+      { institutionName, inviteCode, hospitalAdminName, hospitalAdminEmail },
       {
         onSuccess: (result) => {
           setLastCreated(result);
           setInstitutionName("");
           setInviteCode("");
           setHospitalAdminName("");
+          setHospitalAdminEmail("");
         },
       },
     );
@@ -56,10 +58,7 @@ export function AdminInstitutionsPage() {
           <div role="status">
             <Card tone="brand-tint" className="mt-4">
               <p className="text-label font-semibold text-ink-2">
-                Senha temporária de {lastCreated.hospitalAdmin.name}: <span className="font-mono">{lastCreated.temporaryPassword}</span>
-              </p>
-              <p className="mt-1 text-caption text-muted">
-                Copie e repasse esta senha agora — ela não será exibida novamente.
+                Convite enviado para {lastCreated.hospitalAdmin.email}.
               </p>
             </Card>
           </div>
@@ -97,6 +96,17 @@ export function AdminInstitutionsPage() {
               className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink"
             />
 
+            <label htmlFor="hospital-admin-email" className="mt-4 block text-label font-semibold text-ink-2">
+              Email do gestor do hospital
+            </label>
+            <input
+              id="hospital-admin-email"
+              type="email"
+              value={hospitalAdminEmail}
+              onChange={(event) => setHospitalAdminEmail(event.target.value)}
+              className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink"
+            />
+
             {createInstitution.isError && (
               <p role="alert" className="mt-2 text-label text-danger">
                 Não foi possível criar a instituição agora. Tente novamente.
@@ -109,7 +119,12 @@ export function AdminInstitutionsPage() {
               type="submit"
               variant="primary"
               loading={createInstitution.isPending}
-              disabled={institutionName.trim().length === 0 || inviteCode.trim().length === 0 || hospitalAdminName.trim().length === 0}
+              disabled={
+                institutionName.trim().length === 0 ||
+                inviteCode.trim().length === 0 ||
+                hospitalAdminName.trim().length === 0 ||
+                hospitalAdminEmail.trim().length === 0
+              }
             >
               Criar instituição
             </Button>

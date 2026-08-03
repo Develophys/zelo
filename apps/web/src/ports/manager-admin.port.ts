@@ -12,31 +12,39 @@ export type AdminSector = z.infer<typeof AdminSectorSchema>;
 export const ManagerSummarySchema = z.object({
   id: z.string(),
   name: z.string(),
+  email: z.string(),
   role: z.enum(["HOSPITAL_ADMIN", "SECTOR_MANAGER"]),
   isActive: z.boolean(),
   sectorNames: z.array(z.string()),
+  hasPassword: z.boolean(),
+  setPasswordTokenExpiresAt: z.string().nullable(),
 });
 export type ManagerSummary = z.infer<typeof ManagerSummarySchema>;
 
 export const CreateManagerResultSchema = z.object({
-  manager: z.object({ id: z.string(), name: z.string() }),
-  temporaryPassword: z.string(),
+  manager: z.object({ id: z.string(), name: z.string(), email: z.string() }),
 });
 export type CreateManagerResult = z.infer<typeof CreateManagerResultSchema>;
 
-export const ResetPasswordResultSchema = z.object({ temporaryPassword: z.string() });
-
-export const PeerPartnerSummarySchema = z.object({ id: z.string(), name: z.string(), specialty: z.string(), isActive: z.boolean() });
+export const PeerPartnerSummarySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+  specialty: z.string(),
+  isActive: z.boolean(),
+  hasPassword: z.boolean(),
+  setPasswordTokenExpiresAt: z.string().nullable(),
+});
 export type PeerPartnerSummary = z.infer<typeof PeerPartnerSummarySchema>;
 
 export const CreatePeerPartnerResultSchema = z.object({
-  peerPartner: z.object({ id: z.string(), name: z.string() }),
-  temporaryPassword: z.string(),
+  peerPartner: z.object({ id: z.string(), name: z.string(), email: z.string() }),
 });
 export type CreatePeerPartnerResult = z.infer<typeof CreatePeerPartnerResultSchema>;
 
 export interface CreatePeerPartnerParams {
   name: string;
+  email: string;
   specialty: string;
 }
 
@@ -57,6 +65,7 @@ export interface UpdateSectorParams {
 
 export interface CreateManagerParams {
   name: string;
+  email: string;
   role: "HOSPITAL_ADMIN" | "SECTOR_MANAGER";
   sectorIds?: string[];
 }
@@ -74,9 +83,9 @@ export interface ManagerAdminPort {
   listManagers(token: string): Promise<ManagerSummary[]>;
   createManager(token: string, params: CreateManagerParams): Promise<CreateManagerResult>;
   updateManager(token: string, id: string, patch: UpdateManagerParams): Promise<void>;
-  resetManagerPassword(token: string, id: string): Promise<{ temporaryPassword: string }>;
+  sendManagerSetPasswordEmail(token: string, id: string): Promise<void>;
   listPeerPartners(token: string): Promise<PeerPartnerSummary[]>;
   createPeerPartner(token: string, params: CreatePeerPartnerParams): Promise<CreatePeerPartnerResult>;
   updatePeerPartner(token: string, id: string, patch: UpdatePeerPartnerParams): Promise<void>;
-  resetPeerPartnerPassword(token: string, id: string): Promise<{ temporaryPassword: string }>;
+  sendPeerPartnerSetPasswordEmail(token: string, id: string): Promise<void>;
 }
