@@ -13,7 +13,11 @@ import { useAdminManagers } from "@/presentation/hooks/useAdminManagers";
 import { useCreateManager } from "@/presentation/hooks/useCreateManager";
 import { useUpdateManager } from "@/presentation/hooks/useUpdateManager";
 import { useResetManagerPassword } from "@/presentation/hooks/useResetManagerPassword";
-import type { AdminSector, ManagerSummary } from "@/ports/manager-admin.port";
+import { useAdminPeerPartners } from "@/presentation/hooks/useAdminPeerPartners";
+import { useCreatePeerPartner } from "@/presentation/hooks/useCreatePeerPartner";
+import { useUpdatePeerPartner } from "@/presentation/hooks/useUpdatePeerPartner";
+import { useResetPeerPartnerPassword } from "@/presentation/hooks/useResetPeerPartnerPassword";
+import type { AdminSector, ManagerSummary, PeerPartnerSummary } from "@/ports/manager-admin.port";
 
 const SUGGESTED_SECTOR_NAMES = ["UTI", "Pronto-Socorro", "Clínica Médica", "Centro Cirúrgico", "Pediatria", "Ambulatório", "Plantão Noturno"];
 
@@ -344,10 +348,117 @@ function ManagersTab() {
   );
 }
 
+function PeerPartnersTab() {
+  const peerPartners = useAdminPeerPartners();
+  const createPeerPartner = useCreatePeerPartner();
+  const updatePeerPartner = useUpdatePeerPartner();
+  const resetPassword = useResetPeerPartnerPassword();
+  const [name, setName] = useState("");
+  const [specialty, setSpecialty] = useState("");
+  // One-time password display, shared by creation and by a password reset.
+  const [revealedPassword, setRevealedPassword] = useState<{ name: string; temporaryPassword: string } | null>(null);
+
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    createPeerPartner.mutate(
+      { name, specialty },
+      {
+        onSuccess: (result) => {
+          setRevealedPassword({ name: result.peerPartner.name, temporaryPassword: result.temporaryPassword });
+          setName("");
+          setSpecialty("");
+        },
+      },
+    );
+  };
+
+  const handleResetPassword = (peerPartner: PeerPartnerSummary) => {
+    resetPassword.mutate(peerPartner.id, {
+      onSuccess: (result) => setRevealedPassword({ name: peerPartner.name, temporaryPassword: result.temporaryPassword }),
+    });
+  };
+
+  return (
+    <div>
+      {revealedPassword && (
+        <Card tone="brand-tint" className="mt-4" role="status">
+          <p className="text-label font-semibold text-ink-2">
+            Senha temporária de {revealedPassword.name}: <span className="font-mono">{revealedPassword.temporaryPassword}</span>
+          </p>
+        </Card>
+      )}
+
+      <form onSubmit={handleSubmit}>
+        <Card className="mt-4">
+          <label htmlFor="peer-partner-name-input" className="text-label font-semibold text-ink-2">
+            Nome do par
+          </label>
+          <input
+            id="peer-partner-name-input"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink"
+          />
+
+          <label htmlFor="peer-partner-specialty-input" className="mt-4 block text-label font-semibold text-ink-2">
+            Especialidade
+          </label>
+          <input
+            id="peer-partner-specialty-input"
+            value={specialty}
+            onChange={(event) => setSpecialty(event.target.value)}
+            placeholder="Ex: Clínica médica"
+            className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink"
+          />
+        </Card>
+        <div className="mt-3">
+          <Button type="submit" variant="primary" loading={createPeerPartner.isPending} disabled={name.trim().length === 0 || specialty.trim().length === 0}>
+            Adicionar par
+          </Button>
+        </div>
+      </form>
+
+      <div className="mt-5 flex flex-col gap-3">
+        {(peerPartners.data ?? []).map((peerPartner) => (
+          <Card key={peerPartner.id}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-body font-extrabold text-ink">{peerPartner.name}</p>
+                <p className="text-caption text-muted">
+                  {peerPartner.specialty} · {peerPartner.isActive ? "Ativo" : "Inativo"}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                full={false}
+                onClick={() => updatePeerPartner.mutate({ id: peerPartner.id, patch: { isActive: !peerPartner.isActive } })}
+              >
+                {peerPartner.isActive ? "Desativar" : "Ativar"}
+              </Button>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                full={false}
+                aria-label={`Redefinir senha de ${peerPartner.name}`}
+                loading={resetPassword.isPending && resetPassword.variables === peerPartner.id}
+                onClick={() => handleResetPassword(peerPartner)}
+              >
+                Redefinir senha
+              </Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ManagerAdminPage() {
   const navigate = useNavigate();
   const clearSession = useManagerSessionStore((state) => state.clearSession);
-  const [tab, setTab] = useState<"sectors" | "managers">("sectors");
+  const [tab, setTab] = useState<"sectors" | "managers" | "peer-partners">("sectors");
 
   return (
     <PhoneShell bg="canvas-alt">
@@ -382,9 +493,18 @@ export function ManagerAdminPage() {
           >
             Gestores
           </button>
+          <button
+            type="button"
+            onClick={() => setTab("peer-partners")}
+            className={["rounded-pill px-4 py-2 text-label font-semibold", tab === "peer-partners" ? "bg-brand text-white" : "bg-surface text-ink"].join(" ")}
+          >
+            Pares Anônimos
+          </button>
         </div>
 
-        {tab === "sectors" ? <SectorsTab /> : <ManagersTab />}
+        {tab === "sectors" && <SectorsTab />}
+        {tab === "managers" && <ManagersTab />}
+        {tab === "peer-partners" && <PeerPartnersTab />}
       </div>
     </PhoneShell>
   );

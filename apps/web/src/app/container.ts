@@ -41,6 +41,10 @@ import { ListAccessibleSectorsUseCase } from "@/use-cases/list-accessible-sector
 import { ListInstitutionSectorsUseCase } from "@/use-cases/list-institution-sectors.usecase";
 import { LoginPeerPartnerUseCase } from "@/use-cases/login-peer-partner.usecase";
 import { HttpPeerPartnerAuthAdapter } from "@/infrastructure/http/http-peer-partner-auth.adapter";
+import { ListPeerPartnersUseCase } from "@/use-cases/list-peer-partners.usecase";
+import { CreatePeerPartnerUseCase } from "@/use-cases/create-peer-partner.usecase";
+import { UpdatePeerPartnerUseCase } from "@/use-cases/update-peer-partner.usecase";
+import { ResetPeerPartnerPasswordUseCase } from "@/use-cases/reset-peer-partner-password.usecase";
 
 export const checkApiHealthUseCase = new CheckApiHealthUseCase(new HttpApiHealthAdapter());
 export const sendChatMessageUseCase = new SendChatMessageUseCase(
@@ -80,3 +84,7 @@ export const updateManagerAdminUseCase = new UpdateManagerAdminUseCase(managerAd
 export const resetManagerPasswordUseCase = new ResetManagerPasswordUseCase(managerAdminAdapter);
 export const listAccessibleSectorsUseCase = new ListAccessibleSectorsUseCase(new HttpManagerSectorsAdapter());
 export const loginPeerPartnerUseCase = new LoginPeerPartnerUseCase(new HttpPeerPartnerAuthAdapter());
+export const listPeerPartnersUseCase = new ListPeerPartnersUseCase(managerAdminAdapter);
+export const createPeerPartnerUseCase = new CreatePeerPartnerUseCase(managerAdminAdapter);
+export const updatePeerPartnerUseCase = new UpdatePeerPartnerUseCase(managerAdminAdapter);
+export const resetPeerPartnerPasswordUseCase = new ResetPeerPartnerPasswordUseCase(managerAdminAdapter);

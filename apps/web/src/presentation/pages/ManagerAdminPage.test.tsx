@@ -219,4 +219,41 @@ describe("ManagerAdminPage", () => {
     expect(screen.queryByRole("group", { name: "Editando Paulo" })).not.toBeInTheDocument();
     expect(updateSpy).not.toHaveBeenCalled();
   });
+
+  it("switches to the peer-partners tab and creates one", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.listPeerPartnersUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.createPeerPartnerUseCase, "execute").mockResolvedValue({
+      peerPartner: { id: "peer-1", name: "Dra. Ana" },
+      temporaryPassword: "temp-pass-456",
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Pares Anônimos" }));
+    await user.type(screen.getByLabelText("Nome do par"), "Dra. Ana");
+    await user.type(screen.getByLabelText("Especialidade"), "Clínica médica");
+    await user.click(screen.getByRole("button", { name: "Adicionar par" }));
+
+    await waitFor(() => expect(screen.getByText("temp-pass-456")).toBeInTheDocument());
+  });
+
+  it("resets a peer partner's password and reveals the new temporary password once", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.listPeerPartnersUseCase, "execute").mockResolvedValue([
+      { id: "peer-5", name: "Dr. Paulo", specialty: "Clínica médica", isActive: true },
+    ]);
+    vi.spyOn(container.resetPeerPartnerPasswordUseCase, "execute").mockResolvedValue({ temporaryPassword: "nova-senha-321" });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Pares Anônimos" }));
+    await user.click(await screen.findByRole("button", { name: "Redefinir senha de Dr. Paulo" }));
+
+    await waitFor(() => expect(container.resetPeerPartnerPasswordUseCase.execute).toHaveBeenCalledWith("token", "peer-5"));
+    await waitFor(() => expect(screen.getByText("nova-senha-321")).toBeInTheDocument());
+    expect(screen.getByText(/Senha temporária de Dr. Paulo/)).toBeInTheDocument();
+  });
 });

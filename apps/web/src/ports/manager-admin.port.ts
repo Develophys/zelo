@@ -26,6 +26,25 @@ export type CreateManagerResult = z.infer<typeof CreateManagerResultSchema>;
 
 export const ResetPasswordResultSchema = z.object({ temporaryPassword: z.string() });
 
+export const PeerPartnerSummarySchema = z.object({ id: z.string(), name: z.string(), specialty: z.string(), isActive: z.boolean() });
+export type PeerPartnerSummary = z.infer<typeof PeerPartnerSummarySchema>;
+
+export const CreatePeerPartnerResultSchema = z.object({
+  peerPartner: z.object({ id: z.string(), name: z.string() }),
+  temporaryPassword: z.string(),
+});
+export type CreatePeerPartnerResult = z.infer<typeof CreatePeerPartnerResultSchema>;
+
+export interface CreatePeerPartnerParams {
+  name: string;
+  specialty: string;
+}
+
+export interface UpdatePeerPartnerParams {
+  isActive?: boolean;
+  specialty?: string;
+}
+
 export class SectorNameConflictError extends Error {}
 export class InvalidManagerAdminRequestError extends Error {}
 export class LastActiveHospitalAdminError extends Error {}
@@ -56,4 +75,8 @@ export interface ManagerAdminPort {
   createManager(token: string, params: CreateManagerParams): Promise<CreateManagerResult>;
   updateManager(token: string, id: string, patch: UpdateManagerParams): Promise<void>;
   resetManagerPassword(token: string, id: string): Promise<{ temporaryPassword: string }>;
+  listPeerPartners(token: string): Promise<PeerPartnerSummary[]>;
+  createPeerPartner(token: string, params: CreatePeerPartnerParams): Promise<CreatePeerPartnerResult>;
+  updatePeerPartner(token: string, id: string, patch: UpdatePeerPartnerParams): Promise<void>;
+  resetPeerPartnerPassword(token: string, id: string): Promise<{ temporaryPassword: string }>;
 }

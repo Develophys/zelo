@@ -3,18 +3,24 @@ import type {
   AdminSector,
   CreateManagerParams,
   CreateManagerResult,
+  CreatePeerPartnerParams,
+  CreatePeerPartnerResult,
   ManagerAdminPort,
   ManagerSummary,
+  PeerPartnerSummary,
   UpdateManagerParams,
+  UpdatePeerPartnerParams,
   UpdateSectorParams,
 } from "@/ports/manager-admin.port";
 import {
   AdminSectorSchema,
   CreateManagerResultSchema,
+  CreatePeerPartnerResultSchema,
   InvalidManagerAdminRequestError,
   LastActiveHospitalAdminError,
   ManagerAdminNotFoundError,
   ManagerSummarySchema,
+  PeerPartnerSummarySchema,
   ResetPasswordResultSchema,
   SectorNameConflictError,
 } from "@/ports/manager-admin.port";
@@ -89,6 +95,43 @@ export class HttpManagerAdminAdapter implements ManagerAdminPort {
     });
     if (response.status === 404) throw new ManagerAdminNotFoundError();
     if (!response.ok) throw new Error(`reset manager password failed with status ${response.status}`);
+    return ResetPasswordResultSchema.parse(await response.json());
+  }
+
+  async listPeerPartners(token: string): Promise<PeerPartnerSummary[]> {
+    const response = await fetch(`${API_BASE_URL}/manager/admin/peer-partners`, { headers: authHeaders(token) });
+    if (!response.ok) throw new Error(`list peer partners failed with status ${response.status}`);
+    return z.array(PeerPartnerSummarySchema).parse(await response.json());
+  }
+
+  async createPeerPartner(token: string, params: CreatePeerPartnerParams): Promise<CreatePeerPartnerResult> {
+    const response = await fetch(`${API_BASE_URL}/manager/admin/peer-partners`, {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(params),
+    });
+    if (response.status === 400) throw new InvalidManagerAdminRequestError();
+    if (!response.ok) throw new Error(`create peer partner failed with status ${response.status}`);
+    return CreatePeerPartnerResultSchema.parse(await response.json());
+  }
+
+  async updatePeerPartner(token: string, id: string, patch: UpdatePeerPartnerParams): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/manager/admin/peer-partners/${id}`, {
+      method: "PATCH",
+      headers: authHeaders(token),
+      body: JSON.stringify(patch),
+    });
+    if (response.status === 404) throw new ManagerAdminNotFoundError();
+    if (!response.ok) throw new Error(`update peer partner failed with status ${response.status}`);
+  }
+
+  async resetPeerPartnerPassword(token: string, id: string): Promise<{ temporaryPassword: string }> {
+    const response = await fetch(`${API_BASE_URL}/manager/admin/peer-partners/${id}/reset-password`, {
+      method: "POST",
+      headers: authHeaders(token),
+    });
+    if (response.status === 404) throw new ManagerAdminNotFoundError();
+    if (!response.ok) throw new Error(`reset peer partner password failed with status ${response.status}`);
     return ResetPasswordResultSchema.parse(await response.json());
   }
 }
