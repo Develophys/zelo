@@ -27,6 +27,7 @@ import { LastActiveHospitalAdminError, ManagerNotFoundError, SectorNotInInstitut
 import { PEER_PARTNER_REPOSITORY, type PeerPartnerRepository, type PeerPartnerSummaryRow } from "../../peer-partner/application/ports/peer-partner-repository.port.ts";
 import { CreatePeerPartnerUseCase, type CreatePeerPartnerResult } from "../application/use-cases/create-peer-partner.use-case.ts";
 import { ResetPeerPartnerPasswordUseCase } from "../application/use-cases/reset-peer-partner-password.use-case.ts";
+import { PeerChatGateway } from "../../peer-chat/infrastructure/peer-chat.gateway.ts";
 
 const CreateSectorSchema = z.object({ name: z.string().trim().min(1).max(200) });
 const UpdateSectorSchema = z.object({ isActive: z.boolean().optional(), managerId: z.string().nullable().optional() });
@@ -63,6 +64,7 @@ export class ManagerAdminController {
     @Inject(PEER_PARTNER_REPOSITORY) private readonly peerPartnerRepository: PeerPartnerRepository,
     @Inject(CreatePeerPartnerUseCase) private readonly createPeerPartner: CreatePeerPartnerUseCase,
     @Inject(ResetPeerPartnerPasswordUseCase) private readonly resetPeerPartnerPassword: ResetPeerPartnerPasswordUseCase,
+    @Inject(PeerChatGateway) private readonly peerChatGateway: PeerChatGateway,
   ) {}
 
   @Get("sectors")
@@ -204,6 +206,9 @@ export class ManagerAdminController {
     }
 
     await this.peerPartnerRepository.update(id, parsed.data);
+    if (parsed.data.isActive === false) {
+      this.peerChatGateway.forceDisconnect(id);
+    }
   }
 
   @Post("peer-partners/:id/reset-password")

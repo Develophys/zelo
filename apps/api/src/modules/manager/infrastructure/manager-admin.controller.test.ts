@@ -1,4 +1,4 @@
-import { describe, expect, it, afterAll, beforeAll, beforeEach } from "vitest";
+import { describe, expect, it, afterAll, beforeAll, beforeEach, vi } from "vitest";
 import { Test } from "@nestjs/testing";
 import type { INestApplication } from "@nestjs/common";
 import type { ConfigService } from "@nestjs/config";
@@ -21,6 +21,7 @@ import { ResetPeerPartnerPasswordUseCase } from "../application/use-cases/reset-
 import { PeerPartnerPasswordService } from "../../peer-partner/application/services/peer-partner-password.service.ts";
 import { PEER_PARTNER_REPOSITORY } from "../../peer-partner/application/ports/peer-partner-repository.port.ts";
 import type { CreatePeerPartnerParams, PeerPartnerRepository, PeerPartnerRow, PeerPartnerSummaryRow, UpdatePeerPartnerParams } from "../../peer-partner/application/ports/peer-partner-repository.port.ts";
+import { PeerChatGateway } from "../../peer-chat/infrastructure/peer-chat.gateway.ts";
 
 class FakeSectorRepository implements SectorRepository {
   public rows: (AdminSectorRow & { institutionId: string })[] = [];
@@ -119,6 +120,10 @@ class FakePeerPartnerRepository implements PeerPartnerRepository {
   }
 }
 
+class FakePeerChatGateway {
+  forceDisconnect = vi.fn();
+}
+
 function fakeConfig(): ConfigService {
   const values: Record<string, string> = { MANAGER_TOKEN_SECRET: "test-secret" };
   return { getOrThrow: (key: string) => values[key], get: () => undefined } as unknown as ConfigService;
@@ -129,6 +134,7 @@ describe("manager admin controller — sectors", () => {
   let sectorRepository: FakeSectorRepository;
   let managerRepository: FakeManagerRepository;
   let peerPartnerRepository: FakePeerPartnerRepository;
+  let peerChatGateway: FakePeerChatGateway;
   let tokenService: ManagerTokenService;
 
   beforeAll(async () => {
@@ -136,6 +142,7 @@ describe("manager admin controller — sectors", () => {
     sectorRepository = new FakeSectorRepository();
     managerRepository = new FakeManagerRepository();
     peerPartnerRepository = new FakePeerPartnerRepository();
+    peerChatGateway = new FakePeerChatGateway();
 
     const moduleRef = await Test.createTestingModule({
       controllers: [ManagerAdminController],
@@ -146,6 +153,7 @@ describe("manager admin controller — sectors", () => {
         { provide: SECTOR_REPOSITORY, useValue: sectorRepository },
         { provide: MANAGER_REPOSITORY, useValue: managerRepository },
         { provide: PEER_PARTNER_REPOSITORY, useValue: peerPartnerRepository },
+        { provide: PeerChatGateway, useValue: peerChatGateway },
         CreateManagerUseCase,
         UpdateManagerUseCase,
         ResetManagerPasswordUseCase,
@@ -457,5 +465,28 @@ describe("manager admin controller — sectors", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.temporaryPassword).toEqual(expect.any(String));
+  });
+
+  it("PATCH /manager/admin/peer-partners/:id with isActive:false forcibly disconnects the peer partner", async () => {
+    peerPartnerRepository.rows = [{ id: "peer-1", name: "Dra. Ana", passwordHash: "h", institutionId: "institution-1", specialty: "Clínica médica", isActive: true }];
+
+    await request(app.getHttpServer())
+      .patch("/manager/admin/peer-partners/peer-1")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ isActive: false });
+
+    expect(peerChatGateway.forceDisconnect).toHaveBeenCalledWith("peer-1");
+  });
+
+  it("PATCH /manager/admin/peer-partners/:id with only specialty does not disconnect anyone", async () => {
+    peerPartnerRepository.rows = [{ id: "peer-1", name: "Dra. Ana", passwordHash: "h", institutionId: "institution-1", specialty: "Clínica médica", isActive: true }];
+    peerChatGateway.forceDisconnect.mockClear();
+
+    await request(app.getHttpServer())
+      .patch("/manager/admin/peer-partners/peer-1")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ specialty: "Residência" });
+
+    expect(peerChatGateway.forceDisconnect).not.toHaveBeenCalled();
   });
 });
