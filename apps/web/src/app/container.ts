@@ -39,6 +39,8 @@ import { ResetManagerPasswordUseCase } from "@/use-cases/reset-manager-password.
 import { HttpManagerSectorsAdapter } from "@/infrastructure/http/http-manager-sectors.adapter";
 import { ListAccessibleSectorsUseCase } from "@/use-cases/list-accessible-sectors.usecase";
 import { ListInstitutionSectorsUseCase } from "@/use-cases/list-institution-sectors.usecase";
+import { LoginPeerPartnerUseCase } from "@/use-cases/login-peer-partner.usecase";
+import { HttpPeerPartnerAuthAdapter } from "@/infrastructure/http/http-peer-partner-auth.adapter";
 
 export const checkApiHealthUseCase = new CheckApiHealthUseCase(new HttpApiHealthAdapter());
 export const sendChatMessageUseCase = new SendChatMessageUseCase(
@@ -77,3 +79,4 @@ export const createManagerAdminUseCase = new CreateManagerAdminUseCase(managerAd
 export const updateManagerAdminUseCase = new UpdateManagerAdminUseCase(managerAdminAdapter);
 export const resetManagerPasswordUseCase = new ResetManagerPasswordUseCase(managerAdminAdapter);
 export const listAccessibleSectorsUseCase = new ListAccessibleSectorsUseCase(new HttpManagerSectorsAdapter());
+export const loginPeerPartnerUseCase = new LoginPeerPartnerUseCase(new HttpPeerPartnerAuthAdapter());

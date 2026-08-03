@@ -36,6 +36,8 @@ describe("routes", () => {
       linkInstitution: "/you/link",
       adminLogin: "/admin/login",
       admin: "/admin",
+      peerPartnerLogin: "/peer/login",
+      peerPartnerInbox: "/peer",
     });
   });
 });
