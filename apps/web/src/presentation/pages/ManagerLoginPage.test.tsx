@@ -27,7 +27,7 @@ describe("ManagerLoginPage", () => {
     sessionStorage.clear();
   });
 
-  it("navigates to /manager on a correct name and password", async () => {
+  it("navigates to /manager on a correct email and password", async () => {
     vi.spyOn(container.loginManagerUseCase, "execute").mockResolvedValue({
       token: "abc.def",
       expiresAt: new Date(Date.now() + 60_000).toISOString(),
@@ -36,7 +36,7 @@ describe("ManagerLoginPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText("Nome"), "Ana Konder");
+    await user.type(screen.getByLabelText("Email"), "ana@zelo-demo.local");
     await user.type(screen.getByLabelText("Senha"), "senha-correta");
     await user.click(screen.getByRole("button", { name: "Entrar" }));
 
@@ -48,12 +48,12 @@ describe("ManagerLoginPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText("Nome"), "Ana Konder");
+    await user.type(screen.getByLabelText("Email"), "ana@zelo-demo.local");
     await user.type(screen.getByLabelText("Senha"), "wrong");
     await user.click(screen.getByRole("button", { name: "Entrar" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("Nome ou senha incorretos.");
+      expect(screen.getByRole("alert")).toHaveTextContent("Email ou senha incorretos.");
     });
     expect(screen.queryByText("Manager dashboard")).not.toBeInTheDocument();
   });
@@ -63,7 +63,7 @@ describe("ManagerLoginPage", () => {
     expect(screen.getByRole("button", { name: "Entrar" })).toBeDisabled();
 
     const user = userEvent.setup();
-    await user.type(screen.getByLabelText("Nome"), "Ana Konder");
+    await user.type(screen.getByLabelText("Email"), "ana@zelo-demo.local");
     expect(screen.getByRole("button", { name: "Entrar" })).toBeDisabled();
 
     await user.type(screen.getByLabelText("Senha"), "senha-correta");

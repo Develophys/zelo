@@ -16,6 +16,7 @@ import { PeersPage } from "@/presentation/pages/PeersPage";
 import { ManagerDashboardPage } from "@/presentation/pages/ManagerDashboardPage";
 import { ManagerAdminPage } from "@/presentation/pages/ManagerAdminPage";
 import { ManagerLoginPage } from "@/presentation/pages/ManagerLoginPage";
+import { ManagerFinishSetupPage } from "@/presentation/pages/ManagerFinishSetupPage";
 import { ManagerInsightHistoryPage } from "@/presentation/pages/ManagerInsightHistoryPage";
 import { YouPage } from "@/presentation/pages/YouPage";
 import { LinkInstitutionPage } from "@/presentation/pages/LinkInstitutionPage";
@@ -76,6 +77,7 @@ export const routeChildren: RouteObject[] = [
   { path: "crisis/line", Component: CrisisDeclinePage },
   { path: "peers", Component: PeersPage },
   { path: "manager/login", Component: ManagerLoginPage },
+  { path: "manager/finish-setup", Component: ManagerFinishSetupPage },
   {
     path: "manager",
     Component: ManagerDashboardPage,

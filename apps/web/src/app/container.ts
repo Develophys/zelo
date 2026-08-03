@@ -12,6 +12,7 @@ import { WebCryptoEncryptionAdapter } from "@/infrastructure/crypto/web-crypto-e
 import { IndexedDbAssessmentStoreAdapter } from "@/infrastructure/storage/indexeddb-assessment-store.adapter";
 import { HttpAssessmentSubmissionAdapter } from "@/infrastructure/http/http-assessment-submission.adapter";
 import { LoginManagerUseCase } from "@/use-cases/login-manager.usecase";
+import { FinishManagerSetupUseCase } from "@/use-cases/finish-manager-setup.usecase";
 import { HttpManagerAuthAdapter } from "@/infrastructure/http/http-manager-auth.adapter";
 import { GetManagerSignalsUseCase } from "@/use-cases/get-manager-signals.usecase";
 import { HttpManagerSignalsAdapter } from "@/infrastructure/http/http-manager-signals.adapter";
@@ -63,7 +64,9 @@ export const getAssessmentHistoryUseCase = new GetAssessmentHistoryUseCase(
   new WebCryptoEncryptionAdapter(),
   new ScoreAssessmentUseCase(),
 );
-export const loginManagerUseCase = new LoginManagerUseCase(new HttpManagerAuthAdapter());
+const managerAuthAdapter = new HttpManagerAuthAdapter();
+export const loginManagerUseCase = new LoginManagerUseCase(managerAuthAdapter);
+export const finishManagerSetupUseCase = new FinishManagerSetupUseCase(managerAuthAdapter);
 export const getManagerSignalsUseCase = new GetManagerSignalsUseCase(new HttpManagerSignalsAdapter());
 export const generateManagerInsightUseCase = new GenerateManagerInsightUseCase(new HttpManagerInsightAdapter());
 export const getManagerInsightHistoryUseCase = new GetManagerInsightHistoryUseCase(new HttpManagerInsightHistoryAdapter());

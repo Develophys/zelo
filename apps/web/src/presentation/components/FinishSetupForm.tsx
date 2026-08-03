@@ -1,0 +1,87 @@
+import { useState, type FormEvent } from "react";
+import { useSearchParams } from "react-router";
+import { Button } from "@/presentation/ui/Button";
+import { Card } from "@/presentation/ui/Card";
+
+const MIN_PASSWORD_LENGTH = 8;
+
+export interface FinishSetupFormProps {
+  onSubmit: (params: { token: string; password: string }) => Promise<void>;
+  onSuccess: () => void;
+}
+
+export function FinishSetupForm({ onSubmit, onSuccess }: FinishSetupFormProps) {
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token") ?? "";
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const passwordsMatch = password.length > 0 && password === confirmPassword;
+  const isSubmitDisabled = !token || password.length < MIN_PASSWORD_LENGTH || !passwordsMatch || isPending;
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    setIsPending(true);
+    try {
+      await onSubmit({ token, password });
+      onSuccess();
+    } catch {
+      setError("Não foi possível concluir. O link pode ter expirado — peça um novo convite.");
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  return (
+    <>
+      {!token && (
+        <p role="alert" className="mt-4 text-label text-danger">
+          Link inválido. Verifique o link enviado por email.
+        </p>
+      )}
+
+      <form onSubmit={handleSubmit}>
+        <Card className="mt-5">
+          <label htmlFor="finish-setup-password" className="text-label font-semibold text-ink-2">
+            Senha
+          </label>
+          <input
+            id="finish-setup-password"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Mínimo de 8 caracteres"
+            className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink placeholder:text-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          />
+
+          <label htmlFor="finish-setup-confirm-password" className="mt-4 block text-label font-semibold text-ink-2">
+            Confirme a senha
+          </label>
+          <input
+            id="finish-setup-confirm-password"
+            type="password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            placeholder="Digite a senha novamente"
+            className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink placeholder:text-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          />
+
+          {error && (
+            <p role="alert" className="mt-2 text-label text-danger">
+              {error}
+            </p>
+          )}
+        </Card>
+
+        <div className="mt-6">
+          <Button type="submit" variant="primary" loading={isPending} disabled={isSubmitDisabled}>
+            Definir senha
+          </Button>
+        </div>
+      </form>
+    </>
+  );
+}

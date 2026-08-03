@@ -3,7 +3,7 @@ import { loginManagerUseCase } from "@/app/container";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 
 interface LoginVariables {
-  name: string;
+  email: string;
   password: string;
 }
 
@@ -11,7 +11,7 @@ export function useManagerLogin() {
   const setSession = useManagerSessionStore((state) => state.setSession);
 
   return useMutation({
-    mutationFn: ({ name, password }: LoginVariables) => loginManagerUseCase.execute(name, password),
+    mutationFn: ({ email, password }: LoginVariables) => loginManagerUseCase.execute(email, password),
     onSuccess: (result) => {
       setSession(result.token, result.expiresAt, result.role);
     },
