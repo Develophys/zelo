@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { SectorModule } from "../sector/sector.module.ts";
+import { PeerPartnerModule } from "../peer-partner/peer-partner.module.ts";
 import { ManagerController } from "./infrastructure/manager.controller.ts";
 import { ManagerAdminController } from "./infrastructure/manager-admin.controller.ts";
 import { ManagerAuthGuard } from "./infrastructure/manager-auth.guard.ts";
@@ -19,6 +20,9 @@ import { GetAccessibleSectorsUseCase } from "./application/use-cases/get-accessi
 import { CreateManagerUseCase } from "./application/use-cases/create-manager.use-case.ts";
 import { UpdateManagerUseCase } from "./application/use-cases/update-manager.use-case.ts";
 import { ResetManagerPasswordUseCase } from "./application/use-cases/reset-manager-password.use-case.ts";
+import { CreatePeerPartnerUseCase } from "./application/use-cases/create-peer-partner.use-case.ts";
+import { ResetPeerPartnerPasswordUseCase } from "./application/use-cases/reset-peer-partner-password.use-case.ts";
+import { PeerPartnerPasswordService } from "../peer-partner/application/services/peer-partner-password.service.ts";
 import { ManagerTokenService } from "./application/services/manager-token.service.ts";
 import { ManagerPasswordService } from "./application/services/manager-password.service.ts";
 import { SIGNAL_REPOSITORY } from "./application/ports/signal-repository.port.ts";
@@ -36,7 +40,7 @@ const aiInsightPortProvider =
     : { provide: AI_INSIGHT_PORT, useClass: GroqInsightAdapter };
 
 @Module({
-  imports: [SectorModule],
+  imports: [SectorModule, PeerPartnerModule],
   controllers: [ManagerController, ManagerAdminController],
   providers: [
     LoginManagerUseCase,
@@ -50,6 +54,9 @@ const aiInsightPortProvider =
     ResetManagerPasswordUseCase,
     ManagerTokenService,
     ManagerPasswordService,
+    CreatePeerPartnerUseCase,
+    ResetPeerPartnerPasswordUseCase,
+    PeerPartnerPasswordService,
     ManagerAuthGuard,
     HospitalAdminGuard,
     { provide: SIGNAL_REPOSITORY, useClass: PrismaSignalRepository },

@@ -23,7 +23,10 @@ import { MANAGER_REPOSITORY, type ManagerRepository, type ManagerSummaryRow } fr
 import { CreateManagerUseCase, type CreateManagerResult } from "../application/use-cases/create-manager.use-case.ts";
 import { UpdateManagerUseCase } from "../application/use-cases/update-manager.use-case.ts";
 import { ResetManagerPasswordUseCase } from "../application/use-cases/reset-manager-password.use-case.ts";
-import { LastActiveHospitalAdminError, ManagerNotFoundError, SectorNotInInstitutionError } from "../application/use-cases/manager-admin-errors.ts";
+import { LastActiveHospitalAdminError, ManagerNotFoundError, SectorNotInInstitutionError, PeerPartnerNotFoundError } from "../application/use-cases/manager-admin-errors.ts";
+import { PEER_PARTNER_REPOSITORY, type PeerPartnerRepository, type PeerPartnerSummaryRow } from "../../peer-partner/application/ports/peer-partner-repository.port.ts";
+import { CreatePeerPartnerUseCase, type CreatePeerPartnerResult } from "../application/use-cases/create-peer-partner.use-case.ts";
+import { ResetPeerPartnerPasswordUseCase } from "../application/use-cases/reset-peer-partner-password.use-case.ts";
 
 const CreateSectorSchema = z.object({ name: z.string().trim().min(1).max(200) });
 const UpdateSectorSchema = z.object({ isActive: z.boolean().optional(), managerId: z.string().nullable().optional() });
@@ -45,6 +48,9 @@ const UpdateManagerSchema = z.object({
   sectorIds: z.array(z.string()).optional(),
 });
 
+const CreatePeerPartnerSchema = z.object({ name: z.string().trim().min(1).max(200), specialty: z.string().trim().min(1).max(200) });
+const UpdatePeerPartnerSchema = z.object({ isActive: z.boolean().optional(), specialty: z.string().trim().min(1).max(200).optional() });
+
 @Controller("manager/admin")
 @UseGuards(ManagerAuthGuard, HospitalAdminGuard)
 export class ManagerAdminController {
@@ -54,6 +60,9 @@ export class ManagerAdminController {
     @Inject(CreateManagerUseCase) private readonly createManager: CreateManagerUseCase,
     @Inject(UpdateManagerUseCase) private readonly updateManager: UpdateManagerUseCase,
     @Inject(ResetManagerPasswordUseCase) private readonly resetManagerPassword: ResetManagerPasswordUseCase,
+    @Inject(PEER_PARTNER_REPOSITORY) private readonly peerPartnerRepository: PeerPartnerRepository,
+    @Inject(CreatePeerPartnerUseCase) private readonly createPeerPartner: CreatePeerPartnerUseCase,
+    @Inject(ResetPeerPartnerPasswordUseCase) private readonly resetPeerPartnerPassword: ResetPeerPartnerPasswordUseCase,
   ) {}
 
   @Get("sectors")
@@ -159,6 +168,51 @@ export class ManagerAdminController {
       return await this.resetManagerPassword.execute({ institutionId: request.manager!.institutionId, managerId: id });
     } catch (error) {
       if (error instanceof ManagerNotFoundError) {
+        throw new NotFoundException();
+      }
+      throw error;
+    }
+  }
+
+  @Get("peer-partners")
+  async listPeerPartners(@Req() request: Request): Promise<PeerPartnerSummaryRow[]> {
+    return this.peerPartnerRepository.findAllByInstitution(request.manager!.institutionId);
+  }
+
+  @Post("peer-partners")
+  @HttpCode(201)
+  async createPeerPartnerHandler(@Req() request: Request, @Body() body: unknown): Promise<CreatePeerPartnerResult> {
+    const parsed = CreatePeerPartnerSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    return this.createPeerPartner.execute({ institutionId: request.manager!.institutionId, ...parsed.data });
+  }
+
+  @Patch("peer-partners/:id")
+  @HttpCode(204)
+  async updatePeerPartnerHandler(@Req() request: Request, @Param("id") id: string, @Body() body: unknown): Promise<void> {
+    const parsed = UpdatePeerPartnerSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    const peerPartner = await this.peerPartnerRepository.findById(id);
+    if (!peerPartner || peerPartner.institutionId !== request.manager!.institutionId) {
+      throw new NotFoundException();
+    }
+
+    await this.peerPartnerRepository.update(id, parsed.data);
+  }
+
+  @Post("peer-partners/:id/reset-password")
+  @HttpCode(200)
+  async resetPeerPartnerPasswordHandler(@Req() request: Request, @Param("id") id: string): Promise<{ temporaryPassword: string }> {
+    try {
+      return await this.resetPeerPartnerPassword.execute({ institutionId: request.manager!.institutionId, peerPartnerId: id });
+    } catch (error) {
+      if (error instanceof PeerPartnerNotFoundError) {
         throw new NotFoundException();
       }
       throw error;

@@ -16,6 +16,11 @@ import { ResetManagerPasswordUseCase } from "../application/use-cases/reset-mana
 import { ManagerPasswordService } from "../application/services/manager-password.service.ts";
 import { MANAGER_REPOSITORY } from "../application/ports/manager-repository.port.ts";
 import type { CreateManagerParams, ManagerRepository, ManagerRow, ManagerSummaryRow, UpdateManagerParams } from "../application/ports/manager-repository.port.ts";
+import { CreatePeerPartnerUseCase } from "../application/use-cases/create-peer-partner.use-case.ts";
+import { ResetPeerPartnerPasswordUseCase } from "../application/use-cases/reset-peer-partner-password.use-case.ts";
+import { PeerPartnerPasswordService } from "../../peer-partner/application/services/peer-partner-password.service.ts";
+import { PEER_PARTNER_REPOSITORY } from "../../peer-partner/application/ports/peer-partner-repository.port.ts";
+import type { CreatePeerPartnerParams, PeerPartnerRepository, PeerPartnerRow, PeerPartnerSummaryRow, UpdatePeerPartnerParams } from "../../peer-partner/application/ports/peer-partner-repository.port.ts";
 
 class FakeSectorRepository implements SectorRepository {
   public rows: (AdminSectorRow & { institutionId: string })[] = [];
@@ -92,6 +97,28 @@ class FakeManagerRepository implements ManagerRepository {
   }
 }
 
+class FakePeerPartnerRepository implements PeerPartnerRepository {
+  public rows: PeerPartnerRow[] = [];
+  async findByName(): Promise<PeerPartnerRow | null> {
+    throw new Error("not used in this test");
+  }
+  async findById(id: string): Promise<PeerPartnerRow | null> {
+    return this.rows.find((r) => r.id === id) ?? null;
+  }
+  async findAllByInstitution(institutionId: string): Promise<PeerPartnerSummaryRow[]> {
+    return this.rows.filter((r) => r.institutionId === institutionId).map((r) => ({ id: r.id, name: r.name, specialty: r.specialty, isActive: r.isActive }));
+  }
+  async create(params: CreatePeerPartnerParams): Promise<{ id: string; name: string }> {
+    const row: PeerPartnerRow = { id: `peer-${this.rows.length + 10}`, name: params.name, passwordHash: params.passwordHash, institutionId: params.institutionId, specialty: params.specialty, isActive: true };
+    this.rows.push(row);
+    return { id: row.id, name: row.name };
+  }
+  async update(id: string, patch: UpdatePeerPartnerParams): Promise<void> {
+    const row = this.rows.find((r) => r.id === id);
+    if (row) Object.assign(row, patch);
+  }
+}
+
 function fakeConfig(): ConfigService {
   const values: Record<string, string> = { MANAGER_TOKEN_SECRET: "test-secret" };
   return { getOrThrow: (key: string) => values[key], get: () => undefined } as unknown as ConfigService;
@@ -101,12 +128,14 @@ describe("manager admin controller — sectors", () => {
   let app: INestApplication;
   let sectorRepository: FakeSectorRepository;
   let managerRepository: FakeManagerRepository;
+  let peerPartnerRepository: FakePeerPartnerRepository;
   let tokenService: ManagerTokenService;
 
   beforeAll(async () => {
     tokenService = new ManagerTokenService(fakeConfig());
     sectorRepository = new FakeSectorRepository();
     managerRepository = new FakeManagerRepository();
+    peerPartnerRepository = new FakePeerPartnerRepository();
 
     const moduleRef = await Test.createTestingModule({
       controllers: [ManagerAdminController],
@@ -116,10 +145,14 @@ describe("manager admin controller — sectors", () => {
         { provide: ManagerTokenService, useValue: tokenService },
         { provide: SECTOR_REPOSITORY, useValue: sectorRepository },
         { provide: MANAGER_REPOSITORY, useValue: managerRepository },
+        { provide: PEER_PARTNER_REPOSITORY, useValue: peerPartnerRepository },
         CreateManagerUseCase,
         UpdateManagerUseCase,
         ResetManagerPasswordUseCase,
         ManagerPasswordService,
+        CreatePeerPartnerUseCase,
+        ResetPeerPartnerPasswordUseCase,
+        PeerPartnerPasswordService,
       ],
     }).compile();
 
@@ -141,6 +174,7 @@ describe("manager admin controller — sectors", () => {
     sectorRepository.shouldThrowConflict = false;
     managerRepository.rows = [{ ...ACTING_ADMIN }, { ...ACTING_SECTOR_MANAGER }];
     managerRepository.activeHospitalAdmins = 1;
+    peerPartnerRepository.rows = [];
   });
 
   function hospitalAdminToken(): string {
@@ -356,6 +390,69 @@ describe("manager admin controller — sectors", () => {
 
     const response = await request(app.getHttpServer())
       .post("/manager/admin/managers/manager-7/reset-password")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.temporaryPassword).toEqual(expect.any(String));
+  });
+
+  it("GET /manager/admin/peer-partners returns every peer partner in the institution", async () => {
+    peerPartnerRepository.rows = [{ id: "peer-1", name: "Dra. Ana", passwordHash: "h", institutionId: "institution-1", specialty: "Clínica médica", isActive: true }];
+
+    const response = await request(app.getHttpServer()).get("/manager/admin/peer-partners").set("Authorization", `Bearer ${hospitalAdminToken()}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([{ id: "peer-1", name: "Dra. Ana", specialty: "Clínica médica", isActive: true }]);
+  });
+
+  it("POST /manager/admin/peer-partners creates a peer partner and returns a temporary password", async () => {
+    const response = await request(app.getHttpServer())
+      .post("/manager/admin/peer-partners")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ name: "Dra. Ana", specialty: "Clínica médica" });
+
+    expect(response.status).toBe(201);
+    expect(response.body.peerPartner).toEqual({ id: expect.any(String), name: "Dra. Ana" });
+    expect(response.body.temporaryPassword).toEqual(expect.any(String));
+  });
+
+  it("POST /manager/admin/peer-partners rejects a request missing specialty with 400", async () => {
+    const response = await request(app.getHttpServer())
+      .post("/manager/admin/peer-partners")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ name: "Dra. Ana" });
+
+    expect(response.status).toBe(400);
+  });
+
+  it("PATCH /manager/admin/peer-partners/:id updates specialty and isActive", async () => {
+    peerPartnerRepository.rows = [{ id: "peer-1", name: "Dra. Ana", passwordHash: "h", institutionId: "institution-1", specialty: "Clínica médica", isActive: true }];
+
+    const response = await request(app.getHttpServer())
+      .patch("/manager/admin/peer-partners/peer-1")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ isActive: false });
+
+    expect(response.status).toBe(204);
+    expect(peerPartnerRepository.rows[0]!.isActive).toBe(false);
+  });
+
+  it("PATCH /manager/admin/peer-partners/:id returns 404 for a peer partner in a different institution", async () => {
+    peerPartnerRepository.rows = [{ id: "peer-other", name: "Outro", passwordHash: "h", institutionId: "institution-2", specialty: "x", isActive: true }];
+
+    const response = await request(app.getHttpServer())
+      .patch("/manager/admin/peer-partners/peer-other")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ isActive: false });
+
+    expect(response.status).toBe(404);
+  });
+
+  it("POST /manager/admin/peer-partners/:id/reset-password returns a new temporary password", async () => {
+    peerPartnerRepository.rows = [{ id: "peer-1", name: "Dra. Ana", passwordHash: "old", institutionId: "institution-1", specialty: "Clínica médica", isActive: true }];
+
+    const response = await request(app.getHttpServer())
+      .post("/manager/admin/peer-partners/peer-1/reset-password")
       .set("Authorization", `Bearer ${hospitalAdminToken()}`);
 
     expect(response.status).toBe(200);
