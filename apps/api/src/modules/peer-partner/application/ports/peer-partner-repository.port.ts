@@ -1,7 +1,9 @@
 export interface PeerPartnerRow {
   id: string;
   name: string;
-  passwordHash: string;
+  email: string;
+  passwordHash: string | null;
+  setPasswordTokenExpiresAt: Date | null;
   institutionId: string;
   specialty: string;
   isActive: boolean;
@@ -10,28 +12,36 @@ export interface PeerPartnerRow {
 export interface PeerPartnerSummaryRow {
   id: string;
   name: string;
+  email: string;
   specialty: string;
   isActive: boolean;
+  hasPassword: boolean;
+  setPasswordTokenExpiresAt: string | null;
 }
 
 export interface CreatePeerPartnerParams {
   name: string;
-  passwordHash: string;
+  email: string;
   institutionId: string;
   specialty: string;
+  setPasswordToken: string;
+  setPasswordTokenExpiresAt: Date;
 }
 
 export interface UpdatePeerPartnerParams {
   isActive?: boolean;
   specialty?: string;
-  passwordHash?: string;
+  passwordHash?: string | null;
+  setPasswordToken?: string | null;
+  setPasswordTokenExpiresAt?: Date | null;
 }
 
 export interface PeerPartnerRepository {
-  findByName(name: string): Promise<PeerPartnerRow | null>;
+  findByEmail(email: string): Promise<PeerPartnerRow | null>;
+  findBySetPasswordToken(token: string): Promise<PeerPartnerRow | null>;
   findById(id: string): Promise<PeerPartnerRow | null>;
   findAllByInstitution(institutionId: string): Promise<PeerPartnerSummaryRow[]>;
-  create(params: CreatePeerPartnerParams): Promise<{ id: string; name: string }>;
+  create(params: CreatePeerPartnerParams): Promise<{ id: string; name: string; email: string }>;
   update(id: string, patch: UpdatePeerPartnerParams): Promise<void>;
 }
 

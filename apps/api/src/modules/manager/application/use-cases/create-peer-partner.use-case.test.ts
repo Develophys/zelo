@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { CreatePeerPartnerUseCase } from "./create-peer-partner.use-case.ts";
-import { PeerPartnerPasswordService } from "@/modules/peer-partner/application/services/peer-partner-password.service.ts";
+import type { EmailPort, EmailTemplate, SendEmailParams } from "../../../../shared/email/email.port.ts";
 import type {
   CreatePeerPartnerParams, PeerPartnerRepository, PeerPartnerRow, PeerPartnerSummaryRow
-} from "@/modules/peer-partner/application/ports/peer-partner-repository.port.ts";
+} from "../../../peer-partner/application/ports/peer-partner-repository.port.ts";
 
 class FakePeerPartnerRepository implements PeerPartnerRepository {
   public lastCreateParams: CreatePeerPartnerParams | null = null;
-  async findByName(): Promise<PeerPartnerRow | null> {
+  async findByEmail(): Promise<PeerPartnerRow | null> {
+    throw new Error("not used in this test");
+  }
+  async findBySetPasswordToken(): Promise<PeerPartnerRow | null> {
     throw new Error("not used in this test");
   }
   async findById(): Promise<PeerPartnerRow | null> {
@@ -16,33 +19,41 @@ class FakePeerPartnerRepository implements PeerPartnerRepository {
   async findAllByInstitution(): Promise<PeerPartnerSummaryRow[]> {
     throw new Error("not used in this test");
   }
-  async create(params: CreatePeerPartnerParams): Promise<{ id: string; name: string }> {
+  async create(params: CreatePeerPartnerParams): Promise<{ id: string; name: string; email: string }> {
     this.lastCreateParams = params;
-    return { id: "peer-new", name: params.name };
+    return { id: "peer-new", name: params.name, email: params.email };
   }
   async update(): Promise<void> {
     throw new Error("not used in this test");
   }
 }
 
+class FakeEmailPort implements EmailPort {
+  public lastSend: { to: string; template: EmailTemplate; params: SendEmailParams } | null = null;
+  async send(to: string, template: EmailTemplate, params: SendEmailParams): Promise<void> {
+    this.lastSend = { to, template, params };
+  }
+}
+
 describe("CreatePeerPartnerUseCase", () => {
-  it("hashes a generated temporary password and returns it alongside the created row", async () => {
+  it("creates a peer partner with no password, generates a set-password token, and sends an invite email", async () => {
     const repository = new FakePeerPartnerRepository();
-    const passwordService = new PeerPartnerPasswordService();
-    const useCase = new CreatePeerPartnerUseCase(repository, passwordService);
+    const emailPort = new FakeEmailPort();
+    const useCase = new CreatePeerPartnerUseCase(repository, emailPort);
 
-    const result = await useCase.execute({ institutionId: "institution-1", name: "Dra. Ana", specialty: "Clínica médica" });
+    const result = await useCase.execute({ institutionId: "institution-1", name: "Dra. Ana", email: "ana@zelo-demo.local", specialty: "Clínica médica" });
 
-    expect(result.peerPartner).toEqual({ id: "peer-new", name: "Dra. Ana" });
-    expect(result.temporaryPassword).toEqual(expect.any(String));
+    expect(result.peerPartner).toEqual({ id: "peer-new", name: "Dra. Ana", email: "ana@zelo-demo.local" });
     expect(repository.lastCreateParams).toEqual({
       name: "Dra. Ana",
-      passwordHash: expect.any(String),
+      email: "ana@zelo-demo.local",
       institutionId: "institution-1",
       specialty: "Clínica médica",
+      setPasswordToken: expect.any(String),
+      setPasswordTokenExpiresAt: expect.any(Date),
     });
-
-    const isValid = await passwordService.verify(result.temporaryPassword, repository.lastCreateParams!.passwordHash);
-    expect(isValid).toBe(true);
+    expect(emailPort.lastSend?.to).toBe("ana@zelo-demo.local");
+    expect(emailPort.lastSend?.template).toBe("invite");
+    expect(emailPort.lastSend?.params.setPasswordUrl).toContain(repository.lastCreateParams!.setPasswordToken);
   });
 });

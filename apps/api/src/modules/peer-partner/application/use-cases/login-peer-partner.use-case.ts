@@ -15,11 +15,11 @@ export class LoginPeerPartnerUseCase {
     @Inject(PeerPartnerTokenService) private readonly tokenService: PeerPartnerTokenService,
   ) {}
 
-  async execute(name: string, password: string): Promise<IssuedPeerPartnerToken> {
-    const peerPartner = await this.repository.findByName(name);
+  async execute(email: string, password: string): Promise<IssuedPeerPartnerToken> {
+    const peerPartner = await this.repository.findByEmail(email);
 
     const isValid = await this.passwordService.verify(password, peerPartner?.passwordHash ?? DUMMY_PASSWORD_HASH);
-    if (!peerPartner || !isValid || !peerPartner.isActive) {
+    if (!peerPartner || !peerPartner.passwordHash || !isValid || !peerPartner.isActive) {
       throw new InvalidPeerPartnerCredentialsError();
     }
 

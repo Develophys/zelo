@@ -3,7 +3,7 @@ import { z } from "zod";
 import { LoginPeerPartnerUseCase, InvalidPeerPartnerCredentialsError } from "../application/use-cases/login-peer-partner.use-case.ts";
 import type { IssuedPeerPartnerToken } from "../application/services/peer-partner-token.service.ts";
 
-const LoginRequestSchema = z.object({ name: z.string().min(1).max(200), password: z.string().min(1).max(200) });
+const LoginRequestSchema = z.object({ email: z.string().email().max(200), password: z.string().min(1).max(200) });
 
 @Controller("peer-partner")
 export class PeerPartnerController {
@@ -18,7 +18,7 @@ export class PeerPartnerController {
     }
 
     try {
-      return await this.loginPeerPartner.execute(parsed.data.name, parsed.data.password);
+      return await this.loginPeerPartner.execute(parsed.data.email, parsed.data.password);
     } catch (error) {
       if (error instanceof InvalidPeerPartnerCredentialsError) {
         throw new UnauthorizedException();

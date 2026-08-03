@@ -12,8 +12,11 @@ import type { PeerPartnerRepository, PeerPartnerRow } from "../application/ports
 
 class FakePeerPartnerRepository implements PeerPartnerRepository {
   rows: PeerPartnerRow[] = [];
-  async findByName(name: string): Promise<PeerPartnerRow | null> {
-    return this.rows.find((row) => row.name === name) ?? null;
+  async findByEmail(email: string): Promise<PeerPartnerRow | null> {
+    return this.rows.find((row) => row.email === email) ?? null;
+  }
+  async findBySetPasswordToken(): Promise<PeerPartnerRow | null> {
+    throw new Error("not used in this test");
   }
   async findById(): Promise<PeerPartnerRow | null> {
     throw new Error("not used in this test");
@@ -41,7 +44,7 @@ describe("peer partner controller", () => {
   beforeAll(async () => {
     const passwordService = new PeerPartnerPasswordService();
     repository = new FakePeerPartnerRepository();
-    repository.rows = [{ id: "peer-1", name: "Dra. Ana", passwordHash: await passwordService.hash("test-password"), institutionId: "institution-1", specialty: "Clínica médica", isActive: true }];
+    repository.rows = [{ id: "peer-1", name: "Dra. Ana", email: "ana@zelo-demo.local", passwordHash: await passwordService.hash("test-password"), setPasswordTokenExpiresAt: null, institutionId: "institution-1", specialty: "Clínica médica", isActive: true }];
 
     const moduleRef = await Test.createTestingModule({
       controllers: [PeerPartnerController],
@@ -62,14 +65,14 @@ describe("peer partner controller", () => {
     await app.close();
   });
 
-  it("POST /peer-partner/login returns a token for the correct name and password", async () => {
-    const response = await request(app.getHttpServer()).post("/peer-partner/login").send({ name: "Dra. Ana", password: "test-password" });
+  it("POST /peer-partner/login returns a token for the correct email and password", async () => {
+    const response = await request(app.getHttpServer()).post("/peer-partner/login").send({ email: "ana@zelo-demo.local", password: "test-password" });
     expect(response.status).toBe(200);
     expect(response.body.token).toEqual(expect.any(String));
   });
 
-  it("POST /peer-partner/login rejects an unknown name with 401", async () => {
-    const response = await request(app.getHttpServer()).post("/peer-partner/login").send({ name: "Unknown", password: "test-password" });
+  it("POST /peer-partner/login rejects an unknown email with 401", async () => {
+    const response = await request(app.getHttpServer()).post("/peer-partner/login").send({ email: "unknown@zelo-demo.local", password: "test-password" });
     expect(response.status).toBe(401);
   });
 
