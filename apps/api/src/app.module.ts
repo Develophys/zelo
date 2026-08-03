@@ -8,6 +8,7 @@ import { HealthModule } from "./modules/health/health.module.ts";
 import { ChatModule } from "./modules/chat/chat.module.ts";
 import { AssessmentModule } from "./modules/assessment/assessment.module.ts";
 import { ManagerModule } from "./modules/manager/manager.module.ts";
+import { PeerPartnerModule } from "./modules/peer-partner/peer-partner.module.ts";
 import { InstitutionModule } from "./modules/institution/institution.module.ts";
 import { SignalCheckinModule } from "./modules/signal-checkin/signal-checkin.module.ts";
 import { AdminModule } from "./modules/admin/admin.module.ts";
@@ -26,6 +27,7 @@ import { AdminModule } from "./modules/admin/admin.module.ts";
     ChatModule,
     AssessmentModule,
     ManagerModule,
+    PeerPartnerModule,
     InstitutionModule,
     SignalCheckinModule,
     AdminModule,
