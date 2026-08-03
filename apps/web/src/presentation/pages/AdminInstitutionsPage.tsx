@@ -1,12 +1,17 @@
 import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { Button } from "@/presentation/ui/Button";
 import { Card } from "@/presentation/ui/Card";
+import { routes } from "@/presentation/lib/routes";
 import { useAdminInstitutions } from "@/presentation/hooks/useAdminInstitutions";
 import { useCreateInstitution } from "@/presentation/hooks/useCreateInstitution";
+import { useAdminSessionStore } from "@/stores/admin-session.store";
 import type { CreateInstitutionResult } from "@/ports/admin-institution.port";
 
 export function AdminInstitutionsPage() {
+  const navigate = useNavigate();
+  const clearSession = useAdminSessionStore((state) => state.clearSession);
   const institutions = useAdminInstitutions();
   const createInstitution = useCreateInstitution();
   const [institutionName, setInstitutionName] = useState("");
@@ -32,8 +37,20 @@ export function AdminInstitutionsPage() {
   return (
     <PhoneShell centered>
       <div className="pt-7.5">
-        <h1 className="mb-1.5 mt-4 text-h1 text-ink">Instituições</h1>
-        <p className="text-caption text-muted">Cadastre um novo hospital e seu primeiro gestor.</p>
+        <div className="mt-4 flex items-center justify-between">
+          <h1 className="text-h1 text-ink">Instituições</h1>
+          <button
+            type="button"
+            onClick={() => {
+              clearSession();
+              navigate(routes.adminLogin, { replace: true });
+            }}
+            className="text-label font-bold text-danger"
+          >
+            Sair
+          </button>
+        </div>
+        <p className="mt-1.5 text-caption text-muted">Cadastre um novo hospital e seu primeiro gestor.</p>
 
         {lastCreated && (
           <div role="status">

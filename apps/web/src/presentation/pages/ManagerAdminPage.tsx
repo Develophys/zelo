@@ -5,6 +5,7 @@ import { BackButton } from "@/presentation/ui/BackButton";
 import { Button } from "@/presentation/ui/Button";
 import { Card } from "@/presentation/ui/Card";
 import { routes } from "@/presentation/lib/routes";
+import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { useAdminSectors } from "@/presentation/hooks/useAdminSectors";
 import { useCreateSector } from "@/presentation/hooks/useCreateSector";
 import { useUpdateSector } from "@/presentation/hooks/useUpdateSector";
@@ -345,12 +346,25 @@ function ManagersTab() {
 
 export function ManagerAdminPage() {
   const navigate = useNavigate();
+  const clearSession = useManagerSessionStore((state) => state.clearSession);
   const [tab, setTab] = useState<"sectors" | "managers">("sectors");
 
   return (
     <PhoneShell bg="canvas-alt">
       <div className="pt-6.5">
-        <BackButton label="Painel" onClick={() => navigate(routes.manager)} />
+        <div className="flex items-center justify-between">
+          <BackButton label="Painel" onClick={() => navigate(routes.manager)} />
+          <button
+            type="button"
+            onClick={() => {
+              clearSession();
+              navigate(routes.managerLogin, { replace: true });
+            }}
+            className="text-label font-bold text-danger"
+          >
+            Sair
+          </button>
+        </div>
         <h1 className="mt-4 text-h2 text-ink">Administração</h1>
 
         <div className="mt-4 flex gap-2">

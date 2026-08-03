@@ -97,11 +97,23 @@ export function ManagerDashboardPage() {
         </div>
         <div className="mt-4 flex items-center justify-between">
           <SectionLabel>Painel do gestor</SectionLabel>
-          {role === "HOSPITAL_ADMIN" && (
-            <Link to={routes.managerAdmin} className="text-label font-bold text-brand">
-              Administração
-            </Link>
-          )}
+          <div className="flex items-center gap-3">
+            {role === "HOSPITAL_ADMIN" && (
+              <Link to={routes.managerAdmin} className="text-label font-bold text-brand">
+                Administração
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                clearSession();
+                navigate(routes.managerLogin, { replace: true });
+              }}
+              className="text-label font-bold text-danger"
+            >
+              Sair
+            </button>
+          </div>
         </div>
         <h1 className="mt-2 text-h2 text-ink">Tendências da equipe</h1>
         <p className="mt-1 text-caption text-muted">
