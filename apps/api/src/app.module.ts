@@ -12,6 +12,7 @@ import { PeerPartnerModule } from "./modules/peer-partner/peer-partner.module.ts
 import { InstitutionModule } from "./modules/institution/institution.module.ts";
 import { SignalCheckinModule } from "./modules/signal-checkin/signal-checkin.module.ts";
 import { AdminModule } from "./modules/admin/admin.module.ts";
+import { PeerChatModule } from "./modules/peer-chat/peer-chat.module.ts";
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { AdminModule } from "./modules/admin/admin.module.ts";
     InstitutionModule,
     SignalCheckinModule,
     AdminModule,
+    PeerChatModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

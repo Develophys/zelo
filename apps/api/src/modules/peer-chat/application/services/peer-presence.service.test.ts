@@ -53,4 +53,15 @@ describe("PeerPresenceService", () => {
     const service = new PeerPresenceService();
     expect(() => service.setStatus("unknown-peer", "available")).not.toThrow();
   });
+
+  it("getByPeerPartnerId finds a registered entry by id", () => {
+    const service = new PeerPresenceService();
+    service.register("peer-1", "institution-1", "socket-1", "Clínica médica");
+    expect(service.getByPeerPartnerId("peer-1")?.socketId).toBe("socket-1");
+  });
+
+  it("getByPeerPartnerId returns null for an unknown id", () => {
+    const service = new PeerPresenceService();
+    expect(service.getByPeerPartnerId("unknown")).toBeNull();
+  });
 });

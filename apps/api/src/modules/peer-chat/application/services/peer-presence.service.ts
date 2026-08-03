@@ -46,4 +46,8 @@ export class PeerPresenceService {
   getBySocketId(socketId: string): PeerPresenceEntry | null {
     return this.bySocketId.get(socketId) ?? null;
   }
+
+  getByPeerPartnerId(peerPartnerId: string): PeerPresenceEntry | null {
+    return this.byPeerPartnerId.get(peerPartnerId) ?? null;
+  }
 }

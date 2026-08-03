@@ -25,6 +25,7 @@
     "@nestjs/core": "^10.4.0",
     "@nestjs/platform-express": "^10.4.0",
     "@nestjs/throttler": "^6.5.0",
+    "@nestjs/websockets": "^10.4.22",
     "@prisma/adapter-neon": "7.8.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
@@ -33,6 +34,7 @@
     "pg": "^8.22.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.0",
+    "socket.io": "^4.8.3",
     "ws": "^8.21.0",
     "zod": "^3.23.0"
   },
