@@ -3,7 +3,7 @@ import { loginAdminUseCase } from "@/app/container";
 import { useAdminSessionStore } from "@/stores/admin-session.store";
 
 interface LoginVariables {
-  name: string;
+  email: string;
   password: string;
 }
 
@@ -11,7 +11,7 @@ export function useAdminLogin() {
   const setSession = useAdminSessionStore((state) => state.setSession);
 
   return useMutation({
-    mutationFn: ({ name, password }: LoginVariables) => loginAdminUseCase.execute(name, password),
+    mutationFn: ({ email, password }: LoginVariables) => loginAdminUseCase.execute(email, password),
     onSuccess: (result) => {
       setSession(result.token, result.expiresAt);
     },

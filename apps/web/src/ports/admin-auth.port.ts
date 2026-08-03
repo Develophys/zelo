@@ -6,5 +6,5 @@ export type AdminLoginResult = z.infer<typeof AdminLoginResultSchema>;
 export class InvalidAdminCredentialsError extends Error {}
 
 export interface AdminAuthPort {
-  login(name: string, password: string): Promise<AdminLoginResult>;
+  login(email: string, password: string): Promise<AdminLoginResult>;
 }

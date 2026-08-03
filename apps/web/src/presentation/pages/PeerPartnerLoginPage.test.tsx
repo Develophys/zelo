@@ -26,7 +26,7 @@ describe("PeerPartnerLoginPage", () => {
     sessionStorage.clear();
   });
 
-  it("navigates to /peer on a correct name and password", async () => {
+  it("navigates to /peer on a correct email and password", async () => {
     vi.spyOn(container.loginPeerPartnerUseCase, "execute").mockResolvedValue({
       token: "abc.def",
       expiresAt: new Date(Date.now() + 60_000).toISOString(),
@@ -34,7 +34,7 @@ describe("PeerPartnerLoginPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText("Nome"), "Dra. Ana");
+    await user.type(screen.getByLabelText("Email"), "ana@zelo-demo.local");
     await user.type(screen.getByLabelText("Senha"), "correct-password");
     await user.click(screen.getByRole("button", { name: "Entrar" }));
 
@@ -46,11 +46,11 @@ describe("PeerPartnerLoginPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText("Nome"), "Dra. Ana");
+    await user.type(screen.getByLabelText("Email"), "ana@zelo-demo.local");
     await user.type(screen.getByLabelText("Senha"), "wrong-password");
     await user.click(screen.getByRole("button", { name: "Entrar" }));
 
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Nome ou senha incorretos."));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Email ou senha incorretos."));
     expect(screen.queryByText("Peer partner inbox")).not.toBeInTheDocument();
   });
 });

@@ -23,6 +23,7 @@ import { LinkInstitutionPage } from "@/presentation/pages/LinkInstitutionPage";
 import { AdminLoginPage } from "@/presentation/pages/AdminLoginPage";
 import { AdminInstitutionsPage } from "@/presentation/pages/AdminInstitutionsPage";
 import { PeerPartnerLoginPage } from "@/presentation/pages/PeerPartnerLoginPage";
+import { PeerPartnerFinishSetupPage } from "@/presentation/pages/PeerPartnerFinishSetupPage";
 import { PeerPartnerInboxPage } from "@/presentation/pages/PeerPartnerInboxPage";
 import { useConsentStore } from "@/stores/consent.store";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
@@ -114,6 +115,7 @@ export const routeChildren: RouteObject[] = [
     loader: () => (useAdminSessionStore.getState().isValid() ? null : redirect(routes.adminLogin)),
   },
   { path: "peer/login", Component: PeerPartnerLoginPage },
+  { path: "peer/finish-setup", Component: PeerPartnerFinishSetupPage },
   {
     path: "peer",
     Component: PeerPartnerInboxPage,

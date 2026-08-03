@@ -7,6 +7,9 @@ class FakePeerPartnerAuthAdapter implements PeerPartnerAuthPort {
   async login(): Promise<PeerPartnerLoginResult> {
     return this.result;
   }
+  async finishSetup(): Promise<void> {
+    throw new Error("not used in this test");
+  }
 }
 
 describe("LoginPeerPartnerUseCase", () => {
@@ -14,7 +17,7 @@ describe("LoginPeerPartnerUseCase", () => {
     const port = new FakePeerPartnerAuthAdapter({ token: "t", expiresAt: "2026-01-01T00:00:00.000Z" });
     const useCase = new LoginPeerPartnerUseCase(port);
 
-    const result = await useCase.execute("Dra. Ana", "password");
+    const result = await useCase.execute("ana@zelo-demo.local", "password");
 
     expect(result).toEqual({ token: "t", expiresAt: "2026-01-01T00:00:00.000Z" });
   });

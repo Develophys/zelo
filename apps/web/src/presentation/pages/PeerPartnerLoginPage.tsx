@@ -9,18 +9,18 @@ import { InvalidPeerPartnerCredentialsError } from "@/ports/peer-partner-auth.po
 
 export function PeerPartnerLoginPage() {
   const navigate = useNavigate();
-  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const login = usePeerPartnerLogin();
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
-    login.mutate({ name, password }, { onSuccess: () => navigate(routes.peerPartnerInbox) });
+    login.mutate({ email, password }, { onSuccess: () => navigate(routes.peerPartnerInbox) });
   };
 
   const errorMessage = login.isError
     ? login.error instanceof InvalidPeerPartnerCredentialsError
-      ? "Nome ou senha incorretos."
+      ? "Email ou senha incorretos."
       : "Não foi possível entrar agora. Tente novamente."
     : null;
 
@@ -28,18 +28,19 @@ export function PeerPartnerLoginPage() {
     <PhoneShell centered>
       <div className="pt-7.5">
         <h1 className="mb-1.5 mt-4 text-h1 text-ink">Acesso do par anônimo</h1>
-        <p className="text-caption text-muted">Entre com seu nome e senha de par anônimo.</p>
+        <p className="text-caption text-muted">Entre com seu email e senha de par anônimo.</p>
 
         <form onSubmit={handleSubmit}>
           <Card className="mt-5">
-            <label htmlFor="peer-partner-name" className="text-label font-semibold text-ink-2">
-              Nome
+            <label htmlFor="peer-partner-email" className="text-label font-semibold text-ink-2">
+              Email
             </label>
             <input
-              id="peer-partner-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Digite seu nome"
+              id="peer-partner-email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Digite seu email"
               className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink placeholder:text-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             />
 
@@ -67,7 +68,7 @@ export function PeerPartnerLoginPage() {
               type="submit"
               variant="primary"
               loading={login.isPending}
-              disabled={name.trim().length === 0 || password.trim().length === 0}
+              disabled={email.trim().length === 0 || password.trim().length === 0}
             >
               Entrar
             </Button>

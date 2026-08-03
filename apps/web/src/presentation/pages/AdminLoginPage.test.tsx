@@ -26,7 +26,7 @@ describe("AdminLoginPage", () => {
     sessionStorage.clear();
   });
 
-  it("navigates to /admin on a correct name and password", async () => {
+  it("navigates to /admin on a correct email and password", async () => {
     vi.spyOn(container.loginAdminUseCase, "execute").mockResolvedValue({
       token: "abc.def",
       expiresAt: new Date(Date.now() + 60_000).toISOString(),
@@ -34,7 +34,7 @@ describe("AdminLoginPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText("Nome"), "Zelo Ops");
+    await user.type(screen.getByLabelText("Email"), "ops@zelo-demo.local");
     await user.type(screen.getByLabelText("Senha"), "correct-password");
     await user.click(screen.getByRole("button", { name: "Entrar" }));
 
@@ -46,11 +46,11 @@ describe("AdminLoginPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText("Nome"), "Zelo Ops");
+    await user.type(screen.getByLabelText("Email"), "ops@zelo-demo.local");
     await user.type(screen.getByLabelText("Senha"), "wrong-password");
     await user.click(screen.getByRole("button", { name: "Entrar" }));
 
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Nome ou senha incorretos."));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Email ou senha incorretos."));
     expect(screen.queryByText("Admin institutions")).not.toBeInTheDocument();
   });
 });

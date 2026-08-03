@@ -4,7 +4,9 @@ export const PeerPartnerLoginResultSchema = z.object({ token: z.string(), expire
 export type PeerPartnerLoginResult = z.infer<typeof PeerPartnerLoginResultSchema>;
 
 export class InvalidPeerPartnerCredentialsError extends Error {}
+export class InvalidOrExpiredPeerPartnerSetupTokenError extends Error {}
 
 export interface PeerPartnerAuthPort {
-  login(name: string, password: string): Promise<PeerPartnerLoginResult>;
+  login(email: string, password: string): Promise<PeerPartnerLoginResult>;
+  finishSetup(token: string, password: string): Promise<void>;
 }

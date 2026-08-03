@@ -38,6 +38,7 @@ describe("routes", () => {
       adminLogin: "/admin/login",
       admin: "/admin",
       peerPartnerLogin: "/peer/login",
+      peerPartnerFinishSetup: "/peer/finish-setup",
       peerPartnerInbox: "/peer",
     });
   });
