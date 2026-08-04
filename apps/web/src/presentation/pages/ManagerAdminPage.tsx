@@ -23,10 +23,12 @@ const SUGGESTED_SECTOR_NAMES = ["UTI", "Pronto-Socorro", "Clínica Médica", "Ce
 
 type ManagerRole = "HOSPITAL_ADMIN" | "SECTOR_MANAGER";
 
-// "Ativo" once a password has been set; otherwise "Convite pendente" while the
-// set-password token is still valid, or "Convite expirado" once it lapses.
+// "Senha definida" once a password has been set (distinct from the isActive
+// enable/disable toggle rendered alongside it — a deactivated account can still
+// have a password); otherwise "Convite pendente" while the set-password token is
+// still valid, or "Convite expirado" once it lapses.
 function accountStatusLabel(hasPassword: boolean, setPasswordTokenExpiresAt: string | null): string {
-  if (hasPassword) return "Ativo";
+  if (hasPassword) return "Senha definida";
   if (setPasswordTokenExpiresAt && new Date(setPasswordTokenExpiresAt).getTime() > Date.now()) return "Convite pendente";
   return "Convite expirado";
 }
@@ -235,7 +237,7 @@ function ManagersTab() {
   };
 
   const handleSendSetPasswordEmail = (manager: ManagerSummary) => {
-    sendSetPasswordEmail.mutate(manager.id);
+    sendSetPasswordEmail.mutate(manager.id, { onSuccess: () => setInviteSentTo(manager.email) });
   };
 
   const handleStartEdit = (manager: ManagerSummary) => {
@@ -394,7 +396,7 @@ function PeerPartnersTab() {
   };
 
   const handleSendSetPasswordEmail = (peerPartner: PeerPartnerSummary) => {
-    sendSetPasswordEmail.mutate(peerPartner.id);
+    sendSetPasswordEmail.mutate(peerPartner.id, { onSuccess: () => setInviteSentTo(peerPartner.email) });
   };
 
   return (

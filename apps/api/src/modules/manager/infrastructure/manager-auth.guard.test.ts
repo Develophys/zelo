@@ -9,7 +9,10 @@ import type { ManagerRepository, ManagerRow } from "../application/ports/manager
 
 class FakeManagerRepository implements ManagerRepository {
   public rows: ManagerRow[] = [];
-  async findByName(): Promise<ManagerRow | null> {
+  async findByEmail(): Promise<ManagerRow | null> {
+    throw new Error("not used in this test");
+  }
+  async findBySetPasswordToken(): Promise<ManagerRow | null> {
     throw new Error("not used in this test");
   }
   async findById(id: string): Promise<ManagerRow | null> {
@@ -45,7 +48,9 @@ function managerRow(overrides: Partial<ManagerRow> = {}): ManagerRow {
   return {
     id: "manager-1",
     name: "Ana Konder",
+    email: "ana@zelo-demo.local",
     passwordHash: "hash",
+    setPasswordTokenExpiresAt: null,
     institutionId: "institution-1",
     role: "SECTOR_MANAGER",
     isActive: true,

@@ -36,6 +36,19 @@ const envSchema = z
   .refine((env) => env.EMAIL_PROVIDER === "mock" || !!env.RESEND_API_KEY, {
     message: "RESEND_API_KEY is required when EMAIL_PROVIDER is not \"mock\"",
     path: ["RESEND_API_KEY"],
+  })
+  // Guards against a production deploy silently booting with the local-dev
+  // defaults: EMAIL_PROVIDER=mock only logs invite/reset links to the server
+  // console (a completely broken invite flow with no error anywhere), and the
+  // localhost WEB_APP_BASE_URL default would embed a dead link in any email
+  // that did go out. Fail loudly at startup instead.
+  .refine((env) => env.NODE_ENV !== "production" || env.EMAIL_PROVIDER === "resend", {
+    message: "EMAIL_PROVIDER must be \"resend\" in production (the \"mock\" default only logs invite/reset links to the server console instead of sending them)",
+    path: ["EMAIL_PROVIDER"],
+  })
+  .refine((env) => env.NODE_ENV !== "production" || env.WEB_APP_BASE_URL !== "http://localhost:5173", {
+    message: "WEB_APP_BASE_URL must be set explicitly in production (the localhost default would embed a dead link in invite/reset emails)",
+    path: ["WEB_APP_BASE_URL"],
   });
 
 // NestJS's ConfigModule.forRoot({ validate }) contract: receives the raw

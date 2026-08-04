@@ -102,10 +102,11 @@ describe("ManagerAdminPage", () => {
     renderPage();
 
     await user.click(await screen.findByRole("button", { name: "Gestores" }));
-    expect(screen.getByText(/Ativo/)).toBeInTheDocument();
+    expect(screen.getByText(/Senha definida/)).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "Redefinir senha de Paulo" }));
 
     await waitFor(() => expect(container.sendManagerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("token", "manager-5"));
+    await waitFor(() => expect(screen.getByText("Convite enviado para paulo@zelo-demo.local.")).toBeInTheDocument());
   });
 
   it("shows a pending-invite status and a reenviar-convite button for a manager with no password yet", async () => {
@@ -267,9 +268,10 @@ describe("ManagerAdminPage", () => {
     renderPage();
 
     await user.click(await screen.findByRole("button", { name: "Pares Anônimos" }));
-    expect(screen.getByText(/Ativo/)).toBeInTheDocument();
+    expect(screen.getByText(/Senha definida/)).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "Redefinir senha de Dr. Paulo" }));
 
     await waitFor(() => expect(container.sendPeerPartnerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("token", "peer-5"));
+    await waitFor(() => expect(screen.getByText("Convite enviado para paulo@zelo-demo.local.")).toBeInTheDocument());
   });
 });

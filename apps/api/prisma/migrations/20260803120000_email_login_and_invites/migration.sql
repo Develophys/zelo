@@ -1,10 +1,16 @@
 -- DropForeignKey (must drop before dropping managers — sectors.managerId FKs into it)
-ALTER TABLE "sectors" DROP CONSTRAINT "sectors_managerId_fkey";
+ALTER TABLE "sectors" DROP CONSTRAINT IF EXISTS "sectors_managerId_fkey";
 
 -- DropTable managers, peer_partners, super_admins (demo-only, disposable data — clean cutover, no backfill, re-seeded after this migration)
 DROP TABLE "managers";
 DROP TABLE "peer_partners";
 DROP TABLE "super_admins";
+
+-- Clear dangling sector-manager assignments (managers table is being recreated empty; the seed
+-- script re-establishes sector-manager assignments, so this is safe demo-data cleanup, not a
+-- data-loss risk). Must happen before the FK is re-added below, or the ADD CONSTRAINT validation
+-- fails with 23503 on any database that already has seeded sectors.managerId values.
+UPDATE "sectors" SET "managerId" = NULL;
 
 -- CreateTable managers (name no longer unique — display field only; email is the login identity; passwordHash nullable until invite/reset is completed)
 CREATE TABLE "managers" (

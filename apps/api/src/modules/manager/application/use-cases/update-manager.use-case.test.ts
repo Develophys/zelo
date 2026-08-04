@@ -7,7 +7,10 @@ class FakeManagerRepository implements ManagerRepository {
   public rows: ManagerRow[] = [];
   public activeHospitalAdmins = 1;
   public lastUpdate: { id: string; patch: UpdateManagerParams } | null = null;
-  async findByName(): Promise<ManagerRow | null> {
+  async findByEmail(): Promise<ManagerRow | null> {
+    throw new Error("not used in this test");
+  }
+  async findBySetPasswordToken(): Promise<ManagerRow | null> {
     throw new Error("not used in this test");
   }
   async findById(id: string): Promise<ManagerRow | null> {
@@ -41,7 +44,7 @@ class FakeSectorRepository {
 }
 
 function managerRow(overrides: Partial<ManagerRow> = {}): ManagerRow {
-  return { id: "manager-1", name: "Ana", passwordHash: "hash", institutionId: "institution-1", role: "SECTOR_MANAGER", isActive: true, ...overrides };
+  return { id: "manager-1", name: "Ana", email: "ana@zelo-demo.local", passwordHash: "hash", setPasswordTokenExpiresAt: null, institutionId: "institution-1", role: "SECTOR_MANAGER", isActive: true, ...overrides };
 }
 
 describe("UpdateManagerUseCase", () => {

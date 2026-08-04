@@ -17,7 +17,10 @@ import { PEER_PARTNER_REPOSITORY, type PeerPartnerRepository } from "../peer-par
 // takes down the whole API process at boot, not just the gateway. This test is the
 // one place that exercises it, so a missing/incompatible driver fails loudly here.
 const fakePeerPartnerRepository: PeerPartnerRepository = {
-  async findByName() {
+  async findByEmail() {
+    return null;
+  },
+  async findBySetPasswordToken() {
     return null;
   },
   async findById() {

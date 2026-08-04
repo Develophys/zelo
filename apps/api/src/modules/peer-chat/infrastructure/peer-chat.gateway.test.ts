@@ -8,7 +8,10 @@ import type { ConfigService } from "@nestjs/config";
 
 class FakePeerPartnerRepository implements PeerPartnerRepository {
   rows: PeerPartnerRow[] = [];
-  async findByName(): Promise<PeerPartnerRow | null> {
+  async findByEmail(): Promise<PeerPartnerRow | null> {
+    throw new Error("not used in this test");
+  }
+  async findBySetPasswordToken(): Promise<PeerPartnerRow | null> {
     throw new Error("not used in this test");
   }
   async findById(id: string): Promise<PeerPartnerRow | null> {
@@ -66,7 +69,7 @@ describe("PeerChatGateway", () => {
   });
 
   async function connectPeerPartner(id: string, name: string, institutionId: string, specialty: string) {
-    repository.rows.push({ id, name, passwordHash: "irrelevant", institutionId, specialty, isActive: true });
+    repository.rows.push({ id, name, email: `${id}@zelo-demo.local`, passwordHash: "irrelevant", setPasswordTokenExpiresAt: null, institutionId, specialty, isActive: true });
     const { token } = tokenService.issue(id, name, institutionId);
     const client = fakeClient(`socket-${id}`, token);
     await gateway.handleConnection(client as never);
@@ -85,7 +88,7 @@ describe("PeerChatGateway", () => {
   });
 
   it("disconnects a socket presenting a valid token for a deactivated peer partner", async () => {
-    repository.rows.push({ id: "peer-1", name: "Dra. Ana", passwordHash: "x", institutionId: "institution-1", specialty: "Clínica médica", isActive: false });
+    repository.rows.push({ id: "peer-1", name: "Dra. Ana", email: "peer-1@zelo-demo.local", passwordHash: "x", setPasswordTokenExpiresAt: null, institutionId: "institution-1", specialty: "Clínica médica", isActive: false });
     const { token } = tokenService.issue("peer-1", "Dra. Ana", "institution-1");
     const client = fakeClient("socket-1", token);
 
