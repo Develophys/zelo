@@ -20,6 +20,8 @@ const envSchema = z
     GROQ_API_KEY: z.string().optional(),
     GROQ_MODEL: z.string().default("llama-3.3-70b-versatile"),
     MANAGER_TOKEN_SECRET: z.string().min(1, "MANAGER_TOKEN_SECRET is required"),
+    ADMIN_TOKEN_SECRET: z.string({ required_error: "ADMIN_TOKEN_SECRET is required" }).min(1, "ADMIN_TOKEN_SECRET is required"),
+    PEER_PARTNER_TOKEN_SECRET: z.string({ required_error: "PEER_PARTNER_TOKEN_SECRET is required" }).min(1, "PEER_PARTNER_TOKEN_SECRET is required"),
     CORS_ALLOWED_ORIGINS: z.string().optional(),
     EMAIL_PROVIDER: z.enum(["mock", "resend"]).default("mock"),
     // Only required when a real Resend call will actually be made — ResendEmailAdapter's
