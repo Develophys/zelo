@@ -56,15 +56,15 @@ const envSchema = z
   // session-signing key — the change-me-in-production placeholder (or any
   // other short value) would let anyone forge a valid session token for any
   // account, bypassing the password check entirely. Fail loudly at startup.
-  .refine((env) => env.NODE_ENV !== "production" || env.MANAGER_TOKEN_SECRET.length >= 32, {
+  .refine((env) => env.NODE_ENV !== "production" || env.MANAGER_TOKEN_SECRET.trim().length >= 32, {
     message: "MANAGER_TOKEN_SECRET must be at least 32 characters in production (the \"change-me-in-production\" placeholder and other short values are rejected — a weak key lets anyone forge a valid session token)",
     path: ["MANAGER_TOKEN_SECRET"],
   })
-  .refine((env) => env.NODE_ENV !== "production" || env.ADMIN_TOKEN_SECRET.length >= 32, {
+  .refine((env) => env.NODE_ENV !== "production" || env.ADMIN_TOKEN_SECRET.trim().length >= 32, {
     message: "ADMIN_TOKEN_SECRET must be at least 32 characters in production (the \"change-me-in-production\" placeholder and other short values are rejected — a weak key lets anyone forge a valid session token)",
     path: ["ADMIN_TOKEN_SECRET"],
   })
-  .refine((env) => env.NODE_ENV !== "production" || env.PEER_PARTNER_TOKEN_SECRET.length >= 32, {
+  .refine((env) => env.NODE_ENV !== "production" || env.PEER_PARTNER_TOKEN_SECRET.trim().length >= 32, {
     message: "PEER_PARTNER_TOKEN_SECRET must be at least 32 characters in production (the \"change-me-in-production\" placeholder and other short values are rejected — a weak key lets anyone forge a valid session token)",
     path: ["PEER_PARTNER_TOKEN_SECRET"],
   });

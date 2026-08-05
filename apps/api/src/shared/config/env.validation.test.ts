@@ -69,6 +69,20 @@ describe("validateEnv", () => {
     ).toThrow(/MANAGER_TOKEN_SECRET must be at least 32 characters in production/);
   });
 
+  it("rejects a production boot with a MANAGER_TOKEN_SECRET made entirely of spaces", () => {
+    expect(() =>
+      validateEnv(
+        baseConfig({
+          NODE_ENV: "production",
+          EMAIL_PROVIDER: "resend",
+          RESEND_API_KEY: "re_test",
+          WEB_APP_BASE_URL: "https://app.zelo.example",
+          MANAGER_TOKEN_SECRET: " ".repeat(32),
+        }),
+      ),
+    ).toThrow(/MANAGER_TOKEN_SECRET must be at least 32 characters in production/);
+  });
+
   it("rejects a production boot with a short ADMIN_TOKEN_SECRET", () => {
     expect(() =>
       validateEnv(
