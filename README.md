@@ -126,6 +126,22 @@ Both auto-deploy from `main` via `.github/workflows/api.yml` / `web.yml`, gated 
 pnpm --filter @zelo/api exec prisma migrate deploy   # DIRECT_DATABASE_URL must point at Neon
 ```
 
+### Secrets (Fly.io)
+
+`MANAGER_TOKEN_SECRET`, `ADMIN_TOKEN_SECRET`, and `PEER_PARTNER_TOKEN_SECRET` sign session
+tokens for each account type. `env.validation.ts` fails the boot in production
+(`NODE_ENV=production`, declared both in `fly.toml` and `docker/api.Dockerfile`) if any of
+these are missing or under 32 characters — this rejects the local-dev placeholder
+(`change-me-in-production`) and any other weak value. Rotate them with three independent
+values, never one shared secret:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"   # run 3x, one per secret
+fly secrets set MANAGER_TOKEN_SECRET=<value> ADMIN_TOKEN_SECRET=<value> PEER_PARTNER_TOKEN_SECRET=<value> --app zelo-api
+```
+
+`fly secrets set` triggers an automatic rolling restart. Verify afterward with `fly status --app zelo-api` and `curl https://zelo-api.fly.dev/health`.
+
 ### Rollback (Fly.io)
 
 Rollback is intentionally manual — treat it as a deliberate decision, not an automated safety net:
