@@ -8,8 +8,6 @@ import type {
 } from "../../application/ports/manager-repository.port.ts";
 import { PrismaService } from "../../../../shared/prisma/prisma.service.ts";
 
-const SET_PASSWORD_TOKEN_TTL_MS = 48 * 60 * 60 * 1000;
-
 @Injectable()
 export class PrismaManagerRepository implements ManagerRepository {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
