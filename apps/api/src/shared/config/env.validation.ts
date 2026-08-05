@@ -19,7 +19,9 @@ const envSchema = z
     // and manager/manager.module.ts's provider-selection comment).
     GROQ_API_KEY: z.string().optional(),
     GROQ_MODEL: z.string().default("llama-3.3-70b-versatile"),
-    MANAGER_TOKEN_SECRET: z.string().min(1, "MANAGER_TOKEN_SECRET is required"),
+    MANAGER_TOKEN_SECRET: z.string({ required_error: "MANAGER_TOKEN_SECRET is required" }).min(1, "MANAGER_TOKEN_SECRET is required"),
+    ADMIN_TOKEN_SECRET: z.string({ required_error: "ADMIN_TOKEN_SECRET is required" }).min(1, "ADMIN_TOKEN_SECRET is required"),
+    PEER_PARTNER_TOKEN_SECRET: z.string({ required_error: "PEER_PARTNER_TOKEN_SECRET is required" }).min(1, "PEER_PARTNER_TOKEN_SECRET is required"),
     CORS_ALLOWED_ORIGINS: z.string().optional(),
     EMAIL_PROVIDER: z.enum(["mock", "resend"]).default("mock"),
     // Only required when a real Resend call will actually be made — ResendEmailAdapter's
@@ -49,6 +51,22 @@ const envSchema = z
   .refine((env) => env.NODE_ENV !== "production" || env.WEB_APP_BASE_URL !== "http://localhost:5173", {
     message: "WEB_APP_BASE_URL must be set explicitly in production (the localhost default would embed a dead link in invite/reset emails)",
     path: ["WEB_APP_BASE_URL"],
+  })
+  // Guards against a production deploy silently booting with a guessable
+  // session-signing key — the change-me-in-production placeholder (or any
+  // other short value) would let anyone forge a valid session token for any
+  // account, bypassing the password check entirely. Fail loudly at startup.
+  .refine((env) => env.NODE_ENV !== "production" || env.MANAGER_TOKEN_SECRET.trim().length >= 32, {
+    message: "MANAGER_TOKEN_SECRET must be at least 32 characters in production (the \"change-me-in-production\" placeholder and other short values are rejected — a weak key lets anyone forge a valid session token)",
+    path: ["MANAGER_TOKEN_SECRET"],
+  })
+  .refine((env) => env.NODE_ENV !== "production" || env.ADMIN_TOKEN_SECRET.trim().length >= 32, {
+    message: "ADMIN_TOKEN_SECRET must be at least 32 characters in production (the \"change-me-in-production\" placeholder and other short values are rejected — a weak key lets anyone forge a valid session token)",
+    path: ["ADMIN_TOKEN_SECRET"],
+  })
+  .refine((env) => env.NODE_ENV !== "production" || env.PEER_PARTNER_TOKEN_SECRET.trim().length >= 32, {
+    message: "PEER_PARTNER_TOKEN_SECRET must be at least 32 characters in production (the \"change-me-in-production\" placeholder and other short values are rejected — a weak key lets anyone forge a valid session token)",
+    path: ["PEER_PARTNER_TOKEN_SECRET"],
   });
 
 // NestJS's ConfigModule.forRoot({ validate }) contract: receives the raw

@@ -5,6 +5,7 @@ primary_region = "gru"
   dockerfile = "docker/api.Dockerfile"
 
 [env]
+  NODE_ENV = "production"
   PORT = "3000"
 
 [http_service]
