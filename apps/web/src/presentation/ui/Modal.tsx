@@ -1,6 +1,18 @@
-import { useEffect, useId, useRef, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useRef,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+} from 'react';
 import { X } from 'lucide-react';
 
+// `children` stay mounted in the DOM for the component's lifetime — Modal
+// toggles native <dialog> open/closed state rather than conditionally
+// rendering. A consumer putting a form, data fetch, or focus-stealing
+// element in children should account for mount-on-first-render, not
+// mount-on-open.
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -29,6 +41,7 @@ export function Modal({
   children,
 }: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
 
   useEffect(() => {
@@ -36,6 +49,7 @@ export function Modal({
     if (!dialog) return;
     if (isOpen && !dialog.open) {
       dialog.showModal();
+      closeButtonRef.current?.focus();
     } else if (!isOpen && dialog.open) {
       dialog.close();
     }
@@ -64,9 +78,22 @@ export function Modal({
       ref={dialogRef}
       onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}
+      onCancel={(event) => {
+        if (!dismissible) {
+          event.preventDefault();
+        }
+      }}
+      // Native <dialog> `close` event (fires on any close, not just ours) —
+      // resyncs React state if the dialog closed outside our own showModal()/
+      // close() calls. Distinct from the onClose prop it invokes below.
+      onClose={() => {
+        if (isOpen) {
+          onClose();
+        }
+      }}
       aria-label={title ? undefined : ariaLabel}
       aria-labelledby={title ? titleId : undefined}
-      className={`w-[calc(100%-3rem)] ${SIZE_CLASS[size]} backdrop:bg-ink/50`}
+      className={`m-auto w-[calc(100%-3rem)] ${SIZE_CLASS[size]} bg-transparent backdrop:bg-ink/50`}
     >
       <div className="rounded-card-lg bg-surface p-[22px] shadow-card-lg">
         {title && (
@@ -74,9 +101,10 @@ export function Modal({
             <h2 id={titleId} className="pr-12 text-h2 text-ink">
               {title}
             </h2>
+            {/* dismissible gates implicit dismissal (backdrop click, Escape) only — the explicit close button always closes. */}
             <button
               type="button"
-              autoFocus
+              ref={closeButtonRef}
               onClick={onClose}
               aria-label="Fechar"
               className="flex h-11 w-11 flex-none items-center justify-center rounded-full text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"

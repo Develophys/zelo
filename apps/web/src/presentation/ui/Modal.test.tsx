@@ -104,6 +104,15 @@ describe('Modal', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it('focuses the close button when opened', () => {
+    render(
+      <Modal isOpen onClose={vi.fn()} title="Test modal">
+        <p>Body</p>
+      </Modal>,
+    );
+    expect(screen.getByRole('button', { name: 'Fechar' })).toHaveFocus();
+  });
+
   it('gives the close button a 44x44px hit target', () => {
     render(
       <Modal isOpen onClose={vi.fn()} title="Test modal">
