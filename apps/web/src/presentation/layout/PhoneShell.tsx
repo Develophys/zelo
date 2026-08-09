@@ -34,7 +34,7 @@ export function PhoneShell({
   const column = (
     <div
       data-testid="phone-shell-root"
-      className={`flex h-full min-h-screen ${nav ? "flex-1" : ""} flex-col ${BG_CLASS[bg]}`}
+      className={`flex h-full min-h-dvh ${nav ? "flex-1" : ""} flex-col ${BG_CLASS[bg]}`}
     >
       <div
         data-testid="phone-shell-body"
@@ -53,7 +53,7 @@ export function PhoneShell({
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-dvh">
       <Sidebar />
       {column}
     </div>

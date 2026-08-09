@@ -25,6 +25,13 @@ describe("PhoneShell", () => {
     render(<PhoneShell>content</PhoneShell>);
     expect(screen.getByTestId("phone-shell-root")).toHaveClass("bg-canvas");
   });
+
+  it("uses dynamic viewport height so mobile browser toolbars don't clip content", () => {
+    render(<PhoneShell>content</PhoneShell>);
+    const root = screen.getByTestId("phone-shell-root");
+    expect(root).toHaveClass("min-h-dvh");
+    expect(root).not.toHaveClass("min-h-screen");
+  });
 });
 
 describe("PhoneShell nav mode", () => {
@@ -65,6 +72,16 @@ describe("PhoneShell nav mode", () => {
       </MemoryRouter>,
     );
     expect(screen.getByTestId("my-footer").parentElement).toHaveClass("md:hidden");
+  });
+
+  it("uses dynamic viewport height on the outer nav wrapper too", () => {
+    const { container } = render(
+      <MemoryRouter>
+        <PhoneShell nav>content</PhoneShell>
+      </MemoryRouter>,
+    );
+    expect(container.firstElementChild).toHaveClass("min-h-dvh");
+    expect(container.firstElementChild).not.toHaveClass("min-h-screen");
   });
 });
 

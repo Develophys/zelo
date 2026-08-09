@@ -51,4 +51,10 @@ describe("SplashPage", () => {
     renderSplash();
     expect(screen.getByText("Home screen")).toBeInTheDocument();
   });
+
+  it("uses dynamic viewport height so the CTA isn't hidden behind mobile browser toolbars", () => {
+    const { container } = renderSplash();
+    expect(container.querySelector(".min-h-dvh")).not.toBeNull();
+    expect(container.querySelector(".min-h-screen")).toBeNull();
+  });
 });

@@ -31,7 +31,7 @@ export function ChatComposer({
         type="submit"
         aria-label="Enviar"
         disabled={isStreaming}
-        className="flex h-[46px] w-[46px] flex-none items-center justify-center rounded-full bg-brand text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        className="flex h-11.5 w-11.5 flex-none items-center justify-center rounded-full bg-brand text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
         <ArrowUp size={20} />
       </button>

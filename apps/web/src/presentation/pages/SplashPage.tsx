@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
-import { PhoneShell } from "@/presentation/layout/PhoneShell";
-import { Button } from "@/presentation/ui/Button";
-import { SectionLabel } from "@/presentation/ui/SectionLabel";
-import { useConsentStore } from "@/stores/consent.store";
-import { routes } from "@/presentation/lib/routes";
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
+import { PhoneShell } from '@/presentation/layout/PhoneShell';
+import { Button } from '@/presentation/ui/Button';
+import { SectionLabel } from '@/presentation/ui/SectionLabel';
+import { useConsentStore } from '@/stores/consent.store';
+import { routes } from '@/presentation/lib/routes';
 
-const SUBTITLE = "Cuidado confidencial\npara quem cuida.";
+const SUBTITLE = 'Cuidado confidencial\npara quem cuida.';
 const TYPING_START_DELAY_MS = 1000;
 const TYPING_DURATION_MS = 1000;
 
@@ -14,7 +14,7 @@ function useTypewriter(text: string, startDelayMs: number, durationMs: number) {
   const [revealedCount, setRevealedCount] = useState(0);
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       setRevealedCount(text.length);
       return;
     }
@@ -58,8 +58,8 @@ export function SplashPage() {
   return (
     <PhoneShell bleed centered>
       <div
-        className="flex min-h-screen flex-col items-center justify-center px-8.5 text-center"
-        style={{ background: "linear-gradient(180deg,#EEF4F1,#F2F5F3)" }}
+        className="flex min-h-dvh flex-col items-center justify-center px-8.5 text-center"
+        style={{ background: 'linear-gradient(180deg,#EEF4F1,#F2F5F3)' }}
       >
         <div className="flex flex-1 flex-col items-center justify-center">
           <div className=" flex h-36 w-36 items-center justify-center rounded-card-lg bg-brand shadow-hero">
@@ -84,7 +84,7 @@ export function SplashPage() {
           <Button variant="primary" onClick={() => navigate(routes.privacy)}>
             Começar
           </Button>
-          <div className="mt-[18px]">
+          <div className="mt-4.5">
             <SectionLabel>anônimo · criptografado · no seu controle</SectionLabel>
           </div>
         </div>

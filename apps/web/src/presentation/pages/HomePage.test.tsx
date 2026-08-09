@@ -113,6 +113,22 @@ describe("HomePage", () => {
     expect(bars.filter((bar) => bar.className.includes("bg-line"))).toHaveLength(2);
   });
 
+  it("clamps bar height to 100% even if severityFraction is out of the normal 0-1 range", async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
+      { weekStart: "", severityFraction: null },
+      { weekStart: "", severityFraction: null },
+      { weekStart: "", severityFraction: null },
+      { weekStart: "", severityFraction: null },
+      { weekStart: "", severityFraction: null },
+      { weekStart: "", severityFraction: 1.5 }, // out of range: should clamp, not overflow
+    ]);
+    renderHome();
+    await waitFor(() => {
+      const bars = screen.getAllByTestId("history-bar");
+      expect(bars[5]).toHaveStyle({ height: "100%" });
+    });
+  });
+
   it("navigates to /assessment when the hero CTA is tapped", async () => {
     vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue(SIX_NULL_POINTS);
     renderHome();

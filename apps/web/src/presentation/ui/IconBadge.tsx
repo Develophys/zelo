@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 
 interface IconBadgeProps {
-  icon: ComponentType<{ size?: number; className?: string }>;
+  icon: ComponentType<{ size?: number; className?: string; "aria-hidden"?: boolean | "true" | "false" }>;
   size?: number;
   tone?: "brand" | "danger" | "neutral";
 }
@@ -19,7 +19,7 @@ export function IconBadge({ icon: Icon, size = 38, tone = "brand" }: IconBadgePr
       className={`flex items-center justify-center rounded-icon ${TONE_CLASS[tone]}`}
       style={{ width: size, height: size }}
     >
-      <Icon size={Math.round(size * 0.55)} />
+      <Icon aria-hidden="true" size={Math.round(size * 0.55)} />
     </div>
   );
 }

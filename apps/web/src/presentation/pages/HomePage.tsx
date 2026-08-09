@@ -1,23 +1,24 @@
-import { MessageCircle, Users } from "lucide-react";
-import { useNavigate } from "react-router";
-import { PhoneShell } from "@/presentation/layout/PhoneShell";
-import { BottomNav } from "@/presentation/layout/BottomNav";
-import { NAV_TABS, type NavTabId } from "@/presentation/layout/nav-tabs";
-import { Card } from "@/presentation/ui/Card";
-import { Button } from "@/presentation/ui/Button";
-import { IconBadge } from "@/presentation/ui/IconBadge";
-import { PrivacyBadge } from "@/presentation/ui/PrivacyBadge";
-import { routes } from "@/presentation/lib/routes";
-import { useAssessmentHistory } from "@/presentation/hooks/useAssessmentHistory";
-import type { WeeklyHistoryPoint } from "@/use-cases/get-assessment-history.usecase";
-import { ShouldShowFollowUpPromptUseCase } from "@/use-cases/should-show-followup-prompt.usecase";
-import { useFollowUpStore } from "@/stores/followup.store";
-import { useInstitutionLinkStore } from "@/stores/institution-link.store";
+import { MessageCircle, Users } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { PhoneShell } from '@/presentation/layout/PhoneShell';
+import { BottomNav } from '@/presentation/layout/BottomNav';
+import { NAV_TABS, type NavTabId } from '@/presentation/layout/nav-tabs';
+import { Card } from '@/presentation/ui/Card';
+import { CardButton } from '@/presentation/ui/CardButton';
+import { Button } from '@/presentation/ui/Button';
+import { IconBadge } from '@/presentation/ui/IconBadge';
+import { PrivacyBadge } from '@/presentation/ui/PrivacyBadge';
+import { routes } from '@/presentation/lib/routes';
+import { useAssessmentHistory } from '@/presentation/hooks/useAssessmentHistory';
+import type { WeeklyHistoryPoint } from '@/use-cases/get-assessment-history.usecase';
+import { ShouldShowFollowUpPromptUseCase } from '@/use-cases/should-show-followup-prompt.usecase';
+import { useFollowUpStore } from '@/stores/followup.store';
+import { useInstitutionLinkStore } from '@/stores/institution-link.store';
 
 const shouldShowFollowUpPromptUseCase = new ShouldShowFollowUpPromptUseCase();
 
 const EMPTY_POINTS: WeeklyHistoryPoint[] = Array.from({ length: 6 }, () => ({
-  weekStart: "",
+  weekStart: '',
   severityFraction: null,
 }));
 
@@ -28,7 +29,10 @@ function toBarHeights(points: WeeklyHistoryPoint[]): { height: number; hasData: 
   return points.map((point) =>
     point.severityFraction === null
       ? { height: EMPTY_BAR_HEIGHT, hasData: false }
-      : { height: Math.max(MIN_BAR_HEIGHT, Math.round(point.severityFraction * 100)), hasData: true },
+      : {
+          height: Math.min(100, Math.max(MIN_BAR_HEIGHT, Math.round(point.severityFraction * 100))),
+          hasData: true,
+        },
   );
 }
 
@@ -45,9 +49,30 @@ function findPeakIndex(points: WeeklyHistoryPoint[]): number {
 }
 
 function mostRecentAssessmentDate(points: WeeklyHistoryPoint[]): Date | null {
-  const withData = points.filter((point) => point.severityFraction !== null && point.weekStart !== "");
+  const withData = points.filter(
+    (point) => point.severityFraction !== null && point.weekStart !== '',
+  );
   if (withData.length === 0) return null;
   return new Date(withData[withData.length - 1]!.weekStart);
+}
+
+function describeHistoryWeek(
+  point: WeeklyHistoryPoint,
+  index: number,
+  latestIndex: number,
+  peakIndex: number,
+): string {
+  if (!point.weekStart) return 'Semana sem dado';
+
+  const label = new Date(point.weekStart).toLocaleDateString('pt-BR', {
+    day: 'numeric',
+    month: 'short',
+  });
+
+  if (point.severityFraction === null) return `Semana de ${label}: sem check-in`;
+
+  const status = index === latestIndex ? ' (mais recente)' : index === peakIndex ? ' (pico)' : '';
+  return `Semana de ${label}: ${Math.round(point.severityFraction * 100)}%${status}`;
 }
 
 export function HomePage() {
@@ -79,7 +104,7 @@ export function HomePage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-caption text-muted-2">Bom te ver por aqui</p>
-            <p className="font-serif text-[25px] text-ink">Olá.</p>
+            <h1 className="font-serif text-[25px] text-ink">Olá.</h1>
           </div>
           <PrivacyBadge />
         </div>
@@ -89,10 +114,20 @@ export function HomePage() {
             <Card>
               <p className="text-body font-extrabold text-ink">Como você está, um tempo depois?</p>
               <div className="mt-3 flex gap-3">
-                <Button className="p-2" variant="outline" full={false} onClick={() => recordAnswer("yes")}>
+                <Button
+                  className="p-2!"
+                  variant="outline"
+                  full={false}
+                  onClick={() => recordAnswer('yes')}
+                >
                   Estou bem
                 </Button>
-                <Button className="p-2" variant="outline" full={false} onClick={() => recordAnswer("no")}>
+                <Button
+                  className="p-2!"
+                  variant="outline"
+                  full={false}
+                  onClick={() => recordAnswer('no')}
+                >
                   Não estou bem
                 </Button>
               </div>
@@ -108,7 +143,11 @@ export function HomePage() {
                 Vincule para aparecer nos números do seu time, de forma anônima.
               </p>
               <div className="mt-3">
-                <Button className="p-2 cursor-pointer" variant="outline" full={false} onClick={() => navigate(routes.linkInstitution)}>
+                <Button
+                  variant="outline"
+                  full={false}
+                  onClick={() => navigate(routes.linkInstitution)}
+                >
                   Vincular agora
                 </Button>
               </div>
@@ -117,38 +156,43 @@ export function HomePage() {
         )}
 
         <div className="mt-5">
-          <Card size="lg" tone="brand">
-            <p className="font-serif text-[21px]">Como você está hoje?</p>
+          <Card size="lg" tone="brand" className="flex flex-col">
+            <h2 className="font-serif text-[21px]">Como você está hoje?</h2>
             <p className="mt-1 text-label opacity-85">Um check-in de 5 minutos, só para você.</p>
-            <button
-              type="button"
+            <Button
+              className="bg-white font-bold! text-brand! focus-visible:ring-white"
+              variant="outline"
               onClick={() => navigate(routes.assessment)}
-              className="mt-4 min-h-13 w-full rounded-pill bg-white px-4 font-sans text-[16px] font-bold text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               Fazer check-in
-            </button>
+            </Button>
           </Card>
         </div>
 
         <div className="mt-3.5">
           <Card>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
               <p className="text-body font-extrabold text-ink">Seu histórico</p>
               <p className="font-mono text-[12px] text-muted-2">últimas 6 semanas</p>
             </div>
-            <div className="mt-3 flex h-14 items-end gap-2">
+            <ul className="sr-only">
+              {points.map((point, index) => (
+                <li key={index}>{describeHistoryWeek(point, index, latestIndex, peakIndex)}</li>
+              ))}
+            </ul>
+            <div className="mt-3 flex h-14 items-end gap-2" aria-hidden="true">
               {bars.map((bar, index) => (
                 <div
                   key={index}
                   data-testid="history-bar"
                   className={`w-full rounded-md ${
                     !bar.hasData
-                      ? "bg-line"
+                      ? 'bg-line'
                       : index === latestIndex
-                        ? "bg-brand"
+                        ? 'bg-brand'
                         : index === peakIndex
-                          ? "bg-warn"
-                          : "bg-[#CDDBD4]"
+                          ? 'bg-warn'
+                          : 'bg-track'
                   }`}
                   style={{ height: `${bar.height}%` }}
                 />
@@ -158,31 +202,24 @@ export function HomePage() {
         </div>
 
         <div className="mt-3.5 flex gap-3">
-          <button
-            type="button"
-            onClick={() => navigate(routes.chat)}
-            className="flex-1 rounded-card bg-surface p-4.5 text-left shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-          >
+          <CardButton onClick={() => navigate(routes.chat)} className="flex-1">
             <IconBadge icon={MessageCircle} />
             <p className="mt-2 text-body font-extrabold text-ink">Conversar agora</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate(routes.peers)}
-            className="flex-1 rounded-card bg-surface p-4.5 text-left shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-          >
+          </CardButton>
+          <CardButton onClick={() => navigate(routes.peers)} className="flex-1">
             <IconBadge icon={Users} />
             <p className="mt-2 text-body font-extrabold text-ink">Falar com um par</p>
-          </button>
+          </CardButton>
         </div>
 
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          full={false}
           onClick={() => navigate(routes.manager)}
-          className="mt-4 min-h-11 text-left text-label font-semibold text-muted underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className="w-fit mt-4 text-left text-label text-muted! underline focus-visible:ring-brand!"
         >
           Ver painel do gestor
-        </button>
+        </Button>
       </div>
     </PhoneShell>
   );
