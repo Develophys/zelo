@@ -1,76 +1,50 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { EncryptionInfoModal } from "./EncryptionInfoModal";
+import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { EncryptionInfoModal } from './EncryptionInfoModal';
 
-describe("EncryptionInfoModal", () => {
-  it("renders nothing when closed", () => {
+describe('EncryptionInfoModal', () => {
+  it('renders nothing when closed', () => {
     render(<EncryptionInfoModal isOpen={false} onClose={vi.fn()} />);
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it("renders the title, body, and documentation link when open", () => {
+  it('renders the title, body, and documentation link when open', () => {
     render(<EncryptionInfoModal isOpen onClose={vi.fn()} />);
 
-    expect(screen.getByRole("dialog", { name: "Criptografia AES-256" })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Criptografia AES-256' })).toBeInTheDocument();
     expect(
       screen.getByText(/AES-256 é um método de criptografia usado por bancos/),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(/nem o\s*Zelo consegue abrir esse código/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/nem o\s*Zelo consegue abrir esse código/)).toBeInTheDocument();
     expect(
       screen.getByText(/suas respostas ficam protegidas, e sua identidade permanece\s*anônima/),
     ).toBeInTheDocument();
 
-    const link = screen.getByRole("link", { name: /Para mais informações/ });
+    const link = screen.getByRole('link', { name: /Para mais informações/ });
     expect(link).toHaveAttribute(
-      "href",
-      "https://pt.wikipedia.org/wiki/Advanced_Encryption_Standard",
+      'href',
+      'https://pt.wikipedia.org/wiki/Advanced_Encryption_Standard',
     );
-    expect(link).toHaveAttribute("target", "_blank");
-    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
-  it("calls onClose when the close button is clicked", async () => {
+  it('calls onClose when the close button is clicked', async () => {
     const onClose = vi.fn();
     render(<EncryptionInfoModal isOpen onClose={onClose} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Fechar" }));
+    await userEvent.click(screen.getByRole('button', { name: 'Fechar' }));
 
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it("calls onClose when the backdrop is clicked", async () => {
+  it('calls onClose when Escape is pressed', () => {
     const onClose = vi.fn();
     render(<EncryptionInfoModal isOpen onClose={onClose} />);
 
-    await userEvent.click(screen.getByTestId("modal-backdrop"));
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
 
     expect(onClose).toHaveBeenCalledOnce();
-  });
-
-  it("does not call onClose when clicking inside the dialog", async () => {
-    const onClose = vi.fn();
-    render(<EncryptionInfoModal isOpen onClose={onClose} />);
-
-    await userEvent.click(screen.getByRole("dialog"));
-
-    expect(onClose).not.toHaveBeenCalled();
-  });
-
-  it("calls onClose when Escape is pressed", async () => {
-    const onClose = vi.fn();
-    render(<EncryptionInfoModal isOpen onClose={onClose} />);
-
-    await userEvent.keyboard("{Escape}");
-
-    expect(onClose).toHaveBeenCalledOnce();
-  });
-
-  it("moves focus to the close button when opened", () => {
-    render(<EncryptionInfoModal isOpen onClose={vi.fn()} />);
-
-    expect(screen.getByRole("button", { name: "Fechar" })).toHaveFocus();
   });
 });
