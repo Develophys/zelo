@@ -27,7 +27,7 @@ describe("ConsentPage", () => {
     expect(screen.getByText(/não emite diagnóstico/)).toBeInTheDocument();
     expect(screen.getByText(/anônimo e agregado/)).toBeInTheDocument();
     expect(screen.getByText(/eu escolher/)).toBeInTheDocument();
-    expect(screen.getByText(/Criptografia AES-256/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Saiba mais sobre a criptografia AES-256/ })).toBeInTheDocument();
   });
 
   it("grants consent and navigates to /home when accepted", async () => {
