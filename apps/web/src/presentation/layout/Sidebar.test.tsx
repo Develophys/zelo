@@ -50,4 +50,29 @@ describe("Sidebar", () => {
     const brandLink = screen.getByRole("link", { name: "Zelo" });
     expect(brandLink).toHaveAttribute("href", routes.home);
   });
+
+  it("only shows the collapse toggle from the lg breakpoint up", () => {
+    renderAt(routes.home);
+    expect(screen.getByRole("button", { name: "Recolher menu" })).toHaveClass("hidden", "lg:flex");
+  });
+
+  it("collapses to the icon-only width and hides labels when the toggle is clicked", async () => {
+    const user = userEvent.setup();
+    renderAt(routes.home);
+    await user.click(screen.getByRole("button", { name: "Recolher menu" }));
+
+    expect(screen.getByTestId("sidebar")).not.toHaveClass("lg:w-[220px]");
+    expect(screen.getByText("Zelo")).toHaveClass("hidden");
+    expect(screen.getByRole("button", { name: "Expandir menu" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("expands again on a second toggle click", async () => {
+    const user = userEvent.setup();
+    renderAt(routes.home);
+    await user.click(screen.getByRole("button", { name: "Recolher menu" }));
+    await user.click(screen.getByRole("button", { name: "Expandir menu" }));
+
+    expect(screen.getByTestId("sidebar")).toHaveClass("lg:w-[220px]");
+    expect(screen.getByRole("button", { name: "Recolher menu" })).toHaveAttribute("aria-pressed", "false");
+  });
 });
