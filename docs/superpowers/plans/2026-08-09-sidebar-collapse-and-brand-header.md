@@ -15,7 +15,7 @@
 - This app has a global CSS rule (`apps/web/src/app/index.css:144-146`) that already forces `animation: none !important; transition: none !important;` under `prefers-reduced-motion: reduce` — new transition classes do **not** need a `motion-safe:` prefix; the existing blanket rule covers them.
 - Presentation-layer only. No changes to `application/`, `infrastructure/`, or any HTTP port.
 - The collapse toggle only renders/applies from `lg:` (1024px) up. Below that, existing responsive behavior (hidden <768px, auto icon-only rail 768–1023px) is unchanged and untouched by `collapsed` state.
-- Reuse existing design tokens only — no new colors, radii, or spacing values. Toggle button styling matches `apps/web/src/presentation/ui/BackButton.tsx`'s established icon-button convention (`min-h-11 min-w-11`, `text-muted`, `focus-visible:ring-2 focus-visible:ring-brand`).
+- Reuse existing design tokens only — no new colors, radii, or spacing values. Toggle button styling matches `apps/web/src/presentation/ui/BackButton.tsx`'s established icon-button convention (`min-h-[44px] min-w-[44px]`, `text-muted`, `focus-visible:ring-2 focus-visible:ring-brand`).
 - Reference spec: `docs/superpowers/specs/2026-08-09-sidebar-collapse-and-brand-header-design.md`.
 
 ---
