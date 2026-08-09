@@ -37,6 +37,24 @@ Object.defineProperty(window, "matchMedia", {
   }),
 });
 
+// jsdom 25 doesn't implement HTMLDialogElement's showModal()/close() (long-
+// standing gap: https://github.com/jsdom/jsdom/issues/3294). The shared
+// Modal (apps/web/src/presentation/ui/Modal.tsx) calls both, so tests need a
+// minimal stand-in: toggle the `open` attribute and fire the `close` event
+// `close()` is supposed to dispatch. This does not reproduce the browser's
+// native focus trap or Escape-triggered auto-close — Modal handles Escape
+// itself via a keydown handler for exactly this reason, and focus-trap
+// correctness is a manual/browser check, not a unit test target.
+if (!HTMLDialogElement.prototype.showModal) {
+  HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
+    this.removeAttribute("open");
+    this.dispatchEvent(new Event("close"));
+  };
+}
+
 /**
  * @testing-library/react's automatic post-test cleanup only self-registers
  * when `afterEach` is a *global* (i.e. vitest's `test.globals: true`). This
