@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
@@ -19,6 +19,10 @@ function renderAt(pathname: string) {
 }
 
 describe("Sidebar", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it("renders the four PT-BR destination labels", () => {
     renderAt(routes.home);
     expect(screen.getByText("Início")).toBeInTheDocument();
@@ -42,6 +46,59 @@ describe("Sidebar", () => {
 
   it("is hidden below the tablet breakpoint and visible from it up", () => {
     renderAt(routes.home);
-    expect(screen.getByRole("navigation", { name: "Navegação principal" })).toHaveClass("hidden", "md:flex");
+    expect(screen.getByTestId("sidebar")).toHaveClass("hidden", "md:flex");
+  });
+
+  it("renders the Zelo brand mark linking to Home", () => {
+    renderAt(routes.home);
+    const brandLink = screen.getByRole("link", { name: "Zelo" });
+    expect(brandLink).toHaveAttribute("href", routes.home);
+  });
+
+  it("only shows the collapse toggle from the lg breakpoint up", () => {
+    renderAt(routes.home);
+    expect(screen.getByRole("button", { name: "Recolher menu" })).toHaveClass("hidden", "lg:flex");
+  });
+
+  it("collapses to the icon-only width and hides labels when the toggle is clicked", async () => {
+    const user = userEvent.setup();
+    renderAt(routes.home);
+    await user.click(screen.getByRole("button", { name: "Recolher menu" }));
+
+    expect(screen.getByTestId("sidebar")).not.toHaveClass("lg:w-[220px]");
+    expect(screen.getByText("Zelo")).not.toHaveClass("lg:inline");
+    expect(screen.getByText("Início")).not.toHaveClass("lg:inline");
+    expect(screen.getByRole("button", { name: "Expandir menu" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("expands again on a second toggle click", async () => {
+    const user = userEvent.setup();
+    renderAt(routes.home);
+    await user.click(screen.getByRole("button", { name: "Recolher menu" }));
+    await user.click(screen.getByRole("button", { name: "Expandir menu" }));
+
+    expect(screen.getByTestId("sidebar")).toHaveClass("lg:w-[220px]");
+    expect(screen.getByRole("button", { name: "Recolher menu" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByText("Zelo")).toHaveClass("lg:inline");
+    expect(screen.getByText("Início")).toHaveClass("lg:inline");
+  });
+
+  it("restores a collapsed state saved from a previous visit", () => {
+    window.localStorage.setItem("zelo.sidebar-collapsed", "true");
+    renderAt(routes.home);
+
+    expect(screen.getByTestId("sidebar")).not.toHaveClass("lg:w-[220px]");
+    expect(screen.getByRole("button", { name: "Expandir menu" })).toBeInTheDocument();
+  });
+
+  it("persists the collapsed state after the sidebar remounts", async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderAt(routes.home);
+    await user.click(screen.getByRole("button", { name: "Recolher menu" }));
+    unmount();
+
+    renderAt(routes.home);
+    expect(screen.getByTestId("sidebar")).not.toHaveClass("lg:w-[220px]");
+    expect(screen.getByRole("button", { name: "Expandir menu" })).toBeInTheDocument();
   });
 });
