@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- No behavior, copy, markup, or CSS class changes — this is a pure structural refactor. Every string, class name, and DOM attribute below is copied verbatim from the current implementation.
+- No behavior, copy, markup, or CSS class changes — this is a pure structural refactor. Every string, class name, and DOM attribute below is copied verbatim from the current implementation. **Ruling (Task 1 review):** the code blocks in this plan were transcribed from the working-tree file, which already carried an uncommitted, unrelated Tailwind class normalization (`pt-[30px]`→`pt-7.5`, `mb-[6px]`→`mb-1.5`, `mt-[24px]`→`mt-6`) not present in the branch's base commit. Confirmed with the human partner: keep these classes as-is (pixel-identical under Tailwind v4's scale, matches in-progress formatting work elsewhere in the repo) — do not revert them to bracket-value syntax. "Copied verbatim" means verbatim from the code blocks in this plan, not byte-for-byte from the base commit.
 - No new test files. [LinkInstitutionPage.test.tsx](../../../apps/web/src/presentation/pages/LinkInstitutionPage.test.tsx) already covers this flow end-to-end through rendered DOM (labels, roles, disabled state) and is the regression gate for both tasks — it must stay green, unmodified, throughout.
 - Flat file layout: hook goes in `presentation/hooks/`, components go in `presentation/components/` — matches this repo's existing convention (no colocated per-feature folders).
 - Do not generalize into a reusable step-wizard — this flow is fixed at two steps (see design spec's "Out of scope").
