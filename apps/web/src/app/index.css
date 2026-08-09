@@ -1,5 +1,29 @@
 @import "tailwindcss";
 
+/* Self-hosted (not Google Fonts CDN) so the fonts precache with the rest of
+   the PWA and render with zero cross-origin round-trips — see optimize pass
+   notes. Newsreader keeps its opsz+wght variable axes (the "standard" build)
+   to match the optical-sizing the brief originally requested via Google
+   Fonts' `opsz,wght@6..72,…` query. Nunito Sans / IBM Plex Mono only pull
+   the latin + latin-ext subsets: the app is PT-BR only, so the packages'
+   cyrillic/vietnamese subset files would just be dead weight in the
+   service worker's precache. */
+@import "@fontsource-variable/newsreader/standard.css";
+@import "@fontsource/nunito-sans/latin-400.css";
+@import "@fontsource/nunito-sans/latin-ext-400.css";
+@import "@fontsource/nunito-sans/latin-600.css";
+@import "@fontsource/nunito-sans/latin-ext-600.css";
+@import "@fontsource/nunito-sans/latin-700.css";
+@import "@fontsource/nunito-sans/latin-ext-700.css";
+@import "@fontsource/nunito-sans/latin-800.css";
+@import "@fontsource/nunito-sans/latin-ext-800.css";
+@import "@fontsource/ibm-plex-mono/latin-400.css";
+@import "@fontsource/ibm-plex-mono/latin-ext-400.css";
+@import "@fontsource/ibm-plex-mono/latin-500.css";
+@import "@fontsource/ibm-plex-mono/latin-ext-500.css";
+@import "@fontsource/ibm-plex-mono/latin-600.css";
+@import "@fontsource/ibm-plex-mono/latin-ext-600.css";
+
 @theme {
   --color-brand: #2F6B5E;
   --color-brand-hover: #1F5A4D;
@@ -27,7 +51,7 @@
   --color-dark: #0D1512;
   --color-dark-brand: #A8D8C9;
 
-  --font-serif: "Newsreader", Georgia, serif;
+  --font-serif: "Newsreader Variable", Georgia, serif;
   --font-sans: "Nunito Sans", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
@@ -105,7 +129,6 @@
 
 .animate-grow-in {
   animation: grow-in 2s ease-in-out 1;
-  will-change: transform;
   backface-visibility: hidden;
 }
 

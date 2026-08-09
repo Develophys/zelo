@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { SplashPage } from "./SplashPage";
@@ -56,5 +56,20 @@ describe("SplashPage", () => {
     const { container } = renderSplash();
     expect(container.querySelector(".min-h-dvh")).not.toBeNull();
     expect(container.querySelector(".min-h-screen")).toBeNull();
+  });
+
+  it("falls back to a typographic mark if the logo image fails to load", () => {
+    const { container } = renderSplash();
+    const logoImg = container.querySelector("img");
+    expect(logoImg).not.toBeNull();
+    fireEvent.error(logoImg as HTMLImageElement);
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector('[aria-hidden="true"]')?.textContent).toContain("Z");
+  });
+
+  it("keeps the logo decorative so screen readers hear the Zelo heading once, not twice", () => {
+    const { container } = renderSplash();
+    expect(container.querySelector("img")?.getAttribute("alt")).toBe("");
+    expect(screen.getByRole("heading", { name: "Zelo" })).toBeInTheDocument();
   });
 });
