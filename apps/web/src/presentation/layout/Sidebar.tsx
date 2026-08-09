@@ -18,7 +18,7 @@ export function Sidebar() {
         <Link
           to={routes.home}
           aria-label="Zelo"
-          className="flex items-center gap-2 rounded-input focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className="flex min-h-11 min-w-11 items-center gap-2 rounded-input focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
           <picture>
             <source srcSet={`${import.meta.env.BASE_URL}zelo_logo.webp`} type="image/webp" />
