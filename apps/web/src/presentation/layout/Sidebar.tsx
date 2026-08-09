@@ -4,10 +4,14 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { NAV_TABS } from "./nav-tabs";
 import { routes } from "@/presentation/lib/routes";
 
-const COLLAPSED_STORAGE_KEY = "zelo:sidebar-collapsed";
+const COLLAPSED_STORAGE_KEY = "zelo.sidebar-collapsed";
 
 function readStoredCollapsed(): boolean {
-  return window.localStorage.getItem(COLLAPSED_STORAGE_KEY) === "true";
+  try {
+    return window.localStorage.getItem(COLLAPSED_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
 }
 
 // Persistent navigation for tablet/desktop (≥768px) — shown only on the 4
@@ -22,7 +26,11 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(readStoredCollapsed);
 
   useEffect(() => {
-    window.localStorage.setItem(COLLAPSED_STORAGE_KEY, String(collapsed));
+    try {
+      window.localStorage.setItem(COLLAPSED_STORAGE_KEY, String(collapsed));
+    } catch {
+      // preference is best-effort
+    }
   }, [collapsed]);
 
   return (
@@ -40,7 +48,7 @@ export function Sidebar() {
         <Link
           to={routes.home}
           aria-label="Zelo"
-          className="flex min-h-11 min-w-11 items-center gap-2 rounded-input focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className="flex min-h-[44px] min-w-[44px] items-center gap-2 rounded-input focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
           <picture>
             <source srcSet={`${import.meta.env.BASE_URL}zelo_logo.webp`} type="image/webp" />
@@ -64,7 +72,7 @@ export function Sidebar() {
           onClick={() => setCollapsed((prev) => !prev)}
           aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
           aria-pressed={collapsed}
-          className="hidden min-h-11 min-w-11 items-center justify-center rounded-input text-muted hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand lg:flex"
+          className="hidden min-h-[44px] min-w-[44px] items-center justify-center rounded-input text-muted hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand lg:flex"
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>

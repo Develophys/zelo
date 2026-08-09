@@ -66,7 +66,8 @@ describe("Sidebar", () => {
     await user.click(screen.getByRole("button", { name: "Recolher menu" }));
 
     expect(screen.getByTestId("sidebar")).not.toHaveClass("lg:w-[220px]");
-    expect(screen.getByText("Zelo")).toHaveClass("hidden");
+    expect(screen.getByText("Zelo")).not.toHaveClass("lg:inline");
+    expect(screen.getByText("Início")).not.toHaveClass("lg:inline");
     expect(screen.getByRole("button", { name: "Expandir menu" })).toHaveAttribute("aria-pressed", "true");
   });
 
@@ -78,10 +79,12 @@ describe("Sidebar", () => {
 
     expect(screen.getByTestId("sidebar")).toHaveClass("lg:w-[220px]");
     expect(screen.getByRole("button", { name: "Recolher menu" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByText("Zelo")).toHaveClass("lg:inline");
+    expect(screen.getByText("Início")).toHaveClass("lg:inline");
   });
 
   it("restores a collapsed state saved from a previous visit", () => {
-    window.localStorage.setItem("zelo:sidebar-collapsed", "true");
+    window.localStorage.setItem("zelo.sidebar-collapsed", "true");
     renderAt(routes.home);
 
     expect(screen.getByTestId("sidebar")).not.toHaveClass("lg:w-[220px]");
