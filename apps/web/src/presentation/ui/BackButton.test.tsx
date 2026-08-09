@@ -24,7 +24,7 @@ describe("BackButton", () => {
   it("meets the 44px hit-target minimum and has a visible focus ring class", () => {
     render(<BackButton onClick={vi.fn()} />);
     const button = screen.getByRole("button");
-    expect(button).toHaveClass("min-h-[44px]", "min-w-[44px]");
+    expect(button).toHaveClass("min-h-11", "min-w-11");
     expect(button).toHaveClass("focus-visible:ring-2");
   });
 });

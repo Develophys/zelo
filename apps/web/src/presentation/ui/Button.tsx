@@ -1,13 +1,16 @@
 import type { ButtonHTMLAttributes } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'ghost' | 'outline' | 'danger';
+  // "unstyled" keeps only shared behavior (focus ring, disabled/loading state,
+  // cursor, the full-width toggle) and contributes no color, shape, spacing,
+  // or hover effect — bring your own visuals via className.
+  variant?: 'primary' | 'ghost' | 'outline' | 'danger' | 'unstyled';
   full?: boolean;
   loading?: boolean;
 }
 
-const VARIANT_CLASS: Record<NonNullable<ButtonProps['variant']>, string> = {
-  primary: 'bg-brand text-white hover:bg-brand-hover',
+const VARIANT_CLASS: Record<'primary' | 'ghost' | 'outline' | 'danger', string> = {
+  primary: 'bg-brand text-white enabled:hover:bg-brand-hover',
   ghost: 'bg-transparent text-muted',
   outline: 'bg-surface text-ink border border-line',
   danger: 'bg-danger text-white',
@@ -25,14 +28,19 @@ export function Button({
   return (
     <button
       className={[
-        'rounded-pill cursor-pointer py-4 px-2 font-sans text-[16px] font-semibold transition disabled:opacity-50',
-        'min-h-13 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand',
-        VARIANT_CLASS[variant] !== VARIANT_CLASS.ghost &&
-          'hover:shadow-[0_2px_4px_rgba(33,48,43,0.12),0_18px_32px_-10px_rgba(33,48,43,0.3)] transition-shadow duration-300 ease-out',
-        VARIANT_CLASS[variant],
+        'cursor-pointer transition disabled:cursor-not-allowed disabled:opacity-50',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand',
+        variant !== 'unstyled' &&
+          'rounded-pill py-4 px-2 font-sans text-[16px] font-semibold min-h-13',
+        variant !== 'unstyled' &&
+          variant !== 'ghost' &&
+          'enabled:hover:shadow-[0_2px_4px_rgba(33,48,43,0.12),0_18px_32px_-10px_rgba(33,48,43,0.3)] transition-shadow duration-300 ease-out',
+        variant === 'unstyled' ? '' : VARIANT_CLASS[variant],
         full ? 'w-full' : '',
         className,
-      ].join(' ')}
+      ]
+        .filter(Boolean)
+        .join(' ')}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       {...rest}
@@ -44,7 +52,7 @@ export function Button({
           className="mx-auto block h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent"
         />
       )}
-      <span className={loading ? 'sr-only' : undefined}>{children}</span>
+      <span className={loading ? 'sr-only' : 'contents'}>{children}</span>
     </button>
   );
 }

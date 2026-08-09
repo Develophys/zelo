@@ -38,4 +38,34 @@ describe("Button", () => {
     render(<Button>Label</Button>);
     expect(screen.getByRole("button")).toHaveClass("w-full");
   });
+
+  it("unstyled variant keeps shared behavior but contributes no visual classes", () => {
+    render(
+      <Button variant="unstyled" className="bg-surface-brand p-3.25">
+        Label
+      </Button>,
+    );
+    const button = screen.getByRole("button", { name: "Label" });
+    // Behavior kept: full-width toggle, disabled dimming, focus ring, cursor.
+    expect(button).toHaveClass("w-full", "disabled:opacity-50", "focus-visible:ring-2", "cursor-pointer");
+    // Visuals not contributed: no variant color, no default shape/padding/font.
+    expect(button).not.toHaveClass("bg-brand", "rounded-pill", "py-4", "font-sans", "min-h-13");
+    // Caller's own classes survive untouched.
+    expect(button).toHaveClass("bg-surface-brand", "p-3.25");
+  });
+
+  it("shows a not-allowed cursor when disabled", () => {
+    render(<Button disabled>Label</Button>);
+    expect(screen.getByRole("button", { name: "Label" })).toHaveClass("disabled:cursor-not-allowed");
+  });
+
+  it("scopes hover effects to the enabled state so disabled buttons show none", () => {
+    render(<Button>Label</Button>);
+    const button = screen.getByRole("button", { name: "Label" });
+    expect(button).toHaveClass("enabled:hover:bg-brand-hover");
+    expect(button).toHaveClass(
+      "enabled:hover:shadow-[0_2px_4px_rgba(33,48,43,0.12),0_18px_32px_-10px_rgba(33,48,43,0.3)]",
+    );
+    expect(button).not.toHaveClass("hover:bg-brand-hover");
+  });
 });

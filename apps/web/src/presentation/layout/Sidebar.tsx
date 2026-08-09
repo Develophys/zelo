@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
-import { Link, NavLink } from "react-router";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { NAV_TABS } from "./nav-tabs";
-import { routes } from "@/presentation/lib/routes";
+import { useEffect, useState } from 'react';
+import { Link, NavLink } from 'react-router';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { NAV_TABS } from './nav-tabs';
+import { routes } from '@/presentation/lib/routes';
 
-const COLLAPSED_STORAGE_KEY = "zelo.sidebar-collapsed";
+const COLLAPSED_STORAGE_KEY = 'zelo.sidebar-collapsed';
 
 function readStoredCollapsed(): boolean {
   try {
-    return window.localStorage.getItem(COLLAPSED_STORAGE_KEY) === "true";
+    return window.localStorage.getItem(COLLAPSED_STORAGE_KEY) === 'true';
   } catch {
     return false;
   }
@@ -36,33 +36,37 @@ export function Sidebar() {
   return (
     <aside
       data-testid="sidebar"
-      className={`hidden flex-none flex-col border-r border-surface-brand bg-surface transition-[width] duration-200 md:flex md:w-[76px] ${
-        collapsed ? "" : "lg:w-[220px]"
+      className={`hidden flex-none flex-col border-r border-surface-brand bg-surface transition-[width] duration-200 md:flex md:w-19 ${
+        collapsed ? '' : 'lg:w-55'
       }`}
     >
       <div
-        className={`flex flex-col items-center gap-2 border-b border-surface-brand px-2 py-4 ${
-          collapsed ? "" : "lg:flex-row lg:justify-between"
+        className={`flex flex-col items-center gap-2 border-b border-surface-brand px-2 py-2.5 ${
+          collapsed ? '' : 'lg:flex-row lg:justify-between'
         }`}
       >
         <Link
           to={routes.home}
           aria-label="Zelo"
-          className="flex min-h-[44px] min-w-[44px] items-center gap-2 rounded-input focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className="flex min-h-11 min-w-11 items-center gap-2 rounded-input focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
-          <picture>
-            <source srcSet={`${import.meta.env.BASE_URL}zelo_logo.webp`} type="image/webp" />
-            <img
-              src={`${import.meta.env.BASE_URL}zelo_logo.png`}
-              alt=""
-              width={32}
-              height={32}
-              className="h-8 w-8 flex-none object-contain"
-            />
-          </picture>
+          <div
+            className={`flex h-8 w-8 flex-none items-center justify-center rounded-icon bg-brand ${collapsed && 'ml-1'}`}
+          >
+            <picture>
+              <source srcSet={`${import.meta.env.BASE_URL}zelo_logo.webp`} type="image/webp" />
+              <img
+                src={`${import.meta.env.BASE_URL}zelo_logo.png`}
+                alt=""
+                width={32}
+                height={32}
+                className="h-full w-full object-contain"
+              />
+            </picture>
+          </div>
           <span
             aria-hidden="true"
-            className={`font-sans text-[15px] font-bold text-ink ${collapsed ? "hidden" : "hidden lg:inline"}`}
+            className={`mt-1 font-serif text-[28px] text-ink ${collapsed ? 'hidden' : 'hidden lg:inline'}`}
           >
             Zelo
           </span>
@@ -70,9 +74,9 @@ export function Sidebar() {
         <button
           type="button"
           onClick={() => setCollapsed((prev) => !prev)}
-          aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+          aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}
           aria-pressed={collapsed}
-          className="hidden min-h-[44px] min-w-[44px] items-center justify-center rounded-input text-muted hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand lg:flex"
+          className="hidden min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-input text-muted hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand lg:flex"
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
@@ -85,13 +89,15 @@ export function Sidebar() {
             to={route}
             aria-label={label}
             className={({ isActive }) =>
-              `flex min-h-[44px] items-center justify-center gap-3 rounded-input px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
-                collapsed ? "" : "lg:justify-start"
-              } ${isActive ? "bg-surface-brand text-brand" : "text-faint"}`
+              `flex min-h-11 items-center justify-center gap-3 rounded-input px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                collapsed ? '' : 'lg:justify-start'
+              } ${isActive ? 'bg-surface-brand text-brand' : 'text-faint'}`
             }
           >
             <Icon size={22} />
-            <span className={`hidden font-sans text-[14px] font-semibold ${collapsed ? "" : "lg:inline"}`}>
+            <span
+              className={`hidden font-sans text-[14px] font-semibold ${collapsed ? '' : 'lg:inline'}`}
+            >
               {label}
             </span>
           </NavLink>

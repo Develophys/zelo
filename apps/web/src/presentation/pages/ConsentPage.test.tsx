@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it, beforeEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
@@ -27,7 +27,9 @@ describe("ConsentPage", () => {
     expect(screen.getByText(/não emite diagnóstico/)).toBeInTheDocument();
     expect(screen.getByText(/anônimo e agregado/)).toBeInTheDocument();
     expect(screen.getByText(/eu escolher/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Saiba mais sobre a criptografia AES-256/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Criptografia AES-256 no seu aparelho/ }),
+    ).toBeInTheDocument();
   });
 
   it("grants consent and navigates to /home when accepted", async () => {
@@ -36,6 +38,20 @@ describe("ConsentPage", () => {
     expect(useConsentStore.getState().hasConsented).toBe(true);
     expect(useConsentStore.getState().consentedAt).not.toBeNull();
     expect(screen.getByText("Home screen")).toBeInTheDocument();
+  });
+
+  it("still navigates to /home when persisting consent to storage fails", async () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("QuotaExceededError");
+    });
+
+    renderConsent();
+    await userEvent.click(screen.getByRole("button", { name: "Aceitar e entrar" }));
+
+    expect(useConsentStore.getState().hasConsented).toBe(true);
+    expect(screen.getByText("Home screen")).toBeInTheDocument();
+
+    setItemSpy.mockRestore();
   });
 
   it("navigates back to /privacy", async () => {
@@ -48,7 +64,7 @@ describe("ConsentPage", () => {
     renderConsent();
 
     await userEvent.click(
-      screen.getByRole("button", { name: /Saiba mais sobre a criptografia AES-256/ }),
+      screen.getByRole("button", { name: /Criptografia AES-256 no seu aparelho/ }),
     );
 
     expect(screen.getByRole("dialog", { name: "Criptografia AES-256" })).toBeInTheDocument();
@@ -57,7 +73,7 @@ describe("ConsentPage", () => {
   it("closes the encryption info modal from the close button", async () => {
     renderConsent();
     await userEvent.click(
-      screen.getByRole("button", { name: /Saiba mais sobre a criptografia AES-256/ }),
+      screen.getByRole("button", { name: /Criptografia AES-256 no seu aparelho/ }),
     );
 
     await userEvent.click(screen.getByRole("button", { name: "Fechar" }));
