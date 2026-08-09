@@ -42,6 +42,12 @@ describe("Sidebar", () => {
 
   it("is hidden below the tablet breakpoint and visible from it up", () => {
     renderAt(routes.home);
-    expect(screen.getByRole("navigation", { name: "Navegação principal" })).toHaveClass("hidden", "md:flex");
+    expect(screen.getByTestId("sidebar")).toHaveClass("hidden", "md:flex");
+  });
+
+  it("renders the Zelo brand mark linking to Home", () => {
+    renderAt(routes.home);
+    const brandLink = screen.getByRole("link", { name: "Zelo" });
+    expect(brandLink).toHaveAttribute("href", routes.home);
   });
 });

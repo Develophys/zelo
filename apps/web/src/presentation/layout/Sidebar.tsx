@@ -1,5 +1,6 @@
-import { NavLink } from "react-router";
+import { Link, NavLink } from "react-router";
 import { NAV_TABS } from "./nav-tabs";
+import { routes } from "@/presentation/lib/routes";
 
 // Persistent navigation for tablet/desktop (≥768px) — shown only on the 4
 // médico destination pages (Home, Check-in, Conversar, Você), never on
@@ -9,25 +10,49 @@ import { NAV_TABS } from "./nav-tabs";
 // remains the mobile nav, unchanged.
 export function Sidebar() {
   return (
-    <nav
-      aria-label="Navegação principal"
-      className="hidden flex-none flex-col gap-1 border-r border-surface-brand bg-surface px-2 py-6 md:flex md:w-[76px] lg:w-[220px]"
+    <aside
+      data-testid="sidebar"
+      className="hidden flex-none flex-col border-r border-surface-brand bg-surface md:flex md:w-[76px] lg:w-[220px]"
     >
-      {NAV_TABS.map(({ id, label, icon: Icon, route }) => (
-        <NavLink
-          key={id}
-          to={route}
-          aria-label={label}
-          className={({ isActive }) =>
-            `flex min-h-[44px] items-center justify-center gap-3 rounded-input px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand lg:justify-start ${
-              isActive ? "bg-surface-brand text-brand" : "text-faint"
-            }`
-          }
+      <div className="flex flex-col items-center gap-2 border-b border-surface-brand px-2 py-4 lg:flex-row lg:justify-between">
+        <Link
+          to={routes.home}
+          aria-label="Zelo"
+          className="flex items-center gap-2 rounded-input focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
-          <Icon size={22} />
-          <span className="hidden font-sans text-[14px] font-semibold lg:inline">{label}</span>
-        </NavLink>
-      ))}
-    </nav>
+          <picture>
+            <source srcSet={`${import.meta.env.BASE_URL}zelo_logo.webp`} type="image/webp" />
+            <img
+              src={`${import.meta.env.BASE_URL}zelo_logo.png`}
+              alt=""
+              width={32}
+              height={32}
+              className="h-8 w-8 flex-none object-contain"
+            />
+          </picture>
+          <span aria-hidden="true" className="hidden font-sans text-[15px] font-bold text-ink lg:inline">
+            Zelo
+          </span>
+        </Link>
+      </div>
+
+      <nav aria-label="Navegação principal" className="flex flex-1 flex-col gap-1 px-2 py-6">
+        {NAV_TABS.map(({ id, label, icon: Icon, route }) => (
+          <NavLink
+            key={id}
+            to={route}
+            aria-label={label}
+            className={({ isActive }) =>
+              `flex min-h-[44px] items-center justify-center gap-3 rounded-input px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand lg:justify-start ${
+                isActive ? "bg-surface-brand text-brand" : "text-faint"
+              }`
+            }
+          >
+            <Icon size={22} />
+            <span className="hidden font-sans text-[14px] font-semibold lg:inline">{label}</span>
+          </NavLink>
+        ))}
+      </nav>
+    </aside>
   );
 }
