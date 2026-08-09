@@ -36,14 +36,14 @@ export function PhoneShell({
       data-testid="phone-shell-root"
       className={`flex h-full min-h-dvh ${nav ? "flex-1" : ""} flex-col ${BG_CLASS[bg]}`}
     >
-      <div
+      <main
         data-testid="phone-shell-body"
         className={`no-scrollbar flex-1 overflow-y-auto ${bleed ? "" : "px-6"} ${
           centered ? "md:mx-auto md:w-full md:max-w-170" : ""
         }`}
       >
         {children}
-      </div>
+      </main>
       {footer && <div className={`flex-none ${nav ? "md:hidden" : ""}`}>{footer}</div>}
     </div>
   );
