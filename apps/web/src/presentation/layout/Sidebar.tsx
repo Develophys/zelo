@@ -1,8 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { NAV_TABS } from "./nav-tabs";
 import { routes } from "@/presentation/lib/routes";
+
+const COLLAPSED_STORAGE_KEY = "zelo:sidebar-collapsed";
+
+function readStoredCollapsed(): boolean {
+  return window.localStorage.getItem(COLLAPSED_STORAGE_KEY) === "true";
+}
 
 // Persistent navigation for tablet/desktop (≥768px) — shown only on the 4
 // médico destination pages (Home, Check-in, Conversar, Você), never on
@@ -13,7 +19,11 @@ import { routes } from "@/presentation/lib/routes";
 // médico manually shrink it to the same icon rail used at tablet width — see
 // docs/superpowers/specs/2026-08-09-sidebar-collapse-and-brand-header-design.md.
 export function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(readStoredCollapsed);
+
+  useEffect(() => {
+    window.localStorage.setItem(COLLAPSED_STORAGE_KEY, String(collapsed));
+  }, [collapsed]);
 
   return (
     <aside

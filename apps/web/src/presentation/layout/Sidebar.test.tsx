@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
@@ -19,6 +19,10 @@ function renderAt(pathname: string) {
 }
 
 describe("Sidebar", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it("renders the four PT-BR destination labels", () => {
     renderAt(routes.home);
     expect(screen.getByText("Início")).toBeInTheDocument();
@@ -74,5 +78,24 @@ describe("Sidebar", () => {
 
     expect(screen.getByTestId("sidebar")).toHaveClass("lg:w-[220px]");
     expect(screen.getByRole("button", { name: "Recolher menu" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("restores a collapsed state saved from a previous visit", () => {
+    window.localStorage.setItem("zelo:sidebar-collapsed", "true");
+    renderAt(routes.home);
+
+    expect(screen.getByTestId("sidebar")).not.toHaveClass("lg:w-[220px]");
+    expect(screen.getByRole("button", { name: "Expandir menu" })).toBeInTheDocument();
+  });
+
+  it("persists the collapsed state after the sidebar remounts", async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderAt(routes.home);
+    await user.click(screen.getByRole("button", { name: "Recolher menu" }));
+    unmount();
+
+    renderAt(routes.home);
+    expect(screen.getByTestId("sidebar")).not.toHaveClass("lg:w-[220px]");
+    expect(screen.getByRole("button", { name: "Expandir menu" })).toBeInTheDocument();
   });
 });
