@@ -66,26 +66,28 @@ export function Modal({
       onKeyDown={handleKeyDown}
       aria-label={title ? undefined : ariaLabel}
       aria-labelledby={title ? titleId : undefined}
-      className={`w-[calc(100%-3rem)] ${SIZE_CLASS[size]} rounded-card-lg bg-surface p-[22px] shadow-card-lg backdrop:bg-ink/50`}
+      className={`w-[calc(100%-3rem)] ${SIZE_CLASS[size]} backdrop:bg-ink/50`}
     >
-      {title && (
-        <div className="flex items-start justify-between">
-          <h2 id={titleId} className="pr-12 text-h2 text-ink">
-            {title}
-          </h2>
-          <button
-            type="button"
-            autoFocus
-            onClick={onClose}
-            aria-label="Fechar"
-            className="flex h-11 w-11 flex-none items-center justify-center rounded-full text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-          >
-            <X size={20} />
-          </button>
-        </div>
-      )}
-      <div className={title ? 'mt-3' : ''}>{children}</div>
-      {footer && <div className="mt-4 flex items-center gap-2">{footer}</div>}
+      <div className="rounded-card-lg bg-surface p-[22px] shadow-card-lg">
+        {title && (
+          <div className="flex items-start justify-between">
+            <h2 id={titleId} className="pr-12 text-h2 text-ink">
+              {title}
+            </h2>
+            <button
+              type="button"
+              autoFocus
+              onClick={onClose}
+              aria-label="Fechar"
+              className="flex h-11 w-11 flex-none items-center justify-center rounded-full text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        )}
+        <div className={title ? 'mt-3' : ''}>{children}</div>
+        {footer && <div className="mt-4 flex items-center gap-2">{footer}</div>}
+      </div>
     </dialog>
   );
 }
