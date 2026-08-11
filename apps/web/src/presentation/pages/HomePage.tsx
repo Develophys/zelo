@@ -10,70 +10,19 @@ import { IconBadge } from '@/presentation/ui/IconBadge';
 import { PrivacyBadge } from '@/presentation/ui/PrivacyBadge';
 import { routes } from '@/presentation/lib/routes';
 import { useAssessmentHistory } from '@/presentation/hooks/useAssessmentHistory';
-import type { WeeklyHistoryPoint } from '@/use-cases/get-assessment-history.usecase';
 import { ShouldShowFollowUpPromptUseCase } from '@/use-cases/should-show-followup-prompt.usecase';
 import { useFollowUpStore } from '@/stores/followup.store';
 import { useInstitutionLinkStore } from '@/stores/institution-link.store';
+import {
+  describeHistoryWeek,
+  findPeakIndex,
+  mostRecentAssessmentDate,
+  toBarHeights,
+} from '@/presentation/lib/weekly-history-chart';
+import { EMPTY_POINTS } from '@/presentation/lib/home.constants';
+import { getGreeting } from '@/presentation/lib/get-greeting';
 
 const shouldShowFollowUpPromptUseCase = new ShouldShowFollowUpPromptUseCase();
-
-const EMPTY_POINTS: WeeklyHistoryPoint[] = Array.from({ length: 6 }, () => ({
-  weekStart: '',
-  severityFraction: null,
-}));
-
-const MIN_BAR_HEIGHT = 8;
-const EMPTY_BAR_HEIGHT = 6;
-
-function toBarHeights(points: WeeklyHistoryPoint[]): { height: number; hasData: boolean }[] {
-  return points.map((point) =>
-    point.severityFraction === null
-      ? { height: EMPTY_BAR_HEIGHT, hasData: false }
-      : {
-          height: Math.min(100, Math.max(MIN_BAR_HEIGHT, Math.round(point.severityFraction * 100))),
-          hasData: true,
-        },
-  );
-}
-
-function findPeakIndex(points: WeeklyHistoryPoint[]): number {
-  let peakIndex = -1;
-  let peakValue = -1;
-  points.forEach((point, index) => {
-    if (point.severityFraction !== null && point.severityFraction > peakValue) {
-      peakValue = point.severityFraction;
-      peakIndex = index;
-    }
-  });
-  return peakIndex;
-}
-
-function mostRecentAssessmentDate(points: WeeklyHistoryPoint[]): Date | null {
-  const withData = points.filter(
-    (point) => point.severityFraction !== null && point.weekStart !== '',
-  );
-  if (withData.length === 0) return null;
-  return new Date(withData[withData.length - 1]!.weekStart);
-}
-
-function describeHistoryWeek(
-  point: WeeklyHistoryPoint,
-  index: number,
-  latestIndex: number,
-  peakIndex: number,
-): string {
-  if (!point.weekStart) return 'Semana sem dado';
-
-  const label = new Date(point.weekStart).toLocaleDateString('pt-BR', {
-    day: 'numeric',
-    month: 'short',
-  });
-
-  if (point.severityFraction === null) return `Semana de ${label}: sem check-in`;
-
-  const status = index === latestIndex ? ' (mais recente)' : index === peakIndex ? ' (pico)' : '';
-  return `Semana de ${label}: ${Math.round(point.severityFraction * 100)}%${status}`;
-}
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -103,8 +52,8 @@ export function HomePage() {
       <div className="flex flex-col pt-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-caption text-muted-2">Bom te ver por aqui</p>
-            <h1 className="font-serif text-[25px] text-ink">Olá.</h1>
+            <p className="text-caption text-muted">Bom te ver por aqui</p>
+            <h1 className="text-h1 text-ink">{getGreeting(new Date().getHours())}</h1>
           </div>
           <PrivacyBadge />
         </div>
@@ -137,7 +86,7 @@ export function HomePage() {
 
         {institutionId === null && (
           <div className="mt-4">
-            <Card>
+            <Card tone="brand-tint">
               <p className="text-body font-extrabold text-ink">Ainda não vinculado a um hospital</p>
               <p className="mt-1 text-caption text-muted">
                 Vincule para aparecer nos números do seu time, de forma anônima.
@@ -157,7 +106,7 @@ export function HomePage() {
 
         <div className="mt-5">
           <Card size="lg" tone="brand" className="flex flex-col">
-            <h2 className="font-serif text-[21px]">Como você está hoje?</h2>
+            <h2 className="text-h2">Como você está hoje?</h2>
             <p className="mt-1 text-label opacity-85">Um check-in de 5 minutos, só para você.</p>
             <Button
               className="bg-white font-bold! text-brand! focus-visible:ring-white"
@@ -173,7 +122,7 @@ export function HomePage() {
           <Card>
             <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
               <p className="text-body font-extrabold text-ink">Seu histórico</p>
-              <p className="font-mono text-[12px] text-muted-2">últimas 6 semanas</p>
+              <p className="font-mono text-mono-data text-muted-2">últimas 6 semanas</p>
             </div>
             <ul className="sr-only">
               {points.map((point, index) => (
@@ -198,6 +147,16 @@ export function HomePage() {
                 />
               ))}
             </div>
+            <div className="mt-2 flex gap-3" aria-hidden="true">
+              <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
+                <span className="h-2 w-2 rounded-full bg-brand" />
+                Mais recente
+              </span>
+              <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
+                <span className="h-2 w-2 rounded-full bg-warn" />
+                Pico
+              </span>
+            </div>
           </Card>
         </div>
 
@@ -216,7 +175,7 @@ export function HomePage() {
           variant="ghost"
           full={false}
           onClick={() => navigate(routes.manager)}
-          className="w-fit mt-4 text-left text-label text-muted! underline focus-visible:ring-brand!"
+          className="w-fit mt-4 text-left text-label! underline"
         >
           Ver painel do gestor
         </Button>

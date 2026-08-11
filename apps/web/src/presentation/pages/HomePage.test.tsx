@@ -72,9 +72,25 @@ describe("HomePage", () => {
   it("renders the greeting, privacy badge, and hero check-in CTA", () => {
     vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue(SIX_NULL_POINTS);
     renderHome();
-    expect(screen.getByText("Olá.")).toBeInTheDocument();
     expect(screen.getByText("anônimo")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Fazer check-in" })).toBeInTheDocument();
+  });
+
+  it.each([
+    [3, "Boa noite."], // plantão noturno — the greeting should meet a 3am check-in too
+    [9, "Bom dia."],
+    [15, "Boa tarde."],
+    [21, "Boa noite."],
+  ])("greets with %i:00 as %s", async (hour, expected) => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue(SIX_NULL_POINTS);
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 0, 1, hour, 0, 0));
+    try {
+      renderHome();
+      expect(screen.getByText(expected)).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("renders 6 neutral bars when there is no history yet", async () => {
