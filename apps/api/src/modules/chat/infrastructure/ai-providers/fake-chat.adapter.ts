@@ -25,12 +25,6 @@ export class FakeChatAdapter implements AiChatPort {
     anonymizedMessages: AnonymizedMessage[];
     systemPrompt: string;
   }): AsyncGenerator<ChatToken> {
-    const t = new Promise((res) => {
-      setTimeout(() => res(true), 4000);
-    });
-    await t;
-    throw Error();
-
     const words = pickReply(params.anonymizedMessages).split(' ');
 
     for (const [i, word] of words.entries()) {
