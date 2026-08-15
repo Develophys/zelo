@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* Self-hosted (not Google Fonts CDN) so the fonts precache with the rest of
    the PWA and render with zero cross-origin round-trips — see optimize pass
@@ -8,67 +8,68 @@
    the latin + latin-ext subsets: the app is PT-BR only, so the packages'
    cyrillic/vietnamese subset files would just be dead weight in the
    service worker's precache. */
-@import "@fontsource-variable/newsreader/standard.css";
-@import "@fontsource/nunito-sans/latin-400.css";
-@import "@fontsource/nunito-sans/latin-ext-400.css";
-@import "@fontsource/nunito-sans/latin-600.css";
-@import "@fontsource/nunito-sans/latin-ext-600.css";
-@import "@fontsource/nunito-sans/latin-700.css";
-@import "@fontsource/nunito-sans/latin-ext-700.css";
-@import "@fontsource/nunito-sans/latin-800.css";
-@import "@fontsource/nunito-sans/latin-ext-800.css";
-@import "@fontsource/ibm-plex-mono/latin-400.css";
-@import "@fontsource/ibm-plex-mono/latin-ext-400.css";
-@import "@fontsource/ibm-plex-mono/latin-500.css";
-@import "@fontsource/ibm-plex-mono/latin-ext-500.css";
-@import "@fontsource/ibm-plex-mono/latin-600.css";
-@import "@fontsource/ibm-plex-mono/latin-ext-600.css";
+@import '@fontsource-variable/newsreader/standard.css';
+@import '@fontsource/nunito-sans/latin-400.css';
+@import '@fontsource/nunito-sans/latin-ext-400.css';
+@import '@fontsource/nunito-sans/latin-600.css';
+@import '@fontsource/nunito-sans/latin-ext-600.css';
+@import '@fontsource/nunito-sans/latin-700.css';
+@import '@fontsource/nunito-sans/latin-ext-700.css';
+@import '@fontsource/nunito-sans/latin-800.css';
+@import '@fontsource/nunito-sans/latin-ext-800.css';
+@import '@fontsource/ibm-plex-mono/latin-400.css';
+@import '@fontsource/ibm-plex-mono/latin-ext-400.css';
+@import '@fontsource/ibm-plex-mono/latin-500.css';
+@import '@fontsource/ibm-plex-mono/latin-ext-500.css';
+@import '@fontsource/ibm-plex-mono/latin-600.css';
+@import '@fontsource/ibm-plex-mono/latin-ext-600.css';
 
 @theme {
-  --color-brand: #2F6B5E;
-  --color-brand-hover: #1F5A4D;
-  --color-brand-ink: #21302B;
-  --color-surface: #FFFFFF;
-  --color-surface-brand: #E3ECE7;
-  --color-canvas: #F2F5F3;
-  --color-canvas-alt: #EEF1EF;
-  --color-ink: #21302B;
-  --color-ink-2: #4A584F;
-  --color-muted: #5C6B64;
-  --color-muted-2: #66726C;
-  --color-faint: #9AA7A1;
-  --color-line: #DFE4E1;
-  --color-track: #CDDBD4;
-  --color-warn: #A9711A;
-  --color-warn-bg: #F6EDDA;
-  --color-warn-ink: #85671E;
-  --color-danger: #A2453A;
-  --color-danger-bg: #F7EBE8;
-  --color-danger-border: #E3C9C3;
-  --color-danger-ink: #8A5248;
-  --color-danger-strong: #8F2F26;
-  --color-danger-strong-bg: #F5E4E1;
-  --color-dark: #0D1512;
-  --color-dark-brand: #A8D8C9;
+  --color-brand: #2f6b5e;
+  --color-brand-hover: #1f5a4d;
+  --color-brand-ink: #21302b;
+  --color-surface: #ffffff;
+  --color-surface-brand: #e3ece7;
+  --color-canvas: #f2f5f3;
+  --color-canvas-alt: #eef1ef;
+  --color-ink: #21302b;
+  --color-ink-2: #4a584f;
+  --color-muted: #5c6b64;
+  --color-muted-2: #66726c;
+  --color-faint: #9aa7a1;
+  --color-line: #dfe4e1;
+  --color-track: #cddbd4;
+  --color-warn: #a9711a;
+  --color-warn-bg: #f6edda;
+  --color-warn-ink: #85671e;
+  --color-danger: #a2453a;
+  --color-danger-bg: #f7ebe8;
+  --color-danger-border: #e3c9c3;
+  --color-danger-ink: #8a5248;
+  --color-danger-strong: #8f2f26;
+  --color-danger-strong-bg: #f5e4e1;
+  --color-dark: #0d1512;
+  --color-dark-brand: #a8d8c9;
 
-  --color-band-minimal: #2F6B5E;
-  --color-band-minimal-bg: #E3ECE7;
-  --color-band-mild: #34664A;
-  --color-band-mild-bg: #DEEADD;
-  --color-band-moderate: #8A5A15;
-  --color-band-moderate-bg: #F6EDDA;
-  --color-band-high: #A2453A;
-  --color-band-high-bg: #F7EBE8;
-  --color-band-severe: #8F2F26;
-  --color-band-severe-bg: #F5E4E1;
+  --color-band-minimal: #2f6b5e;
+  --color-band-minimal-bg: #e3ece7;
+  --color-band-mild: #34664a;
+  --color-band-mild-bg: #deeadd;
+  --color-band-moderate: #8a5a15;
+  --color-band-moderate-bg: #f6edda;
+  --color-band-high: #a2453a;
+  --color-band-high-bg: #f7ebe8;
+  --color-band-severe: #8f2f26;
+  --color-band-severe-bg: #f5e4e1;
 
-  --font-serif: "Newsreader Variable", Georgia, serif;
-  --font-sans: "Nunito Sans", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-serif: 'Newsreader Variable', Georgia, serif;
+  --font-sans: 'Nunito Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
   --text-eyebrow: 12px;
   --text-eyebrow--line-height: 1;
   --text-eyebrow--letter-spacing: 0.1em;
+  --text-eyebrow--font-weight: 600;
   --text-caption: 13px;
   --text-caption--line-height: 1.5;
   --text-label: 14px;
@@ -85,10 +86,16 @@
   --text-score--line-height: 1;
   --text-body-strong: 15px;
   --text-body-strong--line-height: 1.5;
+  --text-body-strong--font-weight: 800;
   /* design-tokens.md specifies mono-data as a 12-13px range; 12px is the
      concrete value every mono-data usage in the screen specs actually needs. */
   --text-mono-data: 12px;
   --text-mono-data--line-height: 1.5;
+  --text-mono-data--font-weight: 500;
+
+  --container-chat: 900px;
+
+  --spacing-app-header: 65px;
 
   --radius-pill: 999px;
   --radius-card: 22px;
@@ -96,10 +103,10 @@
   --radius-icon: 14px;
   --radius-input: 16px;
 
-  --shadow-card: 0 8px 24px rgba(38,70,60,.06);
-  --shadow-card-lg: 0 10px 28px rgba(38,70,60,.07);
-  --shadow-brand: 0 12px 26px -10px rgba(47,107,94,.7);
-  --shadow-hero: 0 16px 34px -12px rgba(47,107,94,.6);
+  --shadow-card: 0 8px 24px rgba(38, 70, 60, 0.06);
+  --shadow-card-lg: 0 10px 28px rgba(38, 70, 60, 0.07);
+  --shadow-brand: 0 12px 26px -10px rgba(47, 107, 94, 0.7);
+  --shadow-hero: 0 16px 34px -12px rgba(47, 107, 94, 0.6);
 }
 
 /* Tablet/desktop type scale (design-tokens.md §2) — overrides the same custom
@@ -117,25 +124,57 @@
   }
 }
 
+@custom-variant short (@media (max-height: 640px));
+@custom-variant short-wide (@media (max-height: 640px) and (min-width: 480px));
+
 @layer base {
-  html { -webkit-tap-highlight-color: transparent; }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
   body {
     @apply bg-canvas font-sans text-ink antialiased;
   }
-  a { @apply text-brand no-underline; }
-  a:hover { @apply text-brand-hover; }
+  a {
+    @apply text-brand no-underline;
+  }
+  a:hover {
+    @apply text-brand-hover;
+  }
 
-  h1, h2, h3 { @apply font-serif; }
+  h1,
+  h2,
+  h3 {
+    @apply font-serif;
+  }
+
+  ::selection {
+    background: var(--color-surface-brand);
+    color: var(--color-brand-ink);
+  }
+  input,
+  textarea {
+    caret-color: var(--color-brand);
+  }
 }
 
 @layer utilities {
-  .no-scrollbar { scrollbar-width: none; }
-  .no-scrollbar::-webkit-scrollbar { width: 0; height: 0; }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
 }
 
 @keyframes grow-in {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 .animate-grow-in {
@@ -144,8 +183,14 @@
 }
 
 @keyframes focus-in {
-  from { opacity: 0; filter: blur(6px); }
-  to { opacity: 1; filter: blur(0); }
+  from {
+    opacity: 0;
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
 }
 
 .animate-focus-in {
@@ -153,8 +198,15 @@
 }
 
 @keyframes letter-wave {
-  0%, 55%, 100% { transform: translateY(0); }
-  25% { transform: translateY(-3px); color: var(--color-brand); }
+  0%,
+  55%,
+  100% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(-3px);
+    color: var(--color-brand);
+  }
 }
 
 .animate-letter-wave {
@@ -162,6 +214,24 @@
   animation: letter-wave 0.9s ease-in-out infinite;
 }
 
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise-in {
+  animation: rise-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) 1 both;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  * { animation: none !important; transition: none !important; }
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
 }

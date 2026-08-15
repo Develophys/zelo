@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { Link, NavLink } from 'react-router';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { NAV_TABS } from './nav-tabs';
@@ -8,7 +8,7 @@ import {
   writeStoredCollapsed,
 } from '@/presentation/lib/sidebar-collapsed-storage';
 
-export function Sidebar() {
+export const Sidebar = memo(function Sidebar() {
   const [collapsed, setCollapsed] = useState(readStoredCollapsed);
   const [logoFailed, setLogoFailed] = useState(false);
 
@@ -25,7 +25,7 @@ export function Sidebar() {
     >
       <div
         data-testid="sidebar-header"
-        className={`flex flex-col items-center gap-2 border-b border-surface-brand px-2 py-2.5 ${
+        className={`flex flex-col items-center gap-2 border-b border-surface-brand px-2 py-2.5 md:min-h-app-header ${
           collapsed ? '' : 'lg:flex-row'
         }`}
       >
@@ -106,4 +106,4 @@ export function Sidebar() {
       </nav>
     </aside>
   );
-}
+});

@@ -10,12 +10,35 @@ describe("Button", () => {
   });
 
   it.each([
+    ["soft", "bg-surface-brand"],
     ["ghost", "bg-transparent"],
     ["outline", "border-line"],
     ["danger", "bg-danger"],
   ] as const)("applies %s variant classes", (variant, expectedClass) => {
     render(<Button variant={variant}>Label</Button>);
     expect(screen.getByRole("button", { name: "Label" })).toHaveClass(expectedClass);
+  });
+
+  it("soft variant differs from primary only in color, keeping the shared shape and typography", () => {
+    render(<Button variant="soft">Label</Button>);
+    const button = screen.getByRole("button", { name: "Label" });
+    expect(button).toHaveClass("rounded-pill", "py-4", "min-h-13", "font-sans", "text-[16px]");
+    expect(button).toHaveClass("bg-surface-brand", "text-brand", "enabled:hover:bg-track");
+  });
+
+  it("lays out leading icons beside the label without per-page flex classes", () => {
+    render(
+      <Button>
+        <svg data-testid="icon" />
+        Label
+      </Button>,
+    );
+    expect(screen.getByRole("button", { name: "Label" })).toHaveClass(
+      "inline-flex",
+      "items-center",
+      "justify-center",
+      "gap-2",
+    );
   });
 
   it("calls onClick when clicked and not loading", async () => {

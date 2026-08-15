@@ -34,7 +34,7 @@ Refatoração de suporte: extrair a config `TABS` de `BottomNav.tsx` para um arr
 
 ## 4. Largura de conteúdo e tipografia (telas do médico)
 
-A partir de 768px, o conteúdo das telas do médico (as 4 telas-destino e os fluxos focados) fica centralizado numa coluna de leitura confortável de **~680px**, em vez de esticar borda a borda — mesma decisão validada visualmente no brainstorm (Opção A: coluna centralizada vs. largura total vs. híbrido). Nas 4 telas-destino, essa coluna fica ao lado da sidebar; nos fluxos focados, ocupa o centro sozinha.
+A partir de 768px, o conteúdo das telas do médico (as 4 telas-destino e os fluxos focados) fica centralizado numa coluna de leitura confortável de **~680px**, em vez de esticar borda a borda. **Emendado em 15/08/2026 — ver §10: o `ChatPage` é a exceção** (cromo em largura total, conteúdo numa coluna de 900px); as outras 3 telas-destino e os fluxos focados seguem esta regra — mesma decisão validada visualmente no brainstorm (Opção A: coluna centralizada vs. largura total vs. híbrido). Nas 4 telas-destino, essa coluna fica ao lado da sidebar; nos fluxos focados, ocupa o centro sozinha.
 
 Tipografia ganha um passo a mais a partir de 768px, mesma família/hierarquia de `docs/superpowers/specs/design-tokens.md`, só ajustando os valores em pixel para a distância de leitura maior de tablet/desktop:
 
@@ -78,4 +78,71 @@ Sem sidebar aqui — o painel só tem 2 destinos (`ManagerDashboardPage`, `Manag
 - Qualquer mudança em `application/`, `infrastructure/` ou nas portas HTTP — puramente camada de apresentação.
 - Layout responsivo do fluxo do gestor além da grade descrita em §5 (ex.: sidebar própria do gestor) — os únicos 2 destinos não justificam isso agora.
 - Detecção de tipo de dispositivo (touch vs. mouse) — a resposta é inteiramente por largura de viewport, mesmo sinal para tablet touch e desktop com mouse.
-- Orientação landscape/portrait como sinal separado — só largura de viewport importa, não orientação.
+- Orientação landscape/portrait como sinal separado — só largura de viewport importa, não orientação. **Emendado em 15/08/2026 — ver §9:** continua valendo que orientação não é sinal, mas *altura* passou a ser, para densidade (nunca para estrutura).
+
+## 9. Emenda (15/08/2026) — altura como sinal de densidade
+
+**Motivação.** O `ChatPage` acumulou uma bandeja de ações persistente (atalho de acolhimento humano + "Avaliar como estou" + composer) de ~217px, somada a header + faixa de disclaimer (~101px): ~318px de cromo fixo. Medido nas larguras/alturas de referência:
+
+| Contexto | Viewport | Sobra para a conversa |
+|---|---|---|
+| iPhone SE retrato | 375×667 | 349px — ok |
+| iPhone SE paisagem | 667×375 | **57px** |
+| iPhone 14 paisagem | 844×390 | **72px** |
+
+Menos de um balão de mensagem. §8 mantinha largura como único sinal, o que não cobre esse caso: o problema é de **altura disponível**, não de largura nem de orientação.
+
+**Decisão.** Altura entra como sinal **apenas de densidade** — espaçamentos, altura de controles e o arranjo da bandeja de ações. Nenhuma regra de largura muda, então a sidebar, a coluna de ~680px e a escala tipográfica de §§2–4 seguem intactas e continuam decididas só por largura. Estrutura e navegação continuam sendo função exclusiva da largura.
+
+**Variantes Tailwind** (declaradas em `apps/web/src/app/index.css`):
+
+| Variante | Condição | Uso |
+|---|---|---|
+| `short` | `max-height: 640px` | Comprime paddings verticais (header, faixa, lista, composer) e reduz a altura dos CTAs para o piso de toque de 44px. |
+| `short-wide` | `max-height: 640px` **e** `min-width: 480px` | Coloca os dois CTAs do chat lado a lado em vez de empilhados. |
+
+**Por que `short-wide` também trava na largura.** Enfileirar os dois CTAs só compensa quando há espaço para os dois rótulos. Num viewport baixo *e* estreito — celular em retrato com o teclado aberto — "Falar com uma pessoa real" quebraria em duas linhas e a bandeja ficaria **mais alta**, não mais baixa. O ganho vem da linha, não da altura por si só.
+
+**Resultado em paisagem** (iPhone SE, 667×375): cromo cai de ~318px para ~216px; a conversa passa de 57px para ~159px (~3 balões em vez de menos de 1).
+
+**Teclado aberto é um problema separado.** Nem iOS nem Android encolhem o viewport de layout quando o teclado sobe (ele sobrepõe), então **nenhuma media query de altura dispara nesse caso**. O `<meta name="viewport">` ganhou `interactive-widget=resizes-content`, que resolve no Chrome/Android. **O iOS Safari ainda não suporta `interactive-widget`** — lá o composer continua podendo ficar atrás do teclado. Corrigir isso exigiria `visualViewport` em JS na camada de layout compartilhada; não feito, registrado aqui como dívida conhecida.
+
+**Fora do escopo desta emenda.**
+
+- `viewport-fit=cover` + `env(safe-area-inset-*)`: hoje o PWA (`display: standalone`) roda com o viewport já recuado das áreas seguras, então **não há bug ativo**. Adotar `cover` exigiria auditar as 13 telas de uma vez — não é decisão de uma tela só.
+- `theme_color: "#0f172a"` no manifesto (`vite.config.ts`) é um azul-ardósia sem relação com a paleta Sereno; aparece nas bordas do PWA instalado. Registrado, não corrigido aqui.
+
+## 10. Emenda (15/08/2026) — `ChatPage` sai da coluna de 680px
+
+§4 fixa uma coluna de leitura de ~680px para as telas do médico. O **chat é a exceção**: é uma
+superfície de aplicação, não de leitura, e a coluna estreita fazia a conversa parecer uma janela
+espremida no meio de um desktop vazio.
+
+**Decisão.** No `ChatPage`, o cromo (header, faixa de disclaimer, bandeja de ações, composer)
+passa a ocupar **toda a largura** disponível ao lado da sidebar; só o *conteúdo* dentro de cada
+faixa fica limitado a uma coluna de **900px** centralizada (`--container-chat` → `max-w-chat`).
+Cabeçalho, mensagens e composer compartilham a mesma coluna, então tudo alinha verticalmente.
+
+**Por que não largura total de verdade.** Com tudo solto até 1920px, o balão do Zelo encosta na
+borda esquerda e o do médico na direita, com um vazio no meio — as duas vozes deixam de parecer
+uma conversa. O teto de 900px preserva a leitura sem devolver a sensação de janela estreita.
+O teto por balão (`max-w-[min(80%,65ch)]`) continua valendo dentro dessa coluna.
+
+**As demais 3 telas-destino e os fluxos focados seguem com `centered` e os ~680px de §4** — esta
+emenda é só do chat.
+
+## 11. Emenda (15/08/2026) — `PhoneShell` ganha `fill`
+
+Para o chat manter composer e bandeja presos na base com só a lista de mensagens rolando, o
+shell precisa de altura **exata**, não mínima. `PhoneShell` ganhou a prop `fill`:
+
+| | `fill` ausente (padrão) | `fill` |
+|---|---|---|
+| Raiz | `h-full min-h-dvh` | `h-dvh` |
+| `<main>` | `flex-1 overflow-y-auto` | `flex min-h-0 flex-1 flex-col overflow-hidden` |
+| Wrapper da sidebar | `min-h-dvh` | `h-dvh overflow-hidden` |
+
+Com `min-h-dvh`, uma conversa longa empurrava a raiz para além da viewport e a bandeja saía da
+tela — o scroller interno nunca chegava a agir. `fill` entrega a rolagem para a página, que já
+tem sua própria região de scroll. **Só o `ChatPage` passa `fill`**; todas as outras telas mantêm
+o comportamento de altura mínima, que é o certo para conteúdo que cresce.

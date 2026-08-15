@@ -1,11 +1,11 @@
-import { Injectable } from "@nestjs/common";
-import type { AiChatPort } from "../../application/ports/ai-chat.port.ts";
-import type { AnonymizedMessage, ChatToken } from "@zelo/domain";
+import { Injectable } from '@nestjs/common';
+import type { AiChatPort } from '../../application/ports/ai-chat.port.ts';
+import type { AnonymizedMessage, ChatToken } from '@zelo/domain';
 
 const CANNED_REPLIES = [
-  "Oi, tudo bem por aí? Entendi o que você compartilhou — quer me contar um pouco mais sobre como isso tem te afetado no dia a dia?",
-  "Faz sentido você estar se sentindo assim. Esses últimos plantões têm sido bem pesados. O que costuma te ajudar a recarregar, mesmo que um pouco?",
-  "Obrigado por confiar isso a mim. Antes de seguirmos, como está seu sono nos últimos dias?",
+  'Oi, tudo bem por aí? Entendi o que você compartilhou — quer me contar um pouco mais sobre como isso tem te afetado no dia a dia?',
+  'Faz sentido você estar se sentindo assim. Esses últimos plantões têm sido bem pesados. O que costuma te ajudar a recarregar, mesmo que um pouco?',
+  'Obrigado por confiar isso a mim. Antes de seguirmos, como está seu sono nos últimos dias?',
 ];
 
 function pickReply(anonymizedMessages: AnonymizedMessage[]): string {
@@ -25,7 +25,13 @@ export class FakeChatAdapter implements AiChatPort {
     anonymizedMessages: AnonymizedMessage[];
     systemPrompt: string;
   }): AsyncGenerator<ChatToken> {
-    const words = pickReply(params.anonymizedMessages).split(" ");
+    const t = new Promise((res) => {
+      setTimeout(() => res(true), 4000);
+    });
+    await t;
+    throw Error();
+
+    const words = pickReply(params.anonymizedMessages).split(' ');
 
     for (const [i, word] of words.entries()) {
       await new Promise((resolve) => setTimeout(resolve, 30));
@@ -33,6 +39,6 @@ export class FakeChatAdapter implements AiChatPort {
       yield { conversationId: params.conversationId, delta, done: false };
     }
 
-    yield { conversationId: params.conversationId, delta: "", done: true };
+    yield { conversationId: params.conversationId, delta: '', done: true };
   }
 }

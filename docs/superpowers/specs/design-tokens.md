@@ -92,6 +92,20 @@ Three families, each with one job. Never mix headings into the mono, never set b
 | `eyebrow` | 12 | 1.0 | IBM Plex Mono 600 | Uppercase, `letter-spacing: .1em`, muted-2 |
 | `mono-data` | 12–13 | 1.5 | IBM Plex Mono 500 | Counts, tokens, "n=" |
 
+**O peso faz parte do token, não da chamada** (desde 15/08/2026). `eyebrow` (600), `mono-data`
+(500) e `body-strong` (800) declaram `--text-{role}--font-weight` em `apps/web/src/app/index.css`,
+então `text-eyebrow` / `text-mono-data` / `text-body-strong` já saem no peso certo sem precisar de
+`font-semibold`/`font-extrabold` junto. Antes disso o peso da tabela acima era só intenção: as 11
+chamadas de `eyebrow`/`mono-data` renderizavam em 400, e `body-strong` saía 800 em duas telas e 400
+em `CrisisAcceptPage` — o mesmo papel com dois pesos. Uma classe `font-*` explícita continua
+vencendo o token (Tailwind emite `var(--tw-font-weight, var(--text-…--font-weight))`), então
+chamadas que já traziam o peso não mudaram.
+
+**Pendente:** `label` especifica Nunito Sans 600 mas ainda não carrega peso no token — das 75
+chamadas de `text-label`, 37 trazem `font-semibold` e 38 não, então hoje o papel renderiza nos dois
+pesos. Fechar isso muda 38 chamadas de uma vez e precisa de uma revisão visual própria, tela a
+tela; não foi feito junto com as outras três.
+
 ### Tablet/Desktop scale (≥768px)
 
 Same tokens as above, overridden via a `@media (width >= 768px)` block in `apps/web/src/app/index.css` rather than a parallel set of names — every `text-h1`/`text-h2`/`text-body`/`text-label`/`text-body-strong` utility picks up the new value automatically above 768px.

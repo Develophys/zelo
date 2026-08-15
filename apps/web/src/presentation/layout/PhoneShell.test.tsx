@@ -85,6 +85,34 @@ describe("PhoneShell nav mode", () => {
   });
 });
 
+describe("PhoneShell fill mode", () => {
+  it("pins to an exact viewport height instead of a minimum, so a page owning its own scroller keeps its chrome on screen", () => {
+    render(<PhoneShell fill>content</PhoneShell>);
+    const root = screen.getByTestId("phone-shell-root");
+    expect(root).toHaveClass("h-dvh");
+    expect(root).not.toHaveClass("min-h-dvh");
+  });
+
+  it("hands scrolling to the page rather than scrolling the body itself", () => {
+    render(<PhoneShell fill>content</PhoneShell>);
+    const body = screen.getByTestId("phone-shell-body");
+    expect(body).toHaveClass("overflow-hidden", "min-h-0", "flex-1");
+    expect(body).not.toHaveClass("overflow-y-auto");
+  });
+
+  it("also pins the outer nav wrapper so the Sidebar cannot push the column taller than the viewport", () => {
+    const { container } = render(
+      <MemoryRouter>
+        <PhoneShell nav fill>
+          content
+        </PhoneShell>
+      </MemoryRouter>,
+    );
+    expect(container.firstElementChild).toHaveClass("h-dvh", "overflow-hidden");
+    expect(container.firstElementChild).not.toHaveClass("min-h-dvh");
+  });
+});
+
 describe("PhoneShell centered mode", () => {
   it("does not constrain body width when centered is unset", () => {
     render(<PhoneShell>content</PhoneShell>);

@@ -20,3 +20,5 @@
     me parece suficiente.
   - PENDENCIA!!! definir local do botao na pagina 'Home' e 'Voce'
 - users should be able to `Vincular uma instituicao` via qrcode reader
+- CHAT_PAGE> make section with button to redirect to a real chat or checking pages a colapsable content.
+- Thinking how we could save the information user start to write something with chat but not send, that way managers can't undertand if users start a conversation but not send.
