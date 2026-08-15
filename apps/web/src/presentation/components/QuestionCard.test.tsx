@@ -34,4 +34,14 @@ describe("QuestionCard", () => {
     expect(screen.getByRole("button", { name: "Nenhuma vez" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Vários dias" })).toBeDisabled();
   });
+
+  it("keeps only the selected option fully opaque while disabled, so the pick stays visible while submitting", () => {
+    render(<QuestionCard question="Q" options={OPTIONS} selected={0} onSelect={vi.fn()} disabled />);
+    expect(screen.getByRole("button", { name: "Nenhuma vez" })).toHaveClass(
+      "disabled:opacity-100!",
+    );
+    expect(screen.getByRole("button", { name: "Vários dias" })).not.toHaveClass(
+      "disabled:opacity-100!",
+    );
+  });
 });

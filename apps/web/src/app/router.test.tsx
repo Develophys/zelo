@@ -6,6 +6,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { routeChildren } from "./router";
 import { useConsentStore } from "@/stores/consent.store";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
+import { routes } from "@/presentation/lib/routes";
+import { PHQ9_QUESTIONS } from "@/domain/assessment-scales/phq9";
+import { GAD7_QUESTIONS } from "@/domain/assessment-scales/gad7";
 import * as container from "./container";
 
 // Reuses router.tsx's own route tree (routeChildren) rather than duplicating
@@ -161,5 +164,17 @@ describe("onboarding router flow", () => {
   it("an unconsented user hitting /you/link directly is redirected to Privacy via the loader", async () => {
     buildTestRouter("/you/link");
     expect(await screen.findByText("Como o Zelo protege você")).toBeInTheDocument();
+  });
+
+  it("wires /assessment/phq9 to the PHQ-9 scale", async () => {
+    buildTestRouter(routes.phq9);
+    expect(await screen.findByText(PHQ9_QUESTIONS[0])).toBeInTheDocument();
+    expect(screen.getByText(`1/${PHQ9_QUESTIONS.length}`)).toBeInTheDocument();
+  });
+
+  it("wires /assessment/gad7 to the GAD-7 scale", async () => {
+    buildTestRouter(routes.gad7);
+    expect(await screen.findByText(GAD7_QUESTIONS[0])).toBeInTheDocument();
+    expect(screen.getByText(`1/${GAD7_QUESTIONS.length}`)).toBeInTheDocument();
   });
 });

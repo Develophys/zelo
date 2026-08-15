@@ -3,70 +3,63 @@ import { Link, NavLink } from 'react-router';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { NAV_TABS } from './nav-tabs';
 import { routes } from '@/presentation/lib/routes';
+import {
+  readStoredCollapsed,
+  writeStoredCollapsed,
+} from '@/presentation/lib/sidebar-collapsed-storage';
 
-const COLLAPSED_STORAGE_KEY = 'zelo.sidebar-collapsed';
-
-function readStoredCollapsed(): boolean {
-  try {
-    return window.localStorage.getItem(COLLAPSED_STORAGE_KEY) === 'true';
-  } catch {
-    return false;
-  }
-}
-
-// Persistent navigation for tablet/desktop (≥768px) — shown only on the 4
-// médico destination pages (Home, Check-in, Conversar, Você), never on
-// focused-flow screens (assessment in progress, crisis, consent, etc.), per
-// docs/superpowers/specs/2026-07-28-responsive-tablet-desktop-ui-design.md §3.
-// Below 768px this renders nothing visible (`hidden md:flex`); BottomNav
-// remains the mobile nav, unchanged. From 1024px up, `collapsed` lets the
-// médico manually shrink it to the same icon rail used at tablet width — see
-// docs/superpowers/specs/2026-08-09-sidebar-collapse-and-brand-header-design.md.
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(readStoredCollapsed);
+  const [logoFailed, setLogoFailed] = useState(false);
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem(COLLAPSED_STORAGE_KEY, String(collapsed));
-    } catch {
-      // preference is best-effort
-    }
+    writeStoredCollapsed(collapsed);
   }, [collapsed]);
 
   return (
     <aside
       data-testid="sidebar"
-      className={`hidden flex-none flex-col border-r border-surface-brand bg-surface transition-[width] duration-200 md:flex md:w-19 ${
+      className={`hidden flex-none flex-col border-r border-surface-brand bg-surface transition-[width] duration-200 md:sticky md:top-0 md:flex md:h-dvh md:w-19 ${
         collapsed ? '' : 'lg:w-55'
       }`}
     >
       <div
+        data-testid="sidebar-header"
         className={`flex flex-col items-center gap-2 border-b border-surface-brand px-2 py-2.5 ${
-          collapsed ? '' : 'lg:flex-row lg:justify-between'
+          collapsed ? '' : 'lg:flex-row'
         }`}
       >
         <Link
           to={routes.home}
           aria-label="Zelo"
-          className="flex min-h-11 min-w-11 items-center gap-2 rounded-input focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className={`flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-input transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+            collapsed ? '' : 'lg:flex-1'
+          }`}
         >
-          <div
-            className={`flex h-8 w-8 flex-none items-center justify-center rounded-icon bg-brand ${collapsed && 'ml-1'}`}
-          >
-            <picture>
-              <source srcSet={`${import.meta.env.BASE_URL}zelo_logo.webp`} type="image/webp" />
-              <img
-                src={`${import.meta.env.BASE_URL}zelo_logo.png`}
-                alt=""
-                width={32}
-                height={32}
-                className="h-full w-full object-contain"
-              />
-            </picture>
+          <div className="mx-0.5 flex h-10 w-10 flex-none items-center justify-center rounded-icon bg-brand">
+            {logoFailed ? (
+              <span aria-hidden="true" className="font-serif text-[22px] leading-none text-white">
+                Z
+              </span>
+            ) : (
+              <picture>
+                <source srcSet={`${import.meta.env.BASE_URL}zelo_logo.webp`} type="image/webp" />
+                <img
+                  src={`${import.meta.env.BASE_URL}zelo_logo.png`}
+                  alt="Zelo Logo"
+                  width={40}
+                  height={40}
+                  onError={() => setLogoFailed(true)}
+                  className="h-full w-full object-contain"
+                />
+              </picture>
+            )}
           </div>
           <span
             aria-hidden="true"
-            className={`mt-1 font-serif text-[28px] text-ink ${collapsed ? 'hidden' : 'hidden lg:inline'}`}
+            className={`font-serif text-[28px] leading-none text-ink ${
+              collapsed ? 'hidden' : 'hidden lg:block lg:flex-1 lg:text-center'
+            }`}
           >
             Zelo
           </span>
@@ -76,27 +69,35 @@ export function Sidebar() {
           onClick={() => setCollapsed((prev) => !prev)}
           aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}
           aria-pressed={collapsed}
-          className="hidden min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-input text-muted hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand lg:flex"
+          className="hidden min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-input text-muted transition-colors duration-150 hover:bg-canvas hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand lg:flex"
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
       </div>
 
-      <nav aria-label="Navegação principal" className="flex flex-1 flex-col gap-1 px-2 py-6">
+      <nav
+        aria-label="Navegação principal"
+        className="flex flex-1 flex-col gap-1 overflow-y-auto px-2 py-6"
+      >
         {NAV_TABS.map(({ id, label, icon: Icon, route }) => (
           <NavLink
             key={id}
             to={route}
             aria-label={label}
+            title={label}
             className={({ isActive }) =>
-              `flex min-h-11 items-center justify-center gap-3 rounded-input px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+              `flex min-h-11 items-center justify-center gap-3 rounded-input px-3 py-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
                 collapsed ? '' : 'lg:justify-start'
-              } ${isActive ? 'bg-surface-brand text-brand' : 'text-faint'}`
+              } ${
+                isActive
+                  ? 'bg-surface-brand text-brand'
+                  : 'text-muted hover:bg-canvas hover:text-brand'
+              }`
             }
           >
             <Icon size={22} />
             <span
-              className={`hidden font-sans text-[14px] font-semibold ${collapsed ? '' : 'lg:inline'}`}
+              className={`hidden font-sans text-[14px] font-semibold ${collapsed ? '' : 'lg:block'}`}
             >
               {label}
             </span>

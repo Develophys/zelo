@@ -69,4 +69,33 @@ describe("AssessmentSelectPage", () => {
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
+
+  it("reflows the scales into two columns from the tablet breakpoint up", () => {
+    renderSelect();
+    const grid = screen.getByRole("button", { name: /PHQ-9/i }).parentElement;
+    expect(grid).toHaveClass("md:grid", "md:grid-cols-2");
+    expect(screen.getByText("MBI-HSS").closest("div.rounded-card")).toHaveClass("md:col-span-2");
+  });
+
+  it("stacks the scales in a single column below the tablet breakpoint", () => {
+    renderSelect();
+    expect(screen.getByRole("button", { name: /PHQ-9/i }).parentElement).toHaveClass(
+      "flex",
+      "flex-col",
+    );
+  });
+
+  it("gives the trust footer a full touch target despite its 12px content", () => {
+    renderSelect();
+    expect(
+      screen.getByRole("button", { name: /Saiba mais sobre a criptografia AES-256/ }),
+    ).toHaveClass("min-h-11");
+  });
+
+  it("draws the row affordance from the icon set rather than a text arrow", () => {
+    renderSelect();
+    const phq9 = screen.getByRole("button", { name: /PHQ-9/i });
+    expect(phq9.querySelector("svg")).not.toBeNull();
+    expect(screen.queryByText("→")).not.toBeInTheDocument();
+  });
 });

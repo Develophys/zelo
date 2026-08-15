@@ -18,7 +18,7 @@ export function BottomNav({ active, onNavigate }: BottomNavProps) {
             aria-current={isActive ? "page" : undefined}
             onClick={() => onNavigate(id)}
             className={`flex min-h-[44px] min-w-[44px] flex-col items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
-              isActive ? "text-brand" : "text-faint"
+              isActive ? "text-brand" : "text-muted"
             }`}
           >
             <Icon size={22} />

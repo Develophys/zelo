@@ -141,6 +141,16 @@
   animation: focus-in 0.7s ease-out 0.45s 1 both;
 }
 
+@keyframes letter-wave {
+  0%, 55%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-3px); color: var(--color-brand); }
+}
+
+.animate-letter-wave {
+  display: inline-block;
+  animation: letter-wave 0.9s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }

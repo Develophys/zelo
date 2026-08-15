@@ -9,8 +9,8 @@ import { PrivacyPage } from "./PrivacyPage";
 import { ConsentPage } from "./ConsentPage";
 import { HomePage } from "./HomePage";
 import { AssessmentSelectPage } from "./AssessmentSelectPage";
-import { Phq9AssessmentPage } from "./Phq9AssessmentPage";
-import { Gad7AssessmentPage } from "./Gad7AssessmentPage";
+import { ScaleAssessmentPage } from "./ScaleAssessmentPage";
+import { PHQ9_SCALE, GAD7_SCALE } from "@/domain/assessment-scales/scales";
 import { AssessmentResultPage } from "./AssessmentResultPage";
 import { CrisisOfferPage } from "./CrisisOfferPage";
 import { CrisisAcceptPage } from "./CrisisAcceptPage";
@@ -31,8 +31,16 @@ const SCREENS: { name: string; Component: ComponentType; path: string; state?: u
   { name: "Consent", Component: ConsentPage, path: "/consent" },
   { name: "Home", Component: HomePage, path: "/home" },
   { name: "AssessmentSelect", Component: AssessmentSelectPage, path: "/assessment" },
-  { name: "Phq9Assessment", Component: Phq9AssessmentPage, path: "/assessment/phq9" },
-  { name: "Gad7Assessment", Component: Gad7AssessmentPage, path: "/assessment/gad7" },
+  {
+    name: "Phq9Assessment",
+    Component: () => <ScaleAssessmentPage scale={PHQ9_SCALE} />,
+    path: "/assessment/phq9",
+  },
+  {
+    name: "Gad7Assessment",
+    Component: () => <ScaleAssessmentPage scale={GAD7_SCALE} />,
+    path: "/assessment/gad7",
+  },
   { name: "AssessmentResult", Component: AssessmentResultPage, path: "/assessment/result", state: RESULT_STATE },
   { name: "CrisisOffer", Component: CrisisOfferPage, path: "/crisis" },
   { name: "CrisisAccept", Component: CrisisAcceptPage, path: "/crisis/connect" },

@@ -2,8 +2,8 @@ import type { RouteObject } from "react-router";
 import { createBrowserRouter, Outlet, redirect } from "react-router";
 import { HomePage } from "@/presentation/pages/HomePage";
 import { ChatPage } from "@/presentation/pages/ChatPage";
-import { Phq9AssessmentPage } from "@/presentation/pages/Phq9AssessmentPage";
-import { Gad7AssessmentPage } from "@/presentation/pages/Gad7AssessmentPage";
+import { ScaleAssessmentPage } from "@/presentation/pages/ScaleAssessmentPage";
+import { PHQ9_SCALE, GAD7_SCALE } from "@/domain/assessment-scales/scales";
 import { SplashPage } from "@/presentation/pages/SplashPage";
 import { PrivacyPage } from "@/presentation/pages/PrivacyPage";
 import { ConsentPage } from "@/presentation/pages/ConsentPage";
@@ -63,11 +63,11 @@ export const routeChildren: RouteObject[] = [
   },
   {
     path: "assessment/phq9",
-    Component: Phq9AssessmentPage,
+    element: <ScaleAssessmentPage scale={PHQ9_SCALE} />,
   },
   {
     path: "assessment/gad7",
-    Component: Gad7AssessmentPage,
+    element: <ScaleAssessmentPage scale={GAD7_SCALE} />,
   },
   {
     path: "assessment/result",

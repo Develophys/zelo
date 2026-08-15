@@ -21,6 +21,15 @@ describe("BackButton", () => {
     expect(onClick).toHaveBeenCalledOnce();
   });
 
+  it("does not fire onClick while disabled", async () => {
+    const onClick = vi.fn();
+    render(<BackButton label="Voltar" onClick={onClick} disabled />);
+    const button = screen.getByRole("button", { name: "Voltar" });
+    expect(button).toBeDisabled();
+    await userEvent.click(button);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
   it("meets the 44px hit-target minimum and has a visible focus ring class", () => {
     render(<BackButton onClick={vi.fn()} />);
     const button = screen.getByRole("button");
