@@ -28,8 +28,13 @@ describe("bandFor", () => {
     expect(bandFor("GAD-7", score).label).toBe(label);
   });
 
-  it("returns fg/bg colors alongside the label", () => {
+  it("returns a palette tone alongside the label, never a raw color", () => {
     const band = bandFor("PHQ-9", 12);
-    expect(band).toEqual({ label: "Moderado", fg: "#A9711A", bg: "#F6EDDA" });
+    expect(band).toEqual({ label: "Moderado", tone: "moderate" });
+  });
+
+  it("climbs the tone ramp in step with the label ramp", () => {
+    const tones = [0, 5, 10, 15, 20].map((score) => bandFor("PHQ-9", score).tone);
+    expect(tones).toEqual(["minimal", "mild", "moderate", "high", "severe"]);
   });
 });

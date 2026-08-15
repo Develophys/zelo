@@ -41,14 +41,27 @@ file references these token names, never raw values.
 
 ### PHQ-9 score-band palette
 Mirror of `ScoreAssessmentUseCase` bands. Used only by `ResultBandCard` / `ScoreDial`.
+`bandFor` returns a `tone` key, never a hex value; `ScoreDial` maps the tone to these tokens.
 
-| Score | Label (PT-BR) | fg | bg |
-|---|---|---|---|
-| 0–4 | Mínimo | `#2F6B5E` | `#E3ECE7` |
-| 5–9 | Leve | `#3F7D5C` | `#E5EFE6` |
-| 10–14 | Moderado | `#A9711A` | `#F6EDDA` |
-| 15–19 | Moderadamente grave | `#A2453A` | `#F7EBE8` |
-| 20–27 | Grave | `#8F2F26` | `#F5E4E1` |
+| Score | Label (PT-BR) | Tone | `band-<tone>` | `band-<tone>-bg` | fg on bg | fg on `surface` |
+|---|---|---|---|---|---|---|
+| 0–4 | Mínimo | `minimal` | `#2F6B5E` | `#E3ECE7` | 4.74:1 | 5.72:1 |
+| 5–9 | Leve | `mild` | `#34664A` | `#DEEADD` | 5.38:1 | 6.68:1 |
+| 10–14 | Moderado | `moderate` | `#8A5A15` | `#F6EDDA` | 5.08:1 | 5.91:1 |
+| 15–19 | Moderadamente grave | `high` | `#A2453A` | `#F7EBE8` | 5.22:1 | 6.09:1 |
+| 20–27 | Grave | `severe` | `#8F2F26` | `#F5E4E1` | 6.56:1 | 8.07:1 |
+
+The ramp reads as **three perceptual tiers** — calm (`minimal`/`mild`), attention (`moderate`),
+act (`high`/`severe`) — across five labelled bands. Adjacent same-tier bands are deliberately
+close: the label text carries the precise step, the hue carries the gist, and a returning user
+still sees their card shift when they cross a band. Both columns are AA-verified because the fg
+now sets the 64px score on `surface` as well as the pill text on its own tint.
+
+`mild` and `moderate` intentionally diverge from `brand` and `warn`. The former pairings
+(`#3F7D5C` on `#E5EFE6`, `#A9711A` on `#F6EDDA`) measured **4.15:1** and **3.56:1** — both below
+AA — and `#3F7D5C`/`#E5EFE6` was additionally indistinguishable from the `minimal` band. Do not
+"restore" them to the brand/warn values. `warn` itself is unchanged; it still owns the chart peak
+and the AI disclaimer.
 
 > GAD-7 reuses the same visual bands scaled to 0–21 (0–4 mínimo, 5–9 leve, 10–14 moderado,
 > 15–21 grave) — define the thresholds in the result component, not in the domain layer.

@@ -1,18 +1,30 @@
-import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { ScoreDial } from "./ScoreDial";
+import { describe, expect, it } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { ScoreDial } from './ScoreDial';
+import type { ScoreBandTone } from '@/presentation/lib/band-for';
 
-describe("ScoreDial", () => {
-  it("renders the score, max, and band label", () => {
-    render(<ScoreDial score={12} max={27} band={{ label: "Moderado", fg: "#A9711A", bg: "#F6EDDA" }} />);
-    expect(screen.getByText("12")).toBeInTheDocument();
-    expect(screen.getByText("/27")).toBeInTheDocument();
-    expect(screen.getByText("Moderado")).toBeInTheDocument();
+describe('ScoreDial', () => {
+  it('renders the score, max, and band label', () => {
+    render(<ScoreDial score={12} max={27} band={{ label: 'Moderado', tone: 'moderate' }} />);
+    expect(screen.getByText('12')).toBeInTheDocument();
+    expect(screen.getByText('/27')).toBeInTheDocument();
+    expect(screen.getByText('Moderado')).toBeInTheDocument();
   });
 
-  it("applies the band colors as inline style on the band pill", () => {
-    render(<ScoreDial score={12} max={27} band={{ label: "Moderado", fg: "#A9711A", bg: "#F6EDDA" }} />);
-    const pill = screen.getByText("Moderado");
-    expect(pill).toHaveStyle({ color: "rgb(169, 113, 26)", backgroundColor: "rgb(246, 237, 218)" });
+  it('carries the band tone on the score itself, not only on the pill', () => {
+    render(<ScoreDial score={12} max={27} band={{ label: 'Moderado', tone: 'moderate' }} />);
+    expect(screen.getByTestId('score-value')).toHaveClass('text-band-moderate');
+    expect(screen.getByText('Moderado')).toHaveClass('bg-band-moderate-bg', 'text-band-moderate');
+  });
+
+  it.each<[ScoreBandTone, string]>([
+    ['minimal', 'text-band-minimal'],
+    ['mild', 'text-band-mild'],
+    ['moderate', 'text-band-moderate'],
+    ['high', 'text-band-high'],
+    ['severe', 'text-band-severe'],
+  ])('maps the %s tone to its own palette token', (tone, expected) => {
+    render(<ScoreDial score={12} max={27} band={{ label: tone, tone }} />);
+    expect(screen.getByTestId('score-value')).toHaveClass(expected);
   });
 });

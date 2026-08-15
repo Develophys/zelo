@@ -1,6 +1,7 @@
-import type { ButtonHTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes, Ref } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  ref?: Ref<HTMLButtonElement>;
   // "unstyled" keeps only shared behavior (focus ring, disabled/loading state,
   // cursor, the full-width toggle) and contributes no color, shape, spacing,
   // or hover effect — bring your own visuals via className.

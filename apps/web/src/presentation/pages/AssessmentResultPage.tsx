@@ -1,32 +1,15 @@
-import { useEffect, useState } from "react";
-import { Lock } from "lucide-react";
-import { useLocation, useNavigate } from "react-router";
-import { PhoneShell } from "@/presentation/layout/PhoneShell";
-import { Button } from "@/presentation/ui/Button";
-import { PrivacyBadge } from "@/presentation/ui/PrivacyBadge";
-import { ResultBandCard } from "@/presentation/components/ResultBandCard";
-import { RiskSignalCallout } from "@/presentation/components/RiskSignalCallout";
-import { EncryptionInfoModal } from "@/presentation/components/EncryptionInfoModal";
-import { bandFor } from "@/presentation/lib/band-for";
-import { routes } from "@/presentation/lib/routes";
-
-interface ResultLocationState {
-  scaleType: "PHQ-9" | "GAD-7";
-  totalScore: number;
-  max: number;
-  riskSignal: boolean;
-}
-
-function isResultState(value: unknown): value is ResultLocationState {
-  return (
-    !!value &&
-    typeof value === "object" &&
-    "scaleType" in value &&
-    "totalScore" in value &&
-    "max" in value &&
-    "riskSignal" in value
-  );
-}
+import { useEffect, useState } from 'react';
+import { Lock } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router';
+import { PhoneShell } from '@/presentation/layout/PhoneShell';
+import { Button } from '@/presentation/ui/Button';
+import { PrivacyBadge } from '@/presentation/ui/PrivacyBadge';
+import { ResultBandCard } from '@/presentation/components/ResultBandCard';
+import { RiskSignalCallout } from '@/presentation/components/RiskSignalCallout';
+import { EncryptionInfoModal } from '@/presentation/components/EncryptionInfoModal';
+import { bandFor } from '@/presentation/lib/band-for';
+import { isResultState } from '@/presentation/lib/is-result-state';
+import { routes } from '@/presentation/lib/routes';
 
 export function AssessmentResultPage() {
   const navigate = useNavigate();
@@ -55,10 +38,10 @@ export function AssessmentResultPage() {
             type="button"
             onClick={() => setIsEncryptionInfoOpen(true)}
             aria-label="Saiba mais sobre a criptografia AES-256"
-            className="flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            className="flex min-h-11 cursor-pointer items-center gap-1 text-muted-2 transition-colors duration-200 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           >
-            <Lock size={12} className="text-muted-2" />
-            <span className="font-mono text-eyebrow uppercase text-muted-2">processado no seu aparelho</span>
+            <Lock size={12} />
+            <span className="font-mono text-eyebrow uppercase">processado no seu aparelho</span>
           </button>
           <PrivacyBadge />
         </div>
@@ -67,12 +50,12 @@ export function AssessmentResultPage() {
           <ResultBandCard scaleType={scaleType} score={totalScore} max={max} band={band} />
         </div>
 
-        <p className="my-[18px] text-body text-muted">
+        <p className="my-4.5 text-body text-muted">
           Isto é um sinal, não um diagnóstico. Ele ajuda a decidir o próximo passo — no seu tempo.
         </p>
 
         {riskSignal && (
-          <div className="mb-[18px]">
+          <div className="mb-4.5">
             <RiskSignalCallout onConnect={() => navigate(routes.crisis)} />
           </div>
         )}
@@ -81,7 +64,7 @@ export function AssessmentResultPage() {
           Conversar com o acolhimento
         </Button>
         <div className="mt-3">
-          <Button variant="ghost" onClick={() => navigate(routes.home)}>
+          <Button variant="ghost" onClick={() => navigate(routes.assessment)}>
             Voltar ao início
           </Button>
         </div>

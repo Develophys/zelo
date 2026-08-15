@@ -11,7 +11,7 @@ describe("ResultBandCard", () => {
         scaleType="PHQ-9"
         score={12}
         max={27}
-        band={{ label: "Moderado", fg: "#A9711A", bg: "#F6EDDA" }}
+        band={{ label: "Moderado", tone: "moderate" }}
       />,
     );
     expect(screen.getByText("Sua pontuação PHQ-9")).toBeInTheDocument();

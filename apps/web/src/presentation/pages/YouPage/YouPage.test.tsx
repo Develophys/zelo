@@ -75,12 +75,12 @@ describe("YouPage", () => {
 
   it("shows a 'link to a hospital' entry point when not linked", () => {
     renderYou();
-    expect(screen.getByRole("button", { name: "Vincular a um hospital" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Vincular agora" })).toBeInTheDocument();
   });
 
   it("tapping the link entry point navigates to /you/link", async () => {
     renderYou();
-    await userEvent.click(screen.getByRole("button", { name: "Vincular a um hospital" }));
+    await userEvent.click(screen.getByRole("button", { name: "Vincular agora" }));
     expect(screen.getByText("Link institution screen")).toBeInTheDocument();
   });
 
@@ -89,7 +89,7 @@ describe("YouPage", () => {
     renderYou();
     expect(screen.getByText("Vinculado a Hospital São Lucas")).toBeInTheDocument();
     expect(screen.getByText("UTI")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Vincular a um hospital" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Vincular agora" })).not.toBeInTheDocument();
   });
 
   it("Desvincular clears the institution link immediately, without a confirm step", async () => {
@@ -99,6 +99,6 @@ describe("YouPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "Desvincular" }));
 
     expect(useInstitutionLinkStore.getState().institutionId).toBeNull();
-    expect(screen.getByRole("button", { name: "Vincular a um hospital" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Vincular agora" })).toBeInTheDocument();
   });
 });

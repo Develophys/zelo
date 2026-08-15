@@ -19,3 +19,4 @@
   - em um primeiro momento entendo que apenas cores e fontes customizaveis sao o bastante. A navegacao atual
     me parece suficiente.
   - PENDENCIA!!! definir local do botao na pagina 'Home' e 'Voce'
+- users should be able to `Vincular uma instituicao` via qrcode reader

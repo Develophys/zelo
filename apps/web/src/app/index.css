@@ -51,6 +51,17 @@
   --color-dark: #0D1512;
   --color-dark-brand: #A8D8C9;
 
+  --color-band-minimal: #2F6B5E;
+  --color-band-minimal-bg: #E3ECE7;
+  --color-band-mild: #34664A;
+  --color-band-mild-bg: #DEEADD;
+  --color-band-moderate: #8A5A15;
+  --color-band-moderate-bg: #F6EDDA;
+  --color-band-high: #A2453A;
+  --color-band-high-bg: #F7EBE8;
+  --color-band-severe: #8F2F26;
+  --color-band-severe-bg: #F5E4E1;
+
   --font-serif: "Newsreader Variable", Georgia, serif;
   --font-sans: "Nunito Sans", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
