@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { routes } from "@/presentation/lib/routes";
 import { useLookupInstitution } from "@/presentation/hooks/useLookupInstitution";
@@ -16,7 +16,7 @@ export function useLinkInstitutionFlow() {
   const sectors = useInstitutionSectors(institution?.id ?? null);
   const link = useInstitutionLinkStore((state) => state.link);
 
-  const handleCodeSubmit = (event: FormEvent) => {
+  const handleCodeSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     lookup.mutate(code.trim(), {
       onSuccess: (result) => {
@@ -26,7 +26,7 @@ export function useLinkInstitutionFlow() {
     });
   };
 
-  const handleSectorSubmit = (event: FormEvent) => {
+  const handleSectorSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     if (!institution || !sectorId) return;
     const sector = sectors.data?.find((candidate) => candidate.id === sectorId);

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BackButton } from "@/presentation/ui/BackButton";
@@ -18,6 +18,7 @@ import { useCreatePeerPartner } from "@/presentation/hooks/useCreatePeerPartner"
 import { useUpdatePeerPartner } from "@/presentation/hooks/useUpdatePeerPartner";
 import { useSendPeerPartnerSetPasswordEmail } from "@/presentation/hooks/useSendPeerPartnerSetPasswordEmail";
 import type { AdminSector, ManagerSummary, PeerPartnerSummary } from "@/ports/manager-admin.port";
+import { TextField, SelectField } from "@/presentation/ui/TextField";
 
 const SUGGESTED_SECTOR_NAMES = ["UTI", "Pronto-Socorro", "Clínica Médica", "Centro Cirúrgico", "Pediatria", "Ambulatório", "Plantão Noturno"];
 
@@ -113,7 +114,7 @@ function SectorsTab() {
   const updateSector = useUpdateSector();
   const [name, setName] = useState("");
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     createSector.mutate(name, { onSuccess: () => setName("") });
   };
@@ -125,11 +126,11 @@ function SectorsTab() {
           <label htmlFor="sector-name" className="text-label font-semibold text-ink-2">
             Nome do setor
           </label>
-          <input
+          <TextField
             id="sector-name"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink"
+            className="mt-2"
           />
           <div className="mt-2 flex flex-wrap gap-2">
             {SUGGESTED_SECTOR_NAMES.map((suggestion) => (
@@ -175,11 +176,11 @@ function SectorsTab() {
               </Button>
             </div>
 
-            <select
+            <SelectField
               aria-label={`Gestor de ${sector.name}`}
               value={sector.managerId ?? ""}
               onChange={(event) => updateSector.mutate({ id: sector.id, patch: { managerId: event.target.value || null } })}
-              className="mt-3 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink"
+              className="mt-3"
             >
               <option value="">Sem gestor</option>
               {(managers.data ?? []).map((manager) => (
@@ -187,7 +188,7 @@ function SectorsTab() {
                   {manager.name}
                 </option>
               ))}
-            </select>
+            </SelectField>
           </Card>
         ))}
       </div>
@@ -220,7 +221,7 @@ function ManagersTab() {
     setEditSectorIds((current) => (current.includes(id) ? current.filter((sectorId) => sectorId !== id) : [...current, id]));
   };
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     createManager.mutate(
       { name, email, role, sectorIds: role === "SECTOR_MANAGER" ? selectedSectorIds : undefined },
@@ -272,22 +273,22 @@ function ManagersTab() {
           <label htmlFor="manager-name-input" className="text-label font-semibold text-ink-2">
             Nome do gestor
           </label>
-          <input
+          <TextField
             id="manager-name-input"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink"
+            className="mt-2"
           />
 
           <label htmlFor="manager-email-input" className="mt-4 block text-label font-semibold text-ink-2">
             Email do gestor
           </label>
-          <input
+          <TextField
             id="manager-email-input"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink"
+            className="mt-2"
           />
 
           <RoleAndSectorFields
@@ -380,7 +381,7 @@ function PeerPartnersTab() {
   const [specialty, setSpecialty] = useState("");
   const [inviteSentTo, setInviteSentTo] = useState<string | null>(null);
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     createPeerPartner.mutate(
       { name, email, specialty },
@@ -414,33 +415,33 @@ function PeerPartnersTab() {
           <label htmlFor="peer-partner-name-input" className="text-label font-semibold text-ink-2">
             Nome do par
           </label>
-          <input
+          <TextField
             id="peer-partner-name-input"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink"
+            className="mt-2"
           />
 
           <label htmlFor="peer-partner-email-input" className="mt-4 block text-label font-semibold text-ink-2">
             Email do par
           </label>
-          <input
+          <TextField
             id="peer-partner-email-input"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink"
+            className="mt-2"
           />
 
           <label htmlFor="peer-partner-specialty-input" className="mt-4 block text-label font-semibold text-ink-2">
             Especialidade
           </label>
-          <input
+          <TextField
             id="peer-partner-specialty-input"
             value={specialty}
             onChange={(event) => setSpecialty(event.target.value)}
             placeholder="Ex: Clínica médica"
-            className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink"
+            className="mt-2"
           />
         </Card>
         <div className="mt-3">
@@ -520,21 +521,21 @@ export function ManagerAdminPage() {
           <button
             type="button"
             onClick={() => setTab("sectors")}
-            className={["rounded-pill px-4 py-2 text-label font-semibold", tab === "sectors" ? "bg-brand text-white" : "bg-surface text-ink"].join(" ")}
+            className={["rounded-pill px-4 py-2 text-label font-semibold", tab === "sectors" ? "border border-fill-edge bg-brand-fill text-on-fill" : "border border-transparent bg-surface text-ink"].join(" ")}
           >
             Setores
           </button>
           <button
             type="button"
             onClick={() => setTab("managers")}
-            className={["rounded-pill px-4 py-2 text-label font-semibold", tab === "managers" ? "bg-brand text-white" : "bg-surface text-ink"].join(" ")}
+            className={["rounded-pill px-4 py-2 text-label font-semibold", tab === "managers" ? "border border-fill-edge bg-brand-fill text-on-fill" : "border border-transparent bg-surface text-ink"].join(" ")}
           >
             Gestores
           </button>
           <button
             type="button"
             onClick={() => setTab("peer-partners")}
-            className={["rounded-pill px-4 py-2 text-label font-semibold", tab === "peer-partners" ? "bg-brand text-white" : "bg-surface text-ink"].join(" ")}
+            className={["rounded-pill px-4 py-2 text-label font-semibold", tab === "peer-partners" ? "border border-fill-edge bg-brand-fill text-on-fill" : "border border-transparent bg-surface text-ink"].join(" ")}
           >
             Pares Anônimos
           </button>

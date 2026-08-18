@@ -37,8 +37,8 @@ Returns:
   sectors: { isLoading: boolean; list: Sector[]; hasSectors: boolean };
   sectorId: string | null;
   onSectorSelect: (id: string) => void;
-  handleCodeSubmit: (event: FormEvent) => void;
-  handleSectorSubmit: (event: FormEvent) => void;
+  handleCodeSubmit: (event: SubmitEvent) => void;
+  handleSectorSubmit: (event: SubmitEvent) => void;
   goToCodeStep: () => void;   // sector step's BackButton target
   goToYou: () => void;        // code step's BackButton target
 }

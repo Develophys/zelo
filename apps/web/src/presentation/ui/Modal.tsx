@@ -93,9 +93,9 @@ export function Modal({
       }}
       aria-label={title ? undefined : ariaLabel}
       aria-labelledby={title ? titleId : undefined}
-      className={`m-auto w-[calc(100%-3rem)] ${SIZE_CLASS[size]} bg-transparent backdrop:bg-ink/50`}
+      className={`m-auto w-[calc(100%-3rem)] ${SIZE_CLASS[size]} bg-transparent backdrop:bg-scrim/50`}
     >
-      <div className="rounded-card-lg bg-surface p-[22px] shadow-card-lg">
+      <div className="rounded-card-lg bg-surface p-5.5 shadow-card-lg">
         {title && (
           <div className="flex items-start justify-between">
             <h2 id={titleId} className="pr-12 text-h2 text-ink">

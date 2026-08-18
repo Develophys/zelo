@@ -119,6 +119,7 @@ Tear down with `docker compose down` (add `-v` to also wipe the Postgres volume)
 
 - **`apps/api`** deploys to Fly.io (`zelo-api`), backed by Neon Postgres.
 - **`apps/web`** deploys to GitHub Pages.
+- **`apps/web`** also packages as an installable Android APK via Capacitor — see [`docs/android-apk.md`](docs/android-apk.md).
 
 Both auto-deploy from `main` via `.github/workflows/api.yml` / `web.yml`, gated on changes to the relevant app plus `packages/domain`/`packages/config`. Migrations are **not** run on container boot — apply them manually before deploying a schema change:
 
@@ -157,6 +158,7 @@ fly deploy --image <previous-image-ref> --app zelo-api         # redeploy a spec
 - [`general-documentations/jornada-checkpoints/`](general-documentations/jornada-checkpoints) — official Jornada Incubintech checkpoint deliverables
 - [`docs/superpowers/specs/`](docs/superpowers/specs) — technical architecture specs
 - [`docs/superpowers/plans/`](docs/superpowers/plans) — step-by-step implementation plans
+- [`docs/android-apk.md`](docs/android-apk.md) — building, installing, and publishing the Android APK
 
 ---
 

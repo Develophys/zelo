@@ -23,14 +23,16 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      disable: process.env.VITE_DISABLE_PWA === "true",
       registerType: "autoUpdate",
       includeAssets: ["icon-192.png", "icon-512.png"],
       manifest: {
         name: "Zelo",
         short_name: "Zelo",
+        lang: "pt-BR",
         description: "Triagem e suporte confidencial à saúde mental do médico",
-        theme_color: "#0f172a",
-        background_color: "#ffffff",
+        theme_color: "#f2f5f3",
+        background_color: "#f2f5f3",
         display: "standalone",
         icons: [
           { src: "icon-192.png", sizes: "192x192", type: "image/png" },

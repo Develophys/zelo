@@ -36,9 +36,9 @@ export const Sidebar = memo(function Sidebar() {
             collapsed ? '' : 'lg:flex-1'
           }`}
         >
-          <div className="mx-0.5 flex h-10 w-10 flex-none items-center justify-center rounded-icon bg-brand">
+          <div className="mx-0.5 flex h-10 w-10 flex-none items-center justify-center rounded-icon bg-brand-fill">
             {logoFailed ? (
-              <span aria-hidden="true" className="font-serif text-[22px] leading-none text-white">
+              <span aria-hidden="true" className="font-serif text-[22px] leading-none text-on-fill">
                 Z
               </span>
             ) : (

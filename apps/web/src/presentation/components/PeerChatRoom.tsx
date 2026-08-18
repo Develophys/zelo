@@ -1,5 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { Button } from "@/presentation/ui/Button";
+import { TextField } from "@/presentation/ui/TextField";
+import { PRIVATE_TEXT_FIELD } from "@/presentation/lib/private-field";
 
 export interface PeerChatMessage {
   from: "me" | "peer";
@@ -16,7 +18,7 @@ interface PeerChatRoomProps {
 export function PeerChatRoom({ messages, onSend, onLeave, peerLeft }: PeerChatRoomProps) {
   const [text, setText] = useState("");
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     const trimmed = text.trim();
     if (trimmed.length === 0) return;
@@ -44,11 +46,12 @@ export function PeerChatRoom({ messages, onSend, onLeave, peerLeft }: PeerChatRo
         <label htmlFor="peer-chat-message" className="sr-only">
           Mensagem
         </label>
-        <input
+        <TextField
           id="peer-chat-message"
           value={text}
           onChange={(event) => setText(event.target.value)}
-          className="flex-1 rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink"
+          className="flex-1"
+          {...PRIVATE_TEXT_FIELD}
         />
         <Button type="submit" full={false}>
           Enviar

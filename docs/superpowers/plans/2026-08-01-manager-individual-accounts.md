@@ -1578,7 +1578,7 @@ export function useManagerLogin() {
 Replace `apps/web/src/presentation/pages/ManagerLoginPage.tsx` in full:
 
 ```tsx
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BackButton } from "@/presentation/ui/BackButton";
@@ -1594,7 +1594,7 @@ export function ManagerLoginPage() {
   const [password, setPassword] = useState("");
   const login = useManagerLogin();
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     login.mutate({ name, password }, { onSuccess: () => navigate(routes.manager) });
   };

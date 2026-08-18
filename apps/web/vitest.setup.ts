@@ -1,7 +1,8 @@
-import "@testing-library/jest-dom/vitest";
-import { afterEach, expect } from "vitest";
-import { cleanup } from "@testing-library/react";
-import { toHaveNoViolations } from "vitest-axe/dist/matchers.js";
+import '@testing-library/jest-dom/vitest';
+import { afterEach, expect } from 'vitest';
+import { cleanup } from '@testing-library/react';
+import { useChatConversationStore } from '@/stores/chat-conversation.store';
+import { toHaveNoViolations } from 'vitest-axe/dist/matchers.js';
 
 // vitest-axe@0.1.0 ships two ways to register the matcher, and neither
 // fully works against the installed vitest@2.1.x:
@@ -13,7 +14,7 @@ import { toHaveNoViolations } from "vitest-axe/dist/matchers.js";
 //     `Assertion<T>` in the "vitest" module itself, so that augmentation is
 //     a no-op here. This declaration re-adds the matcher's type directly,
 //     following the same pattern @testing-library/jest-dom/vitest.d.ts uses.
-declare module "vitest" {
+declare module 'vitest' {
   interface Assertion<T> {
     toHaveNoViolations(): T;
   }
@@ -23,7 +24,7 @@ expect.extend({ toHaveNoViolations });
 
 // jsdom does not implement matchMedia; components that check
 // prefers-reduced-motion (e.g. SplashPage's typewriter effect) need a stub.
-Object.defineProperty(window, "matchMedia", {
+Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: (query: string) => ({
     matches: false,
@@ -47,11 +48,11 @@ Object.defineProperty(window, "matchMedia", {
 // correctness is a manual/browser check, not a unit test target.
 if (!HTMLDialogElement.prototype.showModal) {
   HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
-    this.setAttribute("open", "");
+    this.setAttribute('open', '');
   };
   HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
-    this.removeAttribute("open");
-    this.dispatchEvent(new Event("close"));
+    this.removeAttribute('open');
+    this.dispatchEvent(new Event('close'));
   };
 }
 
@@ -69,4 +70,5 @@ if (!HTMLDialogElement.prototype.showModal) {
  */
 afterEach(() => {
   cleanup();
+  useChatConversationStore.getState().clear();
 });

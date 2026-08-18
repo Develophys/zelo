@@ -3881,7 +3881,7 @@ Run: `pnpm --filter web test FinishSetupForm -- --run` — expected FAIL (compon
 Create `apps/web/src/presentation/components/FinishSetupForm.tsx`:
 
 ```tsx
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useSearchParams } from "react-router";
 import { Button } from "@/presentation/ui/Button";
 import { Card } from "@/presentation/ui/Card";
@@ -3904,7 +3904,7 @@ export function FinishSetupForm({ onSubmit, onSuccess }: FinishSetupFormProps) {
   const passwordsMatch = password.length > 0 && password === confirmPassword;
   const isSubmitDisabled = !token || password.length < MIN_PASSWORD_LENGTH || !passwordsMatch || isPending;
 
-  const handleSubmit = async (event: FormEvent) => {
+  const handleSubmit = async (event: SubmitEvent) => {
     event.preventDefault();
     setError(null);
     setIsPending(true);
@@ -4048,7 +4048,7 @@ Run: `pnpm --filter web test ManagerFinishSetupPage -- --run` — expected PASS.
 Replace `apps/web/src/presentation/pages/ManagerLoginPage.tsx` in full:
 
 ```tsx
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BackButton } from "@/presentation/ui/BackButton";
@@ -4064,7 +4064,7 @@ export function ManagerLoginPage() {
   const [password, setPassword] = useState("");
   const login = useManagerLogin();
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     login.mutate({ email, password }, { onSuccess: () => navigate(routes.manager) });
   };
@@ -4530,7 +4530,7 @@ Run: `pnpm --filter web test PeerPartnerFinishSetupPage -- --run` — expected P
 Replace `apps/web/src/presentation/pages/PeerPartnerLoginPage.tsx` in full:
 
 ```tsx
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { Button } from "@/presentation/ui/Button";
@@ -4545,7 +4545,7 @@ export function PeerPartnerLoginPage() {
   const [password, setPassword] = useState("");
   const login = usePeerPartnerLogin();
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     login.mutate({ email, password }, { onSuccess: () => navigate(routes.peerPartnerInbox) });
   };
@@ -4761,7 +4761,7 @@ export function useAdminLogin() {
 Replace `apps/web/src/presentation/pages/AdminLoginPage.tsx` in full:
 
 ```tsx
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { Button } from "@/presentation/ui/Button";
@@ -4776,7 +4776,7 @@ export function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const login = useAdminLogin();
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     login.mutate({ email, password }, { onSuccess: () => navigate(routes.admin) });
   };
@@ -5292,7 +5292,7 @@ export function useSendPeerPartnerSetPasswordEmail() {
 Replace `apps/web/src/presentation/pages/ManagerAdminPage.tsx` in full:
 
 ```tsx
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BackButton } from "@/presentation/ui/BackButton";
@@ -5405,7 +5405,7 @@ function SectorsTab() {
   const updateSector = useUpdateSector();
   const [name, setName] = useState("");
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     createSector.mutate(name, { onSuccess: () => setName("") });
   };
@@ -5512,7 +5512,7 @@ function ManagersTab() {
     setEditSectorIds((current) => (current.includes(id) ? current.filter((sectorId) => sectorId !== id) : [...current, id]));
   };
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     createManager.mutate(
       { name, email, role, sectorIds: role === "SECTOR_MANAGER" ? selectedSectorIds : undefined },
@@ -5672,7 +5672,7 @@ function PeerPartnersTab() {
   const [specialty, setSpecialty] = useState("");
   const [inviteSentTo, setInviteSentTo] = useState<string | null>(null);
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     createPeerPartner.mutate(
       { name, email, specialty },
@@ -6211,7 +6211,7 @@ export class HttpAdminInstitutionAdapter implements AdminInstitutionPort {
 Replace `apps/web/src/presentation/pages/AdminInstitutionsPage.tsx` in full:
 
 ```tsx
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { Button } from "@/presentation/ui/Button";
@@ -6233,7 +6233,7 @@ export function AdminInstitutionsPage() {
   const [hospitalAdminEmail, setHospitalAdminEmail] = useState("");
   const [lastCreated, setLastCreated] = useState<CreateInstitutionResult | null>(null);
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     createInstitution.mutate(
       { institutionName, inviteCode, hospitalAdminName, hospitalAdminEmail },

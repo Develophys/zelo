@@ -6,20 +6,34 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   // cursor, the full-width toggle) and contributes no color, shape, spacing,
   // or hover effect — bring your own visuals via className.
   variant?: 'primary' | 'soft' | 'ghost' | 'outline' | 'danger' | 'unstyled';
+  // Geometry only: height, padding, radius, gap and type role. Left unset it
+  // stays the default full-size control. Passing it explicitly also works with
+  // `unstyled`, which is how a control keeps system geometry while bringing its
+  // own colors — the one case where className cannot safely override a variant,
+  // since two same-property utilities are ordered by Tailwind, not by source.
+  size?: 'md' | 'sm';
   full?: boolean;
   loading?: boolean;
 }
 
 const VARIANT_CLASS: Record<'primary' | 'soft' | 'ghost' | 'outline' | 'danger', string> = {
-  primary: 'bg-brand text-white enabled:hover:bg-brand-hover',
+  primary: 'bg-brand-fill text-on-fill border border-fill-edge enabled:hover:bg-brand-fill-hover',
   soft: 'bg-surface-brand text-brand enabled:hover:bg-track',
   ghost: 'bg-transparent text-muted',
   outline: 'bg-surface text-ink border border-line',
-  danger: 'bg-danger text-white',
+  danger: 'bg-danger-fill text-on-fill border border-fill-edge',
+};
+
+const SHAPE_BASE = 'inline-flex items-center justify-center rounded-pill font-sans font-semibold';
+
+const SIZE_CLASS: Record<'md' | 'sm', string> = {
+  md: 'gap-2 py-4 px-2 text-[16px] min-h-13',
+  sm: 'gap-1.5 py-2.5 px-4 text-label min-h-11',
 };
 
 export function Button({
   variant = 'primary',
+  size,
   full = true,
   loading = false,
   disabled,
@@ -27,16 +41,18 @@ export function Button({
   children,
   ...rest
 }: ButtonProps) {
+  const hasShape = variant !== 'unstyled' || size !== undefined;
+
   return (
     <button
       className={[
         'cursor-pointer transition disabled:cursor-not-allowed disabled:opacity-50',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand',
-        variant !== 'unstyled' &&
-          'inline-flex items-center justify-center gap-2 rounded-pill py-4 px-2 font-sans text-[16px] font-semibold min-h-13',
+        hasShape && SHAPE_BASE,
+        hasShape && SIZE_CLASS[size ?? 'md'],
         variant !== 'unstyled' &&
           variant !== 'ghost' &&
-          'enabled:hover:shadow-[0_2px_4px_rgba(33,48,43,0.12),0_18px_32px_-10px_rgba(33,48,43,0.3)] transition-shadow duration-300 ease-out',
+          'enabled:hover:shadow-lift transition-shadow duration-300 ease-out',
         variant === 'unstyled' ? '' : VARIANT_CLASS[variant],
         full ? 'w-full' : '',
         className,
@@ -51,7 +67,7 @@ export function Button({
         <span
           aria-hidden="true"
           data-testid="button-spinner"
-          className="mx-auto block h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent"
+          className="motion-essential mx-auto block h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent"
         />
       )}
       <span className={loading ? 'sr-only' : 'contents'}>{children}</span>

@@ -39,8 +39,8 @@ Spec: [2026-08-09-link-institution-page-refactor-design.md](../specs/2026-08-09-
     sectors: { isLoading: boolean; list: InstitutionSector[]; hasSectors: boolean };
     sectorId: string | null;
     onSectorSelect: (id: string) => void;
-    handleCodeSubmit: (event: FormEvent) => void;
-    handleSectorSubmit: (event: FormEvent) => void;
+    handleCodeSubmit: (event: SubmitEvent) => void;
+    handleSectorSubmit: (event: SubmitEvent) => void;
     goToCodeStep: () => void;
     goToYou: () => void;
   }
@@ -52,7 +52,7 @@ Spec: [2026-08-09-link-institution-page-refactor-design.md](../specs/2026-08-09-
 Create `apps/web/src/presentation/hooks/useLinkInstitutionFlow.ts`:
 
 ```ts
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { routes } from "@/presentation/lib/routes";
 import { useLookupInstitution } from "@/presentation/hooks/useLookupInstitution";
@@ -70,7 +70,7 @@ export function useLinkInstitutionFlow() {
   const sectors = useInstitutionSectors(institution?.id ?? null);
   const link = useInstitutionLinkStore((state) => state.link);
 
-  const handleCodeSubmit = (event: FormEvent) => {
+  const handleCodeSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     lookup.mutate(code.trim(), {
       onSuccess: (result) => {
@@ -80,7 +80,7 @@ export function useLinkInstitutionFlow() {
     });
   };
 
-  const handleSectorSubmit = (event: FormEvent) => {
+  const handleSectorSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     if (!institution || !sectorId) return;
     const sector = sectors.data?.find((candidate) => candidate.id === sectorId);
@@ -261,14 +261,14 @@ git commit -m "refactor: extract useLinkInstitutionFlow hook from LinkInstitutio
 
 **Interfaces:**
 - Consumes: `LinkInstitutionFlow` type and `useLinkInstitutionFlow` from Task 1 (`@/presentation/hooks/useLinkInstitutionFlow`).
-- Produces: `LinkStepShell` component with props `{ backLabel: string; onBack: () => void; title: string; subtitle: ReactNode; onSubmit: (event: FormEvent) => void; submitLabel: string; submitDisabled: boolean; submitLoading?: boolean; children: ReactNode }`. `LinkInstitutionCodeStep` and `LinkInstitutionSectorStep` each accept a `Pick<LinkInstitutionFlow, ...>` subset and are rendered with `{...flow}` from the page (extra properties on the spread are ignored by TS/React — this is safe).
+- Produces: `LinkStepShell` component with props `{ backLabel: string; onBack: () => void; title: string; subtitle: ReactNode; onSubmit: (event: SubmitEvent) => void; submitLabel: string; submitDisabled: boolean; submitLoading?: boolean; children: ReactNode }`. `LinkInstitutionCodeStep` and `LinkInstitutionSectorStep` each accept a `Pick<LinkInstitutionFlow, ...>` subset and are rendered with `{...flow}` from the page (extra properties on the spread are ignored by TS/React — this is safe).
 
 - [ ] **Step 1: Create the shared shell**
 
 Create `apps/web/src/presentation/components/LinkStepShell.tsx`:
 
 ```tsx
-import type { FormEvent, ReactNode } from 'react';
+import type { SubmitEvent, ReactNode } from 'react';
 import { PhoneShell } from '@/presentation/layout/PhoneShell';
 import { BackButton } from '@/presentation/ui/BackButton';
 import { Button } from '@/presentation/ui/Button';
@@ -279,7 +279,7 @@ interface LinkStepShellProps {
   onBack: () => void;
   title: string;
   subtitle: ReactNode;
-  onSubmit: (event: FormEvent) => void;
+  onSubmit: (event: SubmitEvent) => void;
   submitLabel: string;
   submitDisabled: boolean;
   submitLoading?: boolean;

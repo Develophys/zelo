@@ -45,19 +45,92 @@ interface PhoneShellProps {
 ## `ui/Button.tsx`
 ```ts
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "ghost" | "outline" | "danger";
+  variant?: "primary" | "soft" | "ghost" | "outline" | "danger" | "unstyled"; // cor
+  size?: "md" | "sm";  // geometria; ausente = md (e nenhuma, se unstyled)
   full?: boolean;      // width 100%, default true
   loading?: boolean;   // shows spinner + disables
 }
 ```
+
+**Dois eixos independentes.** `variant` decide **cor**, `size` decide **geometria**.
+
 | variant | classes |
 |---|---|
-| `primary` | `bg-brand text-white hover:bg-brand-hover` |
+| `primary` | `bg-brand text-white enabled:hover:bg-brand-hover` |
+| `soft` | `bg-surface-brand text-brand enabled:hover:bg-track` |
 | `ghost` | `bg-transparent text-muted` (text link style) |
 | `outline` | `bg-surface text-ink border border-line` |
 | `danger` | `bg-danger text-white` |
-Base: `rounded-pill py-4 font-sans text-[16px] font-bold transition disabled:opacity-50`.
-Min height 52px (hit target). `loading` swaps label for a small spinner.
+| `unstyled` | nenhuma cor, nenhuma forma — traga a sua via `className` |
+
+| size | classes |
+|---|---|
+| `md` (padrão) | `gap-2 py-4 px-2 text-[16px] min-h-13` — 52px de alto |
+| `sm` | `gap-1.5 py-2.5 px-4 text-label min-h-11` — 44px, o piso de toque |
+
+Base quando tem forma: `inline-flex items-center justify-center rounded-pill font-sans font-semibold`.
+Comportamento sempre presente: `cursor-pointer`, anel de foco `ring-brand`, `disabled:opacity-50`,
+alternância de largura total, `loading` trocando o rótulo por um spinner.
+
+**`unstyled` + `size` é a combinação para controle com cor própria.** Sem `size`, `unstyled` não
+traz forma nenhuma (comportamento antigo, preservado). Passando `size`, ele ganha a geometria do
+sistema e continua sem cor — que é o único jeito seguro de um chamador definir a própria cor: duas
+utilidades Tailwind da **mesma propriedade** (ex.: `text-danger` do chamador vs. `text-ink` de uma
+variant) são ordenadas pelo Tailwind, não pela ordem no `className`, então sobrescrever cor de
+variant por `className` é aposta, não regra.
+
+`size="sm"` nasceu de 5 chamadas no `ChatPage` (dois atalhos compactos da bandeja, botão de repetir,
+pílula de voltar ao fim, e o link do CVV que continua `<a>` à mão). A geometria estava duplicada nas
+cinco e já tinha derivado uma vez — ver `screens/11-chat.md`.
+
+---
+
+## `ui/TextField.tsx` (extraído em 16/08/2026)
+
+```ts
+export const FIELD_SURFACE: string;                                  // a superfície, para controles que não são input/select
+export function TextField(props: React.InputHTMLAttributes<HTMLInputElement> & { ref?: Ref<HTMLInputElement> })
+export function SelectField(props: React.SelectHTMLAttributes<HTMLSelectElement> & { ref?: Ref<HTMLSelectElement> })
+```
+
+Superfície única: `w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[16px]
+text-ink placeholder:text-muted` + anel de foco `ring-brand`. `className` do chamador é
+**concatenado**, não substituído — ele traz só layout (`mt-2`, `flex-1`), nunca a pele.
+
+**Por que existia duplicação e o que ela escondia.** A receita estava copiada à mão em **21 pontos
+de 9 arquivos** (logins, formulários, admin, peer chat). Era por isso que `text-[14.5px]` aparecia
+22 vezes sem token — não faltava um token de tipo, faltava o **componente**. E a cópia manual tinha
+divergido em duas coisas que importam:
+
+| | Antes | Depois |
+|---|---|---|
+| Anel de foco | **12 dos 21 não tinham nenhum** | todos |
+| Placeholder | `text-faint` #9AA7A1 → **2,50:1** | `text-muted` #5C6B64 → **5,61:1** |
+| Corpo | `14,5px` → **zoom no foco no iOS** | `16px` |
+
+Os 12 sem anel de foco eram falha de WCAG 2.4.7 contra o compromisso de AA do PRODUCT.md
+("every flow operable by keyboard alone"). O `faint` reprovava o piso de 4,5:1 para texto. Um
+componente força **uma** decisão para cada, e só a versão que passa era defensável — ver
+`design-tokens.md` sobre o papel de `faint`.
+
+Os 14,5px eram o terceiro defeito, e o mais silencioso: o Safari do iOS dá zoom em qualquer campo
+focado abaixo de 16px, e o `index.html` — corretamente, por WCAG 1.4.4 — não trava a escala com
+`maximum-scale`/`user-scalable=no`. Ou seja, todo login, formulário e tela de admin sacudia a
+viewport ao focar, no celular, que é o aparelho principal do PRODUCT.md. A regra já estava escrita
+aqui embaixo como a razão de o composer ser 16px; o que faltava era aplicá-la aos outros 21 pontos.
+Com a superfície em 16px, `text-[14.5px]` deixa de existir no código.
+
+**O composer do chat não usa `TextField`, de propósito.** Ele é `textarea` que cresce e declara
+**dois** deltas sobre a mesma DNA (mesma borda, mesmo `p-[13px_18px]`, mesmo `text-[16px]`, mesmo
+tratamento de placeholder): `rounded-card-lg` em vez de `rounded-pill` (canto que sobrevive ao
+crescimento) e `bg-canvas` em vez de `bg-surface` (ele mora sobre `surface`). Eram três até
+16/08/2026, quando o corpo da superfície subiu para os mesmos 16px pela razão que o composer já
+documentava. Antes esses deltas eram coincidência; agora são desvio declarado de uma superfície
+nomeada — e o que sobrou é só a forma, não o tipo.
+
+**Rótulo e erro ficam fora.** O que estava duplicado 21 vezes era a superfície do controle, não a
+composição — alguns pontos usam `<label htmlFor>`, outros `aria-label`, com `mt-4 block` variando.
+Extrair a composição junto teria trocado parceamento real por generalidade inventada.
 
 ---
 

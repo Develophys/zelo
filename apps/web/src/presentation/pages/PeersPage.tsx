@@ -4,6 +4,7 @@ import { PhoneShell } from '@/presentation/layout/PhoneShell';
 import { BackButton } from '@/presentation/ui/BackButton';
 import { Button } from '@/presentation/ui/Button';
 import { PrivacyBadge } from '@/presentation/ui/PrivacyBadge';
+import { ThemeSwitchButton } from '@/presentation/ui/ThemeSwitchButton';
 import { PeerChatRoom } from '@/presentation/components/PeerChatRoom';
 import { routes } from '@/presentation/lib/routes';
 import { useInstitutionLinkStore } from '@/stores/institution-link.store';
@@ -19,7 +20,10 @@ export function PeersPage() {
   const header = (
     <div className="flex items-center justify-between">
       <BackButton label="Início" onClick={() => navigate(routes.home)} />
-      <PrivacyBadge />
+      <div className="flex flex-none items-center gap-1">
+        <ThemeSwitchButton />
+        <PrivacyBadge />
+      </div>
     </div>
   );
 

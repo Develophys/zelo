@@ -2415,7 +2415,7 @@ Run: `pnpm --filter web test PeerPartnerLoginPage -- --run` — expected FAIL (c
 Create `apps/web/src/presentation/pages/PeerPartnerLoginPage.tsx` (mirrors `ManagerLoginPage.tsx`/`AdminLoginPage.tsx`):
 
 ```tsx
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { Button } from "@/presentation/ui/Button";
@@ -2430,7 +2430,7 @@ export function PeerPartnerLoginPage() {
   const [password, setPassword] = useState("");
   const login = usePeerPartnerLogin();
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     login.mutate({ name, password }, { onSuccess: () => navigate(routes.peerPartnerInbox) });
   };
@@ -2627,7 +2627,7 @@ Run: `pnpm --filter web test PeerChatRoom -- --run` — expected FAIL (component
 Create `apps/web/src/presentation/components/PeerChatRoom.tsx`:
 
 ```tsx
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { Button } from "@/presentation/ui/Button";
 
 export interface PeerChatMessage {
@@ -2645,7 +2645,7 @@ interface PeerChatRoomProps {
 export function PeerChatRoom({ messages, onSend, onLeave, peerLeft }: PeerChatRoomProps) {
   const [text, setText] = useState("");
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     const trimmed = text.trim();
     if (trimmed.length === 0) return;
@@ -3591,7 +3591,7 @@ function PeerPartnersTab() {
   const [specialty, setSpecialty] = useState("");
   const [lastCreated, setLastCreated] = useState<CreatePeerPartnerResult | null>(null);
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     createPeerPartner.mutate(
       { name, specialty },

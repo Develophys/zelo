@@ -1,5 +1,6 @@
 import type { LinkInstitutionFlow } from '@/presentation/hooks/useLinkInstitutionFlow';
 import { LinkStepShell } from '@/presentation/components/LinkStepShell';
+import { TextField } from '@/presentation/ui/TextField';
 
 type LinkInstitutionCodeStepProps = Pick<
   LinkInstitutionFlow,
@@ -28,7 +29,7 @@ export function LinkInstitutionCodeStep({
       <label htmlFor="invite-code" className="text-label font-semibold text-ink-2">
         Código do hospital
       </label>
-      <input
+      <TextField
         id="invite-code"
         value={code}
         onChange={(event) => onCodeChange(event.target.value)}
@@ -36,7 +37,7 @@ export function LinkInstitutionCodeStep({
         autoCapitalize="none"
         autoCorrect="off"
         spellCheck={false}
-        className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink placeholder:text-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        className="mt-2"
       />
 
       {codeErrorMessage && (

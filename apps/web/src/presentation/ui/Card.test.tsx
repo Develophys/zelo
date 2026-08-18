@@ -14,7 +14,7 @@ describe("Card", () => {
   it("renders the brand tone as a solid hero card with lg padding", () => {
     render(<Card size="lg" tone="brand">hero</Card>);
     const card = screen.getByText("hero");
-    expect(card).toHaveClass("bg-brand", "text-white", "shadow-hero", "rounded-card-lg", "p-[22px]");
+    expect(card).toHaveClass("bg-brand-fill", "text-on-fill", "shadow-hero", "rounded-card-lg", "p-[22px]");
   });
 
   it("renders the brand-tint tone", () => {

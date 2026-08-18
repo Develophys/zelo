@@ -1,4 +1,4 @@
-import type { FormEvent, ReactNode } from 'react';
+import type { SubmitEvent, ReactNode } from 'react';
 import { PhoneShell } from '@/presentation/layout/PhoneShell';
 import { BackButton } from '@/presentation/ui/BackButton';
 import { Button } from '@/presentation/ui/Button';
@@ -9,7 +9,7 @@ interface LinkStepShellProps {
   onBack: () => void;
   title: string;
   subtitle: ReactNode;
-  onSubmit: (event: FormEvent) => void;
+  onSubmit: (event: SubmitEvent) => void;
   submitLabel: string;
   submitDisabled: boolean;
   submitLoading?: boolean;

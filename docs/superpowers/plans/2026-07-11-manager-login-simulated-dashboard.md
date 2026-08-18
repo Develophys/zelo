@@ -1505,7 +1505,7 @@ Expected: FAIL — `Cannot find module './ManagerLoginPage'`.
 Create `apps/web/src/presentation/pages/ManagerLoginPage.tsx`:
 
 ```tsx
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { PhoneShell } from "../layout/PhoneShell";
 import { BackButton } from "../ui/BackButton";
@@ -1520,7 +1520,7 @@ export function ManagerLoginPage() {
   const [code, setCode] = useState("");
   const login = useManagerLogin();
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     login.mutate(code, { onSuccess: () => navigate(routes.manager) });
   };

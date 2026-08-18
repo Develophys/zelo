@@ -15,6 +15,7 @@ import { useManagerInsight } from "@/presentation/hooks/useManagerInsight";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 import { downloadPgrReportAsCsv, downloadPgrReportAsPdf } from "@/presentation/lib/download-manager-pgr-report";
+import { ArrowRight } from "lucide-react";
 
 const MIN_TREND_BAR_HEIGHT = 8;
 const TREND_SKELETON_BAR_COUNT = 6;
@@ -109,7 +110,7 @@ export function ManagerDashboardPage() {
                 clearSession();
                 navigate(routes.managerLogin, { replace: true });
               }}
-              className="text-label font-bold text-danger"
+              className="text-label font-bold text-danger cursor-pointer"
             >
               Sair
             </button>
@@ -234,8 +235,9 @@ export function ManagerDashboardPage() {
           <Card className="mb-2">
             <div className="flex items-center justify-between">
               <p className="text-body font-extrabold text-ink">Análise com IA</p>
-              <Link to={routes.managerHistory} className="text-label font-bold text-brand">
+              <Link to={routes.managerHistory} className="flex gap-0.5 items-center text-label font-bold text-brand">
                 Ver histórico
+                <ArrowRight size={16}/>
               </Link>
             </div>
             {!insight.data && (

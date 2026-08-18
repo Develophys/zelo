@@ -119,7 +119,7 @@ Expected: FAIL — the current `ChatPage` has no router dependency and opens a p
 `ChatComposer.tsx`:
 
 ```tsx
-import type { FormEvent } from "react";
+import type { SubmitEvent } from "react";
 import { useState } from "react";
 import { ArrowUp } from "lucide-react";
 
@@ -132,7 +132,7 @@ export function ChatComposer({
 }) {
   const [text, setText] = useState("");
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     if (text.trim().length === 0 || isStreaming) return;
     onSend(text);

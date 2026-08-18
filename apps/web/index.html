@@ -7,6 +7,27 @@
       content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content"
     />
     <title>Zelo</title>
+    <meta name="theme-color" content="#f2f5f3" />
+    <script>
+      (function () {
+        var theme = 'light';
+        try {
+          var stored = window.localStorage.getItem('zelo.theme');
+          theme =
+            stored === 'light' || stored === 'dark'
+              ? stored
+              : window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light';
+        } catch (error) {
+          /* private mode or blocked storage — fall back to light */
+        }
+        document.documentElement.dataset.theme = theme;
+        document
+          .querySelector('meta[name="theme-color"]')
+          .setAttribute('content', theme === 'dark' ? '#101815' : '#f2f5f3');
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

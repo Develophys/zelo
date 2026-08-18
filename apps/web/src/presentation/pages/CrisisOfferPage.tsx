@@ -4,15 +4,12 @@ import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { Button } from "@/presentation/ui/Button";
 import { Card } from "@/presentation/ui/Card";
 import { IconBadge } from "@/presentation/ui/IconBadge";
-import { requestHumanHandoffUseCase } from "@/app/container";
+import { getCrisisLine } from "@/presentation/lib/crisis-line";
 import { routes } from "@/presentation/lib/routes";
 
 export function CrisisOfferPage() {
   const navigate = useNavigate();
-  const handoff = requestHumanHandoffUseCase.execute();
-  // The use-case's label is the long form ("CVV - Centro de Valorização da Vida");
-  // the short form before " - " is what the spec's "CVV · 188" copy expects.
-  const shortLabel = handoff.externalCrisisLine.label.split(" - ")[0];
+  const line = getCrisisLine();
 
   return (
     <PhoneShell centered>
@@ -37,7 +34,7 @@ export function CrisisOfferPage() {
         <Card tone="brand-tint">
           <p className="font-mono text-eyebrow uppercase text-brand">sempre disponível</p>
           <p className="mt-1 text-body font-extrabold text-ink">
-            {shortLabel} · {handoff.externalCrisisLine.phone}
+            {line.label} · {line.phone}
           </p>
           <p className="text-caption text-muted">Ligação gratuita e sigilosa, 24h.</p>
         </Card>

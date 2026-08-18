@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BackButton } from "@/presentation/ui/BackButton";
@@ -7,6 +7,7 @@ import { Card } from "@/presentation/ui/Card";
 import { routes } from "@/presentation/lib/routes";
 import { useManagerLogin } from "@/presentation/hooks/useManagerLogin";
 import { InvalidManagerCredentialsError } from "@/ports/manager-auth.port";
+import { TextField } from "@/presentation/ui/TextField";
 
 export function ManagerLoginPage() {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ export function ManagerLoginPage() {
   const [password, setPassword] = useState("");
   const login = useManagerLogin();
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     login.mutate({ email, password }, { onSuccess: () => navigate(routes.manager) });
   };
@@ -37,25 +38,25 @@ export function ManagerLoginPage() {
             <label htmlFor="manager-email" className="text-label font-semibold text-ink-2">
               Email
             </label>
-            <input
+            <TextField
               id="manager-email"
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="Digite seu email"
-              className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink placeholder:text-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              className="mt-2"
             />
 
             <label htmlFor="manager-password" className="mt-4 block text-label font-semibold text-ink-2">
               Senha
             </label>
-            <input
+            <TextField
               id="manager-password"
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Digite sua senha"
-              className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink placeholder:text-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              className="mt-2"
             />
 
             {errorMessage && (

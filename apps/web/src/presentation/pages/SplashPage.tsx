@@ -34,11 +34,11 @@ export function SplashPage() {
     <PhoneShell bleed centered>
       <div className="flex min-h-dvh flex-col items-center justify-center bg-linear-to-b from-canvas-alt to-canvas px-8.5 text-center">
         <div className="flex flex-1 flex-col items-center justify-center">
-          <div className="flex h-36 w-36 items-center justify-center rounded-card-lg bg-brand shadow-hero">
+          <div className="flex h-36 w-36 items-center justify-center rounded-card-lg bg-brand-fill shadow-hero">
             {logoFailed ? (
               <span
                 aria-hidden="true"
-                className="animate-grow-in font-serif text-score text-white"
+                className="animate-grow-in font-serif text-score text-on-fill"
               >
                 Z
               </span>

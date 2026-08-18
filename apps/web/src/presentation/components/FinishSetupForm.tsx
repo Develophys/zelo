@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useSearchParams } from "react-router";
 import { Button } from "@/presentation/ui/Button";
 import { Card } from "@/presentation/ui/Card";
+import { TextField } from "@/presentation/ui/TextField";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -21,7 +22,7 @@ export function FinishSetupForm({ onSubmit, onSuccess }: FinishSetupFormProps) {
   const passwordsMatch = password.length > 0 && password === confirmPassword;
   const isSubmitDisabled = !token || password.length < MIN_PASSWORD_LENGTH || !passwordsMatch || isPending;
 
-  const handleSubmit = async (event: FormEvent) => {
+  const handleSubmit = async (event: SubmitEvent) => {
     event.preventDefault();
     setError(null);
     setIsPending(true);
@@ -48,25 +49,25 @@ export function FinishSetupForm({ onSubmit, onSuccess }: FinishSetupFormProps) {
           <label htmlFor="finish-setup-password" className="text-label font-semibold text-ink-2">
             Senha
           </label>
-          <input
+          <TextField
             id="finish-setup-password"
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="Mínimo de 8 caracteres"
-            className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink placeholder:text-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            className="mt-2"
           />
 
           <label htmlFor="finish-setup-confirm-password" className="mt-4 block text-label font-semibold text-ink-2">
             Confirme a senha
           </label>
-          <input
+          <TextField
             id="finish-setup-confirm-password"
             type="password"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
             placeholder="Digite a senha novamente"
-            className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink placeholder:text-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            className="mt-2"
           />
 
           {error && (

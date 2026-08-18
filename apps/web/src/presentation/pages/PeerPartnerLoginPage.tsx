@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { Button } from "@/presentation/ui/Button";
@@ -6,6 +6,7 @@ import { Card } from "@/presentation/ui/Card";
 import { routes } from "@/presentation/lib/routes";
 import { usePeerPartnerLogin } from "@/presentation/hooks/usePeerPartnerLogin";
 import { InvalidPeerPartnerCredentialsError } from "@/ports/peer-partner-auth.port";
+import { TextField } from "@/presentation/ui/TextField";
 
 export function PeerPartnerLoginPage() {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ export function PeerPartnerLoginPage() {
   const [password, setPassword] = useState("");
   const login = usePeerPartnerLogin();
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     login.mutate({ email, password }, { onSuccess: () => navigate(routes.peerPartnerInbox) });
   };
@@ -35,25 +36,25 @@ export function PeerPartnerLoginPage() {
             <label htmlFor="peer-partner-email" className="text-label font-semibold text-ink-2">
               Email
             </label>
-            <input
+            <TextField
               id="peer-partner-email"
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="Digite seu email"
-              className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink placeholder:text-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              className="mt-2"
             />
 
             <label htmlFor="peer-partner-password" className="mt-4 block text-label font-semibold text-ink-2">
               Senha
             </label>
-            <input
+            <TextField
               id="peer-partner-password"
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Digite sua senha"
-              className="mt-2 w-full rounded-pill border border-line bg-surface p-[13px_18px] text-[14.5px] text-ink placeholder:text-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              className="mt-2"
             />
 
             {errorMessage && (

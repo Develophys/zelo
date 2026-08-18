@@ -37,7 +37,7 @@ export function QuestionCard({
               duration-200 ease-out 
               enabled:hover:shadow-card
               enabled:hover:cursor-pointer
-              enabled:hover:border-gray-500 
+              enabled:hover:border-faint
               ${
                 selected === option.value
                   ? 'border-brand bg-surface-brand enabled:hover:border-brand-hover disabled:opacity-100!'

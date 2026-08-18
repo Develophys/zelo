@@ -3029,7 +3029,7 @@ Run: `pnpm --filter web test AdminLoginPage -- --run` — expected FAIL (compone
 Create `apps/web/src/presentation/pages/AdminLoginPage.tsx` (mirrors `ManagerLoginPage.tsx` exactly, `/admin` instead of `/manager`, no "Início" back link since this area has no médico-facing entry point to return to — back goes nowhere meaningful, so this page has no `BackButton` at all, matching how `screens/02-privacy.md`'s standalone screens without a natural "back" omit it too):
 
 ```tsx
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { Button } from "@/presentation/ui/Button";
@@ -3044,7 +3044,7 @@ export function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const login = useAdminLogin();
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     login.mutate({ name, password }, { onSuccess: () => navigate(routes.admin) });
   };
@@ -3181,7 +3181,7 @@ Run: `pnpm --filter web test AdminInstitutionsPage -- --run` — expected FAIL (
 Create `apps/web/src/presentation/pages/AdminInstitutionsPage.tsx`:
 
 ```tsx
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { Button } from "@/presentation/ui/Button";
 import { Card } from "@/presentation/ui/Card";
@@ -3197,7 +3197,7 @@ export function AdminInstitutionsPage() {
   const [hospitalAdminName, setHospitalAdminName] = useState("");
   const [lastCreated, setLastCreated] = useState<CreateInstitutionResult | null>(null);
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     createInstitution.mutate(
       { institutionName, inviteCode, hospitalAdminName },
@@ -5170,7 +5170,7 @@ Run: `pnpm --filter web test ManagerAdminPage -- --run` — expected FAIL (compo
 Create `apps/web/src/presentation/pages/ManagerAdminPage.tsx`:
 
 ```tsx
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BackButton } from "@/presentation/ui/BackButton";
@@ -5193,7 +5193,7 @@ function SectorsTab() {
   const updateSector = useUpdateSector();
   const [name, setName] = useState("");
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     createSector.mutate(name, { onSuccess: () => setName("") });
   };
@@ -5268,7 +5268,7 @@ function ManagersTab() {
   const [name, setName] = useState("");
   const [lastCreated, setLastCreated] = useState<CreateManagerResult | null>(null);
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     createManager.mutate(
       { name, role: "HOSPITAL_ADMIN" },
@@ -6655,7 +6655,7 @@ Replace `apps/web/src/presentation/pages/LinkInstitutionPage.test.tsx`'s departm
 Replace `apps/web/src/presentation/pages/LinkInstitutionPage.tsx` in full:
 
 ```tsx
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BackButton } from "@/presentation/ui/BackButton";
@@ -6677,7 +6677,7 @@ export function LinkInstitutionPage() {
   const sectors = useInstitutionSectors(institution?.id ?? null);
   const link = useInstitutionLinkStore((state) => state.link);
 
-  const handleCodeSubmit = (event: FormEvent) => {
+  const handleCodeSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     lookup.mutate(code.trim(), {
       onSuccess: (result) => {
@@ -6687,7 +6687,7 @@ export function LinkInstitutionPage() {
     });
   };
 
-  const handleSectorSubmit = (event: FormEvent) => {
+  const handleSectorSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     if (!institution || !sectorId) return;
     const sector = sectors.data?.find((candidate) => candidate.id === sectorId);

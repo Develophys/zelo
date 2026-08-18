@@ -14,7 +14,7 @@ export function Card({ children, size = "md", tone = "surface", className = "" }
   // is reserved for "Result card" — the only lg+surface composition in the specs).
   const toneClass =
     tone === "brand"
-      ? "bg-brand text-white shadow-hero"
+      ? "bg-brand-fill text-on-fill shadow-hero"
       : tone === "brand-tint"
         ? "bg-surface-brand"
         : `bg-surface ${size === "lg" ? "shadow-card-lg" : "shadow-card"}`;

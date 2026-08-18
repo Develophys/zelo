@@ -1361,7 +1361,7 @@ Expected: FAIL — `LinkInstitutionPage.tsx` doesn't exist yet.
 Create `apps/web/src/presentation/pages/LinkInstitutionPage.tsx`:
 
 ```tsx
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BackButton } from "@/presentation/ui/BackButton";
@@ -1381,7 +1381,7 @@ export function LinkInstitutionPage() {
   const lookup = useLookupInstitution();
   const link = useInstitutionLinkStore((state) => state.link);
 
-  const handleCodeSubmit = (event: FormEvent) => {
+  const handleCodeSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     lookup.mutate(code, {
       onSuccess: (result) => {
@@ -1391,7 +1391,7 @@ export function LinkInstitutionPage() {
     });
   };
 
-  const handleDepartmentSubmit = (event: FormEvent) => {
+  const handleDepartmentSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     if (!institution) return;
     link({ institutionId: institution.id, institutionName: institution.name, department });

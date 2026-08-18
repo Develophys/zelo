@@ -11,7 +11,7 @@ export function ProgressBar({ value, label }: ProgressBarProps) {
       aria-valuemin={0}
       aria-valuemax={100}
       aria-label={label}
-      className="h-[7px] overflow-hidden rounded-pill bg-line"
+      className="h-1.75 overflow-hidden rounded-pill bg-line"
     >
       <div
         data-testid="progress-fill"

@@ -2200,7 +2200,7 @@ Expected: FAIL — `WhatsappLinkPage.tsx` does not exist.
 
 ```tsx
 // apps/web/src/presentation/pages/WhatsappLinkPage.tsx
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BackButton } from "@/presentation/ui/BackButton";
@@ -2240,12 +2240,12 @@ export function WhatsappLinkPage() {
   const requestLink = useRequestWhatsappLink();
   const confirmLink = useConfirmWhatsappLink();
 
-  const handleRequestSubmit = (event: FormEvent) => {
+  const handleRequestSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     requestLink.mutate(phoneNumber, { onSuccess: () => setStep("otp") });
   };
 
-  const handleConfirmSubmit = (event: FormEvent) => {
+  const handleConfirmSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     confirmLink.mutate(otp, { onSuccess: () => setStep("success") });
   };

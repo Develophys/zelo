@@ -54,7 +54,7 @@ export function ConsentPage() {
                 <div className="flex items-start gap-3">
                   <div
                     aria-hidden="true"
-                    className="flex h-5.5 w-5.5 flex-none items-center justify-center rounded-lg bg-brand text-white"
+                    className="flex h-5.5 w-5.5 flex-none items-center justify-center rounded-lg bg-brand-fill text-on-fill"
                   >
                     <Check size={14} />
                   </div>

@@ -1,4 +1,5 @@
 import { PrivacyBadge } from '@/presentation/ui/PrivacyBadge';
+import { ThemeSwitchButton } from '@/presentation/ui/ThemeSwitchButton';
 import { getGreeting } from '@/presentation/lib/get-greeting';
 
 export function HomeGreeting() {
@@ -8,7 +9,10 @@ export function HomeGreeting() {
         <p className="text-caption text-muted">Bom te ver por aqui</p>
         <h1 className="text-h1 text-ink">{getGreeting(new Date().getHours())}</h1>
       </div>
-      <PrivacyBadge />
+      <div className="flex flex-none items-center gap-1">
+        <ThemeSwitchButton />
+        <PrivacyBadge />
+      </div>
     </div>
   );
 }

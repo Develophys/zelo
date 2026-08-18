@@ -27,7 +27,7 @@ file references these token names, never raw values.
 | `ink-2` | `#4A584F` | Secondary text |
 | `muted` | `#5C6B64` | Body copy, descriptions |
 | `muted-2` | `#66726C` | Captions, mono labels, inactive |
-| `faint` | `#9AA7A1` | Placeholder text, disabled glyphs |
+| `faint` | `#9AA7A1` | Disabled glyphs, hairlines. **Não usar em placeholder** — 2,50:1 sobre `surface` reprova o piso de 4,5:1. `TextField` usa `muted` (5,61:1); ver `ui-primitives.md` (16/08/2026) |
 | `line` | `#DFE4E1` | Borders, dividers, unselected option outline |
 
 ### Semantic
@@ -38,6 +38,59 @@ file references these token names, never raw values.
 | `danger-strong` | `#8F2F26` / `#F5E4E1` | "Grave" band |
 | `dark` | `#0D1512` | Phone frame, token/credential boxes |
 | `on-dark-brand` | `#A8D8C9` | Text on `dark` (token strings) |
+
+### Fill vs. accent (17/08/2026)
+`brand` was doing two jobs: the colour text and icons are drawn *in*, and the colour buttons are
+drawn *as*. Light mode can serve both from one value. Dark mode cannot — no single green is at
+once 4,5:1 against a near-black canvas and dark enough to carry near-white text. The roles are
+now separate tokens, and `danger` splits the same way.
+
+| Token | Light | Use |
+|---|---|---|
+| `brand` | `#2F6B5E` | **Accent**: links, brand text, icons, focus rings, chart bars, progress fill, active nav |
+| `brand-fill` | `#2F6B5E` | **Fill**: primary button, user chat bubble, brand card, active tab, logo tile |
+| `brand-fill-hover` | `#1F5A4D` | Hover on a brand fill |
+| `danger-fill` | `#A2453A` | Danger button |
+| `danger-strong-fill` | `#8F2F26` | Crisis call button |
+| `on-fill` | `#FFFFFF` | Text and icons on any fill |
+| `on-fill-2` | `#E5F3ED` | Secondary text on a fill. Replaces `opacity-85`, whose ratio depended on what was behind it |
+| `fill-edge` | `transparent` | Rim on filled controls. Invisible in light; see dark theme below |
+| `scrim` | `#21302B` | Modal backdrop. Deliberately not `ink`, which inverts |
+
+### Dark theme (17/08/2026)
+Zelo's primary scene is a night shift on a personal phone. The dark theme is **composed, not
+inverted**: surfaces get *lighter* as they rise (light mode recesses them instead), elevation
+moves from a green tint to real shadow, and the accent becomes the mint this file already
+reserved for dark ground as `on-dark-brand`.
+
+Applied by `[data-theme='dark']` on `<html>`, written before first paint by the boot script in
+`index.html`. Preference (`sistema` / `claro` / `escuro`) lives in `localStorage` under
+`zelo.theme`; `You › Aparência` sets all three, and the top-row `ThemeSwitchButton` flips
+between the two explicit ones.
+
+| Token | Dark | Token | Dark |
+|---|---|---|---|
+| `canvas` | `#101815` | `brand` | `#A8D8C9` |
+| `canvas-alt` | `#16201C` | `brand-hover` | `#C3E6DB` |
+| `surface` | `#18221E` | `brand-ink` | `#DFEEE7` |
+| `surface-brand` | `#22322C` | `brand-fill` | `#357769` |
+| `ink` | `#E4EDE9` | `brand-fill-hover` | `#397E6F` |
+| `ink-2` | `#C2D0CB` | `on-fill` | `#F4FAF8` |
+| `muted` | `#9DB0A8` | `fill-edge` | `#FFFFFF38` |
+| `muted-2` | `#93A7A0` | `warn` / `-bg` / `-ink` | `#E0AE63` / `#2C2418` / `#DCB87F` |
+| `faint` | `#6F8078` | `danger` / `-fill` / `-bg` | `#F09A90` / `#B24C40` / `#2D1C19` |
+| `line` | `#2B3831` | `danger-border` / `-ink` | `#4B302B` / `#E7ACA3` |
+| `track` | `#3A4A42` | `danger-strong` / `-fill` / `-bg` | `#F58A7D` / `#C14337` / `#341D19` |
+| `scrim` | `#040A08` | | |
+
+`fill-edge` is the one piece that is not a colour swap. On a dark canvas a filled control sitting
+on the lifted brand-tint card cannot reach 3:1 against it while still carrying `on-fill` text, so
+the shape gets a translucent white rim instead — one token that derives the right lighter tone
+from whatever hue it sits on, and a border in both themes so switching never shifts geometry.
+
+Both palettes are held to AA by `apps/web/src/app/theme-contrast.test.ts`, which parses this
+file's implementation (`index.css`) rather than restating the hexes, and fails if a new colour
+ships without a dark counterpart.
 
 ### PHQ-9 score-band palette
 Mirror of `ScoreAssessmentUseCase` bands. Used only by `ResultBandCard` / `ScoreDial`.
@@ -143,11 +196,53 @@ Vertical rhythm between cards: **12–14px**. Section top gap: **20–26px**.
 | `shadow-card-lg` | `0 10px 28px rgba(38,70,60,.07)` | Result card |
 | `shadow-brand` | `0 12px 26px -10px rgba(47,107,94,.7)` | Primary buttons (optional) |
 | `shadow-hero` | `0 16px 34px -12px rgba(47,107,94,.6)` | Splash logo, home hero card |
+| `shadow-lift` | `0 2px 4px rgba(33,48,43,.12), 0 18px 32px -10px rgba(33,48,43,.3)` | Hover on buttons and card buttons |
+
+Each colour above is reached through an `--elevation-*` variable rather than written inline
+(17/08/2026). Tailwind bakes a theme shadow's colour into the compiled utility, so `--shadow-*`
+alone cannot be re-pointed per theme; the indirection keeps the substitution at run time. Dark
+mode swaps the whole set for black at 45–75%, because a green tint at 6% reads as nothing on a
+near-black canvas.
 
 ### Motion
 - Progress bar width: `transition: width .3s ease`.
 - Screen transitions: fade+rise 180ms, `ease-out`. **Disable under `prefers-reduced-motion`.**
 - No bouncy/springy easing — Sereno is calm.
+
+### `prefers-reduced-motion`: tirar o movimento sem tirar o sinal (16/08/2026)
+
+A regra era o varrimento clássico — `* { animation: none !important; transition: none !important }`
+— que é o padrão que remove **a mudança de estado junto com o movimento**. Duas animações do app
+não são decoração, são o único sinal visível de que algo está acontecendo:
+
+- **Os pontos do `AssistantTypingIndicator`.** O indicador é `aria-hidden` de propósito (quem narra
+  é a região `sr-only`), então um usuário **vidente** com movimento reduzido ficava com três pontos
+  parados e nenhuma outra pista. A região que o salvaria é invisível justamente para ele.
+- **O spinner do `Button`.** Enquanto `loading`, o rótulo vira `sr-only` e o spinner é
+  `aria-hidden` — com a animação morta sobrava um anel quebrado e estático, sem texto nenhum. O
+  `Button` é do app inteiro, então esse era o mais espalhado dos dois.
+
+O que ficou:
+
+- O varrimento usa **`animation-name: none`**, não o atalho `animation: none`. O atalho também
+  zera `animation-delay`, e é o `animation-delay` inline que dá o escalonamento aos três pontos —
+  com o atalho, a alternativa viraria um pulso chapado e simultâneo em vez de uma onda.
+- `.motion-essential` devolve `motion-essential-pulse`, um ciclo de **opacidade** (1 → .3 → 1, 1,6s).
+  Opacidade não é gatilho vestibular; `transform`, sim. Por isso a alternativa não pode ter
+  `transform`, `scale` nem `rotate` — há teste para isso.
+- **O padrão continua sendo matar.** Uma animação decorativa nova (`animate-rise-in`,
+  `animate-grow-in`, `animate-focus-in`) não precisa de nada para estar correta sob movimento
+  reduzido; só o que carrega estado marca `motion-essential`. `WaveText` **não** marca: as letras
+  são `aria-hidden` e o texto real já está num irmão `sr-only`, então parado não perde nada.
+
+`prefers-reduced-motion: reduce` não quer dizer "sem animação" — quer dizer sem gatilho vestibular
+(movimento de área grande, paralaxe, zoom, giro). Trocar movimento por opacidade é a leitura certa
+da preferência, não uma brecha nela.
+
+**Teste:** `src/app/reduced-motion.test.ts` lê o próprio CSS. O jsdom não avalia media query nem
+computa animação, então não dá para afirmar isso por componente renderizado — e a classe
+`motion-essential` num elemento é inerte sem a regra. O varrimento em bloco é exatamente o trecho
+que alguém recola "simplificando"; o teste existe para isso falhar alto.
 
 ---
 

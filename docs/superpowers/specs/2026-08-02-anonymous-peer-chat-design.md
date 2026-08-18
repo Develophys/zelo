@@ -174,6 +174,15 @@ boundary (an AI provider reading it); here it's two humans talking directly, and
 already controls what they type knowing a person reads it verbatim — the anonymity guarantee this
 spec protects is *identity*, not message content.
 
+**Spellchecker and writing extensions are off on this field** (16/08/2026). `PeerChatRoom`'s input
+spreads `PRIVATE_TEXT_FIELD` (`presentation/lib/private-field.ts`), the same control the AI
+composer uses — see `screens/11-chat.md`, "O corretor ortográfico lia o texto antes do
+anonimizador", for the full reasoning and the accepted cost. The paragraph above is exactly why it
+applies *harder* here than there: there is no anonymization step in front of this field, so
+Chrome's Enhanced Spell Check or a Grammarly-class extension would read the médico's verbatim text
+with nothing between them and it. "The médico controls what they type knowing a person reads it"
+assumes the readers are the two people in the conversation.
+
 ## 6. Frontend changes
 
 **Médico side — `PeersPage.tsx` rewrite** (replaces the placeholder list):

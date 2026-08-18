@@ -11,7 +11,7 @@ export function HealthBanner() {
   }
 
   return (
-    <div className="flex items-center justify-between bg-slate-100 p-2 text-sm text-slate-700">
+    <div className="flex items-center justify-between bg-canvas-alt p-2 text-caption text-muted">
       <span>api: {data.status}</span>
       <button onClick={dismiss} className="underline">
         dismiss

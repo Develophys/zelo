@@ -55,4 +55,14 @@ describe("PeerChatRoom", () => {
     render(<PeerChatRoom messages={[]} onSend={() => {}} onLeave={() => {}} peerLeft={true} />);
     expect(screen.getByRole("status")).toHaveTextContent("O colega saiu da conversa.");
   });
+
+  it("keeps the browser spellchecker and writing extensions off the message field, which carries the same mental-health text as the AI chat with no anonymizer in front of it at all", () => {
+    render(<PeerChatRoom messages={[]} onSend={() => {}} onLeave={() => {}} peerLeft={false} />);
+    const field = screen.getByLabelText("Mensagem");
+
+    expect(field).toHaveAttribute("spellcheck", "false");
+    expect(field).toHaveAttribute("data-gramm", "false");
+    expect(field).toHaveAttribute("data-gramm_editor", "false");
+    expect(field).toHaveAttribute("data-enable-grammarly", "false");
+  });
 });
