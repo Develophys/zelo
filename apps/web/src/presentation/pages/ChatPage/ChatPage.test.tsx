@@ -933,7 +933,7 @@ describe('ChatPage', () => {
     const field = screen.getByLabelText('Mensagem');
 
     expect(field.tagName).toBe('TEXTAREA');
-    expect(field).toHaveClass('resize-none', 'max-h-33');
+    expect(field).toHaveClass('resize-none', 'max-h-[153px]');
     expect(field).toHaveAttribute('rows', '1');
   });
 

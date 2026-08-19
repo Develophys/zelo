@@ -125,17 +125,6 @@ export const ChatComposer = memo(function ChatComposer({
           {remainingAnnouncement}
         </p>
 
-        {nearLimit && (
-          <p
-            id="chat-composer-remaining"
-            className={`mb-1.5 pl-5 text-caption ${remaining === 0 ? 'text-danger' : 'text-muted'}`}
-          >
-            {remaining === 0
-              ? `Limite de ${MAX_MESSAGE_LENGTH} caracteres atingido.`
-              : `${remaining} caracteres restantes`}
-          </p>
-        )}
-
         {blockedByStream && (
           <p
             id="chat-composer-stream-hint"
@@ -153,25 +142,43 @@ export const ChatComposer = memo(function ChatComposer({
           <span id="chat-composer-keys" className="sr-only">
             Enter envia a mensagem. Shift e Enter juntos criam uma nova linha.
           </span>
-          <textarea
-            ref={fieldRef}
-            id="chat-composer-message"
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            onKeyDown={handleKeyDown}
-            onMouseMove={handleFieldMouseMove}
-            onMouseLeave={() => setOverScrollbar(false)}
-            placeholder="Escreva como você está…"
-            maxLength={MAX_MESSAGE_LENGTH}
-            rows={1}
-            autoComplete="off"
-            enterKeyHint="send"
-            {...PRIVATE_TEXT_FIELD}
-            aria-describedby={describedBy}
-            className={`inset-scrollbar 3 max-h-33 min-w-0 flex-1 resize-none overflow-y-auto rounded-card-lg border border-line bg-canvas p-[13px_18px] text-[16px] leading-normal text-ink placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
-              overScrollbar ? 'cursor-default' : ''
-            }`}
-          />
+          <div className="relative min-w-0 flex-1">
+            <textarea
+              ref={fieldRef}
+              id="chat-composer-message"
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+              onKeyDown={handleKeyDown}
+              onMouseMove={handleFieldMouseMove}
+              onMouseLeave={() => setOverScrollbar(false)}
+              placeholder="Escreva como você está…"
+              maxLength={MAX_MESSAGE_LENGTH}
+              rows={1}
+              autoComplete="off"
+              enterKeyHint="send"
+              {...PRIVATE_TEXT_FIELD}
+              aria-describedby={describedBy}
+              className={`inset-scrollbar block max-h-[153px] w-full resize-none overflow-y-auto rounded-card-lg border border-line bg-canvas pt-[13px] pr-[18px] pb-[34px] pl-[18px] text-[16px] leading-normal text-ink placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                overScrollbar ? 'cursor-default' : ''
+              }`}
+            />
+
+            <div
+              data-testid="composer-counter-slot"
+              className="pointer-events-none absolute bottom-px left-px right-[15px] rounded-bl-card-lg bg-canvas pt-[6px] pr-[18px] pb-[8px] text-right"
+            >
+              {nearLimit && (
+                <span
+                  id="chat-composer-remaining"
+                  className={`text-caption ${remaining === 0 ? 'text-danger' : 'text-muted'}`}
+                >
+                  {remaining === 0
+                    ? `Limite de ${MAX_MESSAGE_LENGTH} caracteres atingido.`
+                    : `${remaining} caracteres restantes`}
+                </span>
+              )}
+            </div>
+          </div>
 
           {isStreaming ? (
             <button
