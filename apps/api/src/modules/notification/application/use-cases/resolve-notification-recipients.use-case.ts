@@ -28,8 +28,10 @@ export class ResolveNotificationRecipientsUseCase {
 
     const sector = await this.sectorRepository.findById(event.sectorId);
     // A sector from another institution is not merely the wrong audience — it
-    // means the event is malformed, so nobody hears about it.
-    if (!sector || sector.institutionId !== event.institutionId) return [];
+    // means the event is malformed, so nobody hears about it. A deactivated
+    // sector is unlisted by GetAccessibleSectorsUseCase for everyone,
+    // admins included, so it gets the same silence.
+    if (!sector || sector.institutionId !== event.institutionId || !sector.isActive) return [];
 
     const admins = await this.managerRepository.findActiveHospitalAdminIds(event.institutionId);
     const recipients = new Set(admins);

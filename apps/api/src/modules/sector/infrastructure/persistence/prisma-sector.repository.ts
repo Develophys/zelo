@@ -43,10 +43,10 @@ export class PrismaSectorRepository implements SectorRepository {
 
   async findById(
     id: string,
-  ): Promise<{ id: string; institutionId: string; name: string; managerId: string | null } | null> {
+  ): Promise<{ id: string; institutionId: string; name: string; managerId: string | null; isActive: boolean } | null> {
     return this.prisma.sector.findUnique({
       where: { id },
-      select: { id: true, institutionId: true, name: true, managerId: true },
+      select: { id: true, institutionId: true, name: true, managerId: true, isActive: true },
     });
   }
 

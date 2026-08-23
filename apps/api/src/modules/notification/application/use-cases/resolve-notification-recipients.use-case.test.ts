@@ -19,11 +19,12 @@ class FakeManagerRepository {
 }
 
 class FakeSectorRepository {
-  sector: { id: string; institutionId: string; name: string; managerId: string | null } | null = {
+  sector: { id: string; institutionId: string; name: string; managerId: string | null; isActive: boolean } | null = {
     id: "sector-1",
     institutionId: INSTITUTION,
     name: "UTI",
     managerId: "sector-manager-1",
+    isActive: true,
   };
   async findById(id: string) {
     return this.sector && this.sector.id === id ? this.sector : null;
@@ -41,15 +42,26 @@ function event(type: NotificationType, sectorId?: string): NotificationEvent {
   return { institutionId: INSTITUTION, type, payload: {}, sectorId, dedupKey: `${type}:x` };
 }
 
-const ACCOUNT_TYPES: NotificationType[] = [
-  "INVITE_ACCEPTED",
-  "INVITE_EXPIRED",
-  "INVITE_EMAIL_FAILED",
-  "ACCOUNT_DEACTIVATED",
-  "ACCOUNT_REACTIVATED",
-];
+// Derived from a Record keyed by the full NotificationType union, so adding a
+// new type without deciding "account" or "sector" here is a compile error,
+// not a silently-uncovered case.
+const NOTIFICATION_SCOPE: Record<NotificationType, "account" | "sector"> = {
+  INVITE_ACCEPTED: "account",
+  INVITE_EXPIRED: "account",
+  INVITE_EMAIL_FAILED: "account",
+  ACCOUNT_DEACTIVATED: "account",
+  ACCOUNT_REACTIVATED: "account",
+  SECTOR_BECAME_VISIBLE: "sector",
+  SECTOR_RISK_THRESHOLD: "sector",
+};
 
-const SECTOR_TYPES: NotificationType[] = ["SECTOR_BECAME_VISIBLE", "SECTOR_RISK_THRESHOLD"];
+const ACCOUNT_TYPES = (Object.keys(NOTIFICATION_SCOPE) as NotificationType[]).filter(
+  (type) => NOTIFICATION_SCOPE[type] === "account",
+);
+
+const SECTOR_TYPES = (Object.keys(NOTIFICATION_SCOPE) as NotificationType[]).filter(
+  (type) => NOTIFICATION_SCOPE[type] === "sector",
+);
 
 describe("ResolveNotificationRecipientsUseCase", () => {
   it.each(ACCOUNT_TYPES)("sends %s to every active hospital admin and nobody else", async (type) => {
@@ -64,7 +76,7 @@ describe("ResolveNotificationRecipientsUseCase", () => {
 
   it("does not duplicate a recipient who is both an admin and the sector's manager", async () => {
     const sectors = new FakeSectorRepository();
-    sectors.sector = { id: "sector-1", institutionId: INSTITUTION, name: "UTI", managerId: "admin-1" };
+    sectors.sector = { id: "sector-1", institutionId: INSTITUTION, name: "UTI", managerId: "admin-1", isActive: true };
     const recipients = await build(new FakeManagerRepository(), sectors).execute(
       event("SECTOR_RISK_THRESHOLD", "sector-1"),
     );
@@ -73,7 +85,13 @@ describe("ResolveNotificationRecipientsUseCase", () => {
 
   it("delivers nothing about a sector that belongs to another institution", async () => {
     const sectors = new FakeSectorRepository();
-    sectors.sector = { id: "sector-1", institutionId: "institution-2", name: "UTI", managerId: "sector-manager-1" };
+    sectors.sector = {
+      id: "sector-1",
+      institutionId: "institution-2",
+      name: "UTI",
+      managerId: "sector-manager-1",
+      isActive: true,
+    };
     const recipients = await build(new FakeManagerRepository(), sectors).execute(
       event("SECTOR_RISK_THRESHOLD", "sector-1"),
     );
@@ -91,7 +109,7 @@ describe("ResolveNotificationRecipientsUseCase", () => {
 
   it("reaches the admins even when the sector has no manager assigned", async () => {
     const sectors = new FakeSectorRepository();
-    sectors.sector = { id: "sector-1", institutionId: INSTITUTION, name: "UTI", managerId: null };
+    sectors.sector = { id: "sector-1", institutionId: INSTITUTION, name: "UTI", managerId: null, isActive: true };
     const recipients = await build(new FakeManagerRepository(), sectors).execute(
       event("SECTOR_BECAME_VISIBLE", "sector-1"),
     );
@@ -103,7 +121,13 @@ describe("ResolveNotificationRecipientsUseCase", () => {
   // that exact sector". A future type added without a rule must fail here.
   it("never resolves a sector event to a manager of a different sector", async () => {
     const sectors = new FakeSectorRepository();
-    sectors.sector = { id: "sector-1", institutionId: INSTITUTION, name: "UTI", managerId: "sector-manager-1" };
+    sectors.sector = {
+      id: "sector-1",
+      institutionId: INSTITUTION,
+      name: "UTI",
+      managerId: "sector-manager-1",
+      isActive: true,
+    };
     const managers = new FakeManagerRepository();
     managers.adminIds = [];
     const recipients = await build(managers, sectors).execute(event("SECTOR_RISK_THRESHOLD", "sector-1"));
@@ -124,10 +148,33 @@ describe("ResolveNotificationRecipientsUseCase", () => {
 
   it("resolves to the admins only, without throwing, when the sector's managerId points at a manager that no longer exists", async () => {
     const sectors = new FakeSectorRepository();
-    sectors.sector = { id: "sector-1", institutionId: INSTITUTION, name: "UTI", managerId: "ghost-manager" };
+    sectors.sector = {
+      id: "sector-1",
+      institutionId: INSTITUTION,
+      name: "UTI",
+      managerId: "ghost-manager",
+      isActive: true,
+    };
     const recipients = await build(new FakeManagerRepository(), sectors).execute(
       event("SECTOR_RISK_THRESHOLD", "sector-1"),
     );
     expect(recipients).toEqual(["admin-1", "admin-2"]);
+  });
+
+  // A deactivated sector is not listable by anyone, admins included
+  // (GetAccessibleSectorsUseCase filters through findActiveByInstitution /
+  // findActiveByIds). Fanning out a notification for it would announce a
+  // sector nobody can see on the panel.
+  it.each(SECTOR_TYPES)("delivers nothing about %s for a deactivated sector, even to admins", async (type) => {
+    const sectors = new FakeSectorRepository();
+    sectors.sector = {
+      id: "sector-1",
+      institutionId: INSTITUTION,
+      name: "UTI",
+      managerId: "sector-manager-1",
+      isActive: false,
+    };
+    const recipients = await build(new FakeManagerRepository(), sectors).execute(event(type, "sector-1"));
+    expect(recipients).toEqual([]);
   });
 });
