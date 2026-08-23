@@ -20,13 +20,16 @@ export function DataTableToolbar<T>({
   const hasSelection = selection.selectedIds.length > 0;
 
   return (
-    // min-h is fixed and identical in both branches: swapping content must not
-    // move the header row a single pixel, or the manager loses their place.
+    // h-14 is fixed, not floored, and identical in both branches: min-h only
+    // guarantees a floor, and once the actions branch holds more buttons than
+    // fit one line, flex-wrap would push it past that floor and shift the
+    // table. The actions branch is flex-nowrap + overflow-x-auto instead, so
+    // overflow scrolls horizontally rather than growing the row.
     // data-testid anchors a regression test that swaps branches on the same
     // node and diffs its className, rather than asserting the class in isolation.
     <div
       data-testid="data-table-toolbar"
-      className="flex min-h-14 items-center gap-3 border-b border-line px-cell-x"
+      className="flex h-14 items-center gap-3 border-b border-line px-cell-x"
     >
       <Checkbox
         aria-label="Selecionar todos"
@@ -35,7 +38,12 @@ export function DataTableToolbar<T>({
         onChange={selection.toggleAll}
       />
       {hasSelection ? (
-        <div className="flex flex-wrap items-center gap-2">{actions}</div>
+        <div
+          data-testid="data-table-toolbar-actions"
+          className="no-scrollbar flex flex-nowrap items-center gap-2 overflow-x-auto"
+        >
+          {actions}
+        </div>
       ) : (
         <label className="flex min-w-0 flex-1 items-center gap-2">
           <Search size={16} aria-hidden="true" className="flex-none text-muted" />

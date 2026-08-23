@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { DataTable, type DataTableColumn } from './DataTable';
+import { DataTableEmpty } from './DataTableEmpty';
 import { DataTableToolbar } from './DataTableToolbar';
 import { useDataTableSelection } from './useDataTableSelection';
 
@@ -24,6 +25,18 @@ const COLUMNS: DataTableColumn<Row>[] = [
   { key: 'status', header: 'Status', width: 'w-[20%]', cell: (row) => (row.isActive ? 'Ativa' : 'Inativa'), hideBelowLg: true },
 ];
 
+// Approximates the four real bulk buttons Tasks 4–6 pass into `actions`, so
+// the toolbar's layout tests exercise the actions branch with content that
+// can actually overflow a single line, not an empty one.
+const BULK_ACTIONS = (
+  <>
+    <button type="button">Editar</button>
+    <button type="button">Pausar</button>
+    <button type="button">Ativar</button>
+    <button type="button">Excluir</button>
+  </>
+);
+
 function Harness({ rows = ROWS }: { rows?: Row[] }) {
   const selection = useDataTableSelection(rows, { singular: 'gestor', article: 'um' });
   return (
@@ -33,7 +46,14 @@ function Harness({ rows = ROWS }: { rows?: Row[] }) {
       rows={rows}
       selection={selection}
       rowActions={(row) => <button type="button">Reenviar convite de {row.name}</button>}
-      toolbar={<DataTableToolbar selection={selection} search="" onSearchChange={() => {}} actions={null} />}
+      toolbar={
+        <DataTableToolbar
+          selection={selection}
+          search=""
+          onSearchChange={() => {}}
+          actions={BULK_ACTIONS}
+        />
+      }
       emptyState={<p>Nenhum gestor por aqui.</p>}
     />
   );
@@ -92,17 +112,47 @@ describe('DataTable', () => {
   // A class-string assertion alone would not catch the toolbar's fixed row
   // being swapped for a taller/shorter one when the bulk-action branch takes
   // over — comparing the same DOM node's className before and after a real
-  // selection does.
+  // selection does. jsdom has no layout engine, so this cannot measure actual
+  // pixels; it verifies the structural invariants that guarantee them: a
+  // fixed (not floored) height on an unconditional wrapper, and a
+  // non-wrapping actions row so overflow scrolls instead of growing the row.
   it('keeps the toolbar row at the same fixed height when a selection appears', async () => {
     const user = userEvent.setup();
     render(<Harness />);
     const toolbar = screen.getByTestId('data-table-toolbar');
     const classNameBeforeSelection = toolbar.className;
-    expect(classNameBeforeSelection).toContain('min-h-14');
+    expect(classNameBeforeSelection).toContain('h-14');
+    expect(classNameBeforeSelection).not.toContain('min-h-14');
 
     await user.click(screen.getByRole('checkbox', { name: 'Selecionar Ana' }));
 
     expect(screen.getByTestId('data-table-toolbar')).toBe(toolbar);
     expect(toolbar.className).toBe(classNameBeforeSelection);
+  });
+
+  it('does not let the bulk-action row wrap to a second line', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    await user.click(screen.getByRole('checkbox', { name: 'Selecionar Ana' }));
+
+    const actionsRow = screen.getByTestId('data-table-toolbar-actions');
+    expect(actionsRow.className).toContain('flex-nowrap');
+    expect(actionsRow.className).not.toContain('flex-wrap');
+    expect(actionsRow.className).toContain('overflow-x-auto');
+    expect(within(actionsRow).getByRole('button', { name: 'Editar' })).toBeInTheDocument();
+    expect(within(actionsRow).getByRole('button', { name: 'Excluir' })).toBeInTheDocument();
+  });
+});
+
+describe('DataTableEmpty', () => {
+  it('renders the title and hint, with the hint visually subordinate', () => {
+    render(<DataTableEmpty title="Nenhum gestor por aqui." hint="Adicione o primeiro gestor." />);
+
+    const title = screen.getByText('Nenhum gestor por aqui.');
+    const hint = screen.getByText('Adicione o primeiro gestor.');
+    expect(title).toBeInTheDocument();
+    expect(hint).toBeInTheDocument();
+    expect(title.className).toContain('text-ink');
+    expect(hint.className).toContain('text-muted');
   });
 });
