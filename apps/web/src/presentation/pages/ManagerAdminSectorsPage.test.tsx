@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ManagerAdminSectorsPage } from "./ManagerAdminSectorsPage";
 import * as container from "@/app/container";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
+import { AdminDeleteConflictError, SectorNameConflictError } from "@/ports/manager-admin.port";
 
 function renderPage() {
   const queryClient = new QueryClient();
@@ -138,5 +139,168 @@ describe("ManagerAdminSectorsPage", () => {
       'href',
       '/manager/admin/managers',
     );
+  });
+
+  it('shows a conflict message when the sector name already exists and keeps the modal open', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.createSectorUseCase, 'execute').mockRejectedValue(new SectorNameConflictError());
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: '+ Adicionar setor' }));
+    await user.type(screen.getByLabelText('Nome do setor'), 'UTI');
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Já existe um setor com esse nome.');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('leaves the sector created and shows a notice, without retrying creation, when assigning the manager fails', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    const createSector = vi
+      .spyOn(container.createSectorUseCase, 'execute')
+      .mockResolvedValue({ id: 's1', name: 'UTI' });
+    vi.spyOn(container.updateSectorUseCase, 'execute').mockRejectedValue(new Error('assignment failed'));
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: '+ Adicionar setor' }));
+    await user.type(screen.getByLabelText('Nome do setor'), 'UTI');
+    await user.selectOptions(screen.getByLabelText('Gestor responsável'), 'm1');
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    expect(
+      await screen.findByText(
+        'Setor "UTI" criado, mas não foi possível atribuir o gestor. Edite o setor para tentar de novo.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(createSector).toHaveBeenCalledTimes(1);
+
+    // A subsequent interaction (reopening the create form) must not replay
+    // the creation that already succeeded — the sector exists, only its
+    // manager assignment failed.
+    createSector.mockClear();
+    await user.click(screen.getByRole('button', { name: '+ Adicionar setor' }));
+    expect(createSector).not.toHaveBeenCalled();
+  });
+
+  it('deletes the selected sectors and closes the dialog on the happy path', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
+      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null },
+      { id: 'sector-2', name: 'Pronto-Socorro', isActive: true, managerId: null, managerName: null },
+    ]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
+    const deleteSpy = vi.spyOn(container.deleteSectorAdminUseCase, 'execute').mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Selecionar UTI' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Selecionar Pronto-Socorro' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+
+    const dialog = within(await screen.findByRole('dialog', { name: 'Excluir 2 setores?' }));
+    await user.click(dialog.getByRole('button', { name: 'Excluir' }));
+
+    await waitFor(() => expect(deleteSpy).toHaveBeenCalledTimes(2));
+    expect(deleteSpy).toHaveBeenNthCalledWith(1, 'token', 'sector-1');
+    expect(deleteSpy).toHaveBeenNthCalledWith(2, 'token', 'sector-2');
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('keeps the delete dialog open and renders the refusal sentence when a sector has check-in history', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
+      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null },
+    ]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.deleteSectorAdminUseCase, 'execute').mockRejectedValue(
+      new AdminDeleteConflictError('SECTOR_HAS_HISTORY'),
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Selecionar UTI' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+
+    const dialog = within(await screen.findByRole('dialog', { name: 'Excluir setor?' }));
+    await user.click(dialog.getByRole('button', { name: 'Excluir' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Este setor tem histórico de check-ins e não pode ser excluído. Pause-o para tirá-lo do painel.',
+    );
+    // The refusal is read where it happened, not closed away.
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('reports a partial bulk delete and retries only the still-failing id', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
+      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null },
+      { id: 'sector-2', name: 'Pronto-Socorro', isActive: true, managerId: null, managerName: null },
+    ]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
+    const deleteSpy = vi
+      .spyOn(container.deleteSectorAdminUseCase, 'execute')
+      .mockImplementation(async (_token: string, id: string) => {
+        if (id === 'sector-2') throw new AdminDeleteConflictError('SECTOR_HAS_HISTORY');
+      });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Selecionar UTI' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Selecionar Pronto-Socorro' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+
+    await screen.findByRole('dialog', { name: 'Excluir 2 setores?' });
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '1 de 2 excluídos. Este setor tem histórico de check-ins e não pode ser excluído. Pause-o para tirá-lo do painel.',
+    );
+    // The dialog narrows to just the still-failing sector, so a retry
+    // doesn't re-attempt the one that already succeeded.
+    expect(screen.getByRole('dialog', { name: 'Excluir setor?' })).toBeInTheDocument();
+
+    deleteSpy.mockClear();
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' }));
+
+    await waitFor(() => expect(deleteSpy).toHaveBeenCalledTimes(1));
+    expect(deleteSpy).toHaveBeenCalledWith('token', 'sector-2');
+  });
+
+  it("filters the table by the responsible manager's name, accent-insensitively", async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
+      { id: 'sector-1', name: 'UTI', isActive: true, managerId: 'manager-1', managerName: 'João' },
+      { id: 'sector-2', name: 'Pronto-Socorro', isActive: true, managerId: 'manager-2', managerName: 'Beatriz' },
+    ]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
+    const user = userEvent.setup();
+    renderPage();
+
+    const table = within(await screen.findByRole('table'));
+    expect(table.getByText('Pronto-Socorro')).toBeInTheDocument();
+
+    await user.type(screen.getByRole('searchbox'), 'Joao');
+
+    await waitFor(() => expect(table.queryByText('Pronto-Socorro')).not.toBeInTheDocument(), { timeout: 2000 });
+    expect(table.getByText('UTI')).toBeInTheDocument();
+  });
+
+  it('admits the search only covers loaded items when nothing matches', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
+      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null },
+    ]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
+    const user = userEvent.setup();
+    renderPage();
+
+    await screen.findByRole('table');
+    await user.type(screen.getByRole('searchbox'), 'zzz-no-match');
+
+    expect(await screen.findByText('Nenhum resultado nos itens carregados')).toBeInTheDocument();
+    expect(screen.getByText('A busca ainda percorre apenas a lista já carregada.')).toBeInTheDocument();
   });
 });

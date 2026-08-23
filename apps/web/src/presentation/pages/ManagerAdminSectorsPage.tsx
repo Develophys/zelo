@@ -214,6 +214,7 @@ export function ManagerAdminSectorsPage() {
   const openCreate = () => {
     setName("");
     setManagerId(null);
+    createSector.reset();
     setFormMode("create");
   };
 
@@ -460,15 +461,22 @@ export function ManagerAdminSectorsPage() {
         }
       >
         {formMode === "create" ? (
-          <SectorFields
-            idPrefix="create"
-            name={name}
-            onNameChange={setName}
-            showSuggestions
-            managers={managerList}
-            managerId={managerId}
-            onManagerChange={setManagerId}
-          />
+          <>
+            <SectorFields
+              idPrefix="create"
+              name={name}
+              onNameChange={setName}
+              showSuggestions
+              managers={managerList}
+              managerId={managerId}
+              onManagerChange={setManagerId}
+            />
+            {createSector.isError && (
+              <p role="alert" className="mt-4 text-label text-danger">
+                Já existe um setor com esse nome.
+              </p>
+            )}
+          </>
         ) : (
           editingSector && (
             <SectorFields
