@@ -47,6 +47,7 @@ model Institution {
   signals         Signal[]
   sectors         Sector[]
   peerPartners    PeerPartner[]
+  notifications   Notification[]
 
   @@map("institutions")
 }
@@ -62,6 +63,7 @@ model Sector {
   createdAt     DateTime    @default(now())
 
   signals       Signal[]
+  notifications Notification[]
 
   @@unique([institutionId, name])
   @@map("sectors")
@@ -96,6 +98,7 @@ model Manager {
   createdAt                 DateTime    @default(now())
 
   sectors       Sector[]
+  notifications Notification[]
 
   @@map("managers")
 }
@@ -145,4 +148,35 @@ model SignalDedupKey {
   createdAt DateTime @default(now())
 
   @@map("signal_dedup_keys")
+}
+
+enum NotificationType {
+  INVITE_ACCEPTED
+  INVITE_EXPIRED
+  INVITE_EMAIL_FAILED
+  ACCOUNT_DEACTIVATED
+  ACCOUNT_REACTIVATED
+  SECTOR_BECAME_VISIBLE
+  SECTOR_RISK_THRESHOLD
+}
+
+model Notification {
+  id            String           @id @default(cuid())
+  institutionId String
+  institution   Institution      @relation(fields: [institutionId], references: [id])
+  managerId     String
+  manager       Manager          @relation(fields: [managerId], references: [id], onDelete: Cascade)
+  type          NotificationType
+  payload       Json
+  sectorId      String?
+  sector        Sector?          @relation(fields: [sectorId], references: [id], onDelete: SetNull)
+  readAt        DateTime?
+  createdAt     DateTime         @default(now())
+  // Identifies the event; uniqueness is per recipient, because one event
+  // fans out to one row per manager.
+  dedupKey      String
+
+  @@unique([managerId, dedupKey])
+  @@index([managerId, readAt])
+  @@map("notifications")
 }

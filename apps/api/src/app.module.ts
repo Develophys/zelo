@@ -13,6 +13,7 @@ import { InstitutionModule } from "./modules/institution/institution.module.ts";
 import { SignalCheckinModule } from "./modules/signal-checkin/signal-checkin.module.ts";
 import { AdminModule } from "./modules/admin/admin.module.ts";
 import { PeerChatModule } from "./modules/peer-chat/peer-chat.module.ts";
+import { NotificationModule } from "./modules/notification/notification.module.ts";
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { PeerChatModule } from "./modules/peer-chat/peer-chat.module.ts";
     SignalCheckinModule,
     AdminModule,
     PeerChatModule,
+    NotificationModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
