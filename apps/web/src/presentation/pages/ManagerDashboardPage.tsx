@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { PrivacyBadge } from "@/presentation/ui/PrivacyBadge";
 import { SectionLabel } from "@/presentation/ui/SectionLabel";
+import { ManagerPageHeader } from "@/presentation/layout/ManagerPageHeader";
 import { Card } from "@/presentation/ui/Card";
 import { Button } from "@/presentation/ui/Button";
 import { Skeleton } from "@/presentation/ui/Skeleton";
 import { SectorMultiSelect } from "@/presentation/ui/SectorMultiSelect";
+import { SectorPillPicker, SECTOR_PILL_CLASS } from "@/presentation/ui/SectorPillPicker";
 import { routes } from "@/presentation/lib/routes";
 import { useManagerSignals } from "@/presentation/hooks/useManagerSignals";
 import { useManagerSectors } from "@/presentation/hooks/useManagerSectors";
@@ -14,10 +16,14 @@ import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 import { downloadPgrReportAsCsv, downloadPgrReportAsPdf } from "@/presentation/lib/download-manager-pgr-report";
 import { ArrowRight } from "lucide-react";
+import type { ReactNode } from "react";
 
 const MIN_TREND_BAR_HEIGHT = 8;
 const TREND_SKELETON_BAR_COUNT = 6;
 const SEGMENTS_SKELETON_ROW_COUNT = 3;
+
+const DASHBOARD_INTRO =
+  "Indicadores agregados e anônimos do seu hospital. Nenhum dado individual é exibido; segmentos com menos de 5 respostas ficam ocultos.";
 
 function toTrendBarHeights(trend: { concerningRate: number }[]): number[] {
   return trend.map((point) => Math.max(MIN_TREND_BAR_HEIGHT, Math.round(point.concerningRate * 100)));
@@ -25,7 +31,7 @@ function toTrendBarHeights(trend: { concerningRate: number }[]): number[] {
 
 function KpiCardSkeleton({ className = "" }: { className?: string }) {
   return (
-    <Card className={["text-center", className].join(" ")}>
+    <Card className={["h-full text-center", className].join(" ")} data-testid="kpi-card">
       <Skeleton className="mx-auto h-7.5 w-16 rounded-md" />
       <Skeleton className="mx-auto mt-2 h-3 w-32 rounded-md" />
     </Card>
@@ -64,6 +70,53 @@ function SegmentsCardSkeleton() {
   );
 }
 
+interface SectorFilterProps {
+  sectors: { id: string; name: string }[];
+  selectedSectorIds: string[] | undefined;
+  onChange: (selected: string[]) => void;
+}
+
+function SectorFilter({ sectors, selectedSectorIds, onChange }: SectorFilterProps) {
+  const effectiveSelected = selectedSectorIds ?? sectors.map((sector) => sector.id);
+  const allSelected = effectiveSelected.length === sectors.length;
+
+  const toggleSector = (id: string) => {
+    const next = effectiveSelected.includes(id)
+      ? effectiveSelected.filter((sectorId) => sectorId !== id)
+      : [...effectiveSelected, id];
+    onChange(next);
+  };
+
+  return (
+    <div className="mt-3">
+      <div data-testid="sector-filter-pills" className="hidden md:flex flex-wrap gap-2">
+        <button
+          type="button"
+          aria-pressed={allSelected}
+          onClick={() => onChange(sectors.map((sector) => sector.id))}
+          className={SECTOR_PILL_CLASS(allSelected)}
+        >
+          Todos
+        </button>
+        <SectorPillPicker
+          sectors={sectors}
+          selectedIds={effectiveSelected}
+          onToggle={toggleSector}
+          emptyHref={routes.managerAdminSectors}
+          emptyLabel="Cadastrar um setor"
+        />
+      </div>
+      <div data-testid="sector-filter-dropdown" className="md:hidden">
+        <SectorMultiSelect sectors={sectors} selected={selectedSectorIds} onChange={onChange} />
+      </div>
+    </div>
+  );
+}
+
+function CardTitle({ children }: { children: ReactNode }) {
+  return <p className="font-serif text-lg text-ink">{children}</p>;
+}
+
 export function ManagerDashboardPage() {
   const navigate = useNavigate();
   const clearSession = useManagerSessionStore((state) => state.clearSession);
@@ -88,132 +141,89 @@ export function ManagerDashboardPage() {
 
   return (
     <div className="pt-6">
-      <div className="flex items-center justify-between">
-        <SectionLabel>Painel do gestor</SectionLabel>
-        <PrivacyBadge />
-      </div>
-        <h1 className="mt-2 text-h2 text-ink">Tendências da equipe</h1>
-        <p className="mt-1 text-caption text-muted">
-          Somente dados anônimos e agregados. Segmentos com menos de 5 respostas ficam ocultos
-          para evitar re-identificação.
-        </p>
+      <ManagerPageHeader title="Tendências" intro={DASHBOARD_INTRO} actions={<PrivacyBadge />} />
 
-        {sectorsQuery.data && sectorsQuery.data.length > 1 && (
-          <div className="mt-3">
-            <SectorMultiSelect sectors={sectorsQuery.data} selected={selectedSectorIds} onChange={setSelectedSectorIds} />
-          </div>
+      {sectorsQuery.data && sectorsQuery.data.length > 1 && (
+        <SectorFilter sectors={sectorsQuery.data} selectedSectorIds={selectedSectorIds} onChange={setSelectedSectorIds} />
+      )}
+
+      <div data-testid="kpi-grid" className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {isLoading ? (
+          <>
+            <KpiCardSkeleton />
+            <KpiCardSkeleton />
+            <KpiCardSkeleton />
+          </>
+        ) : (
+          <>
+            <Card className="h-full text-center" data-testid="kpi-card">
+              <p className="font-serif text-[30px] text-warn">{Math.round(overallConcerningRate * 100)}%</p>
+              <p className="text-caption text-muted">sinais de burnout na equipe</p>
+            </Card>
+            <Card className="h-full text-center" data-testid="kpi-card">
+              <p className="font-serif text-[30px] text-brand">{checkInsLast4Weeks}</p>
+              <p className="text-caption text-muted">questionários respondidos (4 semanas)</p>
+            </Card>
+            <Card className="h-full text-center" data-testid="kpi-card">
+              <p className="font-serif text-[30px] text-brand">{Math.round(followUpResponseRate * 100)}%</p>
+              <p className="text-caption text-muted">taxa de resposta do follow-up</p>
+            </Card>
+          </>
         )}
+      </div>
 
-        <div data-testid="kpi-grid" className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3">
+      <div data-testid="trend-segments-grid" className="mt-3.5 grid gap-3.5 lg:grid-cols-[2fr_1fr]">
+        <div>
           {isLoading ? (
-            <>
-              <KpiCardSkeleton />
-              <KpiCardSkeleton />
-              <KpiCardSkeleton className="col-span-2 md:col-span-1" />
-            </>
+            <TrendCardSkeleton />
           ) : (
-            <>
-              <Card className="text-center">
-                <p className="font-serif text-[30px] text-warn">{Math.round(overallConcerningRate * 100)}%</p>
-                <p className="text-caption text-muted">sinais de burnout na equipe</p>
-              </Card>
-              <Card className="text-center">
-                <p className="font-serif text-[30px] text-brand">{checkInsLast4Weeks}</p>
-                <p className="text-caption text-muted">questionários respondidos (4 semanas)</p>
-              </Card>
-              <Card className="col-span-2 text-center md:col-span-1">
-                <p className="font-serif text-[30px] text-brand">{Math.round(followUpResponseRate * 100)}%</p>
-                <p className="text-caption text-muted">taxa de resposta do follow-up</p>
-              </Card>
-            </>
-          )}
-        </div>
-
-        <div data-testid="trend-segments-grid" className="mt-3.5 grid gap-3.5 lg:grid-cols-[2fr_1fr]">
-          <div>
-            {isLoading ? (
-              <TrendCardSkeleton />
-            ) : (
-              <Card>
-                <div className="flex items-center justify-between">
-                  <p className="text-body font-extrabold text-ink">Tendência geral</p>
-                  <p className="font-mono text-[12px] text-muted-2">últimas 6 semanas</p>
-                </div>
-                <div className="mt-3 flex h-14 items-end gap-2">
-                  {bars.map((height, index) => (
-                    <div key={index} data-testid="trend-bar" className="w-full rounded-md bg-brand" style={{ height: `${height}%` }} />
-                  ))}
-                </div>
-              </Card>
-            )}
-          </div>
-          <div>
-            {isLoading ? (
-              <SegmentsCardSkeleton />
-            ) : (
-              <Card>
-                <p className="text-body font-extrabold text-ink">Sinais por setor</p>
-                <div className="mt-3 flex flex-col gap-3">
-                  {segments.map((segment) => (
-                    <div key={segment.label}>
-                      <div className="flex items-center justify-between text-label text-ink-2">
-                        <span>{segment.label}</span>
-                        <span className="font-mono text-[12px] text-muted-2">
-                          {segment.value}% · n={segment.n}
-                        </span>
-                      </div>
-                      <div className="mt-1 h-2 overflow-hidden rounded-pill bg-canvas-alt">
-                        <div className="h-full rounded-pill bg-brand" style={{ width: `${segment.value}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            )}
-          </div>
-        </div>
-
-        {data && (
-          <div className="mt-3.5">
             <Card>
-              <SectionLabel>Conformidade NR-1</SectionLabel>
-              <p className="mt-2 text-body font-extrabold text-ink">Insumo para o PGR</p>
-              <p className="mt-2 text-label text-ink-2">
-                Estes sinais mapeiam fatores de risco psicossocial reconhecidos pela NR-1 — sobrecarga,
-                jornada, esgotamento por setor. Isto é um insumo para a gestão de risco psicossocial do
-                empregador, <strong>não uma certificação de conformidade com a NR-1</strong>.
-              </p>
-              <div className="mt-3 flex gap-2">
-                <Button
-                  variant="outline"
-                  full={false}
-                  disabled={segments.length === 0}
-                  onClick={() => downloadPgrReportAsCsv(data)}
-                  className="p-2 cursor-pointer"
-                >
-                  Exportar CSV
-                </Button>
-                <Button
-                  variant="outline"
-                  full={false}
-                  disabled={segments.length === 0}
-                  onClick={() => downloadPgrReportAsPdf(data)}
-                  className="p-2 cursor-pointer"
-                >
-                  Exportar PDF
-                </Button>
+              <div className="flex items-center justify-between">
+                <CardTitle>Tendência geral</CardTitle>
+                <p className="font-mono text-[12px] text-muted-2">últimas 6 semanas</p>
+              </div>
+              <div className="mt-3 flex h-14 items-end gap-2">
+                {bars.map((height, index) => (
+                  <div key={index} data-testid="trend-bar" className="w-full rounded-md bg-brand" style={{ height: `${height}%` }} />
+                ))}
               </div>
             </Card>
-          </div>
-        )}
+          )}
+        </div>
+        <div>
+          {isLoading ? (
+            <SegmentsCardSkeleton />
+          ) : (
+            <Card>
+              <CardTitle>Sinais por setor</CardTitle>
+              <div className="mt-3 flex flex-col gap-3">
+                {segments.map((segment) => (
+                  <div key={segment.label}>
+                    <div className="flex items-center justify-between text-label text-ink-2">
+                      <span>{segment.label}</span>
+                      <span className="font-mono text-[12px] text-muted-2">
+                        {segment.value}% · n={segment.n}
+                      </span>
+                    </div>
+                    <div className="mt-1 h-2 overflow-hidden rounded-pill bg-canvas-alt">
+                      <div className="h-full rounded-pill bg-brand" style={{ width: `${segment.value}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+        </div>
+      </div>
 
-        <div className="mt-3.5">
-          <Card className="mb-2">
+      {data && (
+        <div data-testid="insight-pgr-grid" className="mt-3.5 grid gap-4 lg:grid-cols-[7fr_3fr]">
+          <Card>
             <div className="flex items-center justify-between">
-              <p className="text-body font-extrabold text-ink">Análise com IA</p>
+              <CardTitle>Análise com IA</CardTitle>
               <Link to={routes.managerHistory} className="flex gap-0.5 items-center text-label font-bold text-brand">
                 Ver histórico
-                <ArrowRight size={16}/>
+                <ArrowRight size={16} />
               </Link>
             </div>
             {!insight.data && (
@@ -242,7 +252,38 @@ export function ManagerDashboardPage() {
               </div>
             )}
           </Card>
+
+          <Card>
+            <SectionLabel>Conformidade NR-1</SectionLabel>
+            <CardTitle>Insumo para o PGR</CardTitle>
+            <p className="mt-2 text-label text-ink-2">
+              Estes sinais mapeiam fatores de risco psicossocial reconhecidos pela NR-1 — sobrecarga,
+              jornada, esgotamento por setor. Isto é um insumo para a gestão de risco psicossocial do
+              empregador, <strong>não uma certificação de conformidade com a NR-1</strong>.
+            </p>
+            <div className="mt-3 flex gap-2">
+              <Button
+                variant="outline"
+                full={false}
+                disabled={segments.length === 0}
+                onClick={() => downloadPgrReportAsCsv(data)}
+                className="p-2 cursor-pointer"
+              >
+                Exportar CSV
+              </Button>
+              <Button
+                variant="outline"
+                full={false}
+                disabled={segments.length === 0}
+                onClick={() => downloadPgrReportAsPdf(data)}
+                className="p-2 cursor-pointer"
+              >
+                Exportar PDF
+              </Button>
+            </div>
+          </Card>
         </div>
+      )}
     </div>
   );
 }

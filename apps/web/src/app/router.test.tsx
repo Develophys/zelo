@@ -126,7 +126,7 @@ describe("onboarding router flow", () => {
 
     buildTestRouter("/manager");
 
-    expect(await screen.findByText("Tendências da equipe")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Tendências" })).toBeInTheDocument();
   });
 
   it("keeps /manager/admin alive as a redirect, so links to the old tabbed page still land somewhere", async () => {
@@ -163,7 +163,7 @@ describe("onboarding router flow", () => {
 
     buildTestRouter("/manager/admin/sectors");
 
-    expect(await screen.findByText("Tendências da equipe")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Tendências" })).toBeInTheDocument();
   });
 
   it.each([

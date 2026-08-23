@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -45,7 +45,14 @@ describe("ManagerDashboardPage", () => {
     sessionStorage.clear();
     useManagerSessionStore.setState({ token: "abc.def", expiresAt: new Date(Date.now() + 60_000).toISOString() });
     vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue(SIGNALS_RESPONSE);
-    vi.spyOn(container.listAccessibleSectorsUseCase, "execute").mockResolvedValue([]);
+    // Two sectors (not one — the picker only shows when there's more than one to
+    // pick from) named distinctly from every segment label in SIGNALS_RESPONSE,
+    // so the many `getByText("Plantão noturno")` readiness waits below stay
+    // unambiguous once the pills render alongside the segments list.
+    vi.spyOn(container.listAccessibleSectorsUseCase, "execute").mockResolvedValue([
+      { id: "sector-a", name: "Enfermagem" },
+      { id: "sector-b", name: "Fisioterapia" },
+    ]);
   });
 
   it("renders segments and trend bars from the real signals response, suppressing n<5 departments", async () => {
@@ -168,7 +175,7 @@ describe("ManagerDashboardPage", () => {
     await waitFor(() => {
       expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
     });
-    expect(screen.getByTestId("kpi-grid")).toHaveClass("grid-cols-2", "md:grid-cols-3");
+    expect(screen.getByTestId("kpi-grid")).toHaveClass("grid-cols-1", "md:grid-cols-2", "lg:grid-cols-4");
   });
 
   it("lays out trend and segments in a responsive grid", async () => {
@@ -313,5 +320,65 @@ describe("ManagerDashboardPage", () => {
       expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
     });
     expect(screen.queryByLabelText("UTI")).not.toBeInTheDocument();
+  });
+
+  it('renders the page header with its normative intro', async () => {
+    renderManager();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Tendências' })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Indicadores agregados e anônimos do seu hospital. Nenhum dado individual é exibido; segmentos com menos de 5 respostas ficam ocultos.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('filters by sector with pills from md up and a dropdown below it', async () => {
+    renderManager();
+    await waitFor(() => expect(screen.getByText('Plantão noturno')).toBeInTheDocument());
+
+    const pills = screen.getByTestId('sector-filter-pills');
+    expect(pills.className).toContain('hidden md:flex');
+    const dropdown = screen.getByTestId('sector-filter-dropdown');
+    expect(dropdown.className).toContain('md:hidden');
+  });
+
+  it('leads the pills with Todos, selected only when everything is', async () => {
+    const user = userEvent.setup();
+    renderManager();
+    await waitFor(() => expect(screen.getByText('Plantão noturno')).toBeInTheDocument());
+
+    const todos = within(screen.getByTestId('sector-filter-pills')).getByRole('button', { name: 'Todos' });
+    expect(todos).toHaveAttribute('aria-pressed', 'true');
+
+    await user.click(
+      within(screen.getByTestId('sector-filter-pills')).getByRole('button', { name: 'Enfermagem' }),
+    );
+    expect(todos).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  // Anonymity is a property of the whole panel, not a filter the manager can turn off.
+  it('offers no anonymity toggle in the filter', async () => {
+    renderManager();
+    await waitFor(() => expect(screen.getByText('Plantão noturno')).toBeInTheDocument());
+    expect(
+      within(screen.getByTestId('sector-filter-pills')).queryByRole('button', { name: /anônimo/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('grows the stat grid one, two, four across, with equal-height cards', async () => {
+    renderManager();
+    const grid = await screen.findByTestId('kpi-grid');
+    expect(grid.className).toContain('grid-cols-1');
+    expect(grid.className).toContain('md:grid-cols-2');
+    expect(grid.className).toContain('lg:grid-cols-4');
+    for (const card of within(grid).getAllByTestId('kpi-card')) {
+      expect(card.className).toContain('h-full');
+    }
+  });
+
+  it('puts the AI card beside the PGR card at lg, with the AI card the narrow one', async () => {
+    renderManager();
+    const grid = await screen.findByTestId('insight-pgr-grid');
+    expect(grid.className).toContain('lg:grid-cols-[7fr_3fr]');
   });
 });
