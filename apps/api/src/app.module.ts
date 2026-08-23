@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { ConfigModule } from "@nestjs/config";
+import { ScheduleModule } from "@nestjs/schedule";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { validateEnv } from "./shared/config/env.validation.ts";
 import { PrismaModule } from "./shared/prisma/prisma.module.ts";
@@ -24,6 +25,7 @@ import { NotificationModule } from "./modules/notification/notification.module.t
     // target on a small deployment. 100/min is generous enough not to trip normal usage
     // or the existing test suite while still bounding worst-case throughput.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+    ScheduleModule.forRoot(),
     PrismaModule,
     HealthModule,
     ChatModule,

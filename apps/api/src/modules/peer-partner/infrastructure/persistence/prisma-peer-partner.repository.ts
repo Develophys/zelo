@@ -58,6 +58,13 @@ export class PrismaPeerPartnerRepository implements PeerPartnerRepository {
     await this.prisma.peerPartner.update({ where: { id }, data: patch });
   }
 
+  async findLapsedInvites(now: Date): Promise<{ id: string; name: string; institutionId: string }[]> {
+    return this.prisma.peerPartner.findMany({
+      where: { passwordHash: null, setPasswordTokenExpiresAt: { not: null, lt: now } },
+      select: { id: true, name: true, institutionId: true },
+    });
+  }
+
   private toRow(row: {
     id: string;
     name: string;

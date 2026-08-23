@@ -67,6 +67,9 @@ class FakeManagerRepository implements ManagerRepository {
   async findActiveHospitalAdminIds(): Promise<never> {
     throw new Error("not used in this test");
   }
+  async findLapsedInvites(): Promise<never> {
+    throw new Error("not used in this test");
+  }
 }
 
 class FakeSignalRepository implements SignalRepository {

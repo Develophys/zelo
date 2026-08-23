@@ -43,6 +43,7 @@ export interface PeerPartnerRepository {
   findAllByInstitution(institutionId: string): Promise<PeerPartnerSummaryRow[]>;
   create(params: CreatePeerPartnerParams): Promise<{ id: string; name: string; email: string }>;
   update(id: string, patch: UpdatePeerPartnerParams): Promise<void>;
+  findLapsedInvites(now: Date): Promise<{ id: string; name: string; institutionId: string }[]>;
 }
 
 export const PEER_PARTNER_REPOSITORY = Symbol("PEER_PARTNER_REPOSITORY");

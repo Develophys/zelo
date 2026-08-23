@@ -44,6 +44,9 @@ class FakePeerPartnerRepository implements PeerPartnerRepository {
       if (value !== undefined) Object.assign(row, { [key]: value });
     }
   }
+  async findLapsedInvites(): Promise<never> {
+    throw new Error("not used in this test");
+  }
 }
 
 function fakeConfig(): ConfigService {

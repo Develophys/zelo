@@ -25,6 +25,9 @@ class FakePeerPartnerRepository implements PeerPartnerRepository {
   async update(): Promise<void> {
     throw new Error("not used in this test");
   }
+  async findLapsedInvites(): Promise<never> {
+    throw new Error("not used in this test");
+  }
 }
 
 function fakeConfig(secret: string): ConfigService {

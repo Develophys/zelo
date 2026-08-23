@@ -74,6 +74,13 @@ export class PrismaManagerRepository implements ManagerRepository {
     return rows.map((row) => row.id);
   }
 
+  async findLapsedInvites(now: Date): Promise<{ id: string; name: string; institutionId: string }[]> {
+    return this.prisma.manager.findMany({
+      where: { passwordHash: null, setPasswordTokenExpiresAt: { not: null, lt: now } },
+      select: { id: true, name: true, institutionId: true },
+    });
+  }
+
   private toRow(row: {
     id: string;
     name: string;

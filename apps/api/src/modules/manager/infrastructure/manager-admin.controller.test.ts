@@ -131,6 +131,9 @@ class FakeManagerRepository implements ManagerRepository {
   async findActiveHospitalAdminIds(): Promise<never> {
     throw new Error("not used in this test");
   }
+  async findLapsedInvites(): Promise<never> {
+    throw new Error("not used in this test");
+  }
 }
 
 class FakeEmailPort implements EmailPort {
@@ -184,6 +187,9 @@ class FakePeerPartnerRepository implements PeerPartnerRepository {
     for (const [key, value] of Object.entries(patch)) {
       if (value !== undefined) Object.assign(row, { [key]: value });
     }
+  }
+  async findLapsedInvites(): Promise<never> {
+    throw new Error("not used in this test");
   }
 }
 

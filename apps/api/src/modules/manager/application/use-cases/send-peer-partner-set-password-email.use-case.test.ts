@@ -26,6 +26,9 @@ class FakePeerPartnerRepository implements PeerPartnerRepository {
   async update(id: string, patch: UpdatePeerPartnerParams): Promise<void> {
     this.lastUpdate = { id, patch };
   }
+  async findLapsedInvites(): Promise<never> {
+    throw new Error("not used in this test");
+  }
 }
 
 class FakeEmailPort implements EmailPort {

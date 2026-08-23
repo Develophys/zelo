@@ -48,6 +48,7 @@ export interface ManagerRepository {
   update(id: string, patch: UpdateManagerParams): Promise<void>;
   countActiveHospitalAdmins(institutionId: string): Promise<number>;
   findActiveHospitalAdminIds(institutionId: string): Promise<string[]>;
+  findLapsedInvites(now: Date): Promise<{ id: string; name: string; institutionId: string }[]>;
 }
 
 export const MANAGER_REPOSITORY = Symbol("MANAGER_REPOSITORY");

@@ -42,6 +42,9 @@ const fakePeerPartnerRepository: PeerPartnerRepository = {
   async update() {
     throw new Error("not used in this test");
   },
+  async findLapsedInvites() {
+    throw new Error("not used in this test");
+  },
 };
 
 describe("PeerChatModule bootstrap", () => {
