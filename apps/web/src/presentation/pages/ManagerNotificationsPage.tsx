@@ -1,13 +1,29 @@
-import { RefreshCw } from "lucide-react";
+import { useEffect } from "react";
+import { useNavigate } from "react-router";
+import { CheckCheck, RefreshCw } from "lucide-react";
 import { Button } from "@/presentation/ui/Button";
 import { Pill } from "@/presentation/ui/Pill";
-import { useManagerNotifications } from "@/presentation/hooks/useManagerNotifications";
+import { useManagerNotifications, useManagerUnreadCount } from "@/presentation/hooks/useManagerNotifications";
+import { useManagerSessionStore } from "@/stores/manager-session.store";
+import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
+import { routes } from "@/presentation/lib/routes";
 import { notificationCopy } from "./manager-notification-copy";
 
 const DATE_FORMAT: Intl.DateTimeFormatOptions = { day: "2-digit", month: "2-digit", year: "numeric" };
 
 export function ManagerNotificationsPage() {
-  const { notifications, isLoading, error, refresh, isRefreshing, markRead } = useManagerNotifications();
+  const navigate = useNavigate();
+  const clearSession = useManagerSessionStore((state) => state.clearSession);
+  const { notifications, isLoading, error, refresh, isRefreshing, markRead, markAllRead } =
+    useManagerNotifications();
+  const unreadCount = useManagerUnreadCount();
+
+  useEffect(() => {
+    if (error instanceof UnauthorizedManagerError) {
+      clearSession();
+      navigate(routes.managerLogin, { replace: true });
+    }
+  }, [error, clearSession, navigate]);
 
   return (
     <div className="flex flex-col gap-5 pt-6">
@@ -15,10 +31,18 @@ export function ManagerNotificationsPage() {
         <p className="font-mono text-eyebrow text-muted uppercase">Painel do gestor</p>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="font-serif text-h2 text-ink lg:text-h1">Notificações</h1>
-          <Button variant="outline" size="sm" full={false} onClick={refresh} isLoading={isRefreshing}>
-            <RefreshCw size={16} aria-hidden="true" />
-            Atualizar
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {unreadCount > 0 && (
+              <Button variant="outline" size="sm" full={false} onClick={markAllRead}>
+                <CheckCheck size={16} aria-hidden="true" />
+                Marcar todas como lidas
+              </Button>
+            )}
+            <Button variant="outline" size="sm" full={false} onClick={refresh} isLoading={isRefreshing}>
+              <RefreshCw size={16} aria-hidden="true" />
+              Atualizar
+            </Button>
+          </div>
         </div>
         <p className="max-w-[62ch] text-label text-muted">
           Alertas do sistema sobre sinais agregados, convites e integrações. Marque como lida para
@@ -26,7 +50,7 @@ export function ManagerNotificationsPage() {
         </p>
       </header>
 
-      {error && (
+      {error && !(error instanceof UnauthorizedManagerError) && (
         <p role="alert" className="text-label text-danger">
           Não foi possível carregar as notificações.
         </p>

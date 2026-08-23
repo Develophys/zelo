@@ -72,6 +72,17 @@ describe("HttpManagerNotificationsAdapter", () => {
     expect(await new HttpManagerNotificationsAdapter().fetchUnreadCount("token")).toBe(7);
   });
 
+  // Every other response on this port is parsed with zod, not cast. A
+  // malformed unread-count body must fail loudly here too, rather than
+  // handing the badge `undefined` typed as a number.
+  it("rejects a malformed unread-count body instead of trusting the cast", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ count: "seven" }), { status: 200 }),
+    );
+
+    await expect(new HttpManagerNotificationsAdapter().fetchUnreadCount("token")).rejects.toThrow();
+  });
+
   it("marks one notification read", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 204 }));
 

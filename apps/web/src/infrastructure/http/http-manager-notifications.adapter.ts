@@ -1,9 +1,12 @@
+import { z } from "zod";
 import type {
   ManagerNotificationsPage,
   ManagerNotificationsPort,
 } from "@/ports/manager-notifications.port";
 import { ManagerNotificationsPageSchema } from "@/ports/manager-notifications.port";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
+
+const UnreadCountSchema = z.object({ count: z.number() });
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
@@ -34,8 +37,7 @@ export class HttpManagerNotificationsAdapter implements ManagerNotificationsPort
       headers: { Authorization: `Bearer ${token}` },
     });
     await guard(response, "manager unread count fetch");
-    const body = (await response.json()) as { count: number };
-    return body.count;
+    return UnreadCountSchema.parse(await response.json()).count;
   }
 
   async markRead(token: string, id: string): Promise<void> {
