@@ -3,6 +3,7 @@ export * from "./chat";
 export * from "./assessment";
 export * from "./manager-auth";
 export * from "./manager-dashboard";
+export * from "./manager-notifications";
 export * from "./institution-link";
 export * from "./signal-checkin";
 export * from "./admin-auth";
