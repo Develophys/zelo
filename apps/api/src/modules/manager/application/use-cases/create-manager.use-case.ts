@@ -2,7 +2,8 @@ import { randomBytes } from "node:crypto";
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { MANAGER_REPOSITORY, type ManagerRepository, type ManagerRole } from "../ports/manager-repository.port.ts";
 import { SECTOR_REPOSITORY, type SectorRepository } from "../../../sector/application/ports/sector-repository.port.ts";
-import { EMAIL_PORT, EmailDeliveryError, type EmailPort } from "../../../../shared/email/email.port.ts";
+import { EMAIL_PORT, type EmailPort } from "../../../../shared/email/email.port.ts";
+import { sendInviteEmailOrRecord } from "../../../../shared/email/send-invite-email.ts";
 import { buildSetPasswordUrl } from "../../../../shared/email/build-set-password-url.ts";
 import { SectorNotInInstitutionError } from "./manager-admin-errors.ts";
 import { NOTIFICATION_PUBLISHER, type NotificationPublisher } from "../../../notification/application/ports/notification.port.ts";
@@ -63,28 +64,24 @@ export class CreateManagerUseCase {
     // propagate would return 500 for an account that genuinely exists, and the
     // retry would then collide with the unique email constraint — leaving an
     // account the admin can neither use nor recreate.
-    try {
-      await this.emailPort.send(manager.email, "invite", {
-        name: manager.name,
-        setPasswordUrl: buildSetPasswordUrl("manager", setPasswordToken),
-      });
-    } catch (error) {
-      if (!(error instanceof EmailDeliveryError)) {
-        throw error;
-      }
-      this.logger.error(`invite email failed for manager ${manager.id}`, error);
-      await this.notifications.publish({
-        institutionId: input.institutionId,
-        type: "INVITE_EMAIL_FAILED",
-        payload: {
-          kind: "manager",
+    await sendInviteEmailOrRecord(
+      () =>
+        this.emailPort.send(manager.email, "invite", {
           name: manager.name,
-          email: manager.email,
-          reason: error instanceof Error ? error.message : "unknown",
-        },
-        dedupKey: `invite-email-failed:manager:${manager.id}:${new Date().toISOString()}`,
-      });
-    }
+          setPasswordUrl: buildSetPasswordUrl("manager", setPasswordToken),
+        }),
+      {
+        logger: this.logger,
+        logContext: `invite email failed for manager ${manager.id}`,
+        onDeliveryFailure: (reason) =>
+          this.notifications.publish({
+            institutionId: input.institutionId,
+            type: "INVITE_EMAIL_FAILED",
+            payload: { kind: "manager", name: manager.name, email: manager.email, reason },
+            dedupKey: `invite-email-failed:manager:${manager.id}:${new Date().toISOString()}`,
+          }),
+      },
+    );
 
     return { manager };
   }

@@ -1,10 +1,11 @@
 import { randomBytes } from "node:crypto";
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import {
   ADMIN_INSTITUTION_REPOSITORY,
   type AdminInstitutionRepository,
 } from "../ports/admin-institution-repository.port.ts";
 import { EMAIL_PORT, type EmailPort } from "../../../../shared/email/email.port.ts";
+import { sendInviteEmailOrRecord } from "../../../../shared/email/send-invite-email.ts";
 import { buildSetPasswordUrl } from "../../../../shared/email/build-set-password-url.ts";
 
 const SET_PASSWORD_TOKEN_BYTES = 32;
@@ -24,6 +25,8 @@ export interface CreateInstitutionResult {
 
 @Injectable()
 export class CreateInstitutionUseCase {
+  private readonly logger = new Logger(CreateInstitutionUseCase.name);
+
   constructor(
     @Inject(ADMIN_INSTITUTION_REPOSITORY) private readonly repository: AdminInstitutionRepository,
     @Inject(EMAIL_PORT) private readonly emailPort: EmailPort,
@@ -42,7 +45,21 @@ export class CreateInstitutionUseCase {
       setPasswordTokenExpiresAt,
     });
 
-    await this.emailPort.send(hospitalAdmin.email, "invite", { name: hospitalAdmin.name, setPasswordUrl: buildSetPasswordUrl("manager", setPasswordToken) });
+    // The institution and its first hospital admin are already committed at
+    // this point. Letting a send failure propagate would 500 an otherwise
+    // successful creation, and the retry would then collide on the unique
+    // inviteCode/email. There is no manager audience to notify yet — the
+    // hospital admin being created here is the first one — so this site
+    // just logs and returns successfully, unlike the sibling call sites
+    // that publish INVITE_EMAIL_FAILED.
+    await sendInviteEmailOrRecord(
+      () =>
+        this.emailPort.send(hospitalAdmin.email, "invite", {
+          name: hospitalAdmin.name,
+          setPasswordUrl: buildSetPasswordUrl("manager", setPasswordToken),
+        }),
+      { logger: this.logger, logContext: `invite email failed for hospital admin ${hospitalAdmin.id}` },
+    );
 
     return { institution, hospitalAdmin };
   }
