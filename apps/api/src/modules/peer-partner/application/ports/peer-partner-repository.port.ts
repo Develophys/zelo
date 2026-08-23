@@ -46,6 +46,7 @@ export interface PeerPartnerRepository {
   findLapsedInvites(
     now: Date,
   ): Promise<{ id: string; name: string; institutionId: string; setPasswordTokenExpiresAt: Date }[]>;
+  delete(id: string): Promise<void>;
 }
 
 export const PEER_PARTNER_REPOSITORY = Symbol("PEER_PARTNER_REPOSITORY");

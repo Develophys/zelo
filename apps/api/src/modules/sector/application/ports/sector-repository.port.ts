@@ -23,6 +23,7 @@ export interface SectorRepository {
   findAssignedSectorIds(managerId: string): Promise<string[]>;
   reassignManagerSectors(institutionId: string, managerId: string, sectorIds: string[]): Promise<void>;
   findByIdsInInstitution(institutionId: string, sectorIds: string[]): Promise<{ id: string }[]>;
+  delete(id: string): Promise<void>;
 }
 
 export const SECTOR_REPOSITORY = Symbol("SECTOR_REPOSITORY");

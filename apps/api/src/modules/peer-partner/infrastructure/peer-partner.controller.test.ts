@@ -47,6 +47,9 @@ class FakePeerPartnerRepository implements PeerPartnerRepository {
   async findLapsedInvites(): Promise<never> {
     throw new Error("not used in this test");
   }
+  async delete(): Promise<never> {
+    throw new Error("not used in this test");
+  }
 }
 
 function fakeConfig(): ConfigService {

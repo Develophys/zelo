@@ -50,6 +50,9 @@ class FakeSectorRepository implements SectorRepository {
   async findByIdsInInstitution(): Promise<{ id: string }[]> {
     throw new Error("not used in this test");
   }
+  async delete(): Promise<never> {
+    throw new Error("not used in this test");
+  }
 }
 
 describe("institution controller", () => {

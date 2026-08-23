@@ -70,6 +70,9 @@ class FakeManagerRepository implements ManagerRepository {
   async findLapsedInvites(): Promise<never> {
     throw new Error("not used in this test");
   }
+  async delete(): Promise<never> {
+    throw new Error("not used in this test");
+  }
 }
 
 class FakeSignalRepository implements SignalRepository {
@@ -81,6 +84,9 @@ class FakeSignalRepository implements SignalRepository {
     return (this.byInstitution[institutionId] ?? []).filter((row) => sectorIds.includes(row.sectorId));
   }
   async findAllForWeek(): Promise<WeeklySignalRow[]> {
+    throw new Error("not used in this test");
+  }
+  async countBySector(): Promise<never> {
     throw new Error("not used in this test");
   }
 }
@@ -112,6 +118,9 @@ class FakeSectorRepository implements SectorRepository {
     throw new Error("not used in this test");
   }
   async findByIdsInInstitution(): Promise<{ id: string }[]> {
+    throw new Error("not used in this test");
+  }
+  async delete(): Promise<never> {
     throw new Error("not used in this test");
   }
 }

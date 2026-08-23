@@ -41,4 +41,8 @@ export class PrismaSignalRepository implements SignalRepository {
       concerning: row.concerning,
     }));
   }
+
+  async countBySector(sectorId: string): Promise<number> {
+    return this.prisma.signal.count({ where: { sectorId } });
+  }
 }

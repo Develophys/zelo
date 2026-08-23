@@ -17,6 +17,9 @@ class FakeSignalRepository implements SignalRepository {
   async findAllForWeek(): Promise<WeeklySignalRow[]> {
     throw new Error("not used in this test");
   }
+  async countBySector(): Promise<never> {
+    throw new Error("not used in this test");
+  }
 }
 
 // Institution-wide by design: insight generation always resolves every

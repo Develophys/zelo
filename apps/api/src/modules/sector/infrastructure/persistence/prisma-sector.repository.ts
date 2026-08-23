@@ -93,4 +93,8 @@ export class PrismaSectorRepository implements SectorRepository {
     if (sectorIds.length === 0) return [];
     return this.prisma.sector.findMany({ where: { institutionId, id: { in: sectorIds } }, select: { id: true } });
   }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.sector.delete({ where: { id } });
+  }
 }

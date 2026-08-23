@@ -70,6 +70,10 @@ export class PrismaPeerPartnerRepository implements PeerPartnerRepository {
     return rows.map((row) => ({ ...row, setPasswordTokenExpiresAt: row.setPasswordTokenExpiresAt as Date }));
   }
 
+  async delete(id: string): Promise<void> {
+    await this.prisma.peerPartner.delete({ where: { id } });
+  }
+
   private toRow(row: {
     id: string;
     name: string;

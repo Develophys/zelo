@@ -3,6 +3,7 @@ import {
   Body,
   ConflictException,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Inject,
@@ -23,7 +24,17 @@ import { MANAGER_REPOSITORY, type ManagerRepository, type ManagerSummaryRow } fr
 import { CreateManagerUseCase, type CreateManagerResult } from "../application/use-cases/create-manager.use-case.ts";
 import { UpdateManagerUseCase } from "../application/use-cases/update-manager.use-case.ts";
 import { SendManagerSetPasswordEmailUseCase } from "../application/use-cases/send-manager-set-password-email.use-case.ts";
-import { LastActiveHospitalAdminError, ManagerNotFoundError, SectorNotInInstitutionError, PeerPartnerNotFoundError } from "../application/use-cases/manager-admin-errors.ts";
+import { DeleteManagerUseCase } from "../application/use-cases/delete-manager.use-case.ts";
+import { DeleteSectorUseCase } from "../application/use-cases/delete-sector.use-case.ts";
+import { DeletePeerPartnerUseCase } from "../application/use-cases/delete-peer-partner.use-case.ts";
+import {
+  LastActiveHospitalAdminError,
+  ManagerNotFoundError,
+  ManagerOwnsSectorsError,
+  SectorHasHistoryError,
+  SectorNotInInstitutionError,
+  PeerPartnerNotFoundError,
+} from "../application/use-cases/manager-admin-errors.ts";
 import { PEER_PARTNER_REPOSITORY, type PeerPartnerRepository, type PeerPartnerSummaryRow } from "../../peer-partner/application/ports/peer-partner-repository.port.ts";
 import { CreatePeerPartnerUseCase, type CreatePeerPartnerResult } from "../application/use-cases/create-peer-partner.use-case.ts";
 import { SendPeerPartnerSetPasswordEmailUseCase } from "../application/use-cases/send-peer-partner-set-password-email.use-case.ts";
@@ -62,6 +73,9 @@ export class ManagerAdminController {
     @Inject(CreateManagerUseCase) private readonly createManager: CreateManagerUseCase,
     @Inject(UpdateManagerUseCase) private readonly updateManager: UpdateManagerUseCase,
     @Inject(SendManagerSetPasswordEmailUseCase) private readonly sendManagerSetPasswordEmail: SendManagerSetPasswordEmailUseCase,
+    @Inject(DeleteManagerUseCase) private readonly deleteManagerUseCase: DeleteManagerUseCase,
+    @Inject(DeleteSectorUseCase) private readonly deleteSectorUseCase: DeleteSectorUseCase,
+    @Inject(DeletePeerPartnerUseCase) private readonly deletePeerPartnerUseCase: DeletePeerPartnerUseCase,
     @Inject(PEER_PARTNER_REPOSITORY) private readonly peerPartnerRepository: PeerPartnerRepository,
     @Inject(CreatePeerPartnerUseCase) private readonly createPeerPartner: CreatePeerPartnerUseCase,
     @Inject(SendPeerPartnerSetPasswordEmailUseCase) private readonly sendPeerPartnerSetPasswordEmail: SendPeerPartnerSetPasswordEmailUseCase,
@@ -117,6 +131,21 @@ export class ManagerAdminController {
     await this.sectorRepository.update(id, parsed.data);
   }
 
+  @Delete("sectors/:id")
+  @HttpCode(204)
+  async deleteSector(@Req() request: Request, @Param("id") id: string): Promise<void> {
+    try {
+      await this.deleteSectorUseCase.execute({
+        institutionId: request.manager!.institutionId,
+        sectorId: id,
+      });
+    } catch (error) {
+      if (error instanceof SectorNotInInstitutionError) throw new NotFoundException();
+      if (error instanceof SectorHasHistoryError) throw new ConflictException("SECTOR_HAS_HISTORY");
+      throw error;
+    }
+  }
+
   @Get("managers")
   async listManagers(@Req() request: Request): Promise<ManagerSummaryRow[]> {
     return this.managerRepository.findAllByInstitution(request.manager!.institutionId);
@@ -160,6 +189,22 @@ export class ManagerAdminController {
       if (error instanceof SectorNotInInstitutionError) {
         throw new BadRequestException("One or more sectorIds do not belong to this institution");
       }
+      throw error;
+    }
+  }
+
+  @Delete("managers/:id")
+  @HttpCode(204)
+  async deleteManager(@Req() request: Request, @Param("id") id: string): Promise<void> {
+    try {
+      await this.deleteManagerUseCase.execute({
+        institutionId: request.manager!.institutionId,
+        managerId: id,
+      });
+    } catch (error) {
+      if (error instanceof ManagerNotFoundError) throw new NotFoundException();
+      if (error instanceof ManagerOwnsSectorsError) throw new ConflictException("MANAGER_OWNS_SECTORS");
+      if (error instanceof LastActiveHospitalAdminError) throw new ConflictException("LAST_ADMIN");
       throw error;
     }
   }
@@ -209,6 +254,20 @@ export class ManagerAdminController {
     await this.peerPartnerRepository.update(id, parsed.data);
     if (parsed.data.isActive === false) {
       this.peerChatGateway.forceDisconnect(id);
+    }
+  }
+
+  @Delete("peer-partners/:id")
+  @HttpCode(204)
+  async deletePeerPartner(@Req() request: Request, @Param("id") id: string): Promise<void> {
+    try {
+      await this.deletePeerPartnerUseCase.execute({
+        institutionId: request.manager!.institutionId,
+        peerPartnerId: id,
+      });
+    } catch (error) {
+      if (error instanceof PeerPartnerNotFoundError) throw new NotFoundException();
+      throw error;
     }
   }
 

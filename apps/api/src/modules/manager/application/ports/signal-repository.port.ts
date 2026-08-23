@@ -20,6 +20,8 @@ export interface SignalRepository {
 
   /** Every institution's rows for the given weeks — this feeds the risk sweep, which is not scoped to one institution. */
   findAllForWeek(weekStarts: Date[]): Promise<WeeklySignalRow[]>;
+
+  countBySector(sectorId: string): Promise<number>;
 }
 
 export const SIGNAL_REPOSITORY = Symbol("SIGNAL_REPOSITORY");

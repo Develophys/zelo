@@ -13,9 +13,14 @@ import { SectorNameConflictError } from "../../sector/application/ports/sector-r
 import { CreateManagerUseCase } from "../application/use-cases/create-manager.use-case.ts";
 import { UpdateManagerUseCase } from "../application/use-cases/update-manager.use-case.ts";
 import { SendManagerSetPasswordEmailUseCase } from "../application/use-cases/send-manager-set-password-email.use-case.ts";
+import { DeleteManagerUseCase } from "../application/use-cases/delete-manager.use-case.ts";
+import { DeleteSectorUseCase } from "../application/use-cases/delete-sector.use-case.ts";
+import { DeletePeerPartnerUseCase } from "../application/use-cases/delete-peer-partner.use-case.ts";
 import { ManagerPasswordService } from "../application/services/manager-password.service.ts";
 import { MANAGER_REPOSITORY } from "../application/ports/manager-repository.port.ts";
 import type { CreateManagerParams, ManagerRepository, ManagerRow, ManagerSummaryRow, UpdateManagerParams } from "../application/ports/manager-repository.port.ts";
+import { SIGNAL_REPOSITORY } from "../application/ports/signal-repository.port.ts";
+import type { SignalRepository, SignalRow, WeeklySignalRow } from "../application/ports/signal-repository.port.ts";
 import { CreatePeerPartnerUseCase } from "../application/use-cases/create-peer-partner.use-case.ts";
 import { SendPeerPartnerSetPasswordEmailUseCase } from "../application/use-cases/send-peer-partner-set-password-email.use-case.ts";
 import { PeerPartnerPasswordService } from "../../peer-partner/application/services/peer-partner-password.service.ts";
@@ -37,6 +42,7 @@ class FakeNotificationPublisher implements NotificationPublisher {
 class FakeSectorRepository implements SectorRepository {
   public rows: (AdminSectorRow & { institutionId: string })[] = [];
   public shouldThrowConflict = false;
+  public assignedSectorIds: string[] = [];
 
   async create(institutionId: string, name: string) {
     if (this.shouldThrowConflict) throw new SectorNameConflictError();
@@ -68,7 +74,7 @@ class FakeSectorRepository implements SectorRepository {
     throw new Error("not used in this test");
   }
   async findAssignedSectorIds(): Promise<string[]> {
-    throw new Error("not used in this test");
+    return this.assignedSectorIds;
   }
   async reassignManagerSectors(): Promise<void> {
     // Manager-tab tests only assert the manager-side response; sector
@@ -76,6 +82,9 @@ class FakeSectorRepository implements SectorRepository {
   }
   async findByIdsInInstitution(institutionId: string, sectorIds: string[]) {
     return this.rows.filter((row) => row.institutionId === institutionId && sectorIds.includes(row.id)).map(({ id }) => ({ id }));
+  }
+  async delete(id: string): Promise<void> {
+    this.rows = this.rows.filter((row) => row.id !== id);
   }
 }
 
@@ -136,6 +145,9 @@ class FakeManagerRepository implements ManagerRepository {
   async findLapsedInvites(): Promise<never> {
     throw new Error("not used in this test");
   }
+  async delete(id: string): Promise<void> {
+    this.rows = this.rows.filter((row) => row.id !== id);
+  }
 }
 
 class FakeEmailPort implements EmailPort {
@@ -193,6 +205,22 @@ class FakePeerPartnerRepository implements PeerPartnerRepository {
   async findLapsedInvites(): Promise<never> {
     throw new Error("not used in this test");
   }
+  async delete(id: string): Promise<void> {
+    this.rows = this.rows.filter((row) => row.id !== id);
+  }
+}
+
+class FakeSignalRepository implements SignalRepository {
+  public countBySectorResult = 0;
+  async findAll(): Promise<SignalRow[]> {
+    throw new Error("not used in this test");
+  }
+  async findAllForWeek(): Promise<WeeklySignalRow[]> {
+    throw new Error("not used in this test");
+  }
+  async countBySector(): Promise<number> {
+    return this.countBySectorResult;
+  }
 }
 
 class FakePeerChatGateway {
@@ -209,6 +237,7 @@ describe("manager admin controller — sectors", () => {
   let sectorRepository: FakeSectorRepository;
   let managerRepository: FakeManagerRepository;
   let peerPartnerRepository: FakePeerPartnerRepository;
+  let signalRepository: FakeSignalRepository;
   let peerChatGateway: FakePeerChatGateway;
   let tokenService: ManagerTokenService;
   let emailPort: FakeEmailPort;
@@ -219,6 +248,7 @@ describe("manager admin controller — sectors", () => {
     sectorRepository = new FakeSectorRepository();
     managerRepository = new FakeManagerRepository();
     peerPartnerRepository = new FakePeerPartnerRepository();
+    signalRepository = new FakeSignalRepository();
     peerChatGateway = new FakePeerChatGateway();
     emailPort = new FakeEmailPort();
     notifications = new FakeNotificationPublisher();
@@ -232,12 +262,16 @@ describe("manager admin controller — sectors", () => {
         { provide: SECTOR_REPOSITORY, useValue: sectorRepository },
         { provide: MANAGER_REPOSITORY, useValue: managerRepository },
         { provide: PEER_PARTNER_REPOSITORY, useValue: peerPartnerRepository },
+        { provide: SIGNAL_REPOSITORY, useValue: signalRepository },
         { provide: PeerChatGateway, useValue: peerChatGateway },
         { provide: EMAIL_PORT, useValue: emailPort },
         { provide: NOTIFICATION_PUBLISHER, useValue: notifications },
         CreateManagerUseCase,
         UpdateManagerUseCase,
         SendManagerSetPasswordEmailUseCase,
+        DeleteManagerUseCase,
+        DeleteSectorUseCase,
+        DeletePeerPartnerUseCase,
         ManagerPasswordService,
         CreatePeerPartnerUseCase,
         SendPeerPartnerSetPasswordEmailUseCase,
@@ -261,9 +295,11 @@ describe("manager admin controller — sectors", () => {
   beforeEach(() => {
     sectorRepository.rows = [];
     sectorRepository.shouldThrowConflict = false;
+    sectorRepository.assignedSectorIds = [];
     managerRepository.rows = [{ ...ACTING_ADMIN }, { ...ACTING_SECTOR_MANAGER }];
     managerRepository.activeHospitalAdmins = 1;
     peerPartnerRepository.rows = [];
+    signalRepository.countBySectorResult = 0;
   });
 
   function hospitalAdminToken(): string {
@@ -573,5 +609,99 @@ describe("manager admin controller — sectors", () => {
       .send({ specialty: "Residência" });
 
     expect(peerChatGateway.forceDisconnect).not.toHaveBeenCalled();
+  });
+
+  it("DELETE /manager/admin/managers/:id deletes a manager and answers 204", async () => {
+    const response = await request(app.getHttpServer())
+      .delete("/manager/admin/managers/manager-2")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`);
+
+    expect(response.status).toBe(204);
+    expect(managerRepository.rows.find((row) => row.id === "manager-2")).toBeUndefined();
+  });
+
+  it("DELETE /manager/admin/managers/:id answers 409 when the manager still owns sectors", async () => {
+    sectorRepository.assignedSectorIds = ["sector-1"];
+
+    const response = await request(app.getHttpServer())
+      .delete("/manager/admin/managers/manager-2")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`);
+
+    expect(response.status).toBe(409);
+    expect(response.body.message).toBe("MANAGER_OWNS_SECTORS");
+  });
+
+  it("DELETE /manager/admin/managers/:id answers 409 rather than locking the institution out of its own panel", async () => {
+    const response = await request(app.getHttpServer())
+      .delete("/manager/admin/managers/manager-1")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`);
+
+    expect(response.status).toBe(409);
+    expect(response.body.message).toBe("LAST_ADMIN");
+  });
+
+  it("DELETE /manager/admin/managers/:id answers 404 for a manager in another institution, revealing nothing about it", async () => {
+    managerRepository.rows.push({ id: "manager-elsewhere", name: "Outro", email: "outro@institution-2.local", passwordHash: "h", setPasswordTokenExpiresAt: null, institutionId: "institution-2", role: "SECTOR_MANAGER", isActive: true });
+
+    const response = await request(app.getHttpServer())
+      .delete("/manager/admin/managers/manager-elsewhere")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`);
+
+    expect(response.status).toBe(404);
+  });
+
+  it("DELETE /manager/admin/sectors/:id answers 409 when the sector has check-in history, instead of destroying it", async () => {
+    sectorRepository.rows = [{ id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, institutionId: "institution-1" }];
+    signalRepository.countBySectorResult = 3;
+
+    const response = await request(app.getHttpServer())
+      .delete("/manager/admin/sectors/sector-1")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`);
+
+    expect(response.status).toBe(409);
+    expect(response.body.message).toBe("SECTOR_HAS_HISTORY");
+    expect(sectorRepository.rows).toHaveLength(1);
+  });
+
+  it("DELETE /manager/admin/sectors/:id deletes a sector with no history and answers 204", async () => {
+    sectorRepository.rows = [{ id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, institutionId: "institution-1" }];
+
+    const response = await request(app.getHttpServer())
+      .delete("/manager/admin/sectors/sector-1")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`);
+
+    expect(response.status).toBe(204);
+    expect(sectorRepository.rows).toHaveLength(0);
+  });
+
+  it("DELETE /manager/admin/sectors/:id refuses a SECTOR_MANAGER, who is not an admin", async () => {
+    sectorRepository.rows = [{ id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, institutionId: "institution-1" }];
+
+    const response = await request(app.getHttpServer())
+      .delete("/manager/admin/sectors/sector-1")
+      .set("Authorization", `Bearer ${sectorManagerToken()}`);
+
+    expect(response.status).toBe(403);
+  });
+
+  it("DELETE /manager/admin/peer-partners/:id deletes a peer partner and answers 204", async () => {
+    peerPartnerRepository.rows = [{ id: "peer-1", name: "Dra. Ana", email: "dra-ana@institution-1.local", passwordHash: "h", setPasswordTokenExpiresAt: null, institutionId: "institution-1", specialty: "Clínica médica", isActive: true }];
+
+    const response = await request(app.getHttpServer())
+      .delete("/manager/admin/peer-partners/peer-1")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`);
+
+    expect(response.status).toBe(204);
+    expect(peerPartnerRepository.rows).toHaveLength(0);
+  });
+
+  it("DELETE /manager/admin/peer-partners/:id returns 404 for a peer partner in a different institution", async () => {
+    peerPartnerRepository.rows = [{ id: "peer-other", name: "Outro", email: "outro@institution-2.local", passwordHash: "h", setPasswordTokenExpiresAt: null, institutionId: "institution-2", specialty: "x", isActive: true }];
+
+    const response = await request(app.getHttpServer())
+      .delete("/manager/admin/peer-partners/peer-other")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`);
+
+    expect(response.status).toBe(404);
   });
 });

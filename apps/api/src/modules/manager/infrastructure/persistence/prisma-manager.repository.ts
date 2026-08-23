@@ -86,6 +86,10 @@ export class PrismaManagerRepository implements ManagerRepository {
     return rows.map((row) => ({ ...row, setPasswordTokenExpiresAt: row.setPasswordTokenExpiresAt as Date }));
   }
 
+  async delete(id: string): Promise<void> {
+    await this.prisma.manager.delete({ where: { id } });
+  }
+
   private toRow(row: {
     id: string;
     name: string;

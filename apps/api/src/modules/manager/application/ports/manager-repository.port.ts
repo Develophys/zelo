@@ -51,6 +51,7 @@ export interface ManagerRepository {
   findLapsedInvites(
     now: Date,
   ): Promise<{ id: string; name: string; institutionId: string; setPasswordTokenExpiresAt: Date }[]>;
+  delete(id: string): Promise<void>;
 }
 
 export const MANAGER_REPOSITORY = Symbol("MANAGER_REPOSITORY");
