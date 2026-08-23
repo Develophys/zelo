@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { GenerateManagerInsightUseCase } from "./generate-manager-insight.use-case.ts";
 import { GetManagerSignalsUseCase } from "./get-manager-signals.use-case.ts";
-import type { SignalRepository, SignalRow } from "../ports/signal-repository.port.ts";
+import type { SignalRepository, SignalRow, WeeklySignalRow } from "../ports/signal-repository.port.ts";
 import type { SimulatedFollowUpRepository, SimulatedFollowUpRow } from "../ports/simulated-follow-up-repository.port.ts";
 import type { AiInsightPort, ManagerInsightResponse } from "../ports/ai-insight.port.ts";
 import { MANAGER_INSIGHT_SYSTEM_PROMPT } from "../prompts/manager-insight-system-prompt.ts";
@@ -13,6 +13,9 @@ class FakeSignalRepository implements SignalRepository {
   async findAll(_institutionId: string, sectorIds: string[]): Promise<SignalRow[]> {
     this.lastSectorIds = sectorIds;
     return this.rows;
+  }
+  async findAllForWeek(): Promise<WeeklySignalRow[]> {
+    throw new Error("not used in this test");
   }
 }
 

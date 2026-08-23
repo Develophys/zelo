@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { GetManagerSignalsUseCase } from "./get-manager-signals.use-case.ts";
-import type { SignalRepository, SignalRow } from "../ports/signal-repository.port.ts";
+import type { SignalRepository, SignalRow, WeeklySignalRow } from "../ports/signal-repository.port.ts";
 import type { SimulatedFollowUpRepository, SimulatedFollowUpRow } from "../ports/simulated-follow-up-repository.port.ts";
 
 class FakeSignalRepository implements SignalRepository {
@@ -9,6 +9,9 @@ class FakeSignalRepository implements SignalRepository {
   async findAll(institutionId: string, sectorIds: string[]): Promise<SignalRow[]> {
     this.lastCall = { institutionId, sectorIds };
     return this.rows;
+  }
+  async findAllForWeek(): Promise<WeeklySignalRow[]> {
+    throw new Error("not used in this test");
   }
 }
 

@@ -17,7 +17,7 @@ import { ManagerPasswordService } from "../application/services/manager-password
 import { MANAGER_REPOSITORY } from "../application/ports/manager-repository.port.ts";
 import type { ManagerRepository, ManagerRow } from "../application/ports/manager-repository.port.ts";
 import { SIGNAL_REPOSITORY } from "../application/ports/signal-repository.port.ts";
-import type { SignalRepository, SignalRow } from "../application/ports/signal-repository.port.ts";
+import type { SignalRepository, SignalRow, WeeklySignalRow } from "../application/ports/signal-repository.port.ts";
 import { SIMULATED_FOLLOW_UP_REPOSITORY } from "../application/ports/simulated-follow-up-repository.port.ts";
 import type { SimulatedFollowUpRepository, SimulatedFollowUpRow } from "../application/ports/simulated-follow-up-repository.port.ts";
 import { AI_INSIGHT_PORT, InsightGenerationFailedError } from "../application/ports/ai-insight.port.ts";
@@ -79,6 +79,9 @@ class FakeSignalRepository implements SignalRepository {
   }
   async findAll(institutionId: string, sectorIds: string[]): Promise<SignalRow[]> {
     return (this.byInstitution[institutionId] ?? []).filter((row) => sectorIds.includes(row.sectorId));
+  }
+  async findAllForWeek(): Promise<WeeklySignalRow[]> {
+    throw new Error("not used in this test");
   }
 }
 
