@@ -35,7 +35,7 @@
 
 ## Three decisions this plan makes, and why
 
-**1. "Excluir" is not built.** The spec's bulk-action table names it, but there is no delete anywhere in this codebase — no `@Delete` route, no repository delete method, no use case. `AGENTS.md` is explicit that bulk mutations "stay per-item loops over existing use-cases (no new batch endpoint in this pass)", and there is no per-item delete to loop over. Building one is a backend change, which Phase 05 owns. Deactivation ("Pausar") is this product's soft delete and it does exist. Shipping a permanently-disabled Excluir button would be worse than omitting it: it promises a capability that has no owner.
+**1. "Excluir" is built, on a backend that refuses rather than cascades.** The spec's bulk-action table names it, and at plan time no delete existed anywhere in this codebase. `docs/superpowers/plans/2026-08-23-admin-delete-endpoints.md` adds it and **must run before this plan**. That design refuses with `409` when deleting would destroy data the panel is built on — a sector with check-in history, a manager who still owns sectors, the last active hospital admin — because `Signal` rows are the weekly aggregates every trend reads, and cascading through them would silently rewrite weeks already reported. Every refusal names the action to take instead, so a refusal is content for the confirm dialog, not a failure toast.
 
 **2. Notificações is not retrofitted onto `DataTable`.** The spec groups it under the table pattern, and it already renders eyebrow/title/intro and a row list. But its rows have no selection semantics — 04-E requires that *clicking anywhere on a row marks it read*, which is the exact gesture `DataTable` assigns to selection. `DataTable` therefore takes selection as optional, so Notificações can adopt the table shape later, but this pass does not rewrite a working page to fight its own interaction model.
 
@@ -370,6 +370,7 @@ The largest task, and the one every admin page depends on. The enable rules are 
     edit: BulkActionState;
     pause: BulkActionState;
     activate: BulkActionState;
+    remove: BulkActionState;
   }
   export function useDataTableSelection<T extends { id: string; isActive: boolean }>(
     rows: T[],
@@ -426,6 +427,17 @@ describe('useDataTableSelection — the eight bulk-action states', () => {
     expect(result.current.edit).toEqual({ enabled: false, reason: 'Selecione um gestor' });
     expect(result.current.pause).toEqual({ enabled: false, reason: 'Selecione ao menos um gestor' });
     expect(result.current.activate).toEqual({ enabled: false, reason: 'Selecione ao menos um gestor' });
+    expect(result.current.remove).toEqual({ enabled: false, reason: 'Selecione ao menos um gestor' });
+  });
+
+  it('enables Excluir for any non-empty selection, whatever the statuses', () => {
+    const { result } = setup();
+    act(() => result.current.toggle('a'));
+    act(() => result.current.toggle('c'));
+    expect(result.current.remove.enabled).toBe(true);
+    // …even where Pausar and Ativar both refuse the same mixed selection.
+    expect(result.current.pause.enabled).toBe(false);
+    expect(result.current.activate.enabled).toBe(false);
   });
 
   it('enables Editar for exactly one row', () => {
@@ -531,6 +543,7 @@ export interface DataTableSelection<T> {
   edit: BulkActionState;
   pause: BulkActionState;
   activate: BulkActionState;
+  remove: BulkActionState;
 }
 
 const ok: BulkActionState = { enabled: true, reason: null };
@@ -596,6 +609,8 @@ export function useDataTableSelection<T extends { id: string; isActive: boolean 
         : mixed
           ? no(sameStatus)
           : no(`Os selecionados já estão ativos`),
+    // Excluir has no status precondition — only "something is selected".
+    remove: count > 0 ? ok : no(`Selecione ao menos um ${noun.singular}`),
   };
 }
 ```
@@ -605,7 +620,7 @@ The `sameStatus` string pluralises `gestor` → `gestores` by suffix. For `setor
 - [ ] **Step 4: Run it and watch it pass**
 
 Run: `pnpm --filter web exec vitest run src/presentation/ui/DataTable`
-Expected: PASS — 9 tests.
+Expected: PASS — 10 tests.
 
 - [ ] **Step 5: Write the failing DataTable test**
 
@@ -910,7 +925,7 @@ The mobile card list is **not** in `DataTable` — each page renders its own `<u
 - [ ] **Step 8: Run it and watch it pass**
 
 Run: `pnpm --filter web exec vitest run src/presentation/ui/DataTable`
-Expected: PASS — 17 tests across both files.
+Expected: PASS — 18 tests across both files.
 
 - [ ] **Step 9: Run, lint, build, commit**
 
@@ -929,6 +944,7 @@ The reference page. Tasks 5 and 6 copy its shape.
 **Files:**
 - Create: `src/presentation/ui/SectorPillPicker.tsx`
 - Modify: `src/presentation/pages/ManagerAdminManagersPage.tsx`
+- Consumes `useDeleteManager` from the delete plan, already on the branch
 - Test: `src/presentation/pages/ManagerAdminManagersPage.test.tsx`
 - Test: `src/presentation/ui/SectorPillPicker.test.tsx`
 
@@ -1262,7 +1278,8 @@ Details that matter:
 - **Columns.** `Nome` `w-[26%]`, `Email` `w-[30%]` with `breakAll: true`, `Papel` `w-[18%]`, `Setores` `w-[16%]` with `hideBelowLg: true`, `Status` `w-[10%]`.
 - **Search** is `useState` plus a 300ms debounce, filtering the loaded list across name, email, role label and sector names, case- and accent-insensitively (`String.prototype.localeCompare` is not enough — normalise with `.normalize('NFD').replace(/\p{Diacritic}/gu, '')`). The empty state must say the search only covers loaded items, because after Phase 05 it will not.
 - **Bulk actions** are `Button`s with `aria-disabled` and **no** `disabled` attribute, each wrapped in `Tooltip` carrying its `reason`. A `disabled` button is not focusable and its tooltip would be unreachable by keyboard. Guard the `onClick` on `enabled` instead.
-- **Bulk mutations** are per-item loops over `updateManager.mutate` — no batch endpoint exists and none is added here.
+- **Bulk mutations** are per-item loops over `updateManager.mutate` — no batch endpoint exists and none is added here. The same holds for `useDeleteManager`.
+- **Excluir opens a confirm dialog first**, because it is genuinely irreversible. Use `Modal` with the title `Excluir gestor?` (plural `Excluir N gestores?`), body `Esta ação não pode ser desfeita.`, and footer buttons `Cancelar` / `Excluir`. On a refusal, render `deleteConflictMessage(error)` **inside the dialog** rather than closing it — every refusal names the action to take instead, so the manager needs to read it where they were. If a loop partially succeeds, say so: `N de M excluídos.` plus the refusal sentence for the rest. A silent partial success would leave rows on screen the manager believes are gone.
 - **Row actions** are `IconButton`s: `Editar` (pencil), and `Reenviar convite` (mail) only for the two invite states, `Redefinir senha` (key) otherwise.
 - **Mobile card** is a `<button>` whose accessible name includes the manager's name and status; selected state is `border-brand bg-brand/5`. Label/value pairs are one `flex justify-between` line each.
 - **Delete the inline create form and the inline edit block** — they are replaced, not kept alongside.
@@ -1855,4 +1872,4 @@ After Task 9 the panel's screens are complete. What Phase 04 deliberately leaves
 - **Infinite scroll.** `InfiniteList` is Phase 05's component; nothing here anticipates it.
 - **Análises com IA pagination** — `fetchHistory` stays unpaginated until Phase 05 changes its contract.
 
-And two things this plan decided not to build, with reasons at the top: **Excluir** (no delete exists anywhere in the codebase) and **Notificações on `DataTable`** (its row click already means "mark read").
+And one thing this plan decided not to build, with the reason at the top: **Notificações on `DataTable`** (its row click already means "mark read").
