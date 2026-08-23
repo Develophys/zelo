@@ -141,7 +141,9 @@ describe("onboarding router flow", () => {
 
     buildTestRouter("/manager/admin");
 
-    expect(await screen.findByLabelText("Nome do gestor")).toBeInTheDocument();
+    // The create-manager field now lives inside a modal rather than inline,
+    // so the redirect is verified against the page heading instead.
+    expect(await screen.findByRole("heading", { level: 1, name: "Gestores" })).toBeInTheDocument();
   });
 
   it("keeps Administração out of reach for a SECTOR_MANAGER, who sees the dashboard instead", async () => {
