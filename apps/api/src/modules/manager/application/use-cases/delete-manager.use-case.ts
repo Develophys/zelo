@@ -27,9 +27,10 @@ export class DeleteManagerUseCase {
       throw new ManagerNotFoundError();
     }
 
-    // Sector.managerId RESTRICTs, so this would fail at the database anyway —
-    // checking here turns an opaque constraint violation into a message that
-    // says which action to take instead.
+    // Sector.managerId is ON DELETE SET NULL, not RESTRICT — the database
+    // will not refuse this delete on its own. This check is the only thing
+    // standing between deleting a manager and silently unassigning every
+    // sector they own, so it must run, and must run before the delete.
     const ownedSectorIds = await this.sectorRepository.findAssignedSectorIds(input.managerId);
     if (ownedSectorIds.length > 0) {
       throw new ManagerOwnsSectorsError();

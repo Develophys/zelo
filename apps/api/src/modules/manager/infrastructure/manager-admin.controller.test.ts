@@ -629,6 +629,7 @@ describe("manager admin controller — sectors", () => {
 
     expect(response.status).toBe(409);
     expect(response.body.message).toBe("MANAGER_OWNS_SECTORS");
+    expect(managerRepository.rows.find((row) => row.id === "manager-2")).toBeDefined();
   });
 
   it("DELETE /manager/admin/managers/:id answers 409 rather than locking the institution out of its own panel", async () => {
@@ -638,6 +639,7 @@ describe("manager admin controller — sectors", () => {
 
     expect(response.status).toBe(409);
     expect(response.body.message).toBe("LAST_ADMIN");
+    expect(managerRepository.rows.find((row) => row.id === "manager-1")).toBeDefined();
   });
 
   it("DELETE /manager/admin/managers/:id answers 404 for a manager in another institution, revealing nothing about it", async () => {
