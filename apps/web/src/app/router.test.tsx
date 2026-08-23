@@ -103,12 +103,13 @@ describe("onboarding router flow", () => {
     expect(await screen.findByText("Pares anônimos")).toBeInTheDocument();
   });
 
-  it("Home's Manager demo link reaches the manager login screen when unauthenticated", async () => {
+  it("the bottom nav Administração entry reaches the manager login screen when unauthenticated", async () => {
     useConsentStore.setState({ hasConsented: true, consentedAt: "2026-01-01T00:00:00.000Z" });
     buildTestRouter("/home");
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole("button", { name: "Ver painel do gestor" }));
+    await user.click(await screen.findByRole("button", { name: "Mais opções" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Administração" }));
     expect(await screen.findByText("Acesso do gestor")).toBeInTheDocument();
   });
 

@@ -196,3 +196,23 @@ describe("HomePage", () => {
     expect(screen.getByText("Link institution screen")).toBeInTheDocument();
   });
 });
+
+describe("HomePage manager entry point", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useFollowUpStore.setState({ answer: null, answeredAt: null });
+  });
+
+  it("no longer offers a standalone manager panel link in the page body", () => {
+    renderHome();
+    expect(screen.queryByRole("button", { name: "Ver painel do gestor" })).not.toBeInTheDocument();
+  });
+
+  it("reaches the manager panel through the bottom nav secondary menu instead", async () => {
+    const user = userEvent.setup();
+    renderHome();
+    await user.click(screen.getByRole("button", { name: "Mais opções" }));
+    await user.click(screen.getByRole("menuitem", { name: "Administração" }));
+    expect(await screen.findByText("Manager screen")).toBeInTheDocument();
+  });
+});

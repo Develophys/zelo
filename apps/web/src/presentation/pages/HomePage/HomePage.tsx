@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router';
 import { PhoneShell } from '@/presentation/layout/PhoneShell';
 import { BottomNav } from '@/presentation/layout/BottomNav';
 import { NAV_TABS, type NavTabId } from '@/presentation/layout/nav-tabs';
-import { Button } from '@/presentation/ui/Button';
 import { CardButton } from '@/presentation/ui/CardButton';
 import { IconBadge } from '@/presentation/ui/IconBadge';
 import { routes } from '@/presentation/lib/routes';
@@ -40,15 +39,6 @@ export function HomePage() {
             <p className="mt-2 text-body font-extrabold text-ink">Falar com um par</p>
           </CardButton>
         </div>
-
-        <Button
-          variant="ghost"
-          full={false}
-          onClick={() => navigate(routes.manager)}
-          className="w-fit mt-4 text-left text-label! underline"
-        >
-          Ver painel do gestor
-        </Button>
       </div>
     </PhoneShell>
   );

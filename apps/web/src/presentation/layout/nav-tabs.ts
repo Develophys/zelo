@@ -1,14 +1,18 @@
 import type { ComponentType } from "react";
-import { Home, ClipboardCheck, MessageCircle, UserRound } from "lucide-react";
+import { Home, ClipboardCheck, MessageCircle, UserRound, ShieldCheck } from "lucide-react";
 import { routes } from "@/presentation/lib/routes";
 
 export type NavTabId = "home" | "checkin" | "chat" | "you";
 
-export interface NavTab {
-  id: NavTabId;
+export interface NavDestination {
+  id: string;
   label: string;
   icon: ComponentType<{ size?: number }>;
   route: string;
+}
+
+export interface NavTab extends NavDestination {
+  id: NavTabId;
 }
 
 // Single source of truth for the médico's 4 primary destinations — consumed by
@@ -20,3 +24,12 @@ export const NAV_TABS: NavTab[] = [
   { id: "chat", label: "Conversar", icon: MessageCircle, route: routes.chat },
   { id: "you", label: "Você", icon: UserRound, route: routes.you },
 ];
+
+// Secondary destination, deliberately outside NAV_TABS: it is not one of the
+// medico's primary tabs, and both navs render it in its own ruled-off section.
+export const ADMIN_NAV_ITEM: NavDestination = {
+  id: "admin",
+  label: "Administração",
+  icon: ShieldCheck,
+  route: routes.manager,
+};

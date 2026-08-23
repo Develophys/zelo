@@ -1,12 +1,38 @@
 import { memo, useEffect, useState } from 'react';
 import { Link, NavLink } from 'react-router';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { NAV_TABS } from './nav-tabs';
+import { ADMIN_NAV_ITEM, NAV_TABS, type NavDestination } from './nav-tabs';
 import { routes } from '@/presentation/lib/routes';
 import {
   readStoredCollapsed,
   writeStoredCollapsed,
 } from '@/presentation/lib/sidebar-collapsed-storage';
+
+function Destination({
+  destination: { label, icon: Icon, route },
+  collapsed,
+}: {
+  destination: NavDestination;
+  collapsed: boolean;
+}) {
+  return (
+    <NavLink
+      to={route}
+      aria-label={label}
+      title={label}
+      className={({ isActive }) =>
+        `flex min-h-11 items-center justify-center gap-3 rounded-input px-3 py-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+          collapsed ? '' : 'lg:justify-start'
+        } ${isActive ? 'bg-surface-brand text-brand' : 'text-muted hover:bg-canvas hover:text-brand'}`
+      }
+    >
+      <Icon size={22} />
+      <span className={`hidden font-sans text-[14px] font-semibold ${collapsed ? '' : 'lg:block'}`}>
+        {label}
+      </span>
+    </NavLink>
+  );
+}
 
 export const Sidebar = memo(function Sidebar() {
   const [collapsed, setCollapsed] = useState(readStoredCollapsed);
@@ -79,31 +105,17 @@ export const Sidebar = memo(function Sidebar() {
         aria-label="Navegação principal"
         className="flex flex-1 flex-col gap-1 overflow-y-auto px-2 py-6"
       >
-        {NAV_TABS.map(({ id, label, icon: Icon, route }) => (
-          <NavLink
-            key={id}
-            to={route}
-            aria-label={label}
-            title={label}
-            className={({ isActive }) =>
-              `flex min-h-11 items-center justify-center gap-3 rounded-input px-3 py-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
-                collapsed ? '' : 'lg:justify-start'
-              } ${
-                isActive
-                  ? 'bg-surface-brand text-brand'
-                  : 'text-muted hover:bg-canvas hover:text-brand'
-              }`
-            }
-          >
-            <Icon size={22} />
-            <span
-              className={`hidden font-sans text-[14px] font-semibold ${collapsed ? '' : 'lg:block'}`}
-            >
-              {label}
-            </span>
-          </NavLink>
+        {NAV_TABS.map((tab) => (
+          <Destination key={tab.id} destination={tab} collapsed={collapsed} />
         ))}
       </nav>
+
+      <div
+        data-testid="sidebar-admin-section"
+        className="flex flex-none flex-col border-t border-surface-brand px-2 py-4"
+      >
+        <Destination destination={ADMIN_NAV_ITEM} collapsed={collapsed} />
+      </div>
     </aside>
   );
 });

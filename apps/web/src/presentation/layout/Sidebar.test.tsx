@@ -13,6 +13,7 @@ function renderAt(pathname: string) {
         <Route path={routes.assessment} element={<Sidebar />} />
         <Route path={routes.chat} element={<Sidebar />} />
         <Route path={routes.you} element={<Sidebar />} />
+        <Route path={routes.manager} element={<Sidebar />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -147,5 +148,48 @@ describe('Sidebar', () => {
     renderAt(routes.home);
     expect(screen.getByTestId('sidebar')).not.toHaveClass('lg:w-55');
     expect(screen.getByRole('button', { name: 'Expandir menu' })).toBeInTheDocument();
+  });
+});
+
+describe('Sidebar administration section', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('links to the manager panel from a secondary Administração destination', () => {
+    renderAt(routes.home);
+    expect(screen.getByRole('link', { name: 'Administração' })).toHaveAttribute(
+      'href',
+      routes.manager,
+    );
+  });
+
+  it('marks Administração active while the manager panel is open', () => {
+    renderAt(routes.manager);
+    expect(screen.getByRole('link', { name: 'Administração' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
+  it('separates Administração from the primary destinations with a rule above it', () => {
+    renderAt(routes.home);
+    expect(screen.getByTestId('sidebar-admin-section')).toHaveClass(
+      'border-t',
+      'border-surface-brand',
+    );
+  });
+
+  it('sits below the primary destinations rather than among them', () => {
+    renderAt(routes.home);
+    const nav = screen.getByRole('navigation', { name: 'Navegação principal' });
+    expect(nav).not.toContainElement(screen.getByRole('link', { name: 'Administração' }));
+  });
+
+  it('hides the Administração label when the rail is collapsed', async () => {
+    const user = userEvent.setup();
+    renderAt(routes.home);
+    await user.click(screen.getByRole('button', { name: 'Recolher menu' }));
+    expect(screen.getByText('Administração')).not.toHaveClass('lg:block');
   });
 });
