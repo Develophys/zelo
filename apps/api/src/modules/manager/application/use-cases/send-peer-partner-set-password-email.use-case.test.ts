@@ -107,4 +107,29 @@ describe("SendPeerPartnerSetPasswordEmailUseCase", () => {
 
     expect(notifications.events).toEqual([]);
   });
+
+  it("still rotates the token when the invite email fails over the network, and says so", async () => {
+    // A raw network rejection never reaches the use case directly — the real
+    // ResendEmailAdapter normalizes it into EmailDeliveryError before it gets
+    // here. This models that already-normalized failure.
+    const { useCase, repository, notifications, emailPort } = build();
+    repository.rows = [{ id: "peer-1", name: "Dra. Ana", email: "ana@zelo-demo.local", passwordHash: null, setPasswordTokenExpiresAt: null, institutionId: "institution-1", specialty: "Clínica médica", isActive: true }];
+    emailPort.shouldThrow = new EmailDeliveryError("socket hang up");
+
+    await useCase.execute({ institutionId: "institution-1", peerPartnerId: "peer-1" });
+
+    expect(repository.lastUpdate?.patch.setPasswordToken).toEqual(expect.any(String));
+    expect(notifications.events).toHaveLength(1);
+    expect(notifications.events[0]!.type).toBe("INVITE_EMAIL_FAILED");
+  });
+
+  it("does not swallow a non-delivery error from the email port", async () => {
+    const { useCase, repository, notifications, emailPort } = build();
+    repository.rows = [{ id: "peer-1", name: "Dra. Ana", email: "ana@zelo-demo.local", passwordHash: null, setPasswordTokenExpiresAt: null, institutionId: "institution-1", specialty: "Clínica médica", isActive: true }];
+    emailPort.shouldThrow = new TypeError("Cannot read properties of undefined (reading 'name')");
+
+    await expect(useCase.execute({ institutionId: "institution-1", peerPartnerId: "peer-1" })).rejects.toThrow(TypeError);
+
+    expect(notifications.events).toEqual([]);
+  });
 });

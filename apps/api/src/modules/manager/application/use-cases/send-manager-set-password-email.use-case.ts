@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { MANAGER_REPOSITORY, type ManagerRepository } from "../ports/manager-repository.port.ts";
-import { EMAIL_PORT, type EmailPort } from "../../../../shared/email/email.port.ts";
+import { EMAIL_PORT, EmailDeliveryError, type EmailPort } from "../../../../shared/email/email.port.ts";
 import { buildSetPasswordUrl } from "../../../../shared/email/build-set-password-url.ts";
 import { ManagerNotFoundError } from "./manager-admin-errors.ts";
 import { NOTIFICATION_PUBLISHER, type NotificationPublisher } from "../../../notification/application/ports/notification.port.ts";
@@ -44,6 +44,9 @@ export class SendManagerSetPasswordEmailUseCase {
         setPasswordUrl: buildSetPasswordUrl("manager", setPasswordToken),
       });
     } catch (error) {
+      if (!(error instanceof EmailDeliveryError)) {
+        throw error;
+      }
       this.logger.error(`invite email failed for manager ${manager.id}`, error);
       await this.notifications.publish({
         institutionId: input.institutionId,

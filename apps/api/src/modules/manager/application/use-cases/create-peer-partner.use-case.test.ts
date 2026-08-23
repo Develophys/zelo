@@ -102,4 +102,30 @@ describe("CreatePeerPartnerUseCase", () => {
 
     expect(notifications.events).toEqual([]);
   });
+
+  it("still creates the peer partner when the invite email fails over the network, and says so", async () => {
+    // A raw network rejection never reaches the use case directly — the real
+    // ResendEmailAdapter normalizes it into EmailDeliveryError before it gets
+    // here. This models that already-normalized failure.
+    const { useCase, repository, notifications, emailPort } = build();
+    emailPort.shouldThrow = new EmailDeliveryError("socket hang up");
+
+    const result = await useCase.execute({ institutionId: "institution-1", name: "Dra. Ana", email: "ana@zelo-demo.local", specialty: "Clínica médica" });
+
+    expect(result.peerPartner.email).toBe("ana@zelo-demo.local");
+    expect(repository.created).toHaveLength(1);
+    expect(notifications.events).toHaveLength(1);
+    expect(notifications.events[0]!.type).toBe("INVITE_EMAIL_FAILED");
+  });
+
+  it("does not swallow a non-delivery error from the email port", async () => {
+    const { useCase, notifications, emailPort } = build();
+    emailPort.shouldThrow = new TypeError("Cannot read properties of undefined (reading 'name')");
+
+    await expect(
+      useCase.execute({ institutionId: "institution-1", name: "Dra. Ana", email: "ana@zelo-demo.local", specialty: "Clínica médica" }),
+    ).rejects.toThrow(TypeError);
+
+    expect(notifications.events).toEqual([]);
+  });
 });

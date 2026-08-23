@@ -153,4 +153,42 @@ describe("CreateManagerUseCase", () => {
 
     expect(notifications.events).toEqual([]);
   });
+
+  it("still creates the manager when the invite email fails over the network, and says so", async () => {
+    // A raw network rejection never reaches the use case directly — the real
+    // ResendEmailAdapter normalizes it into EmailDeliveryError before it gets
+    // here. This models that already-normalized failure.
+    const { useCase, managerRepository, notifications, emailPort } = build();
+    emailPort.shouldThrow = new EmailDeliveryError("socket hang up");
+
+    const result = await useCase.execute({
+      name: "Paulo",
+      email: "paulo@zelo-demo.local",
+      institutionId: "institution-1",
+      role: "HOSPITAL_ADMIN",
+      sectorIds: [],
+    });
+
+    expect(result.manager.email).toBe("paulo@zelo-demo.local");
+    expect(managerRepository.created).toHaveLength(1);
+    expect(notifications.events).toHaveLength(1);
+    expect(notifications.events[0]!.type).toBe("INVITE_EMAIL_FAILED");
+  });
+
+  it("does not swallow a non-delivery error from the email port", async () => {
+    const { useCase, notifications, emailPort } = build();
+    emailPort.shouldThrow = new TypeError("Cannot read properties of undefined (reading 'name')");
+
+    await expect(
+      useCase.execute({
+        name: "Paulo",
+        email: "paulo@zelo-demo.local",
+        institutionId: "institution-1",
+        role: "HOSPITAL_ADMIN",
+        sectorIds: [],
+      }),
+    ).rejects.toThrow(TypeError);
+
+    expect(notifications.events).toEqual([]);
+  });
 });
