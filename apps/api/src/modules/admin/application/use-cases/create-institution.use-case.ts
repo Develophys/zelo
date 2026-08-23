@@ -48,10 +48,12 @@ export class CreateInstitutionUseCase {
     // The institution and its first hospital admin are already committed at
     // this point. Letting a send failure propagate would 500 an otherwise
     // successful creation, and the retry would then collide on the unique
-    // inviteCode/email. There is no manager audience to notify yet — the
-    // hospital admin being created here is the first one — so this site
-    // just logs and returns successfully, unlike the sibling call sites
-    // that publish INVITE_EMAIL_FAILED.
+    // inviteCode/email. Unlike the sibling call sites, this one does not
+    // publish INVITE_EMAIL_FAILED: the only recipient the notification rule
+    // could resolve to is the hospital admin who was just created and whose
+    // invite is the thing that failed — they have no password yet and
+    // cannot log in to read a notification about their own missing invite.
+    // Logging plus a successful return is the whole correct response here.
     await sendInviteEmailOrRecord(
       () =>
         this.emailPort.send(hospitalAdmin.email, "invite", {

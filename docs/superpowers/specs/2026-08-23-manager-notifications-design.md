@@ -124,14 +124,20 @@ A manager whose `isActive` is false receives nothing.
 |---|---|---|
 | `INVITE_ACCEPTED` | `FinishManagerSetupUseCase`, `FinishPeerPartnerSetupUseCase` | `invite-accepted:<kind>:<id>` |
 | `ACCOUNT_DEACTIVATED` / `ACCOUNT_REACTIVATED` | `UpdateManagerUseCase`, `UpdatePeerPartnerUseCase`, when `isActive` changes | `account-status:<id>:<changedAt ISO>` |
-| `INVITE_EMAIL_FAILED` | `CreateManagerUseCase`, `CreatePeerPartnerUseCase`, `SendManagerSetPasswordEmailUseCase`, `SendPeerPartnerSetPasswordEmailUseCase` | `invite-email-failed:<id>:<attemptAt ISO>` |
+| `INVITE_EMAIL_FAILED` | `CreateManagerUseCase`, `CreatePeerPartnerUseCase`, `SendManagerSetPasswordEmailUseCase`, `SendPeerPartnerSetPasswordEmailUseCase` | `invite-email-failed:<kind>:<id>:<attemptAt ISO>` |
 | `SECTOR_BECAME_VISIBLE` | `RecordSignalCheckinUseCase` | `sector-visible:<sectorId>:<weekStart>` |
-| `INVITE_EXPIRED` | daily sweep | `invite-expired:<kind>:<id>` |
+| `INVITE_EXPIRED` | daily sweep | `invite-expired:<kind>:<id>:<setPasswordTokenExpiresAt ISO>` |
 | `SECTOR_RISK_THRESHOLD` | weekly sweep | `sector-risk:<sectorId>:<weekStart>` |
 
 Account-status keys include the change instant so a genuine deactivate → reactivate →
 deactivate sequence produces three notifications, while a retry of any one of them produces
 one.
+
+The expired-invite key carries the token's expiry instant, not a sweep timestamp, for the
+same reason: a resend rotates `setPasswordTokenExpiresAt`, and if that resend also lapses it
+is a genuinely new event that must re-notify, while repeated nightly sweeps over an
+*unchanged* invite (the token was never rotated) must keep producing the same key and
+therefore exactly one row.
 
 ### `SECTOR_BECAME_VISIBLE` needs no scheduler
 
@@ -164,6 +170,7 @@ export const RISK_RATE_THRESHOLD = 0.4;
 export const RISK_MIN_CHECK_INS = 10;
 export const RISK_DELTA_THRESHOLD = 0.15;
 export const RETENTION_DAYS = 90;
+export const LAPSED_INVITE_WINDOW_DAYS = 30;
 ```
 
 **Why `RISK_MIN_CHECK_INS` is 10 and not 5.** At the k-anonymity floor a single person moves
@@ -189,9 +196,23 @@ check-in path today.
 
 **Expired invites.** Expiry is not an event: nothing happens at the moment
 `setPasswordTokenExpiresAt` passes. The daily sweep selects managers and peer partners with
-`passwordHash IS NULL` and `setPasswordTokenExpiresAt < now()`, and publishes once per account
-(the `dedupKey` carries no timestamp, so a lapsed invite notifies exactly once no matter how
-many days the sweep runs over it).
+`passwordHash IS NULL` and `setPasswordTokenExpiresAt` in the last `LAPSED_INVITE_WINDOW_DAYS`
+(30) days, up to `now()`, and publishes once per account per expiry instant (the `dedupKey`
+carries that instant, so repeated sweeps over an *unchanged* invite notify exactly once, while
+a resend that rotates the token's expiry is treated as a new lapse and notifies again).
+
+The lower bound exists because `dedupKey` alone is not enough to prevent re-notification once
+the retention sweep is in the picture: without it, `findLapsedInvites` would keep re-selecting
+every never-accepted invite forever, and a read `INVITE_EXPIRED` row purged at `RETENTION_DAYS`
+would let the next sweep write the same row again. `LAPSED_INVITE_WINDOW_DAYS` sits well under
+`RETENTION_DAYS` so an invite ages out of the sweep's consideration long before its
+notification could be purged and resurface.
+
+The trade this makes explicit: an invite that lapsed more than `LAPSED_INVITE_WINDOW_DAYS` ago
+and was never notified about — because it predates this feature, or because a sweep was down —
+stays un-nudged. There is no backfill. This is not unrecoverable: the admin's manager list still
+shows "Convite expirado" from the row itself (`passwordHash IS NULL`), independent of whether a
+notification was ever written for it — only the proactive nudge is missed, not the information.
 
 ## The seam
 
@@ -240,8 +261,19 @@ the API can absorb, or when consumers must live outside the producing process. N
 three holds here: these are very low-volume events, produced and consumed by the same NestJS
 process that already serves the panel, on one machine. Against that, a broker adds
 infrastructure to operate, a connection to manage, and integration tests that need a broker
-running — in exchange for delivery guarantees Postgres already provides, since the notification
-is written in the same transaction as the fact that caused it.
+running.
+
+What Postgres buys here is more modest than "exactly-once": `publish` runs as its own write,
+after the producer's own write has already committed — not inside the same transaction as the
+fact that caused it. A crash between the two loses the notification, with nothing to retry it.
+This is the direct consequence of "publishing never fails the producer" (above): the two writes
+cannot be one transaction, because a failure in the notification write must never roll back — or
+block on — the fact that caused it. The trade is deliberate: an accepted invite, a deactivated
+account or a crossed threshold either happened or it didn't, and that must never hinge on
+whether its notification also landed. What's lost on the rare crash-in-the-gap is one nudge, not
+the underlying fact — the invite is still accepted, the account is still deactivated, the panel
+still shows the sector's data. A broker would not close this gap either, only relocate it to
+between the producer and the broker.
 
 The moment it does pay for itself is the first consumer that must live outside the API process
 — serious retrying email, or a digest worker. At that point the dispatcher changes transport
