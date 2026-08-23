@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { CreateManagerUseCase } from "./create-manager.use-case.ts";
 import { SectorNotInInstitutionError } from "./manager-admin-errors.ts";
-import type { EmailPort, EmailTemplate, SendEmailParams } from "../../../../shared/email/email.port.ts";
+import { EmailDeliveryError, type EmailPort, type EmailTemplate, type SendEmailParams } from "../../../../shared/email/email.port.ts";
 import type {
   CreateManagerParams, ManagerRepository, ManagerRow, ManagerSummaryRow
 } from "../ports/manager-repository.port.ts";
+import type { NotificationEvent, NotificationPublisher } from "../../../notification/application/ports/notification.port.ts";
 
 class FakeManagerRepository implements ManagerRepository {
+  public created: Array<{ id: string; name: string; email: string }> = [];
   public lastCreateParams: CreateManagerParams | null = null;
   async findByEmail(): Promise<ManagerRow | null> {
     throw new Error("not used in this test");
@@ -22,7 +24,9 @@ class FakeManagerRepository implements ManagerRepository {
   }
   async create(params: CreateManagerParams): Promise<{ id: string; name: string; email: string }> {
     this.lastCreateParams = params;
-    return { id: "manager-new", name: params.name, email: params.email };
+    const manager = { id: "manager-new", name: params.name, email: params.email };
+    this.created.push(manager);
+    return manager;
   }
   async update(): Promise<void> {
     throw new Error("not used in this test");
@@ -48,17 +52,34 @@ class FakeSectorRepository {
 
 class FakeEmailPort implements EmailPort {
   public lastSend: { to: string; template: EmailTemplate; params: SendEmailParams } | null = null;
+  public shouldThrow: Error | null = null;
   async send(to: string, template: EmailTemplate, params: SendEmailParams): Promise<void> {
+    if (this.shouldThrow) {
+      throw this.shouldThrow;
+    }
     this.lastSend = { to, template, params };
   }
 }
 
+class FakeNotificationPublisher implements NotificationPublisher {
+  public events: NotificationEvent[] = [];
+  async publish(event: NotificationEvent): Promise<void> {
+    this.events.push(event);
+  }
+}
+
+function build() {
+  const managerRepository = new FakeManagerRepository();
+  const sectorRepository = new FakeSectorRepository();
+  const emailPort = new FakeEmailPort();
+  const notifications = new FakeNotificationPublisher();
+  const useCase = new CreateManagerUseCase(managerRepository, sectorRepository as never, emailPort, notifications);
+  return { useCase, managerRepository, sectorRepository, emailPort, notifications };
+}
+
 describe("CreateManagerUseCase", () => {
   it("creates a HOSPITAL_ADMIN manager with no password, generates a set-password token, and sends an invite email", async () => {
-    const managerRepository = new FakeManagerRepository();
-    const sectorRepository = new FakeSectorRepository();
-    const emailPort = new FakeEmailPort();
-    const useCase = new CreateManagerUseCase(managerRepository, sectorRepository as never, emailPort);
+    const { useCase, managerRepository, sectorRepository, emailPort } = build();
 
     const result = await useCase.execute({ institutionId: "institution-1", name: "Mauricio", email: "mauricio@zelo-demo.local", role: "HOSPITAL_ADMIN" });
 
@@ -79,10 +100,8 @@ describe("CreateManagerUseCase", () => {
   });
 
   it("creates a SECTOR_MANAGER and assigns the given sectors, all belonging to the institution", async () => {
-    const managerRepository = new FakeManagerRepository();
-    const sectorRepository = new FakeSectorRepository();
+    const { useCase, sectorRepository } = build();
     sectorRepository.knownSectorIds = new Set(["sector-a", "sector-b"]);
-    const useCase = new CreateManagerUseCase(managerRepository, sectorRepository as never, new FakeEmailPort());
 
     await useCase.execute({ institutionId: "institution-1", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", sectorIds: ["sector-a", "sector-b"] });
 
@@ -90,13 +109,48 @@ describe("CreateManagerUseCase", () => {
   });
 
   it("throws SectorNotInInstitutionError when a sectorId doesn't belong to the institution", async () => {
-    const managerRepository = new FakeManagerRepository();
-    const sectorRepository = new FakeSectorRepository();
+    const { useCase, sectorRepository } = build();
     sectorRepository.knownSectorIds = new Set(["sector-a"]);
-    const useCase = new CreateManagerUseCase(managerRepository, sectorRepository as never, new FakeEmailPort());
 
     await expect(
       useCase.execute({ institutionId: "institution-1", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", sectorIds: ["sector-a", "sector-unknown"] }),
     ).rejects.toThrow(SectorNotInInstitutionError);
+  });
+
+  it("still creates the manager when the invite email cannot be sent, and says so", async () => {
+    const { useCase, managerRepository, notifications, emailPort } = build();
+    emailPort.shouldThrow = new EmailDeliveryError("domain not verified");
+
+    const result = await useCase.execute({
+      name: "Paulo",
+      email: "paulo@zelo-demo.local",
+      institutionId: "institution-1",
+      role: "HOSPITAL_ADMIN",
+      sectorIds: [],
+    });
+
+    expect(result.manager.email).toBe("paulo@zelo-demo.local");
+    expect(managerRepository.created).toHaveLength(1);
+    expect(notifications.events).toHaveLength(1);
+    expect(notifications.events[0]!.type).toBe("INVITE_EMAIL_FAILED");
+    expect(notifications.events[0]!.payload).toMatchObject({
+      kind: "manager",
+      name: "Paulo",
+      email: "paulo@zelo-demo.local",
+    });
+  });
+
+  it("says nothing about email when the invite went out", async () => {
+    const { useCase, notifications } = build();
+
+    await useCase.execute({
+      name: "Paulo",
+      email: "paulo@zelo-demo.local",
+      institutionId: "institution-1",
+      role: "HOSPITAL_ADMIN",
+      sectorIds: [],
+    });
+
+    expect(notifications.events).toEqual([]);
   });
 });

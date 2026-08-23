@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { SendManagerSetPasswordEmailUseCase } from "./send-manager-set-password-email.use-case.ts";
 import { ManagerNotFoundError } from "./manager-admin-errors.ts";
-import type { EmailPort, EmailTemplate, SendEmailParams } from "../../../../shared/email/email.port.ts";
+import { EmailDeliveryError, type EmailPort, type EmailTemplate, type SendEmailParams } from "../../../../shared/email/email.port.ts";
 import type { ManagerRepository, ManagerRow, UpdateManagerParams } from "../ports/manager-repository.port.ts";
+import type { NotificationEvent, NotificationPublisher } from "../../../notification/application/ports/notification.port.ts";
 
 class FakeManagerRepository implements ManagerRepository {
   rows: ManagerRow[] = [];
@@ -35,25 +36,41 @@ class FakeManagerRepository implements ManagerRepository {
 
 class FakeEmailPort implements EmailPort {
   lastSend: { to: string; template: EmailTemplate; params: SendEmailParams } | null = null;
+  shouldThrow: Error | null = null;
   async send(to: string, template: EmailTemplate, params: SendEmailParams): Promise<void> {
+    if (this.shouldThrow) {
+      throw this.shouldThrow;
+    }
     this.lastSend = { to, template, params };
   }
 }
 
+class FakeNotificationPublisher implements NotificationPublisher {
+  public events: NotificationEvent[] = [];
+  async publish(event: NotificationEvent): Promise<void> {
+    this.events.push(event);
+  }
+}
+
+function build() {
+  const repository = new FakeManagerRepository();
+  const emailPort = new FakeEmailPort();
+  const notifications = new FakeNotificationPublisher();
+  const useCase = new SendManagerSetPasswordEmailUseCase(repository, emailPort, notifications);
+  return { useCase, repository, emailPort, notifications };
+}
+
 describe("SendManagerSetPasswordEmailUseCase", () => {
   it("throws ManagerNotFoundError when the manager doesn't belong to the given institution", async () => {
-    const repository = new FakeManagerRepository();
+    const { useCase, repository } = build();
     repository.rows = [{ id: "manager-1", name: "Ana Konder", email: "ana@zelo-demo.local", passwordHash: "hash", setPasswordTokenExpiresAt: null, institutionId: "institution-other", role: "HOSPITAL_ADMIN", isActive: true }];
-    const useCase = new SendManagerSetPasswordEmailUseCase(repository, new FakeEmailPort());
 
     await expect(useCase.execute({ institutionId: "institution-1", managerId: "manager-1" })).rejects.toThrow(ManagerNotFoundError);
   });
 
   it("sends the invite-flavored email and a fresh token when the manager has no password yet", async () => {
-    const repository = new FakeManagerRepository();
+    const { useCase, repository, emailPort } = build();
     repository.rows = [{ id: "manager-1", name: "Ana Konder", email: "ana@zelo-demo.local", passwordHash: null, setPasswordTokenExpiresAt: null, institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: true }];
-    const emailPort = new FakeEmailPort();
-    const useCase = new SendManagerSetPasswordEmailUseCase(repository, emailPort);
 
     await useCase.execute({ institutionId: "institution-1", managerId: "manager-1" });
 
@@ -66,13 +83,37 @@ describe("SendManagerSetPasswordEmailUseCase", () => {
   });
 
   it("sends the password-reset-flavored email when the manager already has a password", async () => {
-    const repository = new FakeManagerRepository();
+    const { useCase, repository, emailPort } = build();
     repository.rows = [{ id: "manager-1", name: "Ana Konder", email: "ana@zelo-demo.local", passwordHash: "existing-hash", setPasswordTokenExpiresAt: null, institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: true }];
-    const emailPort = new FakeEmailPort();
-    const useCase = new SendManagerSetPasswordEmailUseCase(repository, emailPort);
 
     await useCase.execute({ institutionId: "institution-1", managerId: "manager-1" });
 
     expect(emailPort.lastSend?.template).toBe("password-reset");
+  });
+
+  it("still rotates the token when the invite email cannot be sent, and says so", async () => {
+    const { useCase, repository, notifications, emailPort } = build();
+    repository.rows = [{ id: "manager-1", name: "Ana Konder", email: "ana@zelo-demo.local", passwordHash: null, setPasswordTokenExpiresAt: null, institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: true }];
+    emailPort.shouldThrow = new EmailDeliveryError("domain not verified");
+
+    await useCase.execute({ institutionId: "institution-1", managerId: "manager-1" });
+
+    expect(repository.lastUpdate?.patch.setPasswordToken).toEqual(expect.any(String));
+    expect(notifications.events).toHaveLength(1);
+    expect(notifications.events[0]!.type).toBe("INVITE_EMAIL_FAILED");
+    expect(notifications.events[0]!.payload).toMatchObject({
+      kind: "manager",
+      name: "Ana Konder",
+      email: "ana@zelo-demo.local",
+    });
+  });
+
+  it("says nothing about email when the invite went out", async () => {
+    const { useCase, repository, notifications } = build();
+    repository.rows = [{ id: "manager-1", name: "Ana Konder", email: "ana@zelo-demo.local", passwordHash: null, setPasswordTokenExpiresAt: null, institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: true }];
+
+    await useCase.execute({ institutionId: "institution-1", managerId: "manager-1" });
+
+    expect(notifications.events).toEqual([]);
   });
 });

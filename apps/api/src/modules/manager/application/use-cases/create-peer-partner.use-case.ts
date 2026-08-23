@@ -1,8 +1,9 @@
 import { randomBytes } from "node:crypto";
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { PEER_PARTNER_REPOSITORY, type PeerPartnerRepository } from "../../../peer-partner/application/ports/peer-partner-repository.port.ts";
 import { EMAIL_PORT, type EmailPort } from "../../../../shared/email/email.port.ts";
 import { buildSetPasswordUrl } from "../../../../shared/email/build-set-password-url.ts";
+import { NOTIFICATION_PUBLISHER, type NotificationPublisher } from "../../../notification/application/ports/notification.port.ts";
 
 const SET_PASSWORD_TOKEN_BYTES = 32;
 const SET_PASSWORD_TOKEN_TTL_MS = 48 * 60 * 60 * 1000;
@@ -20,9 +21,12 @@ export interface CreatePeerPartnerResult {
 
 @Injectable()
 export class CreatePeerPartnerUseCase {
+  private readonly logger = new Logger(CreatePeerPartnerUseCase.name);
+
   constructor(
     @Inject(PEER_PARTNER_REPOSITORY) private readonly repository: PeerPartnerRepository,
     @Inject(EMAIL_PORT) private readonly emailPort: EmailPort,
+    @Inject(NOTIFICATION_PUBLISHER) private readonly notifications: NotificationPublisher,
   ) {}
 
   async execute(input: CreatePeerPartnerInput): Promise<CreatePeerPartnerResult> {
@@ -38,7 +42,29 @@ export class CreatePeerPartnerUseCase {
       setPasswordTokenExpiresAt,
     });
 
-    await this.emailPort.send(peerPartner.email, "invite", { name: peerPartner.name, setPasswordUrl: buildSetPasswordUrl("peer-partner", setPasswordToken) });
+    // The peer partner row is already committed at this point. Letting a send
+    // failure propagate would return 500 for an account that genuinely exists,
+    // and the retry would then collide with the unique email constraint —
+    // leaving an account the admin can neither use nor recreate.
+    try {
+      await this.emailPort.send(peerPartner.email, "invite", {
+        name: peerPartner.name,
+        setPasswordUrl: buildSetPasswordUrl("peer-partner", setPasswordToken),
+      });
+    } catch (error) {
+      this.logger.error(`invite email failed for peer partner ${peerPartner.id}`, error);
+      await this.notifications.publish({
+        institutionId: input.institutionId,
+        type: "INVITE_EMAIL_FAILED",
+        payload: {
+          kind: "peer-partner",
+          name: peerPartner.name,
+          email: peerPartner.email,
+          reason: error instanceof Error ? error.message : "unknown",
+        },
+        dedupKey: `invite-email-failed:peer-partner:${peerPartner.id}:${new Date().toISOString()}`,
+      });
+    }
 
     return { peerPartner };
   }

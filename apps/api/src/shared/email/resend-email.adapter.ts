@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Resend } from "resend";
-import type { EmailPort, EmailTemplate, SendEmailParams } from "./email.port.ts";
+import { EmailDeliveryError, type EmailPort, type EmailTemplate, type SendEmailParams } from "./email.port.ts";
 import { renderEmailTemplate } from "./email-templates.ts";
 
 @Injectable()
@@ -16,6 +16,9 @@ export class ResendEmailAdapter implements EmailPort {
 
   async send(to: string, template: EmailTemplate, params: SendEmailParams): Promise<void> {
     const { subject, html } = renderEmailTemplate(template, params);
-    await this.client.emails.send({ from: this.from, to, subject, html });
+    const { error } = await this.client.emails.send({ from: this.from, to, subject, html });
+    if (error) {
+      throw new EmailDeliveryError(error.message);
+    }
   }
 }
