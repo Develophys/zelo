@@ -11,11 +11,11 @@ const FOREIGN_KEY_VIOLATION = "P2003";
 export class PrismaSignalCheckinRepository implements SignalCheckinRepository {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  async recordCheckin(params: RecordCheckinParams): Promise<void> {
+  async recordCheckin(params: RecordCheckinParams): Promise<{ checkIns: number } | null> {
     try {
-      await this.prisma.$transaction(async (tx) => {
+      return await this.prisma.$transaction(async (tx) => {
         await tx.signalDedupKey.create({ data: { dedupKey: params.dedupKey } });
-        await tx.signal.upsert({
+        const signal = await tx.signal.upsert({
           where: {
             institutionId_sectorId_weekStart: {
               institutionId: params.institutionId,
@@ -31,11 +31,13 @@ export class PrismaSignalCheckinRepository implements SignalCheckinRepository {
             checkIns: 1,
             concerning: params.concerning ? 1 : 0,
           },
+          select: { checkIns: true },
         });
+        return { checkIns: signal.checkIns };
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === UNIQUE_CONSTRAINT_VIOLATION) {
-        return;
+        return null;
       }
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === FOREIGN_KEY_VIOLATION) {
         throw new UnknownInstitutionOrSectorError();

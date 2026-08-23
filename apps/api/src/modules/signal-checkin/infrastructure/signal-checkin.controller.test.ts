@@ -9,17 +9,23 @@ import {
   UnknownInstitutionOrSectorError,
 } from "../application/ports/signal-checkin-repository.port.ts";
 import type { RecordCheckinParams, SignalCheckinRepository } from "../application/ports/signal-checkin-repository.port.ts";
+import { NOTIFICATION_PUBLISHER, type NotificationEvent, type NotificationPublisher } from "../../notification/application/ports/notification.port.ts";
 
 class FakeSignalCheckinRepository implements SignalCheckinRepository {
   public calls: RecordCheckinParams[] = [];
   public shouldThrowUnknownInstitution = false;
-  async recordCheckin(params: RecordCheckinParams): Promise<void> {
+  async recordCheckin(params: RecordCheckinParams): Promise<{ checkIns: number } | null> {
     if (this.shouldThrowUnknownInstitution) {
       throw new UnknownInstitutionOrSectorError();
     }
     this.calls.push(params);
+    return { checkIns: 1 };
   }
 }
+
+const fakeNotificationPublisher: NotificationPublisher = {
+  async publish(_event: NotificationEvent): Promise<void> {},
+};
 
 describe("signal-checkin controller", () => {
   let app: INestApplication;
@@ -32,6 +38,7 @@ describe("signal-checkin controller", () => {
       providers: [
         RecordSignalCheckinUseCase,
         { provide: SIGNAL_CHECKIN_REPOSITORY, useValue: repository },
+        { provide: NOTIFICATION_PUBLISHER, useValue: fakeNotificationPublisher },
       ],
     }).compile();
 

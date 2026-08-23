@@ -7,7 +7,8 @@ export interface RecordCheckinParams {
 }
 
 export interface SignalCheckinRepository {
-  recordCheckin(params: RecordCheckinParams): Promise<void>;
+  /** The row's check-in count after the increment, or null when deduplicated. */
+  recordCheckin(params: RecordCheckinParams): Promise<{ checkIns: number } | null>;
 }
 
 export const SIGNAL_CHECKIN_REPOSITORY = Symbol("SIGNAL_CHECKIN_REPOSITORY");
