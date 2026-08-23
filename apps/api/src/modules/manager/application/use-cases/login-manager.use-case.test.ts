@@ -28,6 +28,9 @@ class FakeManagerRepository implements ManagerRepository {
   async countActiveHospitalAdmins(): Promise<number> {
     throw new Error("not used in this test");
   }
+  async findActiveHospitalAdminIds(): Promise<never> {
+    throw new Error("not used in this test");
+  }
 }
 
 function fakeConfig(secret: string): ConfigService {

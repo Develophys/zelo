@@ -30,6 +30,9 @@ class FakeManagerRepository implements ManagerRepository {
   async countActiveHospitalAdmins(): Promise<number> {
     return this.activeHospitalAdmins;
   }
+  async findActiveHospitalAdminIds(): Promise<never> {
+    throw new Error("not used in this test");
+  }
 }
 
 class FakeSectorRepository {

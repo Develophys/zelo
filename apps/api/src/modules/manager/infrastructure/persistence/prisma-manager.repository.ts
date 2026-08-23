@@ -66,6 +66,14 @@ export class PrismaManagerRepository implements ManagerRepository {
     return this.prisma.manager.count({ where: { institutionId, role: "HOSPITAL_ADMIN", isActive: true } });
   }
 
+  async findActiveHospitalAdminIds(institutionId: string): Promise<string[]> {
+    const rows = await this.prisma.manager.findMany({
+      where: { institutionId, role: "HOSPITAL_ADMIN", isActive: true },
+      select: { id: true },
+    });
+    return rows.map((row) => row.id);
+  }
+
   private toRow(row: {
     id: string;
     name: string;

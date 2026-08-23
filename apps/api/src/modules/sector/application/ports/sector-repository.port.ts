@@ -14,7 +14,7 @@ export interface UpdateSectorParams {
 export interface SectorRepository {
   create(institutionId: string, name: string): Promise<{ id: string; name: string }>;
   findAllForAdmin(institutionId: string): Promise<AdminSectorRow[]>;
-  findById(id: string): Promise<{ id: string; institutionId: string } | null>;
+  findById(id: string): Promise<{ id: string; institutionId: string; name: string; managerId: string | null } | null>;
   update(id: string, patch: UpdateSectorParams): Promise<void>;
   findActiveByInstitution(institutionId: string): Promise<{ id: string; name: string }[]>;
   findActiveByIds(institutionId: string, sectorIds: string[]): Promise<{ id: string; name: string }[]>;

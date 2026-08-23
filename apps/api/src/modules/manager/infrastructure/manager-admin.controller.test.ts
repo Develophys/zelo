@@ -42,7 +42,7 @@ class FakeSectorRepository implements SectorRepository {
   }
   async findById(id: string) {
     const row = this.rows.find((r) => r.id === id);
-    return row ? { id: row.id, institutionId: row.institutionId } : null;
+    return row ? { id: row.id, institutionId: row.institutionId, name: row.name, managerId: row.managerId } : null;
   }
   async update(id: string, patch: UpdateSectorParams): Promise<void> {
     const row = this.rows.find((r) => r.id === id);
@@ -118,6 +118,9 @@ class FakeManagerRepository implements ManagerRepository {
   }
   async countActiveHospitalAdmins(_institutionId: string): Promise<number> {
     return this.activeHospitalAdmins;
+  }
+  async findActiveHospitalAdminIds(): Promise<never> {
+    throw new Error("not used in this test");
   }
 }
 

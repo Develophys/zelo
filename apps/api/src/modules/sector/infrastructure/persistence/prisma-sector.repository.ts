@@ -41,9 +41,13 @@ export class PrismaSectorRepository implements SectorRepository {
     }));
   }
 
-  async findById(id: string): Promise<{ id: string; institutionId: string } | null> {
-    const row = await this.prisma.sector.findUnique({ where: { id } });
-    return row ? { id: row.id, institutionId: row.institutionId } : null;
+  async findById(
+    id: string,
+  ): Promise<{ id: string; institutionId: string; name: string; managerId: string | null } | null> {
+    return this.prisma.sector.findUnique({
+      where: { id },
+      select: { id: true, institutionId: true, name: true, managerId: true },
+    });
   }
 
   async update(id: string, patch: UpdateSectorParams): Promise<void> {
