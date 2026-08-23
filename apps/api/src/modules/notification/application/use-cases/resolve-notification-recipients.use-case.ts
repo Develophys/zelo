@@ -16,9 +16,9 @@ export class ResolveNotificationRecipientsUseCase {
   ) {}
 
   // The privacy rule, in one place: a recipient is either an active hospital
-  // admin of the event's institution, or the manager of the exact sector the
-  // event names. There is no third path, which is what keeps a notification
-  // from ever being wider than the data it cites.
+  // admin of the event's institution, or the active manager of the exact
+  // sector the event names. There is no third path, which is what keeps a
+  // notification from ever being wider than the data it cites.
   async execute(event: NotificationEvent): Promise<string[]> {
     if (!SECTOR_SCOPED.has(event.type)) {
       return this.managerRepository.findActiveHospitalAdminIds(event.institutionId);
@@ -33,7 +33,10 @@ export class ResolveNotificationRecipientsUseCase {
 
     const admins = await this.managerRepository.findActiveHospitalAdminIds(event.institutionId);
     const recipients = new Set(admins);
-    if (sector.managerId) recipients.add(sector.managerId);
+    if (sector.managerId) {
+      const sectorManager = await this.managerRepository.findById(sector.managerId);
+      if (sectorManager?.isActive) recipients.add(sector.managerId);
+    }
     return [...recipients];
   }
 }

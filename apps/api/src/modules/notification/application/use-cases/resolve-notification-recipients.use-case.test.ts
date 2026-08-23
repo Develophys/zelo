@@ -8,8 +8,13 @@ const INSTITUTION = "institution-1";
 
 class FakeManagerRepository {
   adminIds: string[] = ["admin-1", "admin-2"];
+  managers = new Map<string, { isActive: boolean }>([["sector-manager-1", { isActive: true }]]);
   async findActiveHospitalAdminIds(institutionId: string): Promise<string[]> {
     return institutionId === INSTITUTION ? this.adminIds : [];
+  }
+  async findById(id: string) {
+    const manager = this.managers.get(id);
+    return manager ? { id, isActive: manager.isActive } : null;
   }
 }
 
@@ -108,5 +113,21 @@ describe("ResolveNotificationRecipientsUseCase", () => {
   it("treats a sector-scoped event with no sectorId as undeliverable rather than institution-wide", async () => {
     const recipients = await build().execute(event("SECTOR_RISK_THRESHOLD"));
     expect(recipients).toEqual([]);
+  });
+
+  it("resolves to the admins only when the sector's assigned manager is inactive", async () => {
+    const managers = new FakeManagerRepository();
+    managers.managers.set("sector-manager-1", { isActive: false });
+    const recipients = await build(managers).execute(event("SECTOR_RISK_THRESHOLD", "sector-1"));
+    expect(recipients).toEqual(["admin-1", "admin-2"]);
+  });
+
+  it("resolves to the admins only, without throwing, when the sector's managerId points at a manager that no longer exists", async () => {
+    const sectors = new FakeSectorRepository();
+    sectors.sector = { id: "sector-1", institutionId: INSTITUTION, name: "UTI", managerId: "ghost-manager" };
+    const recipients = await build(new FakeManagerRepository(), sectors).execute(
+      event("SECTOR_RISK_THRESHOLD", "sector-1"),
+    );
+    expect(recipients).toEqual(["admin-1", "admin-2"]);
   });
 });
