@@ -4,7 +4,7 @@ import { Tooltip } from '@/presentation/ui/Tooltip';
 import { routes } from '@/presentation/lib/routes';
 import { useManagerPrefsStore } from '@/stores/manager-prefs.store';
 import { useManagerSessionStore } from '@/stores/manager-session.store';
-import { useManagerUnreadCount } from '@/stores/manager-notifications.store';
+import { useManagerUnreadCount } from '@/presentation/hooks/useManagerNotifications';
 import { ManagerUnreadBadge } from './ManagerUnreadBadge';
 import {
   MANAGER_ADMIN_GROUP_LABEL,

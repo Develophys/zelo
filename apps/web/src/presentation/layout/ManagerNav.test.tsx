@@ -1,31 +1,29 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { MemoryRouter } from 'react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ManagerSidebar } from './ManagerSidebar';
 import { ManagerBottomNav } from './ManagerBottomNav';
 import { MANAGER_ADMIN_NAV, MANAGER_PRIMARY_NAV, MANAGER_SETTINGS_NAV } from './manager-nav';
 import { useManagerPrefsStore } from '@/stores/manager-prefs.store';
 import { useManagerSessionStore } from '@/stores/manager-session.store';
-import { useManagerNotificationsStore } from '@/stores/manager-notifications.store';
+import * as container from '@/app/container';
 
 const ALL_DESTINATIONS = [...MANAGER_PRIMARY_NAV, ...MANAGER_ADMIN_NAV, MANAGER_SETTINGS_NAV];
 
 function unread(count: number) {
-  useManagerNotificationsStore.setState({
-    items: Array.from({ length: count }, (_, i) => ({
-      id: `n-${i}`,
-      event: 'Sinal agregado',
-      detail: 'detalhe',
-      createdAt: '2026-08-20T10:00:00.000Z',
-      read: false,
-    })),
-  });
+  vi.spyOn(container.listManagerNotificationsUseCase, 'unreadCount').mockResolvedValue(count);
 }
 
 function mount(node: React.ReactNode, at = '/manager') {
-  return render(<MemoryRouter initialEntries={[at]}>{node}</MemoryRouter>);
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[at]}>{node}</MemoryRouter>
+    </QueryClientProvider>,
+  );
 }
 
 beforeEach(() => {
@@ -38,7 +36,7 @@ beforeEach(() => {
 afterEach(() => {
   window.localStorage.clear();
   useManagerPrefsStore.setState({ density: 'comfortable', accent: 'sage', sidebarCollapsed: false });
-  useManagerNotificationsStore.setState({ items: [] });
+  vi.restoreAllMocks();
 });
 
 describe('ManagerSidebar', () => {
@@ -117,18 +115,18 @@ describe('ManagerSidebar', () => {
     expect(screen.getByTestId('tooltip')).toHaveTextContent('Administração do hospital');
   });
 
-  it('shrinks the unread badge to a dot in the rail, where a number would not fit', () => {
+  it('shrinks the unread badge to a dot in the rail, where a number would not fit', async () => {
     unread(3);
     useManagerPrefsStore.setState({ sidebarCollapsed: true });
     mount(<ManagerSidebar />);
-    const badge = screen.getByRole('status', { name: '3 notificações não lidas' });
+    const badge = await screen.findByRole('status', { name: '3 notificações não lidas' });
     expect(badge).not.toHaveTextContent('3');
   });
 
-  it('caps the badge at 99+ while keeping the real count in the accessible name', () => {
+  it('caps the badge at 99+ while keeping the real count in the accessible name', async () => {
     unread(104);
     mount(<ManagerSidebar />);
-    const badge = screen.getByRole('status', { name: '104 notificações não lidas' });
+    const badge = await screen.findByRole('status', { name: '104 notificações não lidas' });
     expect(badge).toHaveTextContent('99+');
   });
 

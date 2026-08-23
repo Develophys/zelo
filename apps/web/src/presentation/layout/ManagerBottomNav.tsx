@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router';
 import { ChevronUp, LogOut } from 'lucide-react';
 import { routes } from '@/presentation/lib/routes';
 import { useManagerSessionStore } from '@/stores/manager-session.store';
-import { useManagerUnreadCount } from '@/stores/manager-notifications.store';
+import { useManagerUnreadCount } from '@/presentation/hooks/useManagerNotifications';
 import { ManagerUnreadBadge } from './ManagerUnreadBadge';
 import {
   MANAGER_ADMIN_GROUP_LABEL,
