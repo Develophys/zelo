@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SweepSectorRiskUseCase } from "./sweep-sector-risk.use-case.ts";
 import type { NotificationEvent, NotificationPublisher } from "../ports/notification.port.ts";
+import { RISK_DELTA_THRESHOLD, RISK_MIN_CHECK_INS, RISK_RATE_THRESHOLD } from "../thresholds.ts";
 
 class FakePublisher implements NotificationPublisher {
   events: NotificationEvent[] = [];
@@ -128,5 +129,67 @@ describe("SweepSectorRiskUseCase", () => {
     await useCase.execute(NOW);
 
     expect(publisher.events.map((e) => e.sectorId)).toEqual(["sector-1"]);
+  });
+
+  // Boundary pins. thresholds.ts is documented as the seam AppSettings will
+  // later replace, so these comparisons will be edited again by someone
+  // without today's context. Flipping any `>=` to `>` (or the current-week
+  // `checkIns < RISK_MIN_CHECK_INS` skip to `<=`) must fail one of these,
+  // even though it passes every test above. Fixtures are derived from the
+  // thresholds rather than hardcoded, so a future change to the constants
+  // does not silently make these stop testing the boundary.
+  describe("boundary pins", () => {
+    it("fires level exactly at RISK_RATE_THRESHOLD, isolated from the check-ins boundary", async () => {
+      // checkIns well above RISK_MIN_CHECK_INS so this cannot be saved by a
+      // `checkIns < MIN` -> `<=` mutation; only pins `rate >= RATE_THRESHOLD`.
+      const checkIns = RISK_MIN_CHECK_INS * 3;
+      const concerning = Math.round(RISK_RATE_THRESHOLD * checkIns);
+      const rate = concerning / checkIns;
+      expect(rate).toBe(RISK_RATE_THRESHOLD); // fixture sanity: exact, not "close to"
+
+      const { useCase, publisher } = build([row(CLOSED_WEEK, checkIns, concerning)]);
+      await useCase.execute(NOW);
+
+      expect(publisher.events).toHaveLength(1);
+      expect(publisher.events[0]!.payload).toMatchObject({ trigger: "level" });
+    });
+
+    it("still evaluates a sector at exactly RISK_MIN_CHECK_INS check-ins, not just above it", async () => {
+      // Rate is unambiguously above threshold (100%) so this pins only the
+      // `checkIns < RISK_MIN_CHECK_INS` skip, not the rate comparison.
+      const checkIns = RISK_MIN_CHECK_INS;
+      const concerning = checkIns;
+
+      const { useCase, publisher } = build([row(CLOSED_WEEK, checkIns, concerning)]);
+      await useCase.execute(NOW);
+
+      expect(publisher.events).toHaveLength(1);
+    });
+
+    it("fires delta on a rise of exactly RISK_DELTA_THRESHOLD off a prior week at exactly RISK_MIN_CHECK_INS", async () => {
+      // previousRate pinned at 0 (0 / RISK_MIN_CHECK_INS) so the subtraction
+      // that computes the rise introduces no floating-point rounding of its
+      // own; rate alone is set to land exactly on RISK_DELTA_THRESHOLD. This
+      // pins both the prior-week eligibility (`previous.checkIns >= MIN`)
+      // and the delta comparison in one fixture. Current week's checkIns is
+      // well above MIN so the level rule cannot fire and mask a broken delta
+      // comparison.
+      const priorCheckIns = RISK_MIN_CHECK_INS;
+      const priorConcerning = 0;
+      const checkIns = RISK_MIN_CHECK_INS * 2;
+      const concerning = Math.round(RISK_DELTA_THRESHOLD * checkIns);
+      const rate = concerning / checkIns;
+      expect(rate).toBe(RISK_DELTA_THRESHOLD); // fixture sanity
+      expect(rate).toBeLessThan(RISK_RATE_THRESHOLD); // isolates delta from level
+
+      const { useCase, publisher } = build([
+        row(PRIOR_WEEK, priorCheckIns, priorConcerning),
+        row(CLOSED_WEEK, checkIns, concerning),
+      ]);
+      await useCase.execute(NOW);
+
+      expect(publisher.events).toHaveLength(1);
+      expect(publisher.events[0]!.payload).toMatchObject({ trigger: "delta" });
+    });
   });
 });
