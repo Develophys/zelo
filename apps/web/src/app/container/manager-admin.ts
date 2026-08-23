@@ -10,6 +10,9 @@ import { ListPeerPartnersUseCase } from "@/use-cases/list-peer-partners.usecase"
 import { CreatePeerPartnerUseCase } from "@/use-cases/create-peer-partner.usecase";
 import { UpdatePeerPartnerUseCase } from "@/use-cases/update-peer-partner.usecase";
 import { SendPeerPartnerSetPasswordEmailUseCase } from "@/use-cases/send-peer-partner-set-password-email.usecase";
+import { DeleteManagerUseCase } from "@/use-cases/delete-manager.usecase";
+import { DeleteSectorUseCase } from "@/use-cases/delete-sector.usecase";
+import { DeletePeerPartnerUseCase } from "@/use-cases/delete-peer-partner.usecase";
 
 const managerAdminAdapter = new HttpManagerAdminAdapter();
 
@@ -26,3 +29,6 @@ export const updatePeerPartnerUseCase = new UpdatePeerPartnerUseCase(managerAdmi
 export const sendPeerPartnerSetPasswordEmailUseCase = new SendPeerPartnerSetPasswordEmailUseCase(
   managerAdminAdapter,
 );
+export const deleteManagerAdminUseCase = new DeleteManagerUseCase(managerAdminAdapter);
+export const deleteSectorAdminUseCase = new DeleteSectorUseCase(managerAdminAdapter);
+export const deletePeerPartnerAdminUseCase = new DeletePeerPartnerUseCase(managerAdminAdapter);

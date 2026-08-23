@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type {
+  AdminDeleteConflictReason,
   AdminSector,
   CreateManagerParams,
   CreateManagerResult,
@@ -13,6 +14,7 @@ import type {
   UpdateSectorParams,
 } from "@/ports/manager-admin.port";
 import {
+  AdminDeleteConflictError,
   AdminSectorSchema,
   CreateManagerResultSchema,
   CreatePeerPartnerResultSchema,
@@ -23,6 +25,7 @@ import {
   PeerPartnerSummarySchema,
   SectorNameConflictError,
 } from "@/ports/manager-admin.port";
+import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
@@ -130,5 +133,36 @@ export class HttpManagerAdminAdapter implements ManagerAdminPort {
     });
     if (response.status === 404) throw new ManagerAdminNotFoundError();
     if (!response.ok) throw new Error(`send peer partner set-password email failed with status ${response.status}`);
+  }
+
+  private async deleteResource(token: string, path: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.status === 401) throw new UnauthorizedManagerError();
+    if (response.status === 409) {
+      const body = (await response.json().catch(() => null)) as { message?: unknown } | null;
+      const raw = typeof body?.message === "string" ? body.message : "";
+      const reason: AdminDeleteConflictReason =
+        raw === "MANAGER_OWNS_SECTORS" || raw === "LAST_ADMIN" || raw === "SECTOR_HAS_HISTORY"
+          ? raw
+          : "UNKNOWN";
+      throw new AdminDeleteConflictError(reason);
+    }
+    if (!response.ok) throw new Error(`delete failed with status ${response.status}`);
+  }
+
+  async deleteManager(token: string, id: string): Promise<void> {
+    return this.deleteResource(token, `/manager/admin/managers/${id}`);
+  }
+
+  async deleteSector(token: string, id: string): Promise<void> {
+    return this.deleteResource(token, `/manager/admin/sectors/${id}`);
+  }
+
+  async deletePeerPartner(token: string, id: string): Promise<void> {
+    return this.deleteResource(token, `/manager/admin/peer-partners/${id}`);
   }
 }

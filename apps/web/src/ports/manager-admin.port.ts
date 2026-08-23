@@ -58,6 +58,33 @@ export class InvalidManagerAdminRequestError extends Error {}
 export class LastActiveHospitalAdminError extends Error {}
 export class ManagerAdminNotFoundError extends Error {}
 
+export type AdminDeleteConflictReason =
+  | "MANAGER_OWNS_SECTORS"
+  | "LAST_ADMIN"
+  | "SECTOR_HAS_HISTORY"
+  | "UNKNOWN";
+
+export class AdminDeleteConflictError extends Error {
+  constructor(readonly reason: AdminDeleteConflictReason) {
+    super(reason);
+    this.name = "AdminDeleteConflictError";
+  }
+}
+
+const CONFLICT_MESSAGE: Record<AdminDeleteConflictReason, string> = {
+  SECTOR_HAS_HISTORY:
+    "Este setor tem histórico de check-ins e não pode ser excluído. Pause-o para tirá-lo do painel.",
+  MANAGER_OWNS_SECTORS:
+    "Este gestor ainda é responsável por setores. Reatribua os setores antes de excluí-lo.",
+  LAST_ADMIN:
+    "Este é o último administrador ativo do hospital. Cadastre outro antes de excluí-lo.",
+  UNKNOWN: "Não foi possível excluir. Tente de novo.",
+};
+
+export function deleteConflictMessage(error: unknown): string | null {
+  return error instanceof AdminDeleteConflictError ? CONFLICT_MESSAGE[error.reason] : null;
+}
+
 export interface UpdateSectorParams {
   isActive?: boolean;
   managerId?: string | null;
@@ -88,4 +115,7 @@ export interface ManagerAdminPort {
   createPeerPartner(token: string, params: CreatePeerPartnerParams): Promise<CreatePeerPartnerResult>;
   updatePeerPartner(token: string, id: string, patch: UpdatePeerPartnerParams): Promise<void>;
   sendPeerPartnerSetPasswordEmail(token: string, id: string): Promise<void>;
+  deleteManager(token: string, id: string): Promise<void>;
+  deleteSector(token: string, id: string): Promise<void>;
+  deletePeerPartner(token: string, id: string): Promise<void>;
 }
