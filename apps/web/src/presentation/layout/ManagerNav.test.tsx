@@ -9,6 +9,7 @@ import { ManagerBottomNav } from './ManagerBottomNav';
 import { MANAGER_ADMIN_NAV, MANAGER_PRIMARY_NAV, MANAGER_SETTINGS_NAV } from './manager-nav';
 import { useManagerPrefsStore } from '@/stores/manager-prefs.store';
 import { useManagerSessionStore } from '@/stores/manager-session.store';
+import { routes } from '@/presentation/lib/routes';
 import * as container from '@/app/container';
 
 const ALL_DESTINATIONS = [...MANAGER_PRIMARY_NAV, ...MANAGER_ADMIN_NAV, MANAGER_SETTINGS_NAV];
@@ -66,6 +67,23 @@ describe('ManagerSidebar', () => {
     expect(screen.getByRole('button', { name: 'Sair' })).toBeInTheDocument();
   });
 
+  it('puts the collapse toggle in the sidebar header, beside the Zelo mark', () => {
+    mount(<ManagerSidebar />);
+    const header = screen.getByTestId('manager-sidebar-header');
+    expect(within(header).getByRole('link', { name: 'Zelo' })).toHaveAttribute(
+      'href',
+      routes.manager,
+    );
+    expect(within(header).getByRole('button', { name: 'Recolher menu' })).toBeInTheDocument();
+  });
+
+  it('stays pinned to the viewport with no top bar to clear', () => {
+    mount(<ManagerSidebar />);
+    expect(screen.getByTestId('manager-sidebar').className).toContain('md:sticky');
+    expect(screen.getByTestId('manager-sidebar').className).toContain('md:top-0');
+    expect(screen.getByTestId('manager-sidebar').className).toContain('md:h-dvh');
+  });
+
   it('collapses to a rail and back, and the choice survives a remount', async () => {
     const user = userEvent.setup();
     const { unmount } = mount(<ManagerSidebar />);
@@ -85,12 +103,14 @@ describe('ManagerSidebar', () => {
 
   // The bubble is aria-hidden by design when it only restates the trigger's own
   // accessible name, so these find it by testid rather than by role.
-  it('names the first rail item on keyboard focus, with no label left on screen to read', async () => {
+  it('names the first rail nav item on keyboard focus, after the header link and toggle', async () => {
     const user = userEvent.setup();
     useManagerPrefsStore.setState({ sidebarCollapsed: true });
     mount(<ManagerSidebar />);
 
     expect(screen.queryByTestId('tooltip')).not.toBeInTheDocument();
+    await user.tab();
+    await user.tab();
     await user.tab();
     expect(screen.getByTestId('tooltip')).toHaveTextContent('Tendências');
   });
