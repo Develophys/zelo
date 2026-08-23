@@ -123,9 +123,9 @@ describe('Modal', () => {
   });
 
   it.each([
-    ['sm', 'max-w-[340px]'],
-    ['md', 'max-w-[480px]'],
-    ['lg', 'max-w-[640px]'],
+    ['sm', 'md:max-w-[400px]'],
+    ['md', 'md:max-w-[520px]'],
+    ['lg', 'md:max-w-[640px]'],
   ] as const)('applies the %s size class', (size, expectedClass) => {
     render(
       <Modal isOpen onClose={vi.fn()} title="Test modal" size={size}>
@@ -133,5 +133,43 @@ describe('Modal', () => {
       </Modal>,
     );
     expect(screen.getByRole('dialog')).toHaveClass(expectedClass);
+  });
+
+  it('fills the width and pins to the bottom at base, then centres with a max width from md', () => {
+    render(
+      <Modal isOpen onClose={() => {}} title="Novo setor">
+        <p>corpo</p>
+      </Modal>,
+    );
+    const dialog = screen.getByRole('dialog');
+    // Base: a sheet — full width, pinned bottom, rounded only at the top.
+    expect(dialog.className).toContain('mt-auto');
+    expect(dialog.className).toContain('w-full');
+    // md and up: a centred dialog with a bounded width.
+    expect(dialog.className).toContain('md:m-auto');
+    expect(dialog.className).toContain('md:max-w-[520px]');
+  });
+
+  it('leaves the header and footer visible while the body scrolls, so the buttons never scroll away', () => {
+    render(
+      <Modal isOpen onClose={() => {}} title="Novo setor" footer={<button type="button">Salvar</button>}>
+        <p>corpo</p>
+      </Modal>,
+    );
+    const body = screen.getByTestId('modal-body');
+    expect(body.className).toContain('overflow-y-auto');
+    expect(body.className).toContain('min-h-0');
+    expect(screen.getByRole('button', { name: 'Salvar' })).toBeVisible();
+  });
+
+  it('shows a drag handle on the sheet, hidden from assistive tech', () => {
+    render(
+      <Modal isOpen onClose={() => {}} title="Novo setor">
+        <p>corpo</p>
+      </Modal>,
+    );
+    const handle = screen.getByTestId('modal-drag-handle');
+    expect(handle).toHaveAttribute('aria-hidden', 'true');
+    expect(handle.className).toContain('md:hidden');
   });
 });
