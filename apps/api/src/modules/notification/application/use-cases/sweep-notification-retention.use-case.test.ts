@@ -28,8 +28,9 @@ describe("SweepNotificationRetentionUseCase", () => {
   it("crosses a year boundary correctly", async () => {
     const { useCase, getCutoff } = buildWithCapturedCutoff(3);
 
-    await useCase.execute(new Date("2026-02-15T03:00:00.000Z"));
+    const deleted = await useCase.execute(new Date("2026-02-15T03:00:00.000Z"));
 
+    expect(deleted).toBe(3);
     // 90 days before 2026-02-15 lands in the previous year, through a
     // non-leap February — the arithmetic most likely to go wrong.
     expect(getCutoff()!.toISOString()).toBe("2025-11-17T03:00:00.000Z");
