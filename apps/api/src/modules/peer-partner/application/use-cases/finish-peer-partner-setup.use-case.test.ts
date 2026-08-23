@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 import { FinishPeerPartnerSetupUseCase, InvalidOrExpiredPeerPartnerSetupTokenError } from "./finish-peer-partner-setup.use-case.ts";
 import { PeerPartnerPasswordService } from "../services/peer-partner-password.service.ts";
 import type { PeerPartnerRepository, PeerPartnerRow, UpdatePeerPartnerParams } from "../ports/peer-partner-repository.port.ts";
+import type { NotificationEvent, NotificationPublisher } from "../../../notification/application/ports/notification.port.ts";
+
+class FakeNotificationPublisher implements NotificationPublisher {
+  events: NotificationEvent[] = [];
+  async publish(event: NotificationEvent): Promise<void> {
+    this.events.push(event);
+  }
+}
 
 class FakePeerPartnerRepository implements PeerPartnerRepository {
   rows: PeerPartnerRow[] = [];
@@ -29,7 +37,7 @@ class FakePeerPartnerRepository implements PeerPartnerRepository {
 describe("FinishPeerPartnerSetupUseCase", () => {
   it("throws InvalidOrExpiredPeerPartnerSetupTokenError when no peer partner has this token", async () => {
     const repository = new FakePeerPartnerRepository();
-    const useCase = new FinishPeerPartnerSetupUseCase(repository, new PeerPartnerPasswordService());
+    const useCase = new FinishPeerPartnerSetupUseCase(repository, new PeerPartnerPasswordService(), new FakeNotificationPublisher());
 
     await expect(useCase.execute({ token: "unknown-token", password: "new-password-123" })).rejects.toThrow(InvalidOrExpiredPeerPartnerSetupTokenError);
   });
@@ -42,7 +50,7 @@ describe("FinishPeerPartnerSetupUseCase", () => {
         { setPasswordToken: "abc123" },
       ),
     ];
-    const useCase = new FinishPeerPartnerSetupUseCase(repository, new PeerPartnerPasswordService());
+    const useCase = new FinishPeerPartnerSetupUseCase(repository, new PeerPartnerPasswordService(), new FakeNotificationPublisher());
 
     await expect(useCase.execute({ token: "abc123", password: "new-password-123" })).rejects.toThrow(InvalidOrExpiredPeerPartnerSetupTokenError);
   });
@@ -56,7 +64,7 @@ describe("FinishPeerPartnerSetupUseCase", () => {
       ),
     ];
     const passwordService = new PeerPartnerPasswordService();
-    const useCase = new FinishPeerPartnerSetupUseCase(repository, passwordService);
+    const useCase = new FinishPeerPartnerSetupUseCase(repository, passwordService, new FakeNotificationPublisher());
 
     await useCase.execute({ token: "abc123", password: "new-password-123" });
 
@@ -65,5 +73,39 @@ describe("FinishPeerPartnerSetupUseCase", () => {
     expect(repository.lastUpdate?.patch.setPasswordTokenExpiresAt).toBeNull();
     const newHash = repository.lastUpdate!.patch.passwordHash!;
     expect(await passwordService.verify("new-password-123", newHash)).toBe(true);
+  });
+
+  it("tells the hospital admins that the invite was accepted", async () => {
+    const repository = new FakePeerPartnerRepository();
+    repository.rows = [
+      Object.assign(
+        { id: "peer-1", name: "Dra. Ana", email: "ana@zelo-demo.local", passwordHash: null, setPasswordTokenExpiresAt: new Date(Date.now() + 60_000), institutionId: "institution-1", specialty: "Clínica médica", isActive: true } as PeerPartnerRow,
+        { setPasswordToken: "abc123" },
+      ),
+    ];
+    const notifications = new FakeNotificationPublisher();
+    const useCase = new FinishPeerPartnerSetupUseCase(repository, new PeerPartnerPasswordService(), notifications);
+
+    await useCase.execute({ token: "abc123", password: "new-password-123" });
+
+    expect(notifications.events).toEqual([
+      {
+        institutionId: "institution-1",
+        type: "INVITE_ACCEPTED",
+        payload: { kind: "peer-partner", name: "Dra. Ana" },
+        dedupKey: "invite-accepted:peer-partner:peer-1",
+      },
+    ]);
+  });
+
+  it("does not announce an acceptance that never happened", async () => {
+    const repository = new FakePeerPartnerRepository();
+    const notifications = new FakeNotificationPublisher();
+    const useCase = new FinishPeerPartnerSetupUseCase(repository, new PeerPartnerPasswordService(), notifications);
+
+    await expect(useCase.execute({ token: "unknown", password: "new-password-123" })).rejects.toThrow(
+      InvalidOrExpiredPeerPartnerSetupTokenError,
+    );
+    expect(notifications.events).toEqual([]);
   });
 });

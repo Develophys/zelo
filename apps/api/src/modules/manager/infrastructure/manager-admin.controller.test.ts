@@ -24,6 +24,15 @@ import type { CreatePeerPartnerParams, PeerPartnerRepository, PeerPartnerRow, Pe
 import { PeerChatGateway } from "../../peer-chat/infrastructure/peer-chat.gateway.ts";
 import { EMAIL_PORT } from "../../../shared/email/email.port.ts";
 import type { EmailPort, EmailTemplate, SendEmailParams } from "../../../shared/email/email.port.ts";
+import { NOTIFICATION_PUBLISHER } from "../../notification/application/ports/notification.port.ts";
+import type { NotificationEvent, NotificationPublisher } from "../../notification/application/ports/notification.port.ts";
+
+class FakeNotificationPublisher implements NotificationPublisher {
+  events: NotificationEvent[] = [];
+  async publish(event: NotificationEvent): Promise<void> {
+    this.events.push(event);
+  }
+}
 
 class FakeSectorRepository implements SectorRepository {
   public rows: (AdminSectorRow & { institutionId: string })[] = [];
@@ -195,6 +204,7 @@ describe("manager admin controller — sectors", () => {
   let peerChatGateway: FakePeerChatGateway;
   let tokenService: ManagerTokenService;
   let emailPort: FakeEmailPort;
+  let notifications: FakeNotificationPublisher;
 
   beforeAll(async () => {
     tokenService = new ManagerTokenService(fakeConfig());
@@ -203,6 +213,7 @@ describe("manager admin controller — sectors", () => {
     peerPartnerRepository = new FakePeerPartnerRepository();
     peerChatGateway = new FakePeerChatGateway();
     emailPort = new FakeEmailPort();
+    notifications = new FakeNotificationPublisher();
 
     const moduleRef = await Test.createTestingModule({
       controllers: [ManagerAdminController],
@@ -215,6 +226,7 @@ describe("manager admin controller — sectors", () => {
         { provide: PEER_PARTNER_REPOSITORY, useValue: peerPartnerRepository },
         { provide: PeerChatGateway, useValue: peerChatGateway },
         { provide: EMAIL_PORT, useValue: emailPort },
+        { provide: NOTIFICATION_PUBLISHER, useValue: notifications },
         CreateManagerUseCase,
         UpdateManagerUseCase,
         SendManagerSetPasswordEmailUseCase,

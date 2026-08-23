@@ -26,6 +26,15 @@ import { MANAGER_INSIGHT_REPOSITORY } from "../application/ports/manager-insight
 import type { ManagerInsightRepository, StoredManagerInsight } from "../application/ports/manager-insight-repository.port.ts";
 import { SECTOR_REPOSITORY } from "../../sector/application/ports/sector-repository.port.ts";
 import type { SectorRepository, AdminSectorRow, UpdateSectorParams } from "../../sector/application/ports/sector-repository.port.ts";
+import { NOTIFICATION_PUBLISHER } from "../../notification/application/ports/notification.port.ts";
+import type { NotificationEvent, NotificationPublisher } from "../../notification/application/ports/notification.port.ts";
+
+class FakeNotificationPublisher implements NotificationPublisher {
+  events: NotificationEvent[] = [];
+  async publish(event: NotificationEvent): Promise<void> {
+    this.events.push(event);
+  }
+}
 
 class FakeManagerRepository implements ManagerRepository {
   public rows: ManagerRow[] = [];
@@ -197,6 +206,7 @@ describe("manager controller", () => {
         { provide: SIMULATED_FOLLOW_UP_REPOSITORY, useValue: followUpRepository },
         { provide: AI_INSIGHT_PORT, useValue: aiInsightPort },
         { provide: MANAGER_INSIGHT_REPOSITORY, useValue: insightRepository },
+        { provide: NOTIFICATION_PUBLISHER, useValue: new FakeNotificationPublisher() },
         { provide: ConfigService, useValue: fakeConfig() },
       ],
     }).compile();

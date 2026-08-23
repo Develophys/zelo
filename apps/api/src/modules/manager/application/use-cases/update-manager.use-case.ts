@@ -2,6 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { MANAGER_REPOSITORY, type ManagerRepository, type ManagerRole } from "../ports/manager-repository.port.ts";
 import { SECTOR_REPOSITORY, type SectorRepository } from "../../../sector/application/ports/sector-repository.port.ts";
 import { LastActiveHospitalAdminError, ManagerNotFoundError, SectorNotInInstitutionError } from "./manager-admin-errors.ts";
+import { NOTIFICATION_PUBLISHER, type NotificationPublisher } from "../../../notification/application/ports/notification.port.ts";
 
 export interface UpdateManagerInput {
   institutionId: string;
@@ -14,6 +15,7 @@ export class UpdateManagerUseCase {
   constructor(
     @Inject(MANAGER_REPOSITORY) private readonly managerRepository: ManagerRepository,
     @Inject(SECTOR_REPOSITORY) private readonly sectorRepository: SectorRepository,
+    @Inject(NOTIFICATION_PUBLISHER) private readonly notifications: NotificationPublisher,
   ) {}
 
   async execute(input: UpdateManagerInput): Promise<void> {
@@ -35,10 +37,21 @@ export class UpdateManagerUseCase {
       }
     }
 
+    const wasActive = manager.isActive;
+
     await this.managerRepository.update(input.managerId, {
       isActive: input.patch.isActive,
       role: input.patch.role,
     });
+
+    if (input.patch.isActive !== undefined && input.patch.isActive !== wasActive) {
+      await this.notifications.publish({
+        institutionId: input.institutionId,
+        type: input.patch.isActive ? "ACCOUNT_REACTIVATED" : "ACCOUNT_DEACTIVATED",
+        payload: { kind: "manager", name: manager.name },
+        dedupKey: `account-status:manager:${manager.id}:${new Date().toISOString()}`,
+      });
+    }
 
     if (deactivating) {
       // Sectors lose their manager on deactivation regardless of any sectorIds

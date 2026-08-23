@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 import { UpdateManagerUseCase } from "./update-manager.use-case.ts";
 import { LastActiveHospitalAdminError, ManagerNotFoundError, SectorNotInInstitutionError } from "./manager-admin-errors.ts";
 import type { ManagerRepository, ManagerRow, UpdateManagerParams } from "../ports/manager-repository.port.ts";
+import type { NotificationEvent, NotificationPublisher } from "../../../notification/application/ports/notification.port.ts";
+
+class FakeNotificationPublisher implements NotificationPublisher {
+  events: NotificationEvent[] = [];
+  async publish(event: NotificationEvent): Promise<void> {
+    this.events.push(event);
+  }
+}
 
 class FakeManagerRepository implements ManagerRepository {
   public rows: ManagerRow[] = [];
@@ -50,11 +58,24 @@ function managerRow(overrides: Partial<ManagerRow> = {}): ManagerRow {
   return { id: "manager-1", name: "Ana", email: "ana@zelo-demo.local", passwordHash: "hash", setPasswordTokenExpiresAt: null, institutionId: "institution-1", role: "SECTOR_MANAGER", isActive: true, ...overrides };
 }
 
+function buildWithTwoAdmins(options: { managerIsActive?: boolean } = {}) {
+  const managerRepository = new FakeManagerRepository();
+  managerRepository.rows = [
+    managerRow({ id: "manager-1", name: "Ana", role: "HOSPITAL_ADMIN", isActive: true }),
+    managerRow({ id: "manager-2", name: "Beatriz", role: "HOSPITAL_ADMIN", isActive: options.managerIsActive ?? true }),
+  ];
+  managerRepository.activeHospitalAdmins = 2;
+  const sectorRepository = new FakeSectorRepository();
+  const notifications = new FakeNotificationPublisher();
+  const useCase = new UpdateManagerUseCase(managerRepository, sectorRepository as never, notifications);
+  return { useCase, notifications };
+}
+
 describe("UpdateManagerUseCase", () => {
   it("throws ManagerNotFoundError when the manager doesn't belong to the given institution", async () => {
     const managerRepository = new FakeManagerRepository();
     managerRepository.rows = [managerRow({ institutionId: "institution-other" })];
-    const useCase = new UpdateManagerUseCase(managerRepository, new FakeSectorRepository() as never);
+    const useCase = new UpdateManagerUseCase(managerRepository, new FakeSectorRepository() as never, new FakeNotificationPublisher());
 
     await expect(useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { isActive: false } })).rejects.toThrow(ManagerNotFoundError);
   });
@@ -63,7 +84,7 @@ describe("UpdateManagerUseCase", () => {
     const managerRepository = new FakeManagerRepository();
     managerRepository.rows = [managerRow({ role: "HOSPITAL_ADMIN" })];
     managerRepository.activeHospitalAdmins = 1;
-    const useCase = new UpdateManagerUseCase(managerRepository, new FakeSectorRepository() as never);
+    const useCase = new UpdateManagerUseCase(managerRepository, new FakeSectorRepository() as never, new FakeNotificationPublisher());
 
     await expect(useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { isActive: false } })).rejects.toThrow(LastActiveHospitalAdminError);
   });
@@ -73,7 +94,7 @@ describe("UpdateManagerUseCase", () => {
     managerRepository.rows = [managerRow({ role: "HOSPITAL_ADMIN" })];
     managerRepository.activeHospitalAdmins = 2;
     const sectorRepository = new FakeSectorRepository();
-    const useCase = new UpdateManagerUseCase(managerRepository, sectorRepository as never);
+    const useCase = new UpdateManagerUseCase(managerRepository, sectorRepository as never, new FakeNotificationPublisher());
 
     await useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { isActive: false } });
 
@@ -85,7 +106,7 @@ describe("UpdateManagerUseCase", () => {
     const managerRepository = new FakeManagerRepository();
     managerRepository.rows = [managerRow({ role: "HOSPITAL_ADMIN" })];
     managerRepository.activeHospitalAdmins = 1;
-    const useCase = new UpdateManagerUseCase(managerRepository, new FakeSectorRepository() as never);
+    const useCase = new UpdateManagerUseCase(managerRepository, new FakeSectorRepository() as never, new FakeNotificationPublisher());
 
     await expect(
       useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { role: "SECTOR_MANAGER" } }),
@@ -99,7 +120,7 @@ describe("UpdateManagerUseCase", () => {
     managerRepository.activeHospitalAdmins = 2;
     const sectorRepository = new FakeSectorRepository();
     sectorRepository.knownSectorIds = new Set(["sector-a"]);
-    const useCase = new UpdateManagerUseCase(managerRepository, sectorRepository as never);
+    const useCase = new UpdateManagerUseCase(managerRepository, sectorRepository as never, new FakeNotificationPublisher());
 
     await useCase.execute({
       institutionId: "institution-1",
@@ -115,7 +136,7 @@ describe("UpdateManagerUseCase", () => {
     const managerRepository = new FakeManagerRepository();
     managerRepository.rows = [managerRow({ role: "HOSPITAL_ADMIN" })];
     managerRepository.activeHospitalAdmins = 1;
-    const useCase = new UpdateManagerUseCase(managerRepository, new FakeSectorRepository() as never);
+    const useCase = new UpdateManagerUseCase(managerRepository, new FakeSectorRepository() as never, new FakeNotificationPublisher());
 
     await useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { role: "HOSPITAL_ADMIN" } });
 
@@ -126,7 +147,7 @@ describe("UpdateManagerUseCase", () => {
     const managerRepository = new FakeManagerRepository();
     managerRepository.rows = [managerRow({ role: "SECTOR_MANAGER" })];
     managerRepository.activeHospitalAdmins = 0;
-    const useCase = new UpdateManagerUseCase(managerRepository, new FakeSectorRepository() as never);
+    const useCase = new UpdateManagerUseCase(managerRepository, new FakeSectorRepository() as never, new FakeNotificationPublisher());
 
     await useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { role: "SECTOR_MANAGER" } });
 
@@ -138,7 +159,7 @@ describe("UpdateManagerUseCase", () => {
     managerRepository.rows = [managerRow({ role: "SECTOR_MANAGER" })];
     managerRepository.activeHospitalAdmins = 0; // irrelevant for a non-HOSPITAL_ADMIN
     const sectorRepository = new FakeSectorRepository();
-    const useCase = new UpdateManagerUseCase(managerRepository, sectorRepository as never);
+    const useCase = new UpdateManagerUseCase(managerRepository, sectorRepository as never, new FakeNotificationPublisher());
 
     await useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { isActive: false } });
 
@@ -150,7 +171,7 @@ describe("UpdateManagerUseCase", () => {
     managerRepository.rows = [managerRow()];
     const sectorRepository = new FakeSectorRepository();
     sectorRepository.knownSectorIds = new Set(["sector-a"]);
-    const useCase = new UpdateManagerUseCase(managerRepository, sectorRepository as never);
+    const useCase = new UpdateManagerUseCase(managerRepository, sectorRepository as never, new FakeNotificationPublisher());
 
     await useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { sectorIds: ["sector-a"] } });
 
@@ -161,10 +182,44 @@ describe("UpdateManagerUseCase", () => {
     const managerRepository = new FakeManagerRepository();
     managerRepository.rows = [managerRow()];
     const sectorRepository = new FakeSectorRepository();
-    const useCase = new UpdateManagerUseCase(managerRepository, sectorRepository as never);
+    const useCase = new UpdateManagerUseCase(managerRepository, sectorRepository as never, new FakeNotificationPublisher());
 
     await expect(
       useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { sectorIds: ["sector-unknown"] } }),
     ).rejects.toThrow(SectorNotInInstitutionError);
+  });
+
+  it("announces a deactivation with the instant it happened, so a later reactivation is a separate event", async () => {
+    const { useCase, notifications } = buildWithTwoAdmins();
+
+    await useCase.execute({ institutionId: "institution-1", managerId: "manager-2", patch: { isActive: false } });
+
+    expect(notifications.events).toHaveLength(1);
+    expect(notifications.events[0]!.type).toBe("ACCOUNT_DEACTIVATED");
+    expect(notifications.events[0]!.dedupKey).toMatch(/^account-status:manager:manager-2:\d{4}-/);
+  });
+
+  it("announces a reactivation as its own event", async () => {
+    const { useCase, notifications } = buildWithTwoAdmins({ managerIsActive: false });
+
+    await useCase.execute({ institutionId: "institution-1", managerId: "manager-2", patch: { isActive: true } });
+
+    expect(notifications.events[0]!.type).toBe("ACCOUNT_REACTIVATED");
+  });
+
+  it("says nothing when isActive was not part of the patch", async () => {
+    const { useCase, notifications } = buildWithTwoAdmins();
+
+    await useCase.execute({ institutionId: "institution-1", managerId: "manager-2", patch: { role: "SECTOR_MANAGER" } });
+
+    expect(notifications.events).toEqual([]);
+  });
+
+  it("says nothing when isActive is set to the value it already had", async () => {
+    const { useCase, notifications } = buildWithTwoAdmins();
+
+    await useCase.execute({ institutionId: "institution-1", managerId: "manager-2", patch: { isActive: true } });
+
+    expect(notifications.events).toEqual([]);
   });
 });

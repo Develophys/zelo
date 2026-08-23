@@ -10,6 +10,15 @@ import { PeerPartnerTokenService } from "../application/services/peer-partner-to
 import { PeerPartnerPasswordService } from "../application/services/peer-partner-password.service.ts";
 import { PEER_PARTNER_REPOSITORY } from "../application/ports/peer-partner-repository.port.ts";
 import type { PeerPartnerRepository, PeerPartnerRow } from "../application/ports/peer-partner-repository.port.ts";
+import { NOTIFICATION_PUBLISHER } from "../../notification/application/ports/notification.port.ts";
+import type { NotificationEvent, NotificationPublisher } from "../../notification/application/ports/notification.port.ts";
+
+class FakeNotificationPublisher implements NotificationPublisher {
+  events: NotificationEvent[] = [];
+  async publish(event: NotificationEvent): Promise<void> {
+    this.events.push(event);
+  }
+}
 
 class FakePeerPartnerRepository implements PeerPartnerRepository {
   rows: PeerPartnerRow[] = [];
@@ -59,6 +68,7 @@ describe("peer partner controller", () => {
         PeerPartnerTokenService,
         PeerPartnerPasswordService,
         { provide: PEER_PARTNER_REPOSITORY, useValue: repository },
+        { provide: NOTIFICATION_PUBLISHER, useValue: new FakeNotificationPublisher() },
         { provide: ConfigService, useValue: fakeConfig() },
       ],
     }).compile();

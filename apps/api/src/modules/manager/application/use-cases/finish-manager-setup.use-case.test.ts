@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 import { FinishManagerSetupUseCase, InvalidOrExpiredManagerSetupTokenError } from "./finish-manager-setup.use-case.ts";
 import { ManagerPasswordService } from "../services/manager-password.service.ts";
 import type { ManagerRepository, ManagerRow, UpdateManagerParams } from "../ports/manager-repository.port.ts";
+import type { NotificationEvent, NotificationPublisher } from "../../../notification/application/ports/notification.port.ts";
+
+class FakeNotificationPublisher implements NotificationPublisher {
+  events: NotificationEvent[] = [];
+  async publish(event: NotificationEvent): Promise<void> {
+    this.events.push(event);
+  }
+}
 
 class FakeManagerRepository implements ManagerRepository {
   rows: ManagerRow[] = [];
@@ -35,7 +43,7 @@ class FakeManagerRepository implements ManagerRepository {
 describe("FinishManagerSetupUseCase", () => {
   it("throws InvalidOrExpiredManagerSetupTokenError when no manager has this token", async () => {
     const repository = new FakeManagerRepository();
-    const useCase = new FinishManagerSetupUseCase(repository, new ManagerPasswordService());
+    const useCase = new FinishManagerSetupUseCase(repository, new ManagerPasswordService(), new FakeNotificationPublisher());
 
     await expect(useCase.execute({ token: "unknown-token", password: "new-password-123" })).rejects.toThrow(InvalidOrExpiredManagerSetupTokenError);
   });
@@ -48,7 +56,7 @@ describe("FinishManagerSetupUseCase", () => {
         { setPasswordToken: "abc123" },
       ),
     ];
-    const useCase = new FinishManagerSetupUseCase(repository, new ManagerPasswordService());
+    const useCase = new FinishManagerSetupUseCase(repository, new ManagerPasswordService(), new FakeNotificationPublisher());
 
     await expect(useCase.execute({ token: "abc123", password: "new-password-123" })).rejects.toThrow(InvalidOrExpiredManagerSetupTokenError);
   });
@@ -62,7 +70,7 @@ describe("FinishManagerSetupUseCase", () => {
       ),
     ];
     const passwordService = new ManagerPasswordService();
-    const useCase = new FinishManagerSetupUseCase(repository, passwordService);
+    const useCase = new FinishManagerSetupUseCase(repository, passwordService, new FakeNotificationPublisher());
 
     await useCase.execute({ token: "abc123", password: "new-password-123" });
 
@@ -71,5 +79,39 @@ describe("FinishManagerSetupUseCase", () => {
     expect(repository.lastUpdate?.patch.setPasswordTokenExpiresAt).toBeNull();
     const newHash = repository.lastUpdate!.patch.passwordHash!;
     expect(await passwordService.verify("new-password-123", newHash)).toBe(true);
+  });
+
+  it("tells the hospital admins that the invite was accepted", async () => {
+    const repository = new FakeManagerRepository();
+    repository.rows = [
+      Object.assign(
+        { id: "manager-1", name: "Ana Konder", email: "ana@zelo-demo.local", passwordHash: null, setPasswordTokenExpiresAt: new Date(Date.now() + 60_000), institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: true } as ManagerRow,
+        { setPasswordToken: "abc123" },
+      ),
+    ];
+    const notifications = new FakeNotificationPublisher();
+    const useCase = new FinishManagerSetupUseCase(repository, new ManagerPasswordService(), notifications);
+
+    await useCase.execute({ token: "abc123", password: "new-password-123" });
+
+    expect(notifications.events).toEqual([
+      {
+        institutionId: "institution-1",
+        type: "INVITE_ACCEPTED",
+        payload: { kind: "manager", name: "Ana Konder" },
+        dedupKey: "invite-accepted:manager:manager-1",
+      },
+    ]);
+  });
+
+  it("does not announce an acceptance that never happened", async () => {
+    const repository = new FakeManagerRepository();
+    const notifications = new FakeNotificationPublisher();
+    const useCase = new FinishManagerSetupUseCase(repository, new ManagerPasswordService(), notifications);
+
+    await expect(useCase.execute({ token: "unknown", password: "new-password-123" })).rejects.toThrow(
+      InvalidOrExpiredManagerSetupTokenError,
+    );
+    expect(notifications.events).toEqual([]);
   });
 });
