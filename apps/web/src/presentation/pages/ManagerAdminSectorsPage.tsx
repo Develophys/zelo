@@ -6,18 +6,19 @@ import { IconButton } from "@/presentation/ui/IconButton";
 import { Modal } from "@/presentation/ui/Modal";
 import { Pill } from "@/presentation/ui/Pill";
 import { TextField, SelectField } from "@/presentation/ui/TextField";
-import { Tooltip } from "@/presentation/ui/Tooltip";
 import { ManagerPageHeader } from "@/presentation/layout/ManagerPageHeader";
 import { DataTable, type DataTableColumn } from "@/presentation/ui/DataTable/DataTable";
 import { DataTableEmpty } from "@/presentation/ui/DataTable/DataTableEmpty";
 import { DataTableToolbar } from "@/presentation/ui/DataTable/DataTableToolbar";
-import { useDataTableSelection, type BulkActionState } from "@/presentation/ui/DataTable/useDataTableSelection";
+import { BulkActionButton } from "@/presentation/ui/DataTable/BulkActionButton";
+import { useDataTableSelection } from "@/presentation/ui/DataTable/useDataTableSelection";
+import { useBulkDelete } from "@/presentation/ui/DataTable/useBulkDelete";
+import { normalize } from "@/presentation/lib/normalize-search";
 import { useAdminSectors } from "@/presentation/hooks/useAdminSectors";
 import { useAdminManagers } from "@/presentation/hooks/useAdminManagers";
 import { useCreateSector } from "@/presentation/hooks/useCreateSector";
 import { useUpdateSector } from "@/presentation/hooks/useUpdateSector";
 import { useDeleteSector } from "@/presentation/hooks/useDeleteSector";
-import { deleteConflictMessage } from "@/ports/manager-admin.port";
 import type { AdminSector, ManagerSummary } from "@/ports/manager-admin.port";
 import { Pencil } from "lucide-react";
 
@@ -30,13 +31,6 @@ const STATUS_PILL: Record<"active" | "inactive", { tone: "positive" | "neutral";
 
 function sectorStatus(sector: AdminSector): "active" | "inactive" {
   return sector.isActive ? "active" : "inactive";
-}
-
-function normalize(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
 }
 
 // Shared by the create form and the edit form, both hosted inside the same
@@ -127,35 +121,6 @@ function SectorFields({
   );
 }
 
-function BulkActionButton({
-  label,
-  state,
-  onClick,
-}: {
-  label: string;
-  state: BulkActionState;
-  onClick: () => void;
-}) {
-  const button = (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      full={false}
-      aria-disabled={!state.enabled}
-      onClick={() => {
-        if (state.enabled) onClick();
-      }}
-    >
-      {label}
-    </Button>
-  );
-  // Guarding the click handler (not the `disabled` attribute) keeps the
-  // button focusable, so the tooltip explaining why it's off stays reachable
-  // by keyboard — a `disabled` button drops out of the tab order entirely.
-  return state.reason ? <Tooltip content={state.reason}>{button}</Tooltip> : button;
-}
-
 const COLUMNS: DataTableColumn<AdminSector>[] = [
   { key: "name", header: "Nome", width: "w-[40%]", cell: (row) => row.name },
   { key: "manager", header: "Gestor responsável", width: "w-[35%]", cell: (row) => row.managerName ?? "—" },
@@ -188,10 +153,6 @@ export function ManagerAdminSectorsPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  const [deleteTarget, setDeleteTarget] = useState<{ ids: string[] } | null>(null);
-  const [deleteBusy, setDeleteBusy] = useState(false);
-  const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
-
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(timer);
@@ -210,6 +171,12 @@ export function ManagerAdminSectorsPage() {
   }, [sectorList, debouncedSearch]);
 
   const selection = useDataTableSelection(filteredSectors, { singular: "setor", article: "um" });
+
+  const bulkDelete = useBulkDelete({
+    deleteOne: (id) => deleteSector.mutateAsync(id),
+    noun: { singular: "setor" },
+    onSuccess: () => selection.clear(),
+  });
 
   const openCreate = () => {
     setName("");
@@ -278,47 +245,6 @@ export function ManagerAdminSectorsPage() {
     selection.clear();
   };
 
-  const openDeleteConfirm = () => {
-    setDeleteTarget({ ids: selection.selectedIds });
-    setDeleteMessage(null);
-  };
-
-  const closeDeleteConfirm = () => {
-    setDeleteTarget(null);
-    setDeleteMessage(null);
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteTarget) return;
-    setDeleteBusy(true);
-    const attempted = deleteTarget.ids.length;
-    let succeeded = 0;
-    const failedIds: string[] = [];
-    const refusals = new Set<string>();
-    for (const id of deleteTarget.ids) {
-      try {
-        await deleteSector.mutateAsync(id);
-        succeeded += 1;
-      } catch (error) {
-        failedIds.push(id);
-        refusals.add(deleteConflictMessage(error) ?? "Não foi possível excluir. Tente de novo.");
-      }
-    }
-    setDeleteBusy(false);
-
-    if (failedIds.length === 0) {
-      selection.clear();
-      closeDeleteConfirm();
-      return;
-    }
-
-    // Only the ones still refused stay on the confirm dialog — retrying
-    // should not re-attempt an id that already succeeded.
-    const refusalText = [...refusals].join(" ");
-    setDeleteTarget({ ids: failedIds });
-    setDeleteMessage(succeeded > 0 ? `${succeeded} de ${attempted} excluídos. ${refusalText}` : refusalText);
-  };
-
   const isSubmitDisabled = name.trim().length === 0;
 
   const renderRowActions = (sector: AdminSector) => (
@@ -326,9 +252,6 @@ export function ManagerAdminSectorsPage() {
   );
 
   const modalTitle = formMode === "create" ? "Adicionar setor" : editingSector ? `Editar ${editingSector.name}` : "";
-
-  const deleteCount = deleteTarget?.ids.length ?? 0;
-  const deleteTitle = deleteCount === 1 ? "Excluir setor?" : `Excluir ${deleteCount} setores?`;
 
   return (
     <div className="flex flex-col gap-5 pt-6">
@@ -370,7 +293,11 @@ export function ManagerAdminSectorsPage() {
                 />
                 <BulkActionButton label="Pausar" state={selection.pause} onClick={handleBulkPause} />
                 <BulkActionButton label="Ativar" state={selection.activate} onClick={handleBulkActivate} />
-                <BulkActionButton label="Excluir" state={selection.remove} onClick={openDeleteConfirm} />
+                <BulkActionButton
+                  label="Excluir"
+                  state={selection.remove}
+                  onClick={() => bulkDelete.openDeleteConfirm(selection.selectedIds)}
+                />
               </>
             }
           />
@@ -492,25 +419,25 @@ export function ManagerAdminSectorsPage() {
       </Modal>
 
       <Modal
-        isOpen={deleteTarget !== null}
-        onClose={closeDeleteConfirm}
-        title={deleteTitle}
+        isOpen={bulkDelete.deleteTarget !== null}
+        onClose={bulkDelete.closeDeleteConfirm}
+        title={bulkDelete.deleteTitle}
         size="sm"
         footer={
           <>
-            <Button variant="outline" full={false} onClick={closeDeleteConfirm}>
+            <Button variant="outline" full={false} onClick={bulkDelete.closeDeleteConfirm}>
               Cancelar
             </Button>
-            <Button variant="danger" full={false} isLoading={deleteBusy} onClick={confirmDelete}>
+            <Button variant="danger" full={false} isLoading={bulkDelete.deleteBusy} onClick={bulkDelete.confirmDelete}>
               Excluir
             </Button>
           </>
         }
       >
         <p className="text-label text-ink">Esta ação não pode ser desfeita.</p>
-        {deleteMessage && (
+        {bulkDelete.deleteMessage && (
           <p role="alert" className="mt-3 text-label text-danger">
-            {deleteMessage}
+            {bulkDelete.deleteMessage}
           </p>
         )}
       </Modal>
