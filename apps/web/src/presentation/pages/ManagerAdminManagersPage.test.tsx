@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ManagerAdminManagersPage } from "./ManagerAdminManagersPage";
 import * as container from "@/app/container";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
+import { AdminDeleteConflictError } from "@/ports/manager-admin.port";
 
 function renderPage() {
   const queryClient = new QueryClient();
@@ -88,11 +89,12 @@ describe("ManagerAdminManagersPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    // The status pill renders once in the desktop table and once in the
-    // mobile card list — both are always in the DOM, only CSS decides which
-    // shows, so the assertion is scoped to the table.
-    expect(within(await screen.findByRole("table")).getByText("Ativa")).toBeInTheDocument();
-    await user.click(await screen.findByRole("button", { name: "Redefinir senha de Paulo" }));
+    // Row actions and status pills render once in the desktop table and once
+    // in the mobile card list — both are always in the DOM, only CSS decides
+    // which shows — so queries for them are scoped to the table.
+    const table = within(await screen.findByRole("table"));
+    expect(table.getByText("Ativa")).toBeInTheDocument();
+    await user.click(table.getByRole("button", { name: "Redefinir senha de Paulo" }));
 
     await waitFor(() => expect(container.sendManagerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("token", "manager-5"));
     await waitFor(() => expect(screen.getByText("Convite enviado para paulo@zelo-demo.local.")).toBeInTheDocument());
@@ -107,8 +109,9 @@ describe("ManagerAdminManagersPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    expect(within(await screen.findByRole("table")).getByText("Convite pendente")).toBeInTheDocument();
-    await user.click(await screen.findByRole("button", { name: "Reenviar convite de Renata" }));
+    const table = within(await screen.findByRole("table"));
+    expect(table.getByText("Convite pendente")).toBeInTheDocument();
+    await user.click(table.getByRole("button", { name: "Reenviar convite de Renata" }));
 
     await waitFor(() => expect(container.sendManagerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("token", "manager-6"));
   });
@@ -125,7 +128,7 @@ describe("ManagerAdminManagersPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.click(await screen.findByRole("button", { name: "Editar Paulo" }));
+    await user.click(within(await screen.findByRole("table")).getByRole("button", { name: "Editar Paulo" }));
 
     const editForm = within(screen.getByRole("dialog"));
     expect(editForm.getByLabelText("Gestor de setor")).toBeChecked();
@@ -155,7 +158,7 @@ describe("ManagerAdminManagersPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.click(await screen.findByRole("button", { name: "Editar Paulo" }));
+    await user.click(within(await screen.findByRole("table")).getByRole("button", { name: "Editar Paulo" }));
 
     const editForm = within(screen.getByRole("dialog"));
     await user.click(editForm.getByLabelText("Gestor do hospital"));
@@ -180,7 +183,7 @@ describe("ManagerAdminManagersPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.click(await screen.findByRole("button", { name: "Editar Paulo" }));
+    await user.click(within(await screen.findByRole("table")).getByRole("button", { name: "Editar Paulo" }));
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancelar" }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -219,8 +222,9 @@ describe("ManagerAdminManagersPage", () => {
     ]);
     renderPage();
 
-    expect(await screen.findByRole('button', { name: 'Reenviar convite de Bruno' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Reenviar convite de Ana' })).not.toBeInTheDocument();
+    const table = within(await screen.findByRole('table'));
+    expect(table.getByRole('button', { name: 'Reenviar convite de Bruno' })).toBeInTheDocument();
+    expect(table.queryByRole('button', { name: 'Reenviar convite de Ana' })).not.toBeInTheDocument();
   });
 
   // The header row must not move when the selection appears, or the manager
@@ -300,8 +304,147 @@ describe("ManagerAdminManagersPage", () => {
     expect(cards.className).toContain('md:hidden');
     // The whole card selects — there is no checkbox inside it. The list
     // itself is always in the DOM (only CSS hides it above md), so wait on
-    // its content rather than the container.
-    const card = await within(cards).findByRole('button', { name: /Ana/ });
+    // its content rather than the container. Queried by its full accessible
+    // name (not a loose /Ana/ regex) because the card also carries row-action
+    // buttons named "... de Ana", which a loose match would multi-hit.
+    const card = await within(cards).findByRole('button', { name: 'Ana, Ativa' });
     expect(within(card).queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+
+  it('exposes row actions as siblings of the selection button in the mobile card list, gated the same way as the table', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: false, setPasswordTokenExpiresAt: new Date(Date.now() + 60_000).toISOString() },
+    ]);
+    renderPage();
+
+    const cards = screen.getByTestId('manager-card-list');
+    await within(cards).findByRole('button', { name: 'Ana, Ativa' });
+
+    // A card is a <button> nowhere nested inside another <button> — the
+    // selection button and the action IconButtons are siblings under the <li>.
+    expect(within(cards).getByRole('button', { name: 'Editar Ana' })).toBeInTheDocument();
+    expect(within(cards).getByRole('button', { name: 'Redefinir senha de Ana' })).toBeInTheDocument();
+    expect(within(cards).queryByRole('button', { name: 'Reenviar convite de Ana' })).not.toBeInTheDocument();
+
+    expect(within(cards).getByRole('button', { name: 'Editar Bruno' })).toBeInTheDocument();
+    expect(within(cards).getByRole('button', { name: 'Reenviar convite de Bruno' })).toBeInTheDocument();
+    expect(within(cards).queryByRole('button', { name: 'Redefinir senha de Bruno' })).not.toBeInTheDocument();
+  });
+
+  it('deletes the selected managers and closes the dialog on the happy path', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    const deleteSpy = vi.spyOn(container.deleteManagerAdminUseCase, 'execute').mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Selecionar Ana' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Selecionar Bruno' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+
+    const dialog = within(await screen.findByRole('dialog', { name: 'Excluir 2 gestores?' }));
+    await user.click(dialog.getByRole('button', { name: 'Excluir' }));
+
+    await waitFor(() => expect(deleteSpy).toHaveBeenCalledTimes(2));
+    expect(deleteSpy).toHaveBeenNthCalledWith(1, 'token', 'm1');
+    expect(deleteSpy).toHaveBeenNthCalledWith(2, 'token', 'm2');
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('keeps the delete dialog open and renders the refusal sentence when the API refuses', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    vi.spyOn(container.deleteManagerAdminUseCase, 'execute').mockRejectedValue(
+      new AdminDeleteConflictError('MANAGER_OWNS_SECTORS'),
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Selecionar Ana' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+
+    const dialog = within(await screen.findByRole('dialog', { name: 'Excluir gestor?' }));
+    await user.click(dialog.getByRole('button', { name: 'Excluir' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Este gestor ainda é responsável por setores. Reatribua os setores antes de excluí-lo.',
+    );
+    // The refusal is read where it happened, not closed away.
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('reports a partial bulk delete and retries only the still-failing id', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    const deleteSpy = vi
+      .spyOn(container.deleteManagerAdminUseCase, 'execute')
+      .mockImplementation(async (_token: string, id: string) => {
+        if (id === 'm2') throw new AdminDeleteConflictError('MANAGER_OWNS_SECTORS');
+      });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Selecionar Ana' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Selecionar Bruno' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+
+    await screen.findByRole('dialog', { name: 'Excluir 2 gestores?' });
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '1 de 2 excluídos. Este gestor ainda é responsável por setores. Reatribua os setores antes de excluí-lo.',
+    );
+    // The dialog narrows to just the still-failing manager, so a retry
+    // doesn't re-attempt the one that already succeeded.
+    expect(screen.getByRole('dialog', { name: 'Excluir gestor?' })).toBeInTheDocument();
+
+    deleteSpy.mockClear();
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' }));
+
+    await waitFor(() => expect(deleteSpy).toHaveBeenCalledTimes(1));
+    expect(deleteSpy).toHaveBeenCalledWith('token', 'm2');
+  });
+
+  it('filters the table by name, accent-insensitively', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
+      { id: 'm1', name: 'João', email: 'joao@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm2', name: 'Beatriz', email: 'beatriz@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    const user = userEvent.setup();
+    renderPage();
+
+    const table = within(await screen.findByRole('table'));
+    expect(table.getByText('Beatriz')).toBeInTheDocument();
+
+    await user.type(screen.getByRole('searchbox'), 'Joao');
+
+    await waitFor(() => expect(table.queryByText('Beatriz')).not.toBeInTheDocument(), { timeout: 2000 });
+    expect(table.getByText('João')).toBeInTheDocument();
+  });
+
+  it('admits the search only covers loaded items when nothing matches', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    const user = userEvent.setup();
+    renderPage();
+
+    await screen.findByRole('table');
+    await user.type(screen.getByRole('searchbox'), 'zzz-no-match');
+
+    expect(await screen.findByText('Nenhum resultado nos itens carregados')).toBeInTheDocument();
+    expect(screen.getByText('A busca ainda percorre apenas a lista já carregada.')).toBeInTheDocument();
   });
 });

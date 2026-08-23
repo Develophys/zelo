@@ -414,14 +414,20 @@ export function ManagerAdminManagersPage() {
           const status = STATUS_PILL[managerStatus(manager)];
           const selected = selection.isSelected(manager.id);
           return (
-            <li key={manager.id}>
+            <li
+              key={manager.id}
+              className={`overflow-hidden rounded-card border ${
+                selected ? "border-brand bg-brand/5" : "border-line bg-surface"
+              }`}
+            >
+              {/* The selection target is a sibling of the row-action IconButtons
+                  below, not their parent — nesting a button inside a button is
+                  invalid HTML and breaks both keyboard and screen-reader use. */}
               <button
                 type="button"
                 aria-label={`${manager.name}, ${status.text}`}
                 onClick={() => selection.toggle(manager.id)}
-                className={`flex w-full flex-col gap-2 rounded-card border p-4 text-left ${
-                  selected ? "border-brand bg-brand/5" : "border-line bg-surface"
-                }`}
+                className="flex w-full flex-col gap-2 p-4 text-left"
               >
                 <div className="flex justify-between gap-3">
                   <span className="text-caption text-muted">Nome</span>
@@ -446,6 +452,9 @@ export function ManagerAdminManagersPage() {
                   <Pill tone={status.tone}>{status.text}</Pill>
                 </div>
               </button>
+              <div className="flex items-center justify-end gap-1 border-t border-line px-4 py-2">
+                {renderRowActions(manager)}
+              </div>
             </li>
           );
         })}
