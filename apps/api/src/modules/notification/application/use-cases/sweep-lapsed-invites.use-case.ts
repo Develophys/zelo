@@ -12,9 +12,14 @@ export class SweepLapsedInvitesUseCase {
   ) {}
 
   // Expiry is not an event — nothing happens at the moment the token's deadline
-  // passes — so it has to be swept for. The dedup key deliberately omits any
-  // timestamp: the sweep runs nightly over the same lapsed invite forever, and
-  // it must produce exactly one notification.
+  // passes — so it has to be swept for. The dedup key carries the expiry
+  // instant itself (not a sweep timestamp): repeated nightly sweeps over the
+  // same unchanged invite produce exactly one notification, but a resend
+  // that rotates setPasswordTokenExpiresAt is a genuinely new lapse and
+  // notifies again. The repository bounds the scan to a recent window
+  // (thresholds.LAPSED_INVITE_WINDOW_DAYS) so this never re-selects an
+  // invite that lapsed long enough ago that its notification row could
+  // already have been purged by the retention sweep.
   async execute(now: Date = new Date()): Promise<number> {
     const managers = await this.managerRepository.findLapsedInvites(now);
     const peerPartners = await this.peerPartnerRepository.findLapsedInvites(now);
@@ -29,7 +34,7 @@ export class SweepLapsedInvitesUseCase {
         institutionId: account.institutionId,
         type: "INVITE_EXPIRED",
         payload: { kind: account.kind, name: account.name },
-        dedupKey: `invite-expired:${account.kind}:${account.id}`,
+        dedupKey: `invite-expired:${account.kind}:${account.id}:${account.setPasswordTokenExpiresAt.toISOString()}`,
       });
     }
 

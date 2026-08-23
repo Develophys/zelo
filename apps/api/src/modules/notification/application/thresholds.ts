@@ -18,3 +18,18 @@ export const RISK_DELTA_THRESHOLD = 0.15;
 
 /** Read notifications older than this are purged. Unread ones never are. */
 export const RETENTION_DAYS = 90;
+
+/**
+ * The lapsed-invite sweep only considers invites that expired within this
+ * many days. Without a lower bound, `findLapsedInvites` returns every
+ * never-accepted invite ever created, forever, and the retention sweep
+ * purging a read `INVITE_EXPIRED` row at RETENTION_DAYS lets the same stale
+ * invite re-notify indefinitely (dedupKey depends on the row surviving, not
+ * on the invite itself). 30 is well under RETENTION_DAYS: an invite that
+ * lapses outside this window has already fallen out of the sweep's
+ * consideration by the time its notification could be purged and
+ * resurface, so the flood cannot happen. It is also generous against how
+ * long an admin realistically waits before noticing "Convite pendente" and
+ * clicking "Reenviar convite".
+ */
+export const LAPSED_INVITE_WINDOW_DAYS = 30;

@@ -7,6 +7,7 @@ import type {
   UpdatePeerPartnerParams,
 } from "../../application/ports/peer-partner-repository.port.ts";
 import { PrismaService } from "../../../../shared/prisma/prisma.service.ts";
+import { LAPSED_INVITE_WINDOW_DAYS } from "../../../notification/application/thresholds.ts";
 
 @Injectable()
 export class PrismaPeerPartnerRepository implements PeerPartnerRepository {
@@ -58,11 +59,15 @@ export class PrismaPeerPartnerRepository implements PeerPartnerRepository {
     await this.prisma.peerPartner.update({ where: { id }, data: patch });
   }
 
-  async findLapsedInvites(now: Date): Promise<{ id: string; name: string; institutionId: string }[]> {
-    return this.prisma.peerPartner.findMany({
-      where: { passwordHash: null, setPasswordTokenExpiresAt: { not: null, lt: now } },
-      select: { id: true, name: true, institutionId: true },
+  async findLapsedInvites(
+    now: Date,
+  ): Promise<{ id: string; name: string; institutionId: string; setPasswordTokenExpiresAt: Date }[]> {
+    const windowStart = new Date(now.getTime() - LAPSED_INVITE_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+    const rows = await this.prisma.peerPartner.findMany({
+      where: { passwordHash: null, setPasswordTokenExpiresAt: { not: null, gte: windowStart, lt: now } },
+      select: { id: true, name: true, institutionId: true, setPasswordTokenExpiresAt: true },
     });
+    return rows.map((row) => ({ ...row, setPasswordTokenExpiresAt: row.setPasswordTokenExpiresAt as Date }));
   }
 
   private toRow(row: {
