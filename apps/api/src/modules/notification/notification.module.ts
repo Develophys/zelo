@@ -6,6 +6,8 @@ import { PEER_PARTNER_REPOSITORY } from "../peer-partner/application/ports/peer-
 import { PrismaPeerPartnerRepository } from "../peer-partner/infrastructure/persistence/prisma-peer-partner.repository.ts";
 import { SIGNAL_REPOSITORY } from "../manager/application/ports/signal-repository.port.ts";
 import { PrismaSignalRepository } from "../manager/infrastructure/persistence/prisma-signal.repository.ts";
+import { ManagerAuthGuard } from "../manager/infrastructure/manager-auth.guard.ts";
+import { ManagerTokenService } from "../manager/application/services/manager-token.service.ts";
 import { NOTIFICATION_PUBLISHER } from "./application/ports/notification.port.ts";
 import { NOTIFICATION_REPOSITORY } from "./application/ports/notification-repository.port.ts";
 import { PublishNotificationUseCase } from "./application/use-cases/publish-notification.use-case.ts";
@@ -13,8 +15,11 @@ import { ResolveNotificationRecipientsUseCase } from "./application/use-cases/re
 import { SweepLapsedInvitesUseCase } from "./application/use-cases/sweep-lapsed-invites.use-case.ts";
 import { SweepNotificationRetentionUseCase } from "./application/use-cases/sweep-notification-retention.use-case.ts";
 import { SweepSectorRiskUseCase } from "./application/use-cases/sweep-sector-risk.use-case.ts";
+import { ListNotificationsUseCase } from "./application/use-cases/list-notifications.use-case.ts";
+import { MarkNotificationReadUseCase } from "./application/use-cases/mark-notification-read.use-case.ts";
 import { PrismaNotificationRepository } from "./infrastructure/persistence/prisma-notification.repository.ts";
 import { NotificationScheduler } from "./infrastructure/notification-scheduler.ts";
+import { NotificationController } from "./infrastructure/notification.controller.ts";
 
 // SectorModule exports SECTOR_REPOSITORY, so it can simply be imported.
 // MANAGER_REPOSITORY, PEER_PARTNER_REPOSITORY and SIGNAL_REPOSITORY are
@@ -25,6 +30,7 @@ import { NotificationScheduler } from "./infrastructure/notification-scheduler.t
 // two registrations, not two behaviours.
 @Module({
   imports: [SectorModule],
+  controllers: [NotificationController],
   providers: [
     ResolveNotificationRecipientsUseCase,
     PublishNotificationUseCase,
@@ -32,6 +38,10 @@ import { NotificationScheduler } from "./infrastructure/notification-scheduler.t
     SweepNotificationRetentionUseCase,
     SweepSectorRiskUseCase,
     NotificationScheduler,
+    ListNotificationsUseCase,
+    MarkNotificationReadUseCase,
+    ManagerAuthGuard,
+    ManagerTokenService,
     { provide: MANAGER_REPOSITORY, useClass: PrismaManagerRepository },
     { provide: PEER_PARTNER_REPOSITORY, useClass: PrismaPeerPartnerRepository },
     { provide: SIGNAL_REPOSITORY, useClass: PrismaSignalRepository },
