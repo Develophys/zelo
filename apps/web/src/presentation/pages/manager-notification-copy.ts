@@ -3,8 +3,6 @@ import type { ManagerNotification } from "@/ports/manager-notifications.port";
 const percent = (value: unknown): string =>
   typeof value === "number" ? `${Math.round(value * 100)}%` : "—";
 
-// The API stores structured facts, not sentences, so the wording lives here and
-// a copy fix never needs a migration.
 export function notificationCopy(notification: ManagerNotification): { evento: string; detalhe: string } {
   const p = notification.payload;
   const name = typeof p.name === "string" ? p.name : "A conta";

@@ -50,7 +50,6 @@ export function ManagerNotificationsPage() {
               <button
                 type="button"
                 onClick={() => unread && markRead(notification.id)}
-                aria-label={`${evento}. ${detalhe}`}
                 className={`flex w-full flex-col gap-2 rounded-card border px-cell-x py-cell-y text-left motion-safe:transition-colors motion-safe:duration-150 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none md:flex-row md:items-center md:justify-between ${
                   unread ? "border-warn bg-warn-bg/40 cursor-pointer" : "border-line bg-surface"
                 }`}

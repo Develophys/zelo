@@ -16,6 +16,15 @@ const UNREAD = {
   createdAt: "2026-08-20T10:00:00.000Z",
 };
 
+const READ = {
+  id: "n-2",
+  type: "INVITE_ACCEPTED" as const,
+  payload: { kind: "manager", name: "Marta" },
+  sectorName: null,
+  readAt: "2026-08-21T10:00:00.000Z",
+  createdAt: "2026-08-20T09:00:00.000Z",
+};
+
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -78,6 +87,24 @@ describe("ManagerNotificationsPage", () => {
     expect(await screen.findByText("Convite aceito")).toBeInTheDocument();
     expect(screen.getByText("Paulo concluiu o cadastro e já tem acesso.")).toBeInTheDocument();
     expect(screen.getByText("Não lida")).toBeInTheDocument();
+  });
+
+  it("carries read/unread state in the row's accessible name, not only its visible pill", async () => {
+    vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
+      items: [UNREAD, READ],
+      nextCursor: null,
+      total: 2,
+    });
+    vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(1);
+
+    renderPage();
+
+    const unreadRow = await screen.findByRole("button", { name: /Paulo/ });
+    const readRow = screen.getByRole("button", { name: /Marta/ });
+
+    expect(unreadRow).toHaveAccessibleName(/Não lida/);
+    expect(readRow).toHaveAccessibleName(/Lida/);
+    expect(readRow).not.toHaveAccessibleName(/Não lida/);
   });
 
   it("marks a row read by clicking anywhere on it, not only a control", async () => {

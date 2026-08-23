@@ -31,6 +31,7 @@ beforeEach(() => {
   useManagerSessionStore
     .getState()
     .setSession('token', new Date(Date.now() + 60_000).toISOString(), 'HOSPITAL_ADMIN');
+  vi.spyOn(container.listManagerNotificationsUseCase, 'unreadCount').mockResolvedValue(0);
 });
 
 afterEach(() => {
