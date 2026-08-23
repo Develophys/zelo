@@ -70,6 +70,49 @@ describe("ManagerAdminPeersPage", () => {
     await waitFor(() => expect(screen.getByText("Convite enviado para paulo@zelo-demo.local.")).toBeInTheDocument());
   });
 
+  it('edits an existing peer partner\'s specialty from the edit modal, pre-filled from their current value', async () => {
+    vi.spyOn(container.listPeerPartnersUseCase, 'execute').mockResolvedValue([
+      { id: 'peer-5', name: 'Dr. Paulo', email: 'paulo@zelo-demo.local', specialty: 'Clínica médica', isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    vi.spyOn(container.updatePeerPartnerUseCase, 'execute').mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(within(await screen.findByRole('table')).getByRole('button', { name: 'Editar Dr. Paulo' }));
+
+    const editForm = within(screen.getByRole('dialog'));
+    expect(editForm.getByLabelText('Especialidade')).toHaveValue('Clínica médica');
+
+    await user.clear(editForm.getByLabelText('Especialidade'));
+    await user.type(editForm.getByLabelText('Especialidade'), 'Cirurgia');
+    await user.click(editForm.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() =>
+      expect(container.updatePeerPartnerUseCase.execute).toHaveBeenCalledWith('token', 'peer-5', {
+        specialty: 'Cirurgia',
+      }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('disables Salvar in the edit modal when the specialty is cleared, same as the create guard', async () => {
+    vi.spyOn(container.listPeerPartnersUseCase, 'execute').mockResolvedValue([
+      { id: 'peer-5', name: 'Dr. Paulo', email: 'paulo@zelo-demo.local', specialty: 'Clínica médica', isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    const updateSpy = vi.spyOn(container.updatePeerPartnerUseCase, 'execute').mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(within(await screen.findByRole('table')).getByRole('button', { name: 'Editar Dr. Paulo' }));
+
+    const editForm = within(screen.getByRole('dialog'));
+    await user.clear(editForm.getByLabelText('Especialidade'));
+
+    expect(editForm.getByRole('button', { name: 'Salvar' })).toBeDisabled();
+    await user.click(editForm.getByRole('button', { name: 'Salvar' }));
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
   it('renders the page header with its normative intro', async () => {
     vi.spyOn(container.listPeerPartnersUseCase, 'execute').mockResolvedValue([]);
     renderPage();

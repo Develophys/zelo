@@ -13,6 +13,7 @@ import { BulkActionButton } from "@/presentation/ui/DataTable/BulkActionButton";
 import { useDataTableSelection } from "@/presentation/ui/DataTable/useDataTableSelection";
 import { useBulkDelete } from "@/presentation/ui/DataTable/useBulkDelete";
 import { normalize } from "@/presentation/lib/normalize-search";
+import { accountStatusPill } from "@/presentation/lib/account-status-pill";
 import { useAdminPeerPartners } from "@/presentation/hooks/useAdminPeerPartners";
 import { useCreatePeerPartner } from "@/presentation/hooks/useCreatePeerPartner";
 import { useUpdatePeerPartner } from "@/presentation/hooks/useUpdatePeerPartner";
@@ -20,23 +21,6 @@ import { useSendPeerPartnerSetPasswordEmail } from "@/presentation/hooks/useSend
 import { useDeletePeerPartner } from "@/presentation/hooks/useDeletePeerPartner";
 import type { PeerPartnerSummary } from "@/ports/manager-admin.port";
 import { Pencil, Mail, KeyRound } from "lucide-react";
-
-type PeerPartnerStatus = "active" | "inactive" | "pending" | "expired";
-
-const STATUS_PILL: Record<PeerPartnerStatus, { tone: "positive" | "neutral" | "warning" | "danger"; text: string }> = {
-  active: { tone: "positive", text: "Ativa" },
-  inactive: { tone: "neutral", text: "Inativa" },
-  pending: { tone: "warning", text: "Convite pendente" },
-  expired: { tone: "danger", text: "Convite expirado" },
-};
-
-function peerPartnerStatus(peerPartner: PeerPartnerSummary): PeerPartnerStatus {
-  if (peerPartner.hasPassword) return peerPartner.isActive ? "active" : "inactive";
-  const tokenValid =
-    peerPartner.setPasswordTokenExpiresAt !== null &&
-    new Date(peerPartner.setPasswordTokenExpiresAt).getTime() > Date.now();
-  return tokenValid ? "pending" : "expired";
-}
 
 const COLUMNS: DataTableColumn<PeerPartnerSummary>[] = [
   { key: "name", header: "Nome", width: "w-[26%]", cell: (row) => row.name },
@@ -47,7 +31,7 @@ const COLUMNS: DataTableColumn<PeerPartnerSummary>[] = [
     header: "Status",
     width: "w-[18%]",
     cell: (row) => {
-      const status = STATUS_PILL[peerPartnerStatus(row)];
+      const status = accountStatusPill(row);
       return <Pill tone={status.tone}>{status.text}</Pill>;
     },
   },
@@ -153,10 +137,11 @@ export function ManagerAdminPeersPage() {
   };
 
   const isSubmitDisabled = name.trim().length === 0 || email.trim().length === 0 || specialty.trim().length === 0;
+  const isEditSubmitDisabled = editSpecialty.trim().length === 0;
 
   const renderRowActions = (peerPartner: PeerPartnerSummary) => {
-    const status = peerPartnerStatus(peerPartner);
-    const isInvite = status === "pending" || status === "expired";
+    const status = accountStatusPill(peerPartner);
+    const isInvite = status.status === "pending" || status.status === "expired";
     return (
       <>
         <IconButton
@@ -242,7 +227,7 @@ export function ManagerAdminPeersPage() {
 
       <ul data-testid="peer-partner-card-list" className="flex flex-col gap-2 md:hidden">
         {filteredPeerPartners.map((peerPartner) => {
-          const status = STATUS_PILL[peerPartnerStatus(peerPartner)];
+          const status = accountStatusPill(peerPartner);
           const selected = selection.isSelected(peerPartner.id);
           return (
             <li
@@ -310,7 +295,13 @@ export function ManagerAdminPeersPage() {
               <Button variant="outline" full={false} onClick={closeModal}>
                 Cancelar
               </Button>
-              <Button variant="primary" full={false} isLoading={updatePeerPartner.isPending} onClick={handleSaveEdit}>
+              <Button
+                variant="primary"
+                full={false}
+                isLoading={updatePeerPartner.isPending}
+                disabled={isEditSubmitDisabled}
+                onClick={handleSaveEdit}
+              >
                 Salvar
               </Button>
             </>

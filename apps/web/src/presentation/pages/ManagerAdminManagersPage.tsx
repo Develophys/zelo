@@ -14,6 +14,7 @@ import { BulkActionButton } from "@/presentation/ui/DataTable/BulkActionButton";
 import { useDataTableSelection } from "@/presentation/ui/DataTable/useDataTableSelection";
 import { useBulkDelete } from "@/presentation/ui/DataTable/useBulkDelete";
 import { normalize } from "@/presentation/lib/normalize-search";
+import { accountStatusPill } from "@/presentation/lib/account-status-pill";
 import { useAdminSectors } from "@/presentation/hooks/useAdminSectors";
 import { useAdminManagers } from "@/presentation/hooks/useAdminManagers";
 import { useCreateManager } from "@/presentation/hooks/useCreateManager";
@@ -24,22 +25,6 @@ import type { AdminSector, ManagerSummary } from "@/ports/manager-admin.port";
 import { Pencil, Mail, KeyRound } from "lucide-react";
 
 type ManagerRole = "HOSPITAL_ADMIN" | "SECTOR_MANAGER";
-type ManagerStatus = "active" | "inactive" | "pending" | "expired";
-
-const STATUS_PILL: Record<ManagerStatus, { tone: "positive" | "neutral" | "warning" | "danger"; text: string }> = {
-  active: { tone: "positive", text: "Ativa" },
-  inactive: { tone: "neutral", text: "Inativa" },
-  pending: { tone: "warning", text: "Convite pendente" },
-  expired: { tone: "danger", text: "Convite expirado" },
-};
-
-function managerStatus(manager: ManagerSummary): ManagerStatus {
-  if (manager.hasPassword) return manager.isActive ? "active" : "inactive";
-  const tokenValid =
-    manager.setPasswordTokenExpiresAt !== null &&
-    new Date(manager.setPasswordTokenExpiresAt).getTime() > Date.now();
-  return tokenValid ? "pending" : "expired";
-}
 
 function roleLabel(role: ManagerRole): string {
   return role === "HOSPITAL_ADMIN" ? "Gestor do hospital" : "Gestor de setor";
@@ -129,7 +114,7 @@ const COLUMNS: DataTableColumn<ManagerSummary>[] = [
     header: "Status",
     width: "w-[10%]",
     cell: (row) => {
-      const status = STATUS_PILL[managerStatus(row)];
+      const status = accountStatusPill(row);
       return <Pill tone={status.tone}>{status.text}</Pill>;
     },
   },
@@ -255,8 +240,8 @@ export function ManagerAdminManagersPage() {
     name.trim().length === 0 || email.trim().length === 0 || (role === "SECTOR_MANAGER" && selectedSectorIds.length === 0);
 
   const renderRowActions = (manager: ManagerSummary) => {
-    const status = managerStatus(manager);
-    const isInvite = status === "pending" || status === "expired";
+    const status = accountStatusPill(manager);
+    const isInvite = status.status === "pending" || status.status === "expired";
     return (
       <>
         <IconButton
@@ -338,7 +323,7 @@ export function ManagerAdminManagersPage() {
 
       <ul data-testid="manager-card-list" className="flex flex-col gap-2 md:hidden">
         {filteredManagers.map((manager) => {
-          const status = STATUS_PILL[managerStatus(manager)];
+          const status = accountStatusPill(manager);
           const selected = selection.isSelected(manager.id);
           return (
             <li
