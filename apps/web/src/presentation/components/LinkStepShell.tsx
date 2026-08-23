@@ -38,7 +38,7 @@ export function LinkStepShell({
           <Card className="mt-5">{children}</Card>
 
           <div className="mt-6">
-            <Button type="submit" variant="primary" loading={submitLoading} disabled={submitDisabled}>
+            <Button type="submit" variant="primary" isLoading={submitLoading} disabled={submitDisabled}>
               {submitLabel}
             </Button>
           </div>

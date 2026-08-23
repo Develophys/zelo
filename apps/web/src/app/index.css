@@ -103,11 +103,23 @@
 
   --spacing-app-header: 65px;
 
+  /* Sharp corner scale. `pill` survives only for shapes that are genuinely
+     capsule-shaped by geometry — progress tracks, avatars, the sheet drag
+     handle — never for a button, input, card or modal. */
+  --radius-control: 6px;
+  --radius-status: 4px;
+  --radius-card: 10px;
+  --radius-card-lg: 14px;
+  --radius-icon: 8px;
   --radius-pill: 999px;
-  --radius-card: 22px;
-  --radius-card-lg: 26px;
-  --radius-icon: 14px;
-  --radius-input: 16px;
+
+  /* Density is a runtime choice, so these resolve through custom properties the
+     `data-density` attribute overrides. `py-cell-y`/`px-cell-x` therefore
+     retighten with no re-render and no component knowing the preference. */
+  --spacing-cell-y: var(--cell-py);
+  --spacing-cell-x: var(--cell-px);
+  --spacing-nav-y: var(--nav-py);
+  --spacing-control-y: var(--control-py);
 
   --shadow-card: 0 8px 24px var(--elevation-soft);
   --shadow-card-lg: 0 10px 28px var(--elevation-medium);
@@ -118,6 +130,11 @@
 
 :root {
   color-scheme: light;
+
+  --cell-py: 0.875rem;
+  --cell-px: 1.125rem;
+  --nav-py: 0.625rem;
+  --control-py: 0.625rem;
 
   --elevation-soft: rgba(38, 70, 60, 0.06);
   --elevation-medium: rgba(38, 70, 60, 0.07);
@@ -181,6 +198,72 @@
   --elevation-brand-strong: rgba(0, 0, 0, 0.65);
   --elevation-lift-near: rgba(0, 0, 0, 0.5);
   --elevation-lift-far: rgba(0, 0, 0, 0.75);
+}
+
+html[data-density='compact'] {
+  --cell-py: 0.5rem;
+  --cell-px: 0.75rem;
+  --nav-py: 0.4375rem;
+  --control-py: 0.4375rem;
+}
+
+/* Accent presets. Every value is derived from the base hue at the sage
+   reference's own per-role luminance, so each accent lands on the same side of
+   every contrast threshold the sage default already clears — theme-contrast
+   runs the full pair matrix against all four. The default (no `data-accent`)
+   stays sage: changing the brand colour is not what this preference is for. */
+[data-accent='teal'] {
+  --color-brand: #2d6970;
+  --color-brand-hover: #1a595f;
+  --color-brand-ink: #153135;
+  --color-brand-fill: #2d6970;
+  --color-brand-fill-hover: #1a595f;
+  --color-surface-brand: #ddedef;
+}
+
+[data-accent='indigo'] {
+  --color-brand: #4f6092;
+  --color-brand-hover: #3f4f80;
+  --color-brand-ink: #242d45;
+  --color-brand-fill: #4f6092;
+  --color-brand-fill-hover: #3f4f80;
+  --color-surface-brand: #e4eafa;
+}
+
+[data-accent='clay'] {
+  --color-brand: #855642;
+  --color-brand-hover: #744532;
+  --color-brand-ink: #3f271e;
+  --color-brand-fill: #855642;
+  --color-brand-fill-hover: #744532;
+  --color-surface-brand: #f7e6e0;
+}
+
+[data-theme='dark'][data-accent='teal'] {
+  --color-brand: #b4d4d7;
+  --color-brand-hover: #c6e4e7;
+  --color-brand-ink: #dcedf0;
+  --color-brand-fill: #39757c;
+  --color-brand-fill-hover: #407b83;
+  --color-surface-brand: #1d3335;
+}
+
+[data-theme='dark'][data-accent='indigo'] {
+  --color-brand: #c2ceed;
+  --color-brand-hover: #d4dffc;
+  --color-brand-ink: #e4eafc;
+  --color-brand-fill: #5a6b9e;
+  --color-brand-fill-hover: #6071a4;
+  --color-surface-brand: #282e43;
+}
+
+[data-theme='dark'][data-accent='clay'] {
+  --color-brand: #e6c7bb;
+  --color-brand-hover: #f5d9cd;
+  --color-brand-ink: #f9e7e0;
+  --color-brand-fill: #91604c;
+  --color-brand-fill-hover: #986652;
+  --color-surface-brand: #3e2b23;
 }
 
 /* Tablet/desktop type scale (design-tokens.md §2) — overrides the same custom

@@ -42,7 +42,7 @@ export function PeersPage() {
             </Button>
           </div>
 
-          <div className="mt-6 flex items-center justify-center gap-1 rounded-2xl bg-surface-brand p-3.25">
+          <div className="mt-6 flex items-center justify-center gap-1 rounded-card bg-surface-brand p-3.25">
             <Lock size={14} className="text-brand" />
             <span className="font-mono text-[12.5px] text-brand">
               conexão sem troca de identidade
@@ -75,7 +75,7 @@ export function PeersPage() {
 
         {state === 'searching' && (
           <div className="mt-5">
-            <Button variant="primary" loading disabled>
+            <Button variant="primary" isLoading disabled>
               Procurando um colega disponível...
             </Button>
           </div>
@@ -107,7 +107,7 @@ export function PeersPage() {
           </div>
         )}
 
-        <div className="mt-6 flex items-center justify-center gap-1 rounded-2xl bg-surface-brand p-3.25">
+        <div className="mt-6 flex items-center justify-center gap-1 rounded-card bg-surface-brand p-3.25">
           <Lock size={14} className="text-brand" />
           <span className="font-mono text-[12.5px] text-brand">
             conexão sem troca de identidade

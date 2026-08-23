@@ -22,7 +22,7 @@ describe('Button', () => {
   it('soft variant differs from primary only in color, keeping the shared shape and typography', () => {
     render(<Button variant="soft">Label</Button>);
     const button = screen.getByRole('button', { name: 'Label' });
-    expect(button).toHaveClass('rounded-pill', 'py-4', 'min-h-13', 'font-sans', 'text-[16px]');
+    expect(button).toHaveClass('rounded-control', 'py-4', 'min-h-13', 'font-sans', 'text-[16px]');
     expect(button).toHaveClass('bg-surface-brand', 'text-brand', 'enabled:hover:bg-track');
   });
 
@@ -49,7 +49,7 @@ describe('Button', () => {
   });
 
   it('disables the button and shows a spinner when loading, while keeping an accessible name', () => {
-    render(<Button loading>Enviar</Button>);
+    render(<Button isLoading>Enviar</Button>);
     const button = screen.getByRole('button', { name: 'Enviar' });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute('aria-busy', 'true');
@@ -58,7 +58,7 @@ describe('Button', () => {
   });
 
   it('keeps the spinner animating under reduced motion, since loading hides the label and a frozen ring would be the only thing left on screen', () => {
-    render(<Button loading>Enviar</Button>);
+    render(<Button isLoading>Enviar</Button>);
 
     expect(screen.getByTestId('button-spinner')).toHaveClass('motion-essential');
   });
@@ -83,7 +83,7 @@ describe('Button', () => {
       'cursor-pointer',
     );
     // Visuals not contributed: no variant color, no default shape/padding/font.
-    expect(button).not.toHaveClass('bg-brand', 'rounded-pill', 'py-4', 'font-sans', 'min-h-13');
+    expect(button).not.toHaveClass('bg-brand', 'rounded-control', 'py-4', 'font-sans', 'min-h-13');
     // Caller's own classes survive untouched.
     expect(button).toHaveClass('bg-surface-brand', 'p-3.25');
   });
@@ -91,7 +91,7 @@ describe('Button', () => {
   it('keeps the full-size geometry when no size is given, so existing callers are untouched', () => {
     render(<Button>Label</Button>);
     const button = screen.getByRole('button', { name: 'Label' });
-    expect(button).toHaveClass('min-h-13', 'py-4', 'text-[16px]', 'rounded-pill');
+    expect(button).toHaveClass('min-h-13', 'py-4', 'text-[16px]', 'rounded-control');
     expect(button).not.toHaveClass('min-h-11', 'text-label');
   });
 
@@ -108,7 +108,7 @@ describe('Button', () => {
       'px-4',
       'gap-1.5',
       'text-label',
-      'rounded-pill',
+      'rounded-control',
     );
     expect(button).not.toHaveClass('min-h-13', 'text-[16px]');
     expect(button).toHaveClass('bg-surface-brand', 'text-brand');
@@ -121,7 +121,7 @@ describe('Button', () => {
       </Button>,
     );
     const button = screen.getByRole('button', { name: 'Label' });
-    expect(button).toHaveClass('min-h-11', 'text-label', 'rounded-pill', 'gap-1.5');
+    expect(button).toHaveClass('min-h-11', 'text-label', 'rounded-control', 'gap-1.5');
     // Still no variant colour of its own, so the caller's classes cannot lose a
     // same-property ordering fight with the variant.
     expect(button).not.toHaveClass('bg-brand-fill', 'bg-surface-brand', 'text-ink');

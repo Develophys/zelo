@@ -20,7 +20,7 @@ export function PrivacyBadge({ label = 'anônimo', variant = 'chip' }: PrivacyBa
   return (
     <span
       data-testid="privacy-badge"
-      className="inline-flex items-center gap-1 rounded-pill bg-surface-brand px-3 py-1.75 font-mono text-[12px] text-brand"
+      className="inline-flex items-center gap-1 rounded-status bg-surface-brand px-3 py-1.75 font-mono text-[12px] text-brand"
     >
       <Lock size={14} />
       {label}

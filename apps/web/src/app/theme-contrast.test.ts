@@ -37,6 +37,41 @@ const LIGHT = colorsIn(blockAfter('@theme'));
 const DARK_OVERRIDES = colorsIn(blockAfter("[data-theme='dark']"));
 const DARK = { ...LIGHT, ...DARK_OVERRIDES };
 
+// An accent preference that shipped an unreadable combination would be worse
+// than no preference at all, so every accent runs the whole pair matrix rather
+// than a spot check. `sage` is the default and carries no override block.
+const ACCENTS = ['sage', 'teal', 'indigo', 'clay'] as const;
+const ACCENT_ROLES = [
+  'brand',
+  'brand-hover',
+  'brand-ink',
+  'brand-fill',
+  'brand-fill-hover',
+  'surface-brand',
+];
+
+const accentOverrides = (accent: (typeof ACCENTS)[number], theme: 'light' | 'dark'): Palette =>
+  accent === 'sage'
+    ? {}
+    : colorsIn(
+        blockAfter(
+          theme === 'dark'
+            ? `[data-theme='dark'][data-accent='${accent}']`
+            : `[data-accent='${accent}']`,
+        ),
+      );
+
+const palette = (accent: (typeof ACCENTS)[number], theme: 'light' | 'dark'): Palette => ({
+  ...(theme === 'dark' ? DARK : LIGHT),
+  ...accentOverrides(accent, theme),
+});
+
+const THEMES = ACCENTS.flatMap((accent) =>
+  (['light', 'dark'] as const).map(
+    (theme) => [`${theme} · ${accent}`, palette(accent, theme)] as const,
+  ),
+);
+
 type Rgb = readonly [number, number, number];
 
 const channels = (hex: string): Rgb => {
@@ -142,10 +177,7 @@ const GRAPHIC_PAIRS: readonly [string, string, number, string][] = [
 
 const SHARED_BY_DESIGN = new Set(['on-fill-2']);
 
-describe.each([
-  ['light', LIGHT],
-  ['dark', DARK],
-])('%s theme', (themeName, tokens) => {
+describe.each(THEMES)('%s theme', (themeName, tokens) => {
   it.each(TEXT_PAIRS)('%s on %s reaches AA for text (>= %s:1) — %s', (fg, bg, min) => {
     expect(contrast(token(tokens, fg), token(tokens, bg))).toBeGreaterThanOrEqual(min);
   });
@@ -179,7 +211,34 @@ describe('theme completeness', () => {
   });
 });
 
-describe('filled-control rim', () => {
+describe('accent presets', () => {
+  const OVERRIDABLE = ACCENTS.filter((accent) => accent !== 'sage');
+
+  it.each(OVERRIDABLE.flatMap((a) => (['light', 'dark'] as const).map((t) => [a, t] as const)))(
+    '%s defines every brand role in the %s theme, so no accent falls back to sage',
+    (accent, theme) => {
+      expect(Object.keys(accentOverrides(accent, theme)).sort()).toEqual([...ACCENT_ROLES].sort());
+    },
+  );
+
+  it('changes the brand colour and nothing else — accents are not a second theme', () => {
+    for (const accent of OVERRIDABLE) {
+      for (const theme of ['light', 'dark'] as const) {
+        expect(Object.keys(accentOverrides(accent, theme)).every((r) => ACCENT_ROLES.includes(r))).toBe(
+          true,
+        );
+      }
+    }
+  });
+
+  it('leaves sage as the default, with no override block of its own', () => {
+    expect(CSS).not.toContain("[data-accent='sage']");
+  });
+});
+
+describe.each(ACCENTS)('filled-control rim · %s', (accent) => {
+  const light = palette(accent, 'light');
+  const dark = palette(accent, 'dark');
   const FILLS = ['brand-fill', 'brand-fill-hover', 'danger-fill', 'danger-strong-fill'] as const;
   const LIFTED = [
     'surface-brand',
@@ -191,20 +250,20 @@ describe('filled-control rim', () => {
   ] as const;
 
   it.each(FILLS)('is invisible over %s in the light theme, which needs no rim', (fill) => {
-    expect(over(token(LIGHT, 'fill-edge'), token(LIGHT, fill))).toBe(token(LIGHT, fill));
+    expect(over(token(light, 'fill-edge'), token(light, fill))).toBe(token(light, fill));
   });
 
   it.each(FILLS.flatMap((fill) => LIFTED.map((surface) => [fill, surface] as const)))(
     'separates a %s control from %s in the dark theme',
     (fill, surface) => {
-      const rim = over(token(DARK, 'fill-edge'), token(DARK, fill));
-      expect(contrast(rim, token(DARK, surface))).toBeGreaterThanOrEqual(3);
+      const rim = over(token(dark, 'fill-edge'), token(dark, fill));
+      expect(contrast(rim, token(dark, surface))).toBeGreaterThanOrEqual(3);
     },
   );
 
   it('stays a rim rather than an outline — visible against its own fill, but quietly', () => {
-    const rim = over(token(DARK, 'fill-edge'), token(DARK, 'brand-fill'));
-    const againstOwnFill = contrast(rim, token(DARK, 'brand-fill'));
+    const rim = over(token(dark, 'fill-edge'), token(dark, 'brand-fill'));
+    const againstOwnFill = contrast(rim, token(dark, 'brand-fill'));
     expect(againstOwnFill).toBeGreaterThan(1.15);
     expect(againstOwnFill).toBeLessThan(1.6);
   });

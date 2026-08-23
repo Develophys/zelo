@@ -107,7 +107,7 @@ export function Modal({
               ref={closeButtonRef}
               onClick={onClose}
               aria-label="Fechar"
-              className="flex h-11 w-11 flex-none items-center justify-center rounded-full text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              className="flex h-11 w-11 flex-none items-center justify-center rounded-control text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             >
               <X size={20} />
             </button>

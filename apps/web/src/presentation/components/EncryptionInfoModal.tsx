@@ -20,7 +20,7 @@ export function EncryptionInfoModal({ isOpen, onClose }: EncryptionInfoModalProp
         ser lido com uma chave que existe apenas no seu aparelho — nem o Zelo consegue abrir esse
         código.
       </p>
-      <div className="mt-3 flex items-start gap-2 rounded-2xl bg-surface-brand p-3.25">
+      <div className="mt-3 flex items-start gap-2 rounded-card bg-surface-brand p-3.25">
         <Lock size={16} aria-hidden="true" className="mt-0.5 flex-none text-brand" />
         <p className="text-label font-semibold text-brand">
           Isso significa que suas respostas ficam protegidas, e sua identidade permanece anônima.

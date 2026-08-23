@@ -119,7 +119,7 @@ export function AdminInstitutionsPage() {
             <Button
               type="submit"
               variant="primary"
-              loading={createInstitution.isPending}
+              isLoading={createInstitution.isPending}
               disabled={
                 institutionName.trim().length === 0 ||
                 inviteCode.trim().length === 0 ||

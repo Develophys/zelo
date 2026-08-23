@@ -129,6 +129,57 @@ describe("onboarding router flow", () => {
     expect(await screen.findByText("Tendências da equipe")).toBeInTheDocument();
   });
 
+  it("keeps /manager/admin alive as a redirect, so links to the old tabbed page still land somewhere", async () => {
+    useConsentStore.setState({ hasConsented: true, consentedAt: "2026-01-01T00:00:00.000Z" });
+    useManagerSessionStore.setState({
+      token: "abc.def",
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      role: "HOSPITAL_ADMIN",
+    });
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+
+    buildTestRouter("/manager/admin");
+
+    expect(await screen.findByLabelText("Nome do gestor")).toBeInTheDocument();
+  });
+
+  it("keeps Administração out of reach for a SECTOR_MANAGER, who sees the dashboard instead", async () => {
+    useConsentStore.setState({ hasConsented: true, consentedAt: "2026-01-01T00:00:00.000Z" });
+    useManagerSessionStore.setState({
+      token: "abc.def",
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      role: "SECTOR_MANAGER",
+    });
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
+      overallConcerningRate: 0,
+      checkInsLast4Weeks: 0,
+      weeklyTrend: [],
+      segments: [],
+      followUpResponseRate: 0,
+    });
+
+    buildTestRouter("/manager/admin/sectors");
+
+    expect(await screen.findByText("Tendências da equipe")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["/manager/notifications", "Notificações"],
+    ["/manager/settings", "Configurações"],
+  ])("reaches the new %s route behind the manager guard", async (path, heading) => {
+    useConsentStore.setState({ hasConsented: true, consentedAt: "2026-01-01T00:00:00.000Z" });
+    useManagerSessionStore.setState({
+      token: "abc.def",
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      role: "HOSPITAL_ADMIN",
+    });
+
+    buildTestRouter(path);
+
+    expect(await screen.findByRole("heading", { name: heading })).toBeInTheDocument();
+  });
+
   it("an unauthenticated visit to /manager/history redirects to the manager login screen", async () => {
     useConsentStore.setState({ hasConsented: true, consentedAt: "2026-01-01T00:00:00.000Z" });
 

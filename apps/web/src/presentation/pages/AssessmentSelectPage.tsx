@@ -53,7 +53,7 @@ export function AssessmentSelectPage() {
               <p className="text-body font-extrabold text-muted">MBI-HSS</p>
               <p className="text-caption text-muted">Burnout ocupacional</p>
             </div>
-            <span className="rounded-pill bg-line px-3 py-1 font-mono text-[11px] text-muted-2">
+            <span className="rounded-status bg-line px-3 py-1 font-mono text-[11px] text-muted-2">
               em breve
             </span>
           </div>

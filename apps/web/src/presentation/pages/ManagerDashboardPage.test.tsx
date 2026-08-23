@@ -62,12 +62,9 @@ describe("ManagerDashboardPage", () => {
     expect(screen.getByText("111")).toBeInTheDocument();
   });
 
-  it("navigates to /home on back", async () => {
-    const user = userEvent.setup();
+  it("offers no back button — navigation in the panel is the nav, not history", () => {
     renderManager();
-
-    await user.click(screen.getByRole("button", { name: "Voltar" }));
-    expect(screen.getByText("Home screen")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /voltar/i })).not.toBeInTheDocument();
   });
 
   it("navigates to /manager/history via 'Ver histórico'", async () => {
@@ -227,14 +224,14 @@ describe("ManagerDashboardPage", () => {
     expect(screen.queryByText("Administração")).not.toBeInTheDocument();
   });
 
-  it("shows the Administração link for a HOSPITAL_ADMIN", async () => {
+  it("no longer hides administration behind a link on this page — the sidebar lists it", async () => {
     useManagerSessionStore.setState({ role: "HOSPITAL_ADMIN" });
     renderManager();
 
     await waitFor(() => {
       expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
     });
-    expect(screen.getByText("Administração")).toBeInTheDocument();
+    expect(screen.queryByText("Administração")).not.toBeInTheDocument();
   });
 
   it("disables both export buttons when there are no segments", async () => {

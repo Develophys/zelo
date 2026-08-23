@@ -30,7 +30,7 @@ export function CrisisDeclinePage() {
             </p>
             <a
               href={line.telHref}
-              className="mt-4 flex min-h-13 w-full items-center justify-center rounded-pill bg-on-fill px-4 font-sans text-[16px] font-bold text-brand-fill focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-on-fill focus-visible:ring-offset-2 focus-visible:ring-offset-brand-fill"
+              className="mt-4 flex min-h-13 w-full items-center justify-center rounded-control bg-on-fill px-4 font-sans text-[16px] font-bold text-brand-fill focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-on-fill focus-visible:ring-offset-2 focus-visible:ring-offset-brand-fill"
             >
               Ligar para o {line.label}
             </a>

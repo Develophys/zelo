@@ -13,7 +13,14 @@ export const routes = {
   chat: "/chat",
   peers: "/peers",
   manager: "/manager",
+  // Kept as a redirect to managerAdminManagers: the tabbed Administração page
+  // it used to serve is gone, but links to it are not.
   managerAdmin: "/manager/admin",
+  managerAdminManagers: "/manager/admin/managers",
+  managerAdminSectors: "/manager/admin/sectors",
+  managerAdminPeers: "/manager/admin/peers",
+  managerNotifications: "/manager/notifications",
+  managerSettings: "/manager/settings",
   managerLogin: "/manager/login",
   managerFinishSetup: "/manager/finish-setup",
   you: "/you",

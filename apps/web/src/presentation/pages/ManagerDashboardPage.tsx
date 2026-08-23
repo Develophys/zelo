@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
-import { PhoneShell } from "@/presentation/layout/PhoneShell";
-import { BackButton } from "@/presentation/ui/BackButton";
 import { PrivacyBadge } from "@/presentation/ui/PrivacyBadge";
 import { SectionLabel } from "@/presentation/ui/SectionLabel";
 import { Card } from "@/presentation/ui/Card";
@@ -69,7 +67,6 @@ function SegmentsCardSkeleton() {
 export function ManagerDashboardPage() {
   const navigate = useNavigate();
   const clearSession = useManagerSessionStore((state) => state.clearSession);
-  const role = useManagerSessionStore((state) => state.role);
   const sectorsQuery = useManagerSectors();
   const [selectedSectorIds, setSelectedSectorIds] = useState<string[] | undefined>(undefined);
   const { data, error, isError, isLoading } = useManagerSignals(selectedSectorIds);
@@ -90,32 +87,11 @@ export function ManagerDashboardPage() {
   const followUpResponseRate = data?.followUpResponseRate ?? 0;
 
   return (
-    <PhoneShell bg="canvas-alt">
-      <div className="pt-6.5">
-        <div className="flex items-center justify-between">
-          <BackButton label="Voltar" onClick={() => navigate(routes.home)} />
-          <PrivacyBadge />
-        </div>
-        <div className="mt-4 flex items-center justify-between">
-          <SectionLabel>Painel do gestor</SectionLabel>
-          <div className="flex items-center gap-3">
-            {role === "HOSPITAL_ADMIN" && (
-              <Link to={routes.managerAdmin} className="text-label font-bold text-brand">
-                Administração
-              </Link>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                clearSession();
-                navigate(routes.managerLogin, { replace: true });
-              }}
-              className="text-label font-bold text-danger cursor-pointer"
-            >
-              Sair
-            </button>
-          </div>
-        </div>
+    <div className="pt-6">
+      <div className="flex items-center justify-between">
+        <SectionLabel>Painel do gestor</SectionLabel>
+        <PrivacyBadge />
+      </div>
         <h1 className="mt-2 text-h2 text-ink">Tendências da equipe</h1>
         <p className="mt-1 text-caption text-muted">
           Somente dados anônimos e agregados. Segmentos com menos de 5 respostas ficam ocultos
@@ -242,7 +218,7 @@ export function ManagerDashboardPage() {
             </div>
             {!insight.data && (
               <div className="mt-3">
-                <Button className="p-2 cursor-pointer" variant="outline" full={false} loading={insight.isPending} onClick={() => insight.mutate()}>
+                <Button className="p-2 cursor-pointer" variant="outline" full={false} isLoading={insight.isPending} onClick={() => insight.mutate()}>
                   Gerar análise
                 </Button>
                 {insight.isError && (
@@ -267,7 +243,6 @@ export function ManagerDashboardPage() {
             )}
           </Card>
         </div>
-      </div>
-    </PhoneShell>
+    </div>
   );
 }

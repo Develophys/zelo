@@ -13,7 +13,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   // since two same-property utilities are ordered by Tailwind, not by source.
   size?: 'md' | 'sm';
   full?: boolean;
-  loading?: boolean;
+  isLoading?: boolean;
 }
 
 const VARIANT_CLASS: Record<'primary' | 'soft' | 'ghost' | 'outline' | 'danger', string> = {
@@ -24,7 +24,8 @@ const VARIANT_CLASS: Record<'primary' | 'soft' | 'ghost' | 'outline' | 'danger',
   danger: 'bg-danger-fill text-on-fill border border-fill-edge',
 };
 
-const SHAPE_BASE = 'inline-flex items-center justify-center rounded-pill font-sans font-semibold';
+const SHAPE_BASE =
+  'inline-flex items-center justify-center rounded-control font-sans font-semibold';
 
 const SIZE_CLASS: Record<'md' | 'sm', string> = {
   md: 'gap-2 py-4 px-2 text-[16px] min-h-13',
@@ -35,7 +36,7 @@ export function Button({
   variant = 'primary',
   size,
   full = true,
-  loading = false,
+  isLoading = false,
   disabled,
   className = '',
   children,
@@ -59,18 +60,18 @@ export function Button({
       ]
         .filter(Boolean)
         .join(' ')}
-      disabled={disabled || loading}
-      aria-busy={loading || undefined}
+      disabled={disabled || isLoading}
+      aria-busy={isLoading || undefined}
       {...rest}
     >
-      {loading && (
+      {isLoading && (
         <span
           aria-hidden="true"
           data-testid="button-spinner"
           className="motion-essential mx-auto block h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent"
         />
       )}
-      <span className={loading ? 'sr-only' : 'contents'}>{children}</span>
+      <span className={isLoading ? 'sr-only' : 'contents'}>{children}</span>
     </button>
   );
 }

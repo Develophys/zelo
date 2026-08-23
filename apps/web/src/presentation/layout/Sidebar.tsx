@@ -21,7 +21,7 @@ function Destination({
       aria-label={label}
       title={label}
       className={({ isActive }) =>
-        `flex min-h-11 items-center justify-center gap-3 rounded-input px-3 py-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+        `flex min-h-11 items-center justify-center gap-3 rounded-control px-3 py-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
           collapsed ? '' : 'lg:justify-start'
         } ${isActive ? 'bg-surface-brand text-brand' : 'text-muted hover:bg-canvas hover:text-brand'}`
       }
@@ -58,7 +58,7 @@ export const Sidebar = memo(function Sidebar() {
         <Link
           to={routes.home}
           aria-label="Zelo"
-          className={`flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-input transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+          className={`flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-control transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
             collapsed ? '' : 'lg:flex-1'
           }`}
         >
@@ -95,7 +95,7 @@ export const Sidebar = memo(function Sidebar() {
           onClick={() => setCollapsed((prev) => !prev)}
           aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}
           aria-pressed={collapsed}
-          className="hidden min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-input text-muted transition-colors duration-150 hover:bg-canvas hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand lg:flex"
+          className="hidden min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-control text-muted transition-colors duration-150 hover:bg-canvas hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand lg:flex"
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>

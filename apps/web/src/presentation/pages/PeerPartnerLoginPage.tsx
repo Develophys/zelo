@@ -68,7 +68,7 @@ export function PeerPartnerLoginPage() {
             <Button
               type="submit"
               variant="primary"
-              loading={login.isPending}
+              isLoading={login.isPending}
               disabled={email.trim().length === 0 || password.trim().length === 0}
             >
               Entrar

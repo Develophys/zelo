@@ -1,7 +1,5 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
-import { PhoneShell } from "@/presentation/layout/PhoneShell";
-import { BackButton } from "@/presentation/ui/BackButton";
 import { Card } from "@/presentation/ui/Card";
 import { Button } from "@/presentation/ui/Button";
 import { SectionLabel } from "@/presentation/ui/SectionLabel";
@@ -30,12 +28,8 @@ export function ManagerInsightHistoryPage() {
   const entries = data ?? [];
 
   return (
-    <PhoneShell bg="canvas-alt">
-      <div className="pt-6.5">
-        <BackButton label="Voltar" onClick={() => navigate(routes.manager)} />
-        <div className="mt-4">
-          <SectionLabel>Painel do gestor</SectionLabel>
-        </div>
+    <div className="pt-6">
+        <SectionLabel>Painel do gestor</SectionLabel>
         <h1 className="mt-2 text-h2 text-ink">Histórico de análises</h1>
         <p className="mt-1 text-caption text-muted">
           Análises geradas anteriormente, da mais recente para a mais antiga.
@@ -68,7 +62,6 @@ export function ManagerInsightHistoryPage() {
             </Card>
           ))}
         </div>
-      </div>
-    </PhoneShell>
+    </div>
   );
 }

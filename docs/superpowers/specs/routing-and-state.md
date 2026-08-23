@@ -28,11 +28,21 @@ the existing use-cases on submit.
 | `/manager/login` | `ManagerLoginPage` | Individual manager-account gate for the manager dashboard (see §5) |
 | `/manager` | `ManagerDashboardPage` | Aggregated, k-anonymized; gated by `/manager/login`'s session (see §5) |
 | `/manager/history` | `ManagerInsightHistoryPage` | Past AI-generated analyses, newest first; each downloadable as PDF or plain text (see `2026-07-12-manager-insight-history-design.md`) |
+| `/manager/notifications` | `ManagerNotificationsPage` | System alerts about aggregate signals, invites and integrations; unread count feeds the nav badge |
+| `/manager/settings` | `ManagerSettingsPage` | Per-manager accent, density and corner preferences, persisted client-side |
+| `/manager/admin` | — | Redirect to `/manager/admin/managers`; the tabbed Administração page it used to serve is gone |
+| `/manager/admin/managers` | `ManagerAdminManagersPage` | HOSPITAL_ADMIN only |
+| `/manager/admin/sectors` | `ManagerAdminSectorsPage` | HOSPITAL_ADMIN only |
+| `/manager/admin/peers` | `ManagerAdminPeersPage` | HOSPITAL_ADMIN only |
 | `/you` | `YouPage` | Consent status + revoke; institution-link status + entry point (see below); added after the original 13 (see `screens/15-you.md`) |
 | `/you/link` | `LinkInstitutionPage` | Optional invite-code → department linking flow, gated by consent like `/you`/`/home`; added by `2026-08-02-multi-institution-data-partitioning-design.md` (see `screens/16-link-institution.md`) |
 
 > Keep the current data-router shape (`id: "root"`, `Component: () => <Outlet/>`). Add a
 > loader on `/` that checks the consent store and `redirect("/home")` if already consented.
+>
+> Every `/manager/*` screen above (login and finish-setup excepted) is a child of one
+> `ManagerShell` layout route, which declares the session guard once. The three
+> `/manager/admin/*` pages add the HOSPITAL_ADMIN check on top of it.
 
 ### Nav graph (happy path)
 ```

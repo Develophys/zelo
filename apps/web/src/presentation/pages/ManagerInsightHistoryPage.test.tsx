@@ -88,12 +88,9 @@ describe("ManagerInsightHistoryPage", () => {
     expect(textSpy).toHaveBeenCalledWith(HISTORY_RESPONSE[0]);
   });
 
-  it("navigates back to the dashboard", async () => {
-    const user = userEvent.setup();
+  it("offers no back button — navigation in the panel is the nav, not history", () => {
     renderHistory();
-
-    await user.click(screen.getByRole("button", { name: /voltar/i }));
-    expect(screen.getByText("Manager dashboard screen")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /voltar/i })).not.toBeInTheDocument();
   });
 
   it("clears the session and redirects to login on a 401", async () => {

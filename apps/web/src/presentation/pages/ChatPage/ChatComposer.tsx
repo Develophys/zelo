@@ -9,7 +9,7 @@ import {
 import { PRIVATE_TEXT_FIELD } from '@/presentation/lib/private-field';
 
 const COMPOSER_ACTION =
-  'flex h-11 w-11 flex-none items-center justify-center rounded-full border border-fill-edge bg-brand-fill text-on-fill transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2';
+  'flex h-11 w-11 flex-none items-center justify-center rounded-control border border-fill-edge bg-brand-fill text-on-fill transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2';
 
 export const ChatComposer = memo(function ChatComposer({
   isStreaming,

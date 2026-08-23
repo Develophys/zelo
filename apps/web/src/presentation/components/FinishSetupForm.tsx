@@ -78,7 +78,7 @@ export function FinishSetupForm({ onSubmit, onSuccess }: FinishSetupFormProps) {
         </Card>
 
         <div className="mt-6">
-          <Button type="submit" variant="primary" loading={isPending} disabled={isSubmitDisabled}>
+          <Button type="submit" variant="primary" isLoading={isPending} disabled={isSubmitDisabled}>
             Definir senha
           </Button>
         </div>

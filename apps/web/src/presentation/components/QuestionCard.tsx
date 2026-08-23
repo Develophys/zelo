@@ -31,7 +31,7 @@ export function QuestionCard({
             onClick={() => onSelect(option.value)}
             disabled={disabled}
             className={`
-              rounded-input border 
+              rounded-control border 
               px-4.5 py-4 
               text-left text-label font-semibold text-ink-2 
               duration-200 ease-out 

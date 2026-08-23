@@ -21,7 +21,7 @@ export function ChatTranscriptFallback({
     <div
       role="alert"
       data-testid="chat-transcript-fallback"
-      className="m-auto w-full max-w-[52ch] rounded-input border border-track bg-surface-brand p-[15px_17px]"
+      className="m-auto w-full max-w-[52ch] rounded-card border border-track bg-surface-brand p-[15px_17px]"
     >
       <p className="flex items-start gap-2 text-pretty text-label text-brand-ink">
         <TriangleAlert size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-brand" />
@@ -47,7 +47,7 @@ export function ChatTranscriptFallback({
 
         <a
           href={line.telHref}
-          className="inline-flex min-h-11 items-center gap-1.5 rounded-pill border border-danger-border bg-surface px-4 text-label font-semibold text-danger-strong hover:bg-danger-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-control border border-danger-border bg-surface px-4 text-label font-semibold text-danger-strong hover:bg-danger-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
         >
           <Phone size={15} className="shrink-0" />
           Ligar para o {line.label} · {line.phone}

@@ -68,7 +68,7 @@ export function ConsentPage() {
           variant="unstyled"
           type="button"
           onClick={() => setIsEncryptionInfoOpen(true)}
-          className="mt-3.5 flex items-start gap-2 rounded-2xl bg-surface-brand p-3.25 font-mono text-mono-data text-brand"
+          className="mt-3.5 flex items-start gap-2 rounded-card bg-surface-brand p-3.25 font-mono text-mono-data text-brand"
         >
           <Lock size={16} />
           <span className="flex-1 text-left">

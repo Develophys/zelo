@@ -8,7 +8,7 @@ describe("PrivacyBadge", () => {
     render(<PrivacyBadge />);
     const badge = screen.getByText("anônimo");
     expect(badge.closest("[data-testid='privacy-badge']")).toHaveClass(
-      "rounded-pill",
+      "rounded-status",
       "bg-surface-brand",
       "font-mono",
     );

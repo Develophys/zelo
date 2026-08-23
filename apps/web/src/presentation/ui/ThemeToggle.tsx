@@ -22,13 +22,13 @@ export function ThemeToggle() {
   return (
     <fieldset data-testid="theme-toggle" className="mt-4">
       <legend className="sr-only">Tema da interface</legend>
-      <div className="flex gap-1 rounded-pill bg-canvas-alt p-1">
+      <div className="flex gap-1 rounded-control bg-canvas-alt p-1">
         {OPTIONS.map(({ value, label, icon: Icon }) => {
           const isSelected = preference === value;
           return (
             <label
               key={value}
-              className={`flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-pill text-label font-semibold transition-colors duration-150 has-focus-visible:outline-none has-focus-visible:ring-2 has-focus-visible:ring-brand ${
+              className={`flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-control text-label font-semibold transition-colors duration-150 has-focus-visible:outline-none has-focus-visible:ring-2 has-focus-visible:ring-brand ${
                 isSelected
                   ? 'border border-fill-edge bg-brand-fill text-on-fill shadow-card'
                   : 'border border-transparent text-muted hover:text-ink'

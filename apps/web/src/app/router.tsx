@@ -14,7 +14,12 @@ import { CrisisAcceptPage } from "@/presentation/pages/CrisisAcceptPage";
 import { CrisisDeclinePage } from "@/presentation/pages/CrisisDeclinePage";
 import { PeersPage } from "@/presentation/pages/PeersPage";
 import { ManagerDashboardPage } from "@/presentation/pages/ManagerDashboardPage";
-import { ManagerAdminPage } from "@/presentation/pages/ManagerAdminPage";
+import { ManagerAdminSectorsPage } from "@/presentation/pages/ManagerAdminSectorsPage";
+import { ManagerAdminManagersPage } from "@/presentation/pages/ManagerAdminManagersPage";
+import { ManagerAdminPeersPage } from "@/presentation/pages/ManagerAdminPeersPage";
+import { ManagerNotificationsPage } from "@/presentation/pages/ManagerNotificationsPage";
+import { ManagerSettingsPage } from "@/presentation/pages/ManagerSettingsPage";
+import { ManagerShell } from "@/presentation/layout/ManagerShell";
 import { ManagerLoginPage } from "@/presentation/pages/ManagerLoginPage";
 import { ManagerFinishSetupPage } from "@/presentation/pages/ManagerFinishSetupPage";
 import { ManagerInsightHistoryPage } from "@/presentation/pages/ManagerInsightHistoryPage";
@@ -34,6 +39,18 @@ import { routes } from "@/presentation/lib/routes";
 // Single source of truth for the app's route tree. router.test.tsx imports
 // this directly (rather than hand-duplicating it) so the test router can
 // never silently drift from what actually ships.
+// Administração is HOSPITAL_ADMIN-only; the rest of the panel is not. Kept as
+// one list so the extra guard cannot drift between the three pages.
+const ADMIN_ONLY_ROUTES: RouteObject[] = [
+  { path: "manager/admin/managers", Component: ManagerAdminManagersPage },
+  { path: "manager/admin/sectors", Component: ManagerAdminSectorsPage },
+  { path: "manager/admin/peers", Component: ManagerAdminPeersPage },
+].map((route) => ({
+  ...route,
+  loader: () =>
+    useManagerSessionStore.getState().role === "HOSPITAL_ADMIN" ? null : redirect(routes.manager),
+}));
+
 export const routeChildren: RouteObject[] = [
   {
     index: true,
@@ -80,23 +97,23 @@ export const routeChildren: RouteObject[] = [
   { path: "manager/login", Component: ManagerLoginPage },
   { path: "manager/finish-setup", Component: ManagerFinishSetupPage },
   {
-    path: "manager",
-    Component: ManagerDashboardPage,
-    loader: () => (useManagerSessionStore.getState().isValid() ? null : redirect(routes.managerLogin)),
-  },
-  {
-    path: "manager/history",
-    Component: ManagerInsightHistoryPage,
-    loader: () => (useManagerSessionStore.getState().isValid() ? null : redirect(routes.managerLogin)),
-  },
-  {
-    path: "manager/admin",
-    Component: ManagerAdminPage,
-    loader: () => {
-      if (!useManagerSessionStore.getState().isValid()) return redirect(routes.managerLogin);
-      if (useManagerSessionStore.getState().role !== "HOSPITAL_ADMIN") return redirect(routes.manager);
-      return null;
-    },
+    // One layout route for the whole panel: the shell, and the session guard,
+    // are declared once instead of being repeated on every manager screen.
+    Component: ManagerShell,
+    loader: () =>
+      useManagerSessionStore.getState().isValid() ? null : redirect(routes.managerLogin),
+    children: [
+      { path: "manager", Component: ManagerDashboardPage },
+      { path: "manager/notifications", Component: ManagerNotificationsPage },
+      { path: "manager/history", Component: ManagerInsightHistoryPage },
+      { path: "manager/settings", Component: ManagerSettingsPage },
+      {
+        path: "manager/admin",
+        loader: () => redirect(routes.managerAdminManagers),
+        Component: () => null,
+      },
+      ...ADMIN_ONLY_ROUTES,
+    ],
   },
   {
     path: "you",

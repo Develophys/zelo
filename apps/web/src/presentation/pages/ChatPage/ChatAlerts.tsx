@@ -15,7 +15,7 @@ function CrisisCallLink({ line, className }: { line: CrisisLine; className: stri
   return (
     <a
       href={line.telHref}
-      className={`inline-flex min-h-11 items-center gap-1.5 rounded-pill px-4 text-label font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${className}`}
+      className={`inline-flex min-h-11 items-center gap-1.5 rounded-control px-4 text-label font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${className}`}
     >
       <Phone size={15} className="shrink-0" />
       Ligar para o {line.label} · {line.phone}
@@ -35,7 +35,7 @@ export const ChatAlerts = memo(function ChatAlerts({
     return (
       <div
         role="alert"
-        className="self-stretch rounded-input border border-danger-strong bg-danger-strong-bg p-[13px_15px]"
+        className="self-stretch rounded-card border border-danger-strong bg-danger-strong-bg p-[13px_15px]"
       >
         <p className="text-pretty text-label text-danger-strong">
           Não conseguimos conectar você à IA agora. Se você está em risco, ligue para o {line.label}
@@ -56,7 +56,7 @@ export const ChatAlerts = memo(function ChatAlerts({
       {streamError === 'provider' && (
         <div
           role="alert"
-          className="self-stretch rounded-input border border-danger-border bg-danger-bg p-[13px_15px]"
+          className="self-stretch rounded-card border border-danger-border bg-danger-bg p-[13px_15px]"
         >
           <p className="text-pretty text-label text-danger-ink">
             O acolhimento por IA não respondeu. Você pode tentar de novo, ou falar com uma pessoa
@@ -79,7 +79,7 @@ export const ChatAlerts = memo(function ChatAlerts({
       {streamError === 'offline' && (
         <div
           role="alert"
-          className="self-stretch rounded-input border border-track bg-surface-brand p-[13px_15px]"
+          className="self-stretch rounded-card border border-track bg-surface-brand p-[13px_15px]"
         >
           <p className="flex items-start gap-2 text-pretty text-label text-brand-ink">
             {isOnline ? (

@@ -69,7 +69,7 @@ export function BottomNav({ active, onNavigate }: BottomNavProps) {
           aria-expanded={open}
           aria-controls={SECONDARY_MENU_ID}
           onClick={() => setOpen((previous) => !previous)}
-          className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted transition-colors duration-150 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className="flex min-h-11 min-w-11 items-center justify-center rounded-control text-muted transition-colors duration-150 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
           {open ? <ArrowDown size={22} /> : <ArrowUp size={22} />}
         </button>
@@ -84,7 +84,7 @@ export function BottomNav({ active, onNavigate }: BottomNavProps) {
               role="menuitem"
               to={ADMIN_NAV_ITEM.route}
               onClick={() => setOpen(false)}
-              className="flex min-h-11 items-center gap-3 rounded-input px-3 py-2 text-muted transition-colors duration-150 hover:bg-canvas hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              className="flex min-h-11 items-center gap-3 rounded-control px-3 py-2 text-muted transition-colors duration-150 hover:bg-canvas hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             >
               <AdminIcon size={20} />
               <span className="font-sans text-[14px] font-semibold">{ADMIN_NAV_ITEM.label}</span>
