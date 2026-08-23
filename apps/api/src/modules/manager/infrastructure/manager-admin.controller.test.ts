@@ -51,7 +51,9 @@ class FakeSectorRepository implements SectorRepository {
   }
   async findById(id: string) {
     const row = this.rows.find((r) => r.id === id);
-    return row ? { id: row.id, institutionId: row.institutionId, name: row.name, managerId: row.managerId } : null;
+    return row
+      ? { id: row.id, institutionId: row.institutionId, name: row.name, managerId: row.managerId, isActive: row.isActive }
+      : null;
   }
   async update(id: string, patch: UpdateSectorParams): Promise<void> {
     const row = this.rows.find((r) => r.id === id);

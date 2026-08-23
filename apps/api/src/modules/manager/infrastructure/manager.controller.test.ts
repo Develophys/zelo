@@ -93,7 +93,7 @@ class FakeSectorRepository implements SectorRepository {
   async findAllForAdmin(): Promise<AdminSectorRow[]> {
     throw new Error("not used in this test");
   }
-  async findById(): Promise<{ id: string; institutionId: string; name: string; managerId: string | null } | null> {
+  async findById(): Promise<{ id: string; institutionId: string; name: string; managerId: string | null; isActive: boolean } | null> {
     throw new Error("not used in this test");
   }
   async update(_id: string, _patch: UpdateSectorParams): Promise<void> {
