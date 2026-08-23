@@ -26,6 +26,11 @@ export function useManagerNotifications() {
   const token = useManagerSessionStore((state) => state.token);
   const queryClient = useQueryClient();
 
+  const invalidateBoth = () => {
+    void queryClient.invalidateQueries({ queryKey: [LIST_KEY, token] });
+    void queryClient.invalidateQueries({ queryKey: [COUNT_KEY, token] });
+  };
+
   const list = useQuery({
     queryKey: [LIST_KEY, token],
     queryFn: () => listManagerNotificationsUseCase.execute(token!),
@@ -43,6 +48,10 @@ export function useManagerNotifications() {
       const previousList = queryClient.getQueryData([LIST_KEY, token]);
       const previousCount = queryClient.getQueryData([COUNT_KEY, token]);
 
+      const previousItems = (previousList as { items: { id: string; readAt: string | null }[] } | undefined)
+        ?.items;
+      const wasUnread = previousItems?.some((item) => item.id === id && item.readAt === null) ?? false;
+
       queryClient.setQueryData([LIST_KEY, token], (page: unknown) => {
         const typed = page as { items: { id: string; readAt: string | null }[] } | undefined;
         if (!typed) return page;
@@ -53,9 +62,11 @@ export function useManagerNotifications() {
           ),
         };
       });
-      queryClient.setQueryData([COUNT_KEY, token], (count: unknown) =>
-        typeof count === "number" ? Math.max(0, count - 1) : count,
-      );
+      if (wasUnread) {
+        queryClient.setQueryData([COUNT_KEY, token], (count: unknown) =>
+          typeof count === "number" ? Math.max(0, count - 1) : count,
+        );
+      }
 
       return { previousList, previousCount };
     },
@@ -63,18 +74,12 @@ export function useManagerNotifications() {
       queryClient.setQueryData([LIST_KEY, token], context?.previousList);
       queryClient.setQueryData([COUNT_KEY, token], context?.previousCount);
     },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: [LIST_KEY, token] });
-      void queryClient.invalidateQueries({ queryKey: [COUNT_KEY, token] });
-    },
+    onSettled: invalidateBoth,
   });
 
   const markAllRead = useMutation({
     mutationFn: () => markManagerNotificationReadUseCase.executeAll(token!),
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: [LIST_KEY, token] });
-      void queryClient.invalidateQueries({ queryKey: [COUNT_KEY, token] });
-    },
+    onSettled: invalidateBoth,
   });
 
   return {
@@ -83,10 +88,7 @@ export function useManagerNotifications() {
     isLoading: list.isLoading,
     error: list.error,
     isRefreshing: list.isFetching && !list.isLoading,
-    refresh: () => {
-      void queryClient.invalidateQueries({ queryKey: [LIST_KEY, token] });
-      void queryClient.invalidateQueries({ queryKey: [COUNT_KEY, token] });
-    },
+    refresh: invalidateBoth,
     markRead: (id: string) => markRead.mutate(id),
     markAllRead: () => markAllRead.mutate(),
   };
