@@ -4,6 +4,7 @@ import { RouterProvider } from "react-router";
 import { router } from "./router";
 import { watchSystemTheme } from "@/presentation/lib/theme";
 import { useThemeStore } from "@/stores/theme.store";
+import { ToastViewport } from "@/presentation/ui/ToastViewport";
 
 const queryClient = new QueryClient();
 
@@ -15,6 +16,7 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
+      <ToastViewport />
     </QueryClientProvider>
   );
 }
