@@ -79,6 +79,16 @@ describe('ManagerShell', () => {
     expect(nav.className).toContain('md:hidden');
   });
 
+  it('fills the viewport width, with the sidebar flush to the edge instead of inset in a capped, padded wrapper', () => {
+    const { container } = mount();
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.className).not.toMatch(/max-w-\d/);
+    expect(root.className).not.toContain('mx-auto');
+    expect(root.className).not.toMatch(/(^|\s)px-/);
+    const sidebar = screen.getByTestId('manager-sidebar');
+    expect(sidebar.parentElement).toBe(root);
+  });
+
   it('applies the manager preferences exactly once, from here', () => {
     useManagerPrefsStore.setState({
       density: 'compact',

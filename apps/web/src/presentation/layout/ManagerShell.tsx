@@ -16,16 +16,14 @@ export function ManagerShell() {
   useApplyManagerPrefs();
 
   return (
-    <div className="min-h-dvh bg-surface">
-      <div className="mx-auto flex w-full max-w-295 gap-0 px-4 md:px-6 lg:px-8">
-        <ManagerSidebar />
-        {/* min-w-0 is load-bearing: without it a fixed-layout table's intrinsic
-            width overflows this flex child and brings back the horizontal
-            scrollbar the redesign exists to remove. */}
-        <main className="min-w-0 flex-1 pb-20 md:pb-8">
-          <Outlet />
-        </main>
-      </div>
+    <div className="flex min-h-dvh bg-surface">
+      <ManagerSidebar />
+      {/* min-w-0 is load-bearing: without it a fixed-layout table's intrinsic
+          width overflows this flex child and brings back the horizontal
+          scrollbar the redesign exists to remove. */}
+      <main className="min-w-0 flex-1 px-6 pb-20 md:pb-8">
+        <Outlet />
+      </main>
       <ManagerBottomNav />
     </div>
   );
