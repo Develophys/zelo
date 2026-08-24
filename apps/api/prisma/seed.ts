@@ -3,6 +3,7 @@ import { ManagerPasswordService } from "../src/modules/manager/application/servi
 import { AdminPasswordService } from "../src/modules/admin/application/services/admin-password.service.ts";
 import {
   buildFollowUpSeedRows,
+  buildManagerInviteSeedRows,
   buildSeedRows,
   INSTITUTION_SEED_ROSTER,
   MANAGER_SEED_ROSTER,
@@ -109,6 +110,43 @@ async function main() {
     }
   }
 
+  const managerInviteRows = buildManagerInviteSeedRows(new Date());
+  for (const invite of managerInviteRows) {
+    const institution = institutionsByName.get(invite.institutionName);
+    if (!institution) {
+      throw new Error(`MANAGER_INVITE_SEED_ROSTER entry "${invite.name}" references unknown institution "${invite.institutionName}"`);
+    }
+    const managerRow = await prisma.manager.upsert({
+      where: { email: invite.email },
+      update: {
+        name: invite.name,
+        institutionId: institution.id,
+        role: invite.role,
+        passwordHash: null,
+        setPasswordToken: invite.setPasswordToken,
+        setPasswordTokenExpiresAt: invite.setPasswordTokenExpiresAt,
+      },
+      create: {
+        name: invite.name,
+        email: invite.email,
+        institutionId: institution.id,
+        role: invite.role,
+        passwordHash: null,
+        setPasswordToken: invite.setPasswordToken,
+        setPasswordTokenExpiresAt: invite.setPasswordTokenExpiresAt,
+      },
+    });
+
+    if (invite.role === "SECTOR_MANAGER" && invite.sectorNames) {
+      for (const sectorName of invite.sectorNames) {
+        await prisma.sector.update({
+          where: { id: sectorId(institution.id, sectorName) },
+          data: { managerId: managerRow.id },
+        });
+      }
+    }
+  }
+
   for (const peerPartner of PEER_PARTNER_SEED_ROSTER) {
     const institution = institutionsByName.get(peerPartner.institutionName);
     if (!institution) {
@@ -134,7 +172,7 @@ async function main() {
   }
 
   console.log(
-    `Seeded ${INSTITUTION_SEED_ROSTER.length} Institution rows, ${SECTOR_SEED_ROSTER.length} Sector rows, Signal rows for each institution, ${followUpRows.length} SimulatedFollowUp rows, ${MANAGER_SEED_ROSTER.length} Manager accounts, ${PEER_PARTNER_SEED_ROSTER.length} PeerPartner account(s), and ${SUPER_ADMIN_SEED_ROSTER.length} SuperAdmin account(s).`,
+    `Seeded ${INSTITUTION_SEED_ROSTER.length} Institution rows, ${SECTOR_SEED_ROSTER.length} Sector rows, Signal rows for each institution, ${followUpRows.length} SimulatedFollowUp rows, ${MANAGER_SEED_ROSTER.length} Manager accounts, ${managerInviteRows.length} pending/expired invite Manager accounts, ${PEER_PARTNER_SEED_ROSTER.length} PeerPartner account(s), and ${SUPER_ADMIN_SEED_ROSTER.length} SuperAdmin account(s).`,
   );
   await prisma.$disconnect();
 }

@@ -150,6 +150,48 @@ export const MANAGER_SEED_ROSTER: ManagerSeedRow[] = [
   { name: "Beatriz Lima", email: "beatriz@sao-lucas-demo.local", password: "zelo-beatriz-2026", passwordEnvVar: "MANAGER_SEED_PASSWORD_BEATRIZ", institutionName: "Hospital São Lucas (Demo)", role: "HOSPITAL_ADMIN" },
 ];
 
+export interface ManagerInviteSeedRow {
+  name: string;
+  email: string;
+  institutionName: string;
+  role: ManagerRole;
+  sectorNames?: string[]; // required in practice when role is SECTOR_MANAGER; ignored for HOSPITAL_ADMIN
+  setPasswordToken: string;
+  expiresOffsetDays: number; // negative = token expired that many days ago; positive = expires that many days from now
+}
+
+// Managers who never set a password, for exercising the invite pills and "Reenviar convite".
+// institutionName must match INSTITUTION_SEED_ROSTER, and sectorNames must match
+// SECTOR_SEED_ROSTER for that institution — neither constraint is expressible in the type.
+export const MANAGER_INVITE_SEED_ROSTER: ManagerInviteSeedRow[] = [
+  { name: "Roberta Nunes", email: "roberta@zelo-demo.local", institutionName: "Zelo Demo", role: "HOSPITAL_ADMIN", setPasswordToken: "seed-invite-expired-roberta-nunes", expiresOffsetDays: -3 },
+  { name: "Fernando Costa", email: "fernando@zelo-demo.local", institutionName: "Zelo Demo", role: "SECTOR_MANAGER", sectorNames: ["Ambulatório"], setPasswordToken: "seed-invite-expired-fernando-costa", expiresOffsetDays: -10 },
+  { name: "Juliana Prado", email: "juliana@zelo-demo.local", institutionName: "Zelo Demo", role: "HOSPITAL_ADMIN", setPasswordToken: "seed-invite-expired-juliana-prado", expiresOffsetDays: -30 },
+  { name: "Marcos Teixeira", email: "marcos@zelo-demo.local", institutionName: "Zelo Demo", role: "SECTOR_MANAGER", sectorNames: ["Plantão noturno"], setPasswordToken: "seed-invite-pending-marcos-teixeira", expiresOffsetDays: 2 },
+];
+
+export interface ManagerInviteSeedResultRow {
+  name: string;
+  email: string;
+  institutionName: string;
+  role: ManagerRole;
+  sectorNames?: string[];
+  setPasswordToken: string;
+  setPasswordTokenExpiresAt: Date;
+}
+
+export function buildManagerInviteSeedRows(referenceDate: Date): ManagerInviteSeedResultRow[] {
+  return MANAGER_INVITE_SEED_ROSTER.map((row) => ({
+    name: row.name,
+    email: row.email,
+    institutionName: row.institutionName,
+    role: row.role,
+    sectorNames: row.sectorNames,
+    setPasswordToken: row.setPasswordToken,
+    setPasswordTokenExpiresAt: new Date(referenceDate.getTime() + row.expiresOffsetDays * 24 * 60 * 60 * 1000),
+  }));
+}
+
 export interface SuperAdminSeedRow {
   name: string;
   email: string;
