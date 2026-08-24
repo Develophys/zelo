@@ -1,11 +1,16 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { useBulkDelete } from './useBulkDelete';
 import { AdminDeleteConflictError } from '@/ports/manager-admin.port';
+import { useToastStore } from '@/stores/toast.store';
 
 function setup(deleteOne: (id: string) => Promise<unknown>, onSuccess?: () => void) {
   return renderHook(() => useBulkDelete({ deleteOne, noun: { singular: 'gestor' }, onSuccess }));
 }
+
+beforeEach(() => {
+  useToastStore.getState().clear();
+});
 
 describe('useBulkDelete — dialog state', () => {
   it('starts closed, and opens with the requested ids', () => {
@@ -48,6 +53,30 @@ describe('useBulkDelete — confirming', () => {
     expect(deleteOne).toHaveBeenNthCalledWith(2, 'b');
     expect(onSuccess).toHaveBeenCalledTimes(1);
     expect(result.current.deleteTarget).toBeNull();
+  });
+
+  it('raises a success toast naming the count and noun when every id succeeds', async () => {
+    const deleteOne = vi.fn().mockResolvedValue(undefined);
+    const { result } = setup(deleteOne);
+
+    act(() => result.current.openDeleteConfirm(['a', 'b', 'c']));
+    await act(() => result.current.confirmDelete());
+
+    expect(useToastStore.getState().toasts).toEqual([
+      expect.objectContaining({ tone: 'success', message: '3 gestores excluídos.' }),
+    ]);
+  });
+
+  it('agrees the success toast to the singular for a single deletion', async () => {
+    const deleteOne = vi.fn().mockResolvedValue(undefined);
+    const { result } = setup(deleteOne);
+
+    act(() => result.current.openDeleteConfirm(['a']));
+    await act(() => result.current.confirmDelete());
+
+    expect(useToastStore.getState().toasts).toEqual([
+      expect.objectContaining({ tone: 'success', message: '1 gestor excluído.' }),
+    ]);
   });
 
   it('keeps the dialog open and surfaces the refusal sentence when every id fails', async () => {

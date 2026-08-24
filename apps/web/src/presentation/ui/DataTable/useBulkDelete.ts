@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { deleteConflictMessage } from '@/ports/manager-admin.port';
+import { toast } from '@/stores/toast.store';
+import { plural } from './plural';
 
 export interface UseBulkDeleteOptions {
   /** A single delete call, e.g. `(id) => deleteManager.mutateAsync(id)`. */
@@ -21,8 +23,8 @@ export interface UseBulkDelete {
   confirmDelete(): Promise<void>;
 }
 
-function plural(singular: string): string {
-  return `${singular}es`;
+function deleteSuccessMessage(count: number, noun: { singular: string }): string {
+  return count === 1 ? `1 ${noun.singular} excluído.` : `${count} ${plural(noun.singular)} excluídos.`;
 }
 
 export function useBulkDelete({ deleteOne, noun, onSuccess }: UseBulkDeleteOptions): UseBulkDelete {
@@ -59,6 +61,7 @@ export function useBulkDelete({ deleteOne, noun, onSuccess }: UseBulkDeleteOptio
     setDeleteBusy(false);
 
     if (failedIds.length === 0) {
+      toast.success(deleteSuccessMessage(succeeded, noun));
       onSuccess?.();
       closeDeleteConfirm();
       return;

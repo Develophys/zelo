@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { plural } from './plural';
 
 export interface BulkActionState {
   enabled: boolean;
@@ -42,7 +43,7 @@ export function useDataTableSelection<T extends { id: string; isActive: boolean 
   const allInactive = count > 0 && activeCount === 0;
   const mixed = count > 0 && !allActive && !allInactive;
 
-  const sameStatus = `Selecione apenas ${noun.singular}es com o mesmo status`;
+  const sameStatus = `Selecione apenas ${plural(noun.singular)} com o mesmo status`;
 
   return {
     selectedIds,
