@@ -80,6 +80,7 @@ export function DataTable<T extends { id: string; isActive: boolean; name?: stri
                 </td>
                 {columns.map((column) => {
                   const value = column.cell(row);
+                  const isString = typeof value === 'string';
                   return (
                     <td
                       key={column.key}
@@ -91,9 +92,11 @@ export function DataTable<T extends { id: string; isActive: boolean; name?: stri
                         className={
                           column.breakAll
                             ? 'block break-all whitespace-normal'
-                            : 'block truncate'
+                            : isString
+                              ? 'block truncate'
+                              : 'block'
                         }
-                        title={column.breakAll || typeof value !== 'string' ? undefined : value}
+                        title={column.breakAll || !isString ? undefined : value}
                       >
                         {value}
                       </span>

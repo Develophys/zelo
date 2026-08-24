@@ -6,6 +6,7 @@ import { DataTable, type DataTableColumn } from './DataTable';
 import { DataTableEmpty } from './DataTableEmpty';
 import { DataTableToolbar } from './DataTableToolbar';
 import { useDataTableSelection } from './useDataTableSelection';
+import { Pill } from '@/presentation/ui/Pill';
 
 interface Row {
   id: string;
@@ -89,6 +90,44 @@ describe('DataTable', () => {
   it('gives a truncated cell a title so the full value stays discoverable', () => {
     render(<Harness />);
     expect(screen.getByText('Ana')).toHaveAttribute('title', 'Ana');
+  });
+
+  // truncate cuts a Pill off mid-word since it is a fixed-width inline-flex
+  // element, not text that can lose its tail gracefully — only a string cell
+  // should ever get the truncating wrapper.
+  it('does not wrap a Pill cell in a truncating span, but still truncates a string cell', () => {
+    const pillColumns: DataTableColumn<Row>[] = [
+      { key: 'name', header: 'Nome', width: 'w-[60%]', cell: (row) => row.name },
+      {
+        key: 'status',
+        header: 'Status',
+        width: 'w-[40%]',
+        cell: (row) => <Pill tone={row.isActive ? 'positive' : 'neutral'}>{row.isActive ? 'Ativa' : 'Inativa'}</Pill>,
+      },
+    ];
+    function PillHarness() {
+      const selection = useDataTableSelection(ROWS, { singular: 'gestor', article: 'um' });
+      return (
+        <DataTable
+          caption="Gestores"
+          columns={pillColumns}
+          rows={ROWS}
+          selection={selection}
+          rowActions={() => null}
+          toolbar={<DataTableToolbar selection={selection} search="" onSearchChange={() => {}} actions={null} />}
+          emptyState={<p>Nenhum gestor por aqui.</p>}
+        />
+      );
+    }
+
+    render(<PillHarness />);
+
+    const pillWrapper = screen.getByText('Ativa').parentElement as HTMLElement;
+    expect(pillWrapper.className).toContain('block');
+    expect(pillWrapper.className).not.toContain('truncate');
+    expect(pillWrapper).not.toHaveAttribute('title');
+
+    expect(screen.getByText('Ana').className).toContain('truncate');
   });
 
   it('selects a row from its checkbox', async () => {
