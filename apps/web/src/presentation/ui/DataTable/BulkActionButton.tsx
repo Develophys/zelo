@@ -25,8 +25,5 @@ export function BulkActionButton({
       {label}
     </Button>
   );
-  // Guarding the click handler (not the `disabled` attribute) keeps the
-  // button focusable, so the tooltip explaining why it's off stays reachable
-  // by keyboard — a `disabled` button drops out of the tab order entirely.
   return state.reason ? <Tooltip content={state.reason}>{button}</Tooltip> : button;
 }

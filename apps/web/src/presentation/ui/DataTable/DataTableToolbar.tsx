@@ -20,13 +20,6 @@ export function DataTableToolbar<T>({
   const hasSelection = selection.selectedIds.length > 0;
 
   return (
-    // h-14 is fixed, not floored, and identical in both branches: min-h only
-    // guarantees a floor, and once the actions branch holds more buttons than
-    // fit one line, flex-wrap would push it past that floor and shift the
-    // table. The actions branch is flex-nowrap + overflow-x-auto instead, so
-    // overflow scrolls horizontally rather than growing the row.
-    // data-testid anchors a regression test that swaps branches on the same
-    // node and diffs its className, rather than asserting the class in isolation.
     <div
       data-testid="data-table-toolbar"
       className="flex h-14 items-center gap-3 border-b border-line px-cell-x"

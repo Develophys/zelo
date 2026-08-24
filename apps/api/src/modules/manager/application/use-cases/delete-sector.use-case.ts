@@ -21,8 +21,6 @@ export class DeleteSectorUseCase {
       throw new SectorNotInInstitutionError();
     }
 
-    // Signal rows are the weekly aggregates every trend on the dashboard reads.
-    // Deleting through them would rewrite history for weeks already reported.
     const signalCount = await this.signalRepository.countBySector(input.sectorId);
     if (signalCount > 0) {
       throw new SectorHasHistoryError();

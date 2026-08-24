@@ -29,8 +29,6 @@ export function useDataTableSelection<T extends { id: string; isActive: boolean 
 ): DataTableSelection<T> {
   const [selected, setSelected] = useState<string[]>([]);
 
-  // Derived, never stored: a row that left the loaded window must not stay
-  // selected, or a bulk action would apply to something off screen.
   const present = useMemo(() => new Set(rows.map((row) => row.id)), [rows]);
   const selectedIds = useMemo(() => selected.filter((id) => present.has(id)), [selected, present]);
   const selectedRows = useMemo(
@@ -83,7 +81,6 @@ export function useDataTableSelection<T extends { id: string; isActive: boolean 
         : mixed
           ? no(sameStatus)
           : no(`Os selecionados já estão ativos`),
-    // Excluir has no status precondition — only "something is selected".
     remove: count > 0 ? ok : no(`Selecione ao menos um ${noun.singular}`),
   };
 }

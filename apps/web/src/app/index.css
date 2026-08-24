@@ -268,9 +268,6 @@ html[data-density='compact'] {
   --color-surface-brand: #3e2b23;
 }
 
-/* The "arredondados" preference. The sharp scale is the default and lives in
-   @theme; this block only softens it, so a token that is a capsule by
-   geometry (--radius-pill) is deliberately untouched. */
 html[data-corners='rounded'] {
   --radius-control: 12px;
   --radius-status: 8px;

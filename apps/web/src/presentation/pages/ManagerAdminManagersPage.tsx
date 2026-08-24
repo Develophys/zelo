@@ -33,9 +33,6 @@ function roleLabel(role: ManagerRole): string {
   return role === "HOSPITAL_ADMIN" ? "Gestor do hospital" : "Gestor de setor";
 }
 
-// Shared by the create form and the edit form, both hosted inside the same
-// Modal — only one of the two is ever mounted at a time, so a single id
-// namespace per field is enough.
 function RoleAndSectorFields({
   idPrefix,
   role,
@@ -196,7 +193,6 @@ export function ManagerAdminManagersPage() {
   const openEdit = (manager: ManagerSummary) => {
     setEditingManager(manager);
     setEditRole(manager.role);
-    // ManagerSummary carries sector NAMES; map them back to ids via the sector list.
     setEditSectorIds(sectorList.filter((sector) => manager.sectorNames.includes(sector.name)).map((sector) => sector.id));
     setFormMode("edit");
   };
@@ -347,9 +343,6 @@ export function ManagerAdminManagersPage() {
                 selected ? "border-brand bg-brand/5" : "border-line bg-surface"
               }`}
             >
-              {/* The selection target is a sibling of the row-action IconButtons
-                  below, not their parent — nesting a button inside a button is
-                  invalid HTML and breaks both keyboard and screen-reader use. */}
               <button
                 type="button"
                 aria-label={`${manager.name}, ${status.text}`}

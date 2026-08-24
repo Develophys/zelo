@@ -21,24 +21,15 @@ export class DeleteManagerUseCase {
 
   async execute(input: DeleteManagerInput): Promise<void> {
     const manager = await this.managerRepository.findById(input.managerId);
-    // A manager from another institution is "not found", never "forbidden":
-    // the difference would confirm that the id exists.
     if (!manager || manager.institutionId !== input.institutionId) {
       throw new ManagerNotFoundError();
     }
 
-    // Sector.managerId is ON DELETE SET NULL, not RESTRICT — the database
-    // will not refuse this delete on its own. This check is the only thing
-    // standing between deleting a manager and silently unassigning every
-    // sector they own, so it must run, and must run before the delete.
     const ownedSectorIds = await this.sectorRepository.findAssignedSectorIds(input.managerId);
     if (ownedSectorIds.length > 0) {
       throw new ManagerOwnsSectorsError();
     }
 
-    // The same door this institution could already lock itself behind by
-    // deactivating or demoting its last admin — deleting is no different, and
-    // has no undo at all.
     if (manager.role === "HOSPITAL_ADMIN" && manager.isActive) {
       const activeHospitalAdmins = await this.managerRepository.countActiveHospitalAdmins(
         input.institutionId,

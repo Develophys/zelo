@@ -248,9 +248,6 @@ export function ManagerAdminPeersPage() {
                 selected ? "border-brand bg-brand/5" : "border-line bg-surface"
               }`}
             >
-              {/* The selection target is a sibling of the row-action IconButtons
-                  below, not their parent — nesting a button inside a button is
-                  invalid HTML and breaks both keyboard and screen-reader use. */}
               <button
                 type="button"
                 aria-label={`${peerPartner.name}, ${status.text}`}

@@ -35,11 +35,6 @@ function sectorStatus(sector: AdminSector): "active" | "inactive" {
   return sector.isActive ? "active" : "inactive";
 }
 
-// Shared by the create form and the edit form, both hosted inside the same
-// Modal — only one of the two is ever mounted at a time, so a single id
-// namespace per field is enough. The name field has no update path (the API
-// only supports setting it at creation), so the edit form renders it disabled
-// rather than pretending a rename would persist.
 function SectorFields({
   idPrefix,
   name,
@@ -209,10 +204,6 @@ export function ManagerAdminSectorsPage() {
           closeModal();
           return;
         }
-        // createSector's use case only takes a name — assigning the manager
-        // is a second mutation. If it fails, the sector still exists
-        // (unassigned): closing the modal reflects that rather than telling
-        // the manager the whole thing failed.
         updateSector.mutate(
           { id: result.id, patch: { managerId } },
           {
@@ -337,9 +328,6 @@ export function ManagerAdminSectorsPage() {
                 selected ? "border-brand bg-brand/5" : "border-line bg-surface"
               }`}
             >
-              {/* The selection target is a sibling of the row-action IconButton
-                  below, not its parent — nesting a button inside a button is
-                  invalid HTML and breaks both keyboard and screen-reader use. */}
               <button
                 type="button"
                 aria-label={`${sector.name}, ${status.text}`}

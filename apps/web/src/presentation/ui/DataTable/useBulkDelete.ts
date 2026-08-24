@@ -21,9 +21,6 @@ export interface UseBulkDelete {
   confirmDelete(): Promise<void>;
 }
 
-// Portuguese pluralises every noun this hook has seen (gestor, setor, par) by
-// appending "es" — the same suffix rule useDataTableSelection already applies
-// to its "same status" precondition text.
 function plural(singular: string): string {
   return `${singular}es`;
 }
@@ -67,8 +64,6 @@ export function useBulkDelete({ deleteOne, noun, onSuccess }: UseBulkDeleteOptio
       return;
     }
 
-    // Only the ones still refused stay on the confirm dialog — retrying
-    // should not re-attempt an id that already succeeded.
     const refusalText = [...refusals].join(' ');
     setDeleteTarget({ ids: failedIds });
     setDeleteMessage(succeeded > 0 ? `${succeeded} de ${attempted} excluídos. ${refusalText}` : refusalText);

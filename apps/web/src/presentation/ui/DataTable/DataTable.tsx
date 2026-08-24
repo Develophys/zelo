@@ -40,9 +40,6 @@ export function DataTable<T extends { id: string; isActive: boolean; name?: stri
       {rows.length === 0 ? (
         emptyState
       ) : (
-        // hidden md:table is Phase 02's sanctioned exception: the same hook
-        // feeds two markup shapes, because a table and a card list are
-        // genuinely different affordances for the same rows.
         <table className="hidden w-full table-fixed md:table">
           <caption className="sr-only">{caption}</caption>
           <thead>
