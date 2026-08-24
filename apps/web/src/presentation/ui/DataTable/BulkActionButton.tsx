@@ -1,6 +1,21 @@
-import { Button } from '@/presentation/ui/Button';
-import { Tooltip } from '@/presentation/ui/Tooltip';
+import type { ReactNode } from 'react';
+import { Trash2, Pause, Pencil, Play } from 'lucide-react';
+import { IconButton } from '@/presentation/ui/IconButton';
 import type { BulkActionState } from './useDataTableSelection';
+
+const ICON_BY_LABEL: Record<string, ReactNode> = {
+  Excluir: <Trash2 size={16} />,
+  Pausar: <Pause size={16} />,
+  Editar: <Pencil size={16} />,
+  Ativar: <Play size={16} />,
+};
+
+const VARIANT_BY_LABEL: Record<string, 'danger' | 'warn' | 'ink' | 'success'> = {
+  Excluir: 'danger',
+  Pausar: 'warn',
+  Editar: 'ink',
+  Ativar: 'success',
+};
 
 export function BulkActionButton({
   label,
@@ -11,19 +26,16 @@ export function BulkActionButton({
   state: BulkActionState;
   onClick: () => void;
 }) {
-  const button = (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      full={false}
+  return (
+    <IconButton
+      label={label}
+      tooltip={state.reason ?? label}
+      icon={ICON_BY_LABEL[label]}
+      variant={VARIANT_BY_LABEL[label]}
       aria-disabled={!state.enabled}
       onClick={() => {
         if (state.enabled) onClick();
       }}
-    >
-      {label}
-    </Button>
+    />
   );
-  return state.reason ? <Tooltip content={state.reason}>{button}</Tooltip> : button;
 }

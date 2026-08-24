@@ -55,12 +55,17 @@ describe('BulkActionButton', () => {
     expect(screen.getByTestId('tooltip')).toHaveTextContent('Selecione apenas gestores com o mesmo status');
   });
 
-  it('renders no tooltip at all when enabled, with nothing to explain', () => {
+  it('shows its own label as a self-explaining tooltip when enabled, since the icon alone carries no text', () => {
     render(<BulkActionButton label="Excluir" state={{ enabled: true, reason: null }} onClick={vi.fn()} />);
 
     const button = screen.getByRole('button', { name: 'Excluir' });
     fireEvent.focus(button);
-    expect(screen.queryByTestId('tooltip')).not.toBeInTheDocument();
+    const tooltip = screen.getByTestId('tooltip');
+    expect(tooltip).toHaveTextContent('Excluir');
+    // The tooltip only restates the accessible name here, so it stays out of
+    // the accessibility tree — a screen reader already has the name and does
+    // not need it read twice.
+    expect(tooltip).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('turns on the dimmed off-state (via aria-disabled="true") when refused, so a mouse or touch user sees it is unavailable', () => {
@@ -81,5 +86,33 @@ describe('BulkActionButton', () => {
 
     const button = screen.getByRole('button', { name: 'Pausar' });
     expect(button).not.toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('keeps the label as the accessible name even though the button carries no visible text', () => {
+    render(<BulkActionButton label="Excluir" state={{ enabled: true, reason: null }} onClick={vi.fn()} />);
+
+    const button = screen.getByRole('button', { name: 'Excluir' });
+    expect(button).toHaveAccessibleName('Excluir');
+    expect(button.textContent).toBe('');
+  });
+
+  it('colours Excluir red, the danger tone', () => {
+    render(<BulkActionButton label="Excluir" state={{ enabled: true, reason: null }} onClick={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Excluir' }).className).toContain('text-danger');
+  });
+
+  it('colours Pausar yellow, the warn tone', () => {
+    render(<BulkActionButton label="Pausar" state={{ enabled: true, reason: null }} onClick={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Pausar' }).className).toContain('text-warn');
+  });
+
+  it('colours Editar black, the ink tone', () => {
+    render(<BulkActionButton label="Editar" state={{ enabled: true, reason: null }} onClick={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Editar' }).className).toContain('text-ink');
+  });
+
+  it('colours Ativar green, the accent-independent success tone', () => {
+    render(<BulkActionButton label="Ativar" state={{ enabled: true, reason: null }} onClick={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Ativar' }).className).toContain('text-success');
   });
 });

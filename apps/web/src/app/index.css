@@ -48,6 +48,8 @@
   --color-warn: #a9711a;
   --color-warn-bg: #f6edda;
   --color-warn-ink: #85671e;
+  --color-success: #217d47;
+  --color-success-bg: #eaf5ef;
   --color-danger: #a2453a;
   --color-danger-fill: #a2453a;
   --color-danger-bg: #f7ebe8;
@@ -173,6 +175,8 @@
   --color-warn: #e0ae63;
   --color-warn-bg: #2c2418;
   --color-warn-ink: #dcb87f;
+  --color-success: #67c58f;
+  --color-success-bg: #182a20;
   --color-danger: #f09a90;
   --color-danger-fill: #b24c40;
   --color-danger-bg: #2d1c19;
