@@ -52,4 +52,12 @@ describe("AdminInstitutionsPage", () => {
 
     await waitFor(() => expect(screen.getByText("Convite enviado para mauricio@zelo-demo.local.")).toBeInTheDocument());
   });
+
+  it("insets the submit button by the same horizontal padding as the card so its edges line up with the fields", async () => {
+    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([]);
+    renderPage();
+
+    expect(await screen.findByRole("button", { name: "Criar instituição" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Criar instituição" }).parentElement).toHaveClass("px-4.5");
+  });
 });

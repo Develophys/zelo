@@ -115,7 +115,7 @@ export function AdminInstitutionsPage() {
             )}
           </Card>
 
-          <div className="mt-4">
+          <div className="mt-4 px-4.5">
             <Button
               type="submit"
               variant="primary"

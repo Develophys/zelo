@@ -37,7 +37,7 @@ export function LinkStepShell({
         <form onSubmit={onSubmit}>
           <Card className="mt-5">{children}</Card>
 
-          <div className="mt-6">
+          <div className="mt-6 px-4.5">
             <Button type="submit" variant="primary" isLoading={submitLoading} disabled={submitDisabled}>
               {submitLabel}
             </Button>
