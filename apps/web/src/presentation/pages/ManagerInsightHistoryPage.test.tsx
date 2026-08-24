@@ -224,7 +224,8 @@ describe("ManagerInsightHistoryPage", () => {
     renderHistory();
 
     expect(await screen.findByText("Nenhuma análise gerada ainda.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Gerar análise" })).toBeInTheDocument();
+    expect(screen.getByText("Use o botão Gerar análise, acima, para criar a primeira.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Tendências/i })).not.toBeInTheDocument();
   });
 
   it("shows the same inline retry message as Tendências when insight generation fails", async () => {
@@ -240,6 +241,43 @@ describe("ManagerInsightHistoryPage", () => {
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível gerar a análise agora. Tente novamente.");
     });
+  });
+
+  it("opens only the newest mobile card after generating, collapsing the previously-first card rather than stacking it open", async () => {
+    const historySpy = vi.spyOn(container.getManagerInsightHistoryUseCase, "execute");
+    historySpy.mockResolvedValueOnce(HISTORY_RESPONSE);
+    historySpy.mockResolvedValueOnce([
+      {
+        id: "3",
+        interpretation: "Interpretação recém-gerada.",
+        suggestedActions: ["Ação nova"],
+        summary: "resumo novo",
+        generatedAt: "2026-08-10T00:00:00.000Z",
+        createdByManagerName: "Ana Konder",
+      },
+      ...HISTORY_RESPONSE,
+    ]);
+    vi.spyOn(container.generateManagerInsightUseCase, "execute").mockResolvedValue({
+      interpretation: "Interpretação recém-gerada.",
+      suggestedActions: ["Ação nova"],
+    });
+    const user = userEvent.setup();
+    renderHistory();
+
+    const cardsBefore = await screen.findByTestId("insight-card-list");
+    const [firstBefore] = within(cardsBefore).getAllByRole("button", { name: /Análise de/ });
+    expect(firstBefore).toHaveAttribute("aria-expanded", "true");
+
+    await user.click(screen.getByRole("button", { name: "Gerar análise" }));
+
+    await waitFor(() => {
+      expect(within(screen.getByTestId("insight-card-list")).getAllByRole("button", { name: /Análise de/ })).toHaveLength(3);
+    });
+    const cardsAfter = screen.getByTestId("insight-card-list");
+    const [newest, previouslyFirst, third] = within(cardsAfter).getAllByRole("button", { name: /Análise de/ });
+    expect(newest).toHaveAttribute("aria-expanded", "true");
+    expect(previouslyFirst).toHaveAttribute("aria-expanded", "false");
+    expect(third).toHaveAttribute("aria-expanded", "false");
   });
 
   it("refetches the history so a newly generated analysis appears without a manual reload", async () => {

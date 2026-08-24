@@ -76,8 +76,9 @@ function InsightRow({ entry }: { entry: StoredManagerInsight }) {
   );
 }
 
-function InsightCard({ entry, defaultOpen }: { entry: StoredManagerInsight; defaultOpen: boolean }) {
-  const [expanded, setExpanded] = useState(defaultOpen);
+function InsightCard({ entry, isDefaultOpen }: { entry: StoredManagerInsight; isDefaultOpen: boolean }) {
+  const [manualExpanded, setManualExpanded] = useState<boolean | null>(null);
+  const expanded = manualExpanded ?? isDefaultOpen;
   const regionId = `insight-card-region-${entry.id}`;
   const dateLabel = formatDate(entry.generatedAt);
 
@@ -88,7 +89,7 @@ function InsightCard({ entry, defaultOpen }: { entry: StoredManagerInsight; defa
         aria-expanded={expanded}
         aria-controls={expanded ? regionId : undefined}
         aria-label={`Análise de ${dateLabel}: ${entry.summary}`}
-        onClick={() => setExpanded((value) => !value)}
+        onClick={() => setManualExpanded(!expanded)}
         className="flex w-full items-center justify-between gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
         <span className="min-w-0">
@@ -188,7 +189,7 @@ export function ManagerInsightHistoryPage() {
           <ul data-testid="insight-card-list" className="flex flex-col gap-3 md:hidden">
             {entries.map((entry, index) => (
               <li key={entry.id}>
-                <InsightCard entry={entry} defaultOpen={index === 0} />
+                <InsightCard entry={entry} isDefaultOpen={index === 0} />
               </li>
             ))}
           </ul>
