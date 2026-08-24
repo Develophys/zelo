@@ -66,7 +66,7 @@ export function ManagerLoginPage() {
             )}
           </Card>
 
-          <div className="mt-6">
+          <div className="mt-6 px-4.5">
             <Button
               type="submit"
               variant="primary"

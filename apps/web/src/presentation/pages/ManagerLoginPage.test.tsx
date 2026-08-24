@@ -69,4 +69,9 @@ describe("ManagerLoginPage", () => {
     await user.type(screen.getByLabelText("Senha"), "senha-correta");
     expect(screen.getByRole("button", { name: "Entrar" })).not.toBeDisabled();
   });
+
+  it("insets the submit button by the same horizontal padding as the card so its edges line up with the fields", () => {
+    renderPage();
+    expect(screen.getByRole("button", { name: "Entrar" }).parentElement).toHaveClass("px-4.5");
+  });
 });
