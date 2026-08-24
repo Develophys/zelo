@@ -62,4 +62,24 @@ describe('BulkActionButton', () => {
     fireEvent.focus(button);
     expect(screen.queryByTestId('tooltip')).not.toBeInTheDocument();
   });
+
+  it('turns on the dimmed off-state (via aria-disabled="true") when refused, so a mouse or touch user sees it is unavailable', () => {
+    render(
+      <BulkActionButton label="Pausar" state={{ enabled: false, reason: 'Selecione ao menos um gestor' }} onClick={vi.fn()} />,
+    );
+
+    const button = screen.getByRole('button', { name: 'Pausar' });
+    // The dimming class ships statically (same mechanism as disabled:opacity-50
+    // elsewhere in the app) — it is the aria-disabled="true" attribute that
+    // switches it on.
+    expect(button.className).toContain('aria-disabled:opacity-50');
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('leaves the dimmed off-state switched off when enabled', () => {
+    render(<BulkActionButton label="Pausar" state={{ enabled: true, reason: null }} onClick={vi.fn()} />);
+
+    const button = screen.getByRole('button', { name: 'Pausar' });
+    expect(button).not.toHaveAttribute('aria-disabled', 'true');
+  });
 });

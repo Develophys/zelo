@@ -47,13 +47,13 @@ export function Button({
   return (
     <button
       className={[
-        'cursor-pointer transition disabled:cursor-not-allowed disabled:opacity-50',
+        'cursor-pointer transition disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand',
         hasShape && SHAPE_BASE,
         hasShape && SIZE_CLASS[size ?? 'md'],
         variant !== 'unstyled' &&
           variant !== 'ghost' &&
-          'enabled:hover:shadow-lift transition-shadow duration-300 ease-out',
+          'enabled:hover:shadow-lift aria-disabled:hover:shadow-none transition-shadow duration-300 ease-out',
         variant === 'unstyled' ? '' : VARIANT_CLASS[variant],
         full ? 'w-full' : '',
         className,
