@@ -135,7 +135,7 @@ export const ChatComposer = memo(function ChatComposer({
           </p>
         )}
 
-        <div className="flex items-end gap-2">
+        <div className="flex items-center gap-2">
           <label htmlFor="chat-composer-message" className="sr-only">
             Mensagem
           </label>

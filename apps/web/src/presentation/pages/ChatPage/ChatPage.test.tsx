@@ -933,8 +933,24 @@ describe('ChatPage', () => {
     const field = screen.getByLabelText('Mensagem');
 
     expect(field.tagName).toBe('TEXTAREA');
-    expect(field).toHaveClass('resize-none', 'max-h-[153px]');
+    expect(field).toHaveClass('resize-none', 'max-h-38.25');
     expect(field).toHaveAttribute('rows', '1');
+  });
+
+  it('centres the send button on the field box rather than on the line of text, since the counter slot makes the box taller than the text it holds', () => {
+    renderChat();
+    const field = screen.getByLabelText('Mensagem');
+    const row = field.parentElement?.parentElement;
+
+    // The field's padding is deliberately lopsided — pt-3.25 (13px) against
+    // pb-8.5 (34px), the latter reserving room for the character counter — so
+    // the first line of text sits well above the box's own centre. Aligning
+    // the button to the text (items-start) or to the bottom edge (items-end)
+    // both read as misaligned against the rounded box the eye actually sees.
+    expect(row).toHaveClass('items-center');
+    expect(row).not.toHaveClass('items-start');
+    expect(row).not.toHaveClass('items-end');
+    expect(screen.getByRole('button', { name: 'Enviar' })).not.toHaveClass('mt-1');
   });
 
   it('measures the height cap once rather than forcing a style recalc per keystroke, and re-measures when the viewport changes so it still follows browser zoom', () => {
