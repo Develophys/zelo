@@ -66,6 +66,18 @@ describe('ManagerSettingsPage', () => {
     expect(screen.getByText('Define o arredondamento de botões, campos e cartões.')).toBeInTheDocument();
   });
 
+  it('points teal, índigo and argila swatches at the live per-accent data-accent block, and sage at its own dedicated token instead', () => {
+    render(<ManagerSettingsPage />);
+
+    expect(screen.getByTestId('accent-swatch-teal')).toHaveAttribute('data-accent', 'teal');
+    expect(screen.getByTestId('accent-swatch-indigo')).toHaveAttribute('data-accent', 'indigo');
+    expect(screen.getByTestId('accent-swatch-clay')).toHaveAttribute('data-accent', 'clay');
+
+    const sageSwatch = screen.getByTestId('accent-swatch-sage');
+    expect(sageSwatch).not.toHaveAttribute('data-accent');
+    expect(sageSwatch).toHaveClass('bg-accent-sage-fill');
+  });
+
   it('has no axe violations', async () => {
     const { container } = render(<ManagerSettingsPage />);
     expect(await axe(container, { rules: { region: { enabled: false } } })).toHaveNoViolations();

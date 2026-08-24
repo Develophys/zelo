@@ -31,17 +31,19 @@ const CORNERS_OPTIONS: readonly { value: ManagerCorners; label: string }[] = [
 function SettingsSection({
   title,
   description,
+  contentClassName = "mt-3.5",
   children,
 }: {
   title: string;
   description: string;
+  contentClassName?: string;
   children: ReactNode;
 }) {
   return (
     <Card size="md">
       <h2 className="text-body font-extrabold text-ink">{title}</h2>
       <p className="mt-1 text-caption text-muted">{description}</p>
-      <div className="mt-3.5">{children}</div>
+      <div className={contentClassName}>{children}</div>
     </Card>
   );
 }
@@ -93,6 +95,7 @@ function AccentField({ value, onChange }: { value: ManagerAccent; onChange: (val
     <div role="radiogroup" aria-label="Cor de destaque" className="flex flex-wrap gap-2">
       {MANAGER_ACCENTS.map((accent) => {
         const isSelected = value === accent;
+        const isSage = accent === "sage";
         return (
           <label
             key={accent}
@@ -109,9 +112,12 @@ function AccentField({ value, onChange }: { value: ManagerAccent; onChange: (val
               className="sr-only"
             />
             <span
-              data-accent-swatch={accent}
+              data-accent={isSage ? undefined : accent}
+              data-testid={`accent-swatch-${accent}`}
               aria-hidden="true"
-              className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-fill text-on-fill"
+              className={`flex h-6 w-6 items-center justify-center rounded-full text-on-fill ${
+                isSage ? "bg-accent-sage-fill" : "bg-brand-fill"
+              }`}
             >
               {isSelected && <Check size={14} strokeWidth={3} />}
             </span>
@@ -162,7 +168,11 @@ export function ManagerSettingsPage() {
         />
       </SettingsSection>
 
-      <SettingsSection title="Tema" description="Escolhe entre claro, escuro ou o tema do sistema.">
+      <SettingsSection
+        title="Tema"
+        description="Escolhe entre claro, escuro ou o tema do sistema."
+        contentClassName=""
+      >
         <ThemeToggle />
       </SettingsSection>
     </div>
