@@ -41,7 +41,7 @@ function SettingsSection({
   children: ReactNode;
 }) {
   return (
-    <Card size="md">
+    <Card size="md" className="h-full">
       <CardTitle>{title}</CardTitle>
       <p className="mt-1 text-caption text-muted">{description}</p>
       <div className={contentClassName}>{children}</div>
@@ -145,37 +145,39 @@ export function ManagerSettingsPage() {
         intro="Preferências de aparência do painel. Elas valem só para você, neste dispositivo — não mudam nada para os outros gestores do hospital."
       />
 
-      <SettingsSection title="Cor de destaque" description="Usada em botões, links e no item ativo do menu.">
-        <AccentField value={accent} onChange={setAccent} />
-      </SettingsSection>
+      <div data-testid="settings-grid" className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <SettingsSection title="Cor de destaque" description="Usada em botões, links e no item ativo do menu.">
+          <AccentField value={accent} onChange={setAccent} />
+        </SettingsSection>
 
-      <SettingsSection title="Densidade" description="Controla o espaçamento das tabelas e do menu.">
-        <SegmentedField
-          name="manager-density"
-          ariaLabel="Densidade"
-          options={DENSITY_OPTIONS}
-          value={density}
-          onChange={setDensity}
-        />
-      </SettingsSection>
+        <SettingsSection title="Densidade" description="Controla o espaçamento das tabelas e do menu.">
+          <SegmentedField
+            name="manager-density"
+            ariaLabel="Densidade"
+            options={DENSITY_OPTIONS}
+            value={density}
+            onChange={setDensity}
+          />
+        </SettingsSection>
 
-      <SettingsSection title="Cantos" description="Define o arredondamento de botões, campos e cartões.">
-        <SegmentedField
-          name="manager-corners"
-          ariaLabel="Cantos"
-          options={CORNERS_OPTIONS}
-          value={corners}
-          onChange={setCorners}
-        />
-      </SettingsSection>
+        <SettingsSection title="Cantos" description="Define o arredondamento de botões, campos e cartões.">
+          <SegmentedField
+            name="manager-corners"
+            ariaLabel="Cantos"
+            options={CORNERS_OPTIONS}
+            value={corners}
+            onChange={setCorners}
+          />
+        </SettingsSection>
 
-      <SettingsSection
-        title="Tema"
-        description="Escolhe entre claro, escuro ou o tema do sistema."
-        contentClassName=""
-      >
-        <ThemeToggle />
-      </SettingsSection>
+        <SettingsSection
+          title="Tema"
+          description="Escolhe entre claro, escuro ou o tema do sistema."
+          contentClassName=""
+        >
+          <ThemeToggle />
+        </SettingsSection>
+      </div>
     </div>
   );
 }

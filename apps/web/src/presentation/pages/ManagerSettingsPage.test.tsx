@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { ManagerSettingsPage } from './ManagerSettingsPage';
@@ -92,5 +92,28 @@ describe('ManagerSettingsPage', () => {
   it('has no axe violations', async () => {
     const { container } = render(<ManagerSettingsPage />);
     expect(await axe(container, { rules: { region: { enabled: false } } })).toHaveNoViolations();
+  });
+
+  it('lays out the four settings cards in a single-row 4-column grid at lg', () => {
+    render(<ManagerSettingsPage />);
+    const grid = screen.getByTestId('settings-grid');
+    expect(grid.className).toContain('grid');
+    expect(grid.className).toContain('lg:grid-cols-4');
+  });
+
+  it('reflows the settings grid down through md before collapsing to one column, using only the md/lg breakpoints', () => {
+    render(<ManagerSettingsPage />);
+    const grid = screen.getByTestId('settings-grid');
+    expect(grid.className).toContain('grid-cols-1');
+    expect(grid.className).toContain('md:grid-cols-2');
+    expect(grid.className).not.toMatch(/\bsm:|xl:|2xl:/);
+  });
+
+  it('keeps all four settings cards inside the reflowing grid', () => {
+    render(<ManagerSettingsPage />);
+    const grid = screen.getByTestId('settings-grid');
+    for (const name of ['Cor de destaque', 'Densidade', 'Cantos', 'Tema']) {
+      expect(within(grid).getByRole('heading', { level: 2, name })).toBeInTheDocument();
+    }
   });
 });
