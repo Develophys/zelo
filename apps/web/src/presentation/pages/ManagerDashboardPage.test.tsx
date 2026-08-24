@@ -413,12 +413,32 @@ describe("ManagerDashboardPage", () => {
   it('puts the AI card beside the PGR card at lg, with the AI card the narrow one', async () => {
     renderManager();
     const grid = await screen.findByTestId('insight-pgr-grid');
-    expect(grid.className).toContain('lg:grid-cols-[7fr_3fr]');
+    expect(grid.className).toContain('lg:grid-cols-[3fr_7fr]');
   });
 
-  it('sizes the AI card to its own content instead of stretching it to match the taller PGR card', async () => {
+  it('lets the AI and PGR cards share a height instead of each sizing to its own content', async () => {
     renderManager();
     const grid = await screen.findByTestId('insight-pgr-grid');
-    expect(grid.className).toContain('items-start');
+    expect(grid.className).not.toContain('items-start');
+  });
+
+  it('rules a line above the AI and PGR pair, so it reads as a section apart from the indicators above it', async () => {
+    renderManager();
+    const divider = await screen.findByTestId('insight-pgr-divider');
+    expect(divider.tagName).toBe('HR');
+    expect(divider.compareDocumentPosition(screen.getByTestId('insight-pgr-grid'))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
+  it('gives the trend and segments cards a shared height, rather than letting the shorter one stop early', async () => {
+    renderManager();
+    await screen.findByText('Sinais por setor');
+    const grid = screen.getByTestId('trend-segments-grid');
+    const cards = within(grid).getAllByTestId('manager-card');
+    expect(cards).toHaveLength(2);
+    for (const card of cards) {
+      expect(card.className).toContain('h-full');
+    }
   });
 });

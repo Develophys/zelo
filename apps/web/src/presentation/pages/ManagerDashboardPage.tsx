@@ -40,7 +40,7 @@ function KpiCardSkeleton({ className = "" }: { className?: string }) {
 
 function TrendCardSkeleton() {
   return (
-    <Card>
+    <Card className="h-full">
       <Skeleton className="h-4 w-32 rounded-md" />
       <div className="mt-3 flex h-14 items-end gap-2">
         {Array.from({ length: TREND_SKELETON_BAR_COUNT }, (_, index) => (
@@ -53,7 +53,7 @@ function TrendCardSkeleton() {
 
 function SegmentsCardSkeleton() {
   return (
-    <Card>
+    <Card className="h-full">
       <Skeleton className="h-4 w-28 rounded-md" />
       <div className="mt-3 flex flex-col gap-3">
         {Array.from({ length: SEGMENTS_SKELETON_ROW_COUNT }, (_, index) => (
@@ -177,7 +177,7 @@ export function ManagerDashboardPage() {
           {isLoading ? (
             <TrendCardSkeleton />
           ) : (
-            <Card>
+            <Card className="h-full" data-testid="manager-card">
               <div className="flex items-center justify-between">
                 <CardTitle>Tendência geral</CardTitle>
                 <p className="font-mono text-[12px] text-muted-2">últimas 6 semanas</p>
@@ -194,7 +194,7 @@ export function ManagerDashboardPage() {
           {isLoading ? (
             <SegmentsCardSkeleton />
           ) : (
-            <Card>
+            <Card className="h-full" data-testid="manager-card">
               <CardTitle>Sinais por setor</CardTitle>
               <div className="mt-3 flex flex-col gap-3">
                 {segments.map((segment) => (
@@ -216,7 +216,9 @@ export function ManagerDashboardPage() {
         </div>
       </div>
 
-      <div data-testid="insight-pgr-grid" className="mt-3.5 grid items-start gap-4 lg:grid-cols-[7fr_3fr]">
+      <hr data-testid="insight-pgr-divider" className="mt-5 border-t border-line" />
+
+      <div data-testid="insight-pgr-grid" className="mt-5 grid gap-4 lg:grid-cols-[3fr_7fr]">
         <Card>
           <div className="flex items-center justify-between">
             <CardTitle>Análise com IA</CardTitle>
