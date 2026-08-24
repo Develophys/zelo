@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -111,5 +111,42 @@ describe("ManagerInsightHistoryPage", () => {
     });
     expect(screen.getByText("Gerado por Ana Konder")).toBeInTheDocument();
     expect(screen.queryByText(/Gerado por$/)).not.toBeInTheDocument();
+  });
+
+  it("renders the page header with its normative intro", async () => {
+    renderHistory();
+    expect(await screen.findByRole("heading", { level: 1, name: "Análises com IA" })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Histórico das análises geradas a partir dos indicadores agregados. Cada linha pode ser expandida para ver a interpretação completa.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("collapses each analysis, expanding on demand", async () => {
+    vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockResolvedValue([HISTORY_RESPONSE[0]!]);
+    const user = userEvent.setup();
+    renderHistory();
+
+    const row = await screen.findByRole("button", { name: /Análise de/ });
+    expect(row).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText(/interpretação completa do modelo/i)).not.toBeInTheDocument();
+
+    await user.click(row);
+    expect(row).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("labels the download actions in words on the card list", async () => {
+    vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockResolvedValue([HISTORY_RESPONSE[0]!]);
+    renderHistory();
+    const cards = await screen.findByTestId("insight-card-list");
+    expect(cards.className).toContain("md:hidden");
+    expect(within(cards).getByRole("button", { name: "Baixar PDF" })).toBeInTheDocument();
+  });
+
+  it("shows an empty state when no analysis has been generated", async () => {
+    vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockResolvedValue([]);
+    renderHistory();
+    expect(await screen.findByText("Nenhuma análise gerada ainda.")).toBeInTheDocument();
   });
 });
