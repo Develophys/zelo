@@ -12,8 +12,8 @@ interface ManagerActionBarProps {
 export function ManagerActionBar({ children, className = '' }: ManagerActionBarProps) {
   return (
     <div data-testid="manager-action-bar" className={className}>
-      <hr className="mt-5 border-t border-line" />
-      <div className="mt-4 flex flex-wrap items-center gap-2">{children}</div>
+      <hr className="mt-3 border-t border-line" />
+      <div className="mt-3 flex flex-wrap items-center gap-2">{children}</div>
     </div>
   );
 }

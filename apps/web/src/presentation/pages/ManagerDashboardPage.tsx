@@ -222,9 +222,9 @@ export function ManagerDashboardPage() {
         </div>
       </div>
 
-      <hr data-testid="insight-pgr-divider" className="mt-5 border-t border-line" />
+      <hr data-testid="insight-pgr-divider" className="mt-3 border-t border-line" />
 
-      <div data-testid="insight-pgr-grid" className="mt-5 grid gap-4 lg:grid-cols-[3fr_7fr]">
+      <div data-testid="insight-pgr-grid" className="mt-3 grid gap-4 lg:grid-cols-[3fr_7fr]">
         <Card>
           <div className="flex items-center justify-between">
             <CardTitle>Análise com IA</CardTitle>
