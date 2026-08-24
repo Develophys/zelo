@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import type { ReactNode } from 'react';
 
 export const SECTOR_PILL_CLASS = (selected: boolean) =>
   `min-h-11 cursor-pointer rounded-status border px-3 py-1.5 font-sans text-label font-semibold whitespace-nowrap motion-safe:transition-colors motion-safe:duration-150 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none ${
@@ -11,6 +12,7 @@ interface SectorPillPickerProps {
   onToggle(id: string): void;
   emptyHref: string;
   emptyLabel: string;
+  leading?: ReactNode;
 }
 
 export function SectorPillPicker({
@@ -19,6 +21,7 @@ export function SectorPillPicker({
   onToggle,
   emptyHref,
   emptyLabel,
+  leading,
 }: SectorPillPickerProps) {
   if (sectors.length === 0) {
     return (
@@ -33,6 +36,7 @@ export function SectorPillPicker({
 
   return (
     <div className="flex flex-wrap gap-2">
+      {leading}
       {sectors.map((sector) => {
         const selected = selectedIds.includes(sector.id);
         return (

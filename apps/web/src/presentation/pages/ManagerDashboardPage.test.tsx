@@ -170,6 +170,23 @@ describe("ManagerDashboardPage", () => {
     expect(screen.queryAllByTestId("skeleton")).toHaveLength(0);
   });
 
+  it("offers the AI analysis control while the signals query is still loading — it does not depend on signals data", async () => {
+    let resolveSignals!: (value: typeof SIGNALS_RESPONSE) => void;
+    const pending = new Promise<typeof SIGNALS_RESPONSE>((resolve) => {
+      resolveSignals = resolve;
+    });
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockReturnValue(pending);
+
+    renderManager();
+
+    expect(screen.getByRole("button", { name: "Gerar análise" })).toBeInTheDocument();
+
+    resolveSignals(SIGNALS_RESPONSE);
+    await waitFor(() => {
+      expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+    });
+  });
+
   it("lays out the three KPI cards in a responsive grid", async () => {
     renderManager();
     await waitFor(() => {

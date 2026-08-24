@@ -87,23 +87,27 @@ function SectorFilter({ sectors, selectedSectorIds, onChange }: SectorFilterProp
     onChange(next);
   };
 
+  const todosButton = (
+    <button
+      type="button"
+      aria-pressed={allSelected}
+      onClick={() => onChange(sectors.map((sector) => sector.id))}
+      className={SECTOR_PILL_CLASS(allSelected)}
+    >
+      Todos
+    </button>
+  );
+
   return (
     <div className="mt-3">
-      <div data-testid="sector-filter-pills" className="hidden md:flex flex-wrap gap-2">
-        <button
-          type="button"
-          aria-pressed={allSelected}
-          onClick={() => onChange(sectors.map((sector) => sector.id))}
-          className={SECTOR_PILL_CLASS(allSelected)}
-        >
-          Todos
-        </button>
+      <div data-testid="sector-filter-pills" className="hidden md:flex">
         <SectorPillPicker
           sectors={sectors}
           selectedIds={effectiveSelected}
           onToggle={toggleSector}
           emptyHref={routes.managerAdminSectors}
           emptyLabel="Cadastrar um setor"
+          leading={todosButton}
         />
       </div>
       <div data-testid="sector-filter-dropdown" className="md:hidden">
@@ -216,43 +220,43 @@ export function ManagerDashboardPage() {
         </div>
       </div>
 
-      {data && (
-        <div data-testid="insight-pgr-grid" className="mt-3.5 grid gap-4 lg:grid-cols-[7fr_3fr]">
-          <Card>
-            <div className="flex items-center justify-between">
-              <CardTitle>Análise com IA</CardTitle>
-              <Link to={routes.managerHistory} className="flex gap-0.5 items-center text-label font-bold text-brand">
-                Ver histórico
-                <ArrowRight size={16} />
-              </Link>
+      <div data-testid="insight-pgr-grid" className="mt-3.5 grid gap-4 lg:grid-cols-[7fr_3fr]">
+        <Card>
+          <div className="flex items-center justify-between">
+            <CardTitle>Análise com IA</CardTitle>
+            <Link to={routes.managerHistory} className="flex gap-0.5 items-center text-label font-bold text-brand">
+              Ver histórico
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+          {!insight.data && (
+            <div className="mt-3">
+              <Button className="p-2 cursor-pointer" variant="outline" full={false} isLoading={insight.isPending} onClick={() => insight.mutate()}>
+                Gerar análise
+              </Button>
+              {insight.isError && (
+                <p role="alert" className="mt-2 text-label text-danger">
+                  Não foi possível gerar a análise agora. Tente novamente.
+                </p>
+              )}
             </div>
-            {!insight.data && (
-              <div className="mt-3">
-                <Button className="p-2 cursor-pointer" variant="outline" full={false} isLoading={insight.isPending} onClick={() => insight.mutate()}>
-                  Gerar análise
-                </Button>
-                {insight.isError && (
-                  <p role="alert" className="mt-2 text-label text-danger">
-                    Não foi possível gerar a análise agora. Tente novamente.
-                  </p>
-                )}
-              </div>
-            )}
-            {insight.data && (
-              <div className="mt-3">
-                <p className="text-label text-ink-2">{insight.data.interpretation}</p>
-                <ul className="mt-3 flex flex-col gap-2">
-                  {insight.data.suggestedActions.map((action, index) => (
-                    <li key={index} className="flex items-start gap-2 text-label text-ink-2">
-                      <span className="text-brand">•</span>
-                      <span>{action}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </Card>
+          )}
+          {insight.data && (
+            <div className="mt-3">
+              <p className="text-label text-ink-2">{insight.data.interpretation}</p>
+              <ul className="mt-3 flex flex-col gap-2">
+                {insight.data.suggestedActions.map((action, index) => (
+                  <li key={index} className="flex items-start gap-2 text-label text-ink-2">
+                    <span className="text-brand">•</span>
+                    <span>{action}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </Card>
 
+        {data && (
           <Card>
             <SectionLabel>Conformidade NR-1</SectionLabel>
             <CardTitle>Insumo para o PGR</CardTitle>
@@ -282,8 +286,8 @@ export function ManagerDashboardPage() {
               </Button>
             </div>
           </Card>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
