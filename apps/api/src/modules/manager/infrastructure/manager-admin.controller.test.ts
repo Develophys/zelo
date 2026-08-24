@@ -706,4 +706,14 @@ describe("manager admin controller — sectors", () => {
 
     expect(response.status).toBe(404);
   });
+
+  it("DELETE /manager/admin/peer-partners/:id forcibly disconnects the deleted peer partner", async () => {
+    peerPartnerRepository.rows = [{ id: "peer-1", name: "Dra. Ana", email: "dra-ana@institution-1.local", passwordHash: "h", setPasswordTokenExpiresAt: null, institutionId: "institution-1", specialty: "Clínica médica", isActive: true }];
+
+    await request(app.getHttpServer())
+      .delete("/manager/admin/peer-partners/peer-1")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`);
+
+    expect(peerChatGateway.forceDisconnect).toHaveBeenCalledWith("peer-1");
+  });
 });

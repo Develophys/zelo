@@ -269,6 +269,7 @@ export class ManagerAdminController {
       if (error instanceof PeerPartnerNotFoundError) throw new NotFoundException();
       throw error;
     }
+    this.peerChatGateway.forceDisconnect(id);
   }
 
   @Post("peer-partners/:id/send-set-password-email")
