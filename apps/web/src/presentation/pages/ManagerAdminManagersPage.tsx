@@ -7,6 +7,7 @@ import { Pill } from "@/presentation/ui/Pill";
 import { SectorPillPicker } from "@/presentation/ui/SectorPillPicker";
 import { TextField } from "@/presentation/ui/TextField";
 import { ManagerPageHeader } from "@/presentation/layout/ManagerPageHeader";
+import { ManagerActionBar } from "@/presentation/layout/ManagerActionBar";
 import { DataTable, type DataTableColumn } from "@/presentation/ui/DataTable/DataTable";
 import { DataTableEmpty } from "@/presentation/ui/DataTable/DataTableEmpty";
 import { DataTableError } from "@/presentation/ui/DataTable/DataTableError";
@@ -284,12 +285,13 @@ export function ManagerAdminManagersPage() {
       <ManagerPageHeader
         title="Gestores"
         intro="Quem tem acesso ao painel e a quais setores. Cadastre um gestor antes de vinculá-lo a um setor."
-        actions={
-          <Button variant="primary" size="sm" full={false} onClick={openCreate}>
-            + Adicionar gestor
-          </Button>
-        }
       />
+
+      <ManagerActionBar>
+        <Button variant="primary" size="sm" full={false} onClick={openCreate}>
+          + Adicionar gestor
+        </Button>
+      </ManagerActionBar>
 
       <DataTable
         caption="Gestores do hospital"

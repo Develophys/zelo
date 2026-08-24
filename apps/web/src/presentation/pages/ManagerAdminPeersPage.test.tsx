@@ -113,6 +113,18 @@ describe("ManagerAdminPeersPage", () => {
     expect(updateSpy).not.toHaveBeenCalled();
   });
 
+  it('moves + Adicionar par into the ruled-off action bar above the table, not the header\'s title row', async () => {
+    vi.spyOn(container.listPeerPartnersUseCase, 'execute').mockResolvedValue([]);
+    renderPage();
+
+    const bar = await screen.findByTestId('manager-action-bar');
+    const action = within(bar).getByRole('button', { name: '+ Adicionar par' });
+    expect(bar.querySelector('hr')).not.toBeNull();
+
+    const heading = screen.getByRole('heading', { level: 1, name: 'Pares anônimos' });
+    expect(heading.parentElement).not.toContainElement(action);
+  });
+
   it('renders the page header with its normative intro', async () => {
     vi.spyOn(container.listPeerPartnersUseCase, 'execute').mockResolvedValue([]);
     renderPage();

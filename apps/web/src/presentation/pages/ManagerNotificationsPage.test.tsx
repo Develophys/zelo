@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -193,6 +193,29 @@ describe("ManagerNotificationsPage", () => {
     await screen.findByText("Convite aceito");
     const button = screen.queryByRole("button", { name: "Marcar todas como lidas" });
     expect(button === null || (button as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("moves Marcar todas como lidas and Atualizar into the ruled-off action bar above the notification list, not the header's title row", async () => {
+    vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
+      items: [UNREAD],
+      nextCursor: null,
+      total: 1,
+    });
+    vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(1);
+
+    renderPage();
+
+    const bar = await screen.findByTestId("manager-action-bar");
+    expect(
+      await within(bar).findByRole("button", { name: "Marcar todas como lidas" }),
+    ).toBeInTheDocument();
+    expect(within(bar).getByRole("button", { name: "Atualizar" })).toBeInTheDocument();
+    expect(bar.querySelector("hr")).not.toBeNull();
+
+    const heading = screen.getByRole("heading", { level: 1, name: "Notificações" });
+    expect(heading.parentElement).not.toContainElement(
+      within(bar).getByRole("button", { name: "Atualizar" }),
+    );
   });
 
   it("clears the session and redirects to login on a 401", async () => {

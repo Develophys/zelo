@@ -6,6 +6,7 @@ import { Modal } from "@/presentation/ui/Modal";
 import { Pill } from "@/presentation/ui/Pill";
 import { TextField } from "@/presentation/ui/TextField";
 import { ManagerPageHeader } from "@/presentation/layout/ManagerPageHeader";
+import { ManagerActionBar } from "@/presentation/layout/ManagerActionBar";
 import { DataTable, type DataTableColumn } from "@/presentation/ui/DataTable/DataTable";
 import { DataTableEmpty } from "@/presentation/ui/DataTable/DataTableEmpty";
 import { DataTableError } from "@/presentation/ui/DataTable/DataTableError";
@@ -186,12 +187,13 @@ export function ManagerAdminPeersPage() {
       <ManagerPageHeader
         title="Pares anônimos"
         intro="Profissionais disponíveis para acolhimento entre pares. A identidade de quem procura acolhimento nunca é revelada."
-        actions={
-          <Button variant="primary" size="sm" full={false} onClick={openCreate}>
-            + Adicionar par
-          </Button>
-        }
       />
+
+      <ManagerActionBar>
+        <Button variant="primary" size="sm" full={false} onClick={openCreate}>
+          + Adicionar par
+        </Button>
+      </ManagerActionBar>
 
       <DataTable
         caption="Pares anônimos do hospital"

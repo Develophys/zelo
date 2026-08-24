@@ -7,6 +7,7 @@ import { Modal } from "@/presentation/ui/Modal";
 import { Pill } from "@/presentation/ui/Pill";
 import { TextField, SelectField } from "@/presentation/ui/TextField";
 import { ManagerPageHeader } from "@/presentation/layout/ManagerPageHeader";
+import { ManagerActionBar } from "@/presentation/layout/ManagerActionBar";
 import { DataTable, type DataTableColumn } from "@/presentation/ui/DataTable/DataTable";
 import { DataTableEmpty } from "@/presentation/ui/DataTable/DataTableEmpty";
 import { DataTableError } from "@/presentation/ui/DataTable/DataTableError";
@@ -269,12 +270,13 @@ export function ManagerAdminSectorsPage() {
       <ManagerPageHeader
         title="Setores"
         intro="Áreas do hospital acompanhadas pelo Zelo. Cada setor pode ter um gestor responsável."
-        actions={
-          <Button variant="primary" size="sm" full={false} onClick={openCreate}>
-            + Adicionar setor
-          </Button>
-        }
       />
+
+      <ManagerActionBar>
+        <Button variant="primary" size="sm" full={false} onClick={openCreate}>
+          + Adicionar setor
+        </Button>
+      </ManagerActionBar>
 
       <DataTable
         caption="Setores do hospital"
