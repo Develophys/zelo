@@ -413,4 +413,10 @@ describe("ManagerDashboardPage", () => {
     const grid = await screen.findByTestId('insight-pgr-grid');
     expect(grid.className).toContain('lg:grid-cols-[7fr_3fr]');
   });
+
+  it('sizes the AI card to its own content instead of stretching it to match the taller PGR card', async () => {
+    renderManager();
+    const grid = await screen.findByTestId('insight-pgr-grid');
+    expect(grid.className).toContain('items-start');
+  });
 });

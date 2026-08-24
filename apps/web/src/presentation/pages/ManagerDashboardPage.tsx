@@ -216,7 +216,7 @@ export function ManagerDashboardPage() {
         </div>
       </div>
 
-      <div data-testid="insight-pgr-grid" className="mt-3.5 grid gap-4 lg:grid-cols-[7fr_3fr]">
+      <div data-testid="insight-pgr-grid" className="mt-3.5 grid items-start gap-4 lg:grid-cols-[7fr_3fr]">
         <Card>
           <div className="flex items-center justify-between">
             <CardTitle>Análise com IA</CardTitle>
