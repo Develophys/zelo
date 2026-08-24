@@ -182,6 +182,7 @@ export function ManagerAdminSectorsPage() {
 
   const bulkStatus = useBulkStatusUpdate({
     updateOne: (id, isActive) => updateSector.mutateAsync({ id, patch: { isActive } }),
+    noun: { singular: "setor" },
   });
 
   const openCreate = () => {
@@ -259,12 +260,6 @@ export function ManagerAdminSectorsPage() {
             <p className="text-label font-semibold text-ink-2">{notice}</p>
           </Card>
         </div>
-      )}
-
-      {bulkStatus.message && (
-        <p role="alert" className="text-label text-danger">
-          {bulkStatus.message}
-        </p>
       )}
 
       <ManagerPageHeader

@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ManagerAdminManagersPage } from "./ManagerAdminManagersPage";
 import * as container from "@/app/container";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
+import { useToastStore } from "@/stores/toast.store";
 import { AdminDeleteConflictError, LastActiveHospitalAdminError } from "@/ports/manager-admin.port";
 
 function renderPage() {
@@ -25,6 +26,7 @@ describe("ManagerAdminManagersPage", () => {
   beforeEach(() => {
     sessionStorage.clear();
     useManagerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString(), "HOSPITAL_ADMIN");
+    useToastStore.getState().clear();
   });
 
   it("creates a SECTOR_MANAGER with the selected sectors", async () => {
@@ -53,7 +55,11 @@ describe("ManagerAdminManagersPage", () => {
         sectorIds: ["sector-1"],
       }),
     );
-    await waitFor(() => expect(screen.getByText("Convite enviado para paulo@zelo-demo.local.")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(useToastStore.getState().toasts).toEqual([
+        expect.objectContaining({ tone: "success", message: "Convite enviado para paulo@zelo-demo.local." }),
+      ]),
+    );
   });
 
   it("creates a HOSPITAL_ADMIN by default, without a role change", async () => {
@@ -97,7 +103,11 @@ describe("ManagerAdminManagersPage", () => {
     await user.click(table.getByRole("button", { name: "Redefinir senha de Paulo" }));
 
     await waitFor(() => expect(container.sendManagerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("token", "manager-5"));
-    await waitFor(() => expect(screen.getByText("Convite enviado para paulo@zelo-demo.local.")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(useToastStore.getState().toasts).toEqual([
+        expect.objectContaining({ tone: "success", message: "Convite enviado para paulo@zelo-demo.local." }),
+      ]),
+    );
   });
 
   it("shows a pending-invite status and a reenviar-convite button for a manager with no password yet", async () => {
@@ -472,6 +482,48 @@ describe("ManagerAdminManagersPage", () => {
     await waitFor(() => expect(screen.getByPlaceholderText('Buscar…')).toBeInTheDocument());
   });
 
+  it('raises a success toast naming the count and noun when a bulk pause succeeds', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    vi.spyOn(container.updateManagerAdminUseCase, 'execute').mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Selecionar Ana' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Selecionar Bruno' }));
+    await user.click(screen.getByRole('button', { name: 'Pausar' }));
+
+    await waitFor(() =>
+      expect(useToastStore.getState().toasts).toEqual([
+        expect.objectContaining({ tone: 'success', message: '2 gestores pausados.' }),
+      ]),
+    );
+  });
+
+  it('raises a success toast when a bulk delete succeeds', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    vi.spyOn(container.deleteManagerAdminUseCase, 'execute').mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Selecionar Ana' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Excluir gestor?' }));
+    await user.click(dialog.getByRole('button', { name: 'Excluir' }));
+
+    await waitFor(() =>
+      expect(useToastStore.getState().toasts).toEqual([
+        expect.objectContaining({ tone: 'success', message: '1 gestor excluído.' }),
+      ]),
+    );
+  });
+
   it('reports a partial bulk pause and keeps the selection so the still-active row can be retried', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
@@ -488,8 +540,14 @@ describe("ManagerAdminManagersPage", () => {
     await user.click(screen.getByRole('checkbox', { name: 'Selecionar Bruno' }));
     await user.click(screen.getByRole('button', { name: 'Pausar' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      '1 de 2 pausados. Este é o último administrador ativo do hospital. Mantenha-o ativo ou promova outro gestor antes de pausá-lo.',
+    await waitFor(() =>
+      expect(useToastStore.getState().toasts).toEqual([
+        expect.objectContaining({
+          tone: 'error',
+          message:
+            '1 de 2 pausados. Este é o último administrador ativo do hospital. Mantenha-o ativo ou promova outro gestor antes de pausá-lo.',
+        }),
+      ]),
     );
     // The selection stays so the still-active row can be retried without
     // re-picking it from the table.

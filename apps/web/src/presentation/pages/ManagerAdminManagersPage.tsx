@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/presentation/ui/Button";
-import { Card } from "@/presentation/ui/Card";
 import { IconButton } from "@/presentation/ui/IconButton";
 import { Modal } from "@/presentation/ui/Modal";
 import { Pill } from "@/presentation/ui/Pill";
@@ -19,6 +18,7 @@ import { useBulkStatusUpdate } from "@/presentation/ui/DataTable/useBulkStatusUp
 import { normalize } from "@/presentation/lib/normalize-search";
 import { accountStatusPill } from "@/presentation/lib/account-status-pill";
 import { updateConflictMessage } from "@/ports/manager-admin.port";
+import { toast } from "@/stores/toast.store";
 import { useAdminSectors } from "@/presentation/hooks/useAdminSectors";
 import { useAdminManagers } from "@/presentation/hooks/useAdminManagers";
 import { useCreateManager } from "@/presentation/hooks/useCreateManager";
@@ -137,7 +137,6 @@ export function ManagerAdminManagersPage() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<ManagerRole>("HOSPITAL_ADMIN");
   const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
-  const [inviteSentTo, setInviteSentTo] = useState<string | null>(null);
 
   const [formMode, setFormMode] = useState<"create" | "edit" | null>(null);
   const [editingManager, setEditingManager] = useState<ManagerSummary | null>(null);
@@ -177,6 +176,7 @@ export function ManagerAdminManagersPage() {
   const bulkStatus = useBulkStatusUpdate({
     updateOne: (id, isActive) => updateManager.mutateAsync({ id, patch: { isActive } }),
     conflictMessage: updateConflictMessage,
+    noun: { singular: "gestor" },
   });
 
   const toggleSector = (id: string) => {
@@ -212,7 +212,7 @@ export function ManagerAdminManagersPage() {
       { name, email, role, sectorIds: role === "SECTOR_MANAGER" ? selectedSectorIds : undefined },
       {
         onSuccess: (result) => {
-          setInviteSentTo(result.manager.email);
+          toast.success(`Convite enviado para ${result.manager.email}.`);
           closeModal();
         },
       },
@@ -228,7 +228,9 @@ export function ManagerAdminManagersPage() {
   };
 
   const handleSendSetPasswordEmail = (manager: ManagerSummary) => {
-    sendSetPasswordEmail.mutate(manager.id, { onSuccess: () => setInviteSentTo(manager.email) });
+    sendSetPasswordEmail.mutate(manager.id, {
+      onSuccess: () => toast.success(`Convite enviado para ${manager.email}.`),
+    });
   };
 
   const handleBulkPause = async () => {
@@ -268,20 +270,6 @@ export function ManagerAdminManagersPage() {
 
   return (
     <div className="flex flex-col gap-5 pt-6">
-      {inviteSentTo && (
-        <div role="status">
-          <Card tone="brand-tint">
-            <p className="text-label font-semibold text-ink-2">Convite enviado para {inviteSentTo}.</p>
-          </Card>
-        </div>
-      )}
-
-      {bulkStatus.message && (
-        <p role="alert" className="text-label text-danger">
-          {bulkStatus.message}
-        </p>
-      )}
-
       <ManagerPageHeader
         title="Gestores"
         intro="Quem tem acesso ao painel e a quais setores. Cadastre um gestor antes de vinculá-lo a um setor."

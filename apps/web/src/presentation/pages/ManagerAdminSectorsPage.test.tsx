@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ManagerAdminSectorsPage } from "./ManagerAdminSectorsPage";
 import * as container from "@/app/container";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
+import { useToastStore } from "@/stores/toast.store";
 import { AdminDeleteConflictError, SectorNameConflictError } from "@/ports/manager-admin.port";
 
 function renderPage() {
@@ -25,6 +26,7 @@ describe("ManagerAdminSectorsPage", () => {
   beforeEach(() => {
     sessionStorage.clear();
     useManagerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString(), "HOSPITAL_ADMIN");
+    useToastStore.getState().clear();
   });
 
   it("lets an admin create a sector", async () => {
@@ -305,6 +307,48 @@ describe("ManagerAdminSectorsPage", () => {
     await waitFor(() => expect(screen.getByPlaceholderText('Buscar…')).toBeInTheDocument());
   });
 
+  it('raises a success toast naming the count and noun when a bulk pause succeeds', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
+      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null },
+      { id: 'sector-2', name: 'Pronto-Socorro', isActive: true, managerId: null, managerName: null },
+    ]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.updateSectorUseCase, 'execute').mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Selecionar UTI' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Selecionar Pronto-Socorro' }));
+    await user.click(screen.getByRole('button', { name: 'Pausar' }));
+
+    await waitFor(() =>
+      expect(useToastStore.getState().toasts).toEqual([
+        expect.objectContaining({ tone: 'success', message: '2 setores pausados.' }),
+      ]),
+    );
+  });
+
+  it('raises a success toast when a bulk delete succeeds', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
+      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null },
+    ]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.deleteSectorAdminUseCase, 'execute').mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Selecionar UTI' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Excluir setor?' }));
+    await user.click(dialog.getByRole('button', { name: 'Excluir' }));
+
+    await waitFor(() =>
+      expect(useToastStore.getState().toasts).toEqual([
+        expect.objectContaining({ tone: 'success', message: '1 setor excluído.' }),
+      ]),
+    );
+  });
+
   it('reports a partial bulk pause and keeps the selection so the still-active sector can be retried', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
       { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null },
@@ -321,7 +365,14 @@ describe("ManagerAdminSectorsPage", () => {
     await user.click(screen.getByRole('checkbox', { name: 'Selecionar Pronto-Socorro' }));
     await user.click(screen.getByRole('button', { name: 'Pausar' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('1 de 2 pausados. Não foi possível atualizar. Tente de novo.');
+    await waitFor(() =>
+      expect(useToastStore.getState().toasts).toEqual([
+        expect.objectContaining({
+          tone: 'error',
+          message: '1 de 2 pausados. Não foi possível atualizar. Tente de novo.',
+        }),
+      ]),
+    );
     // The selection stays so the still-active row can be retried without
     // re-picking it from the table.
     expect(screen.getByRole('checkbox', { name: 'Selecionar UTI' })).toBeChecked();

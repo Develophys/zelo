@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ManagerAdminPeersPage } from "./ManagerAdminPeersPage";
 import * as container from "@/app/container";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
+import { useToastStore } from "@/stores/toast.store";
 import { AdminDeleteConflictError } from "@/ports/manager-admin.port";
 
 function renderPage() {
@@ -25,6 +26,7 @@ describe("ManagerAdminPeersPage", () => {
   beforeEach(() => {
     sessionStorage.clear();
     useManagerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString(), "HOSPITAL_ADMIN");
+    useToastStore.getState().clear();
   });
 
   it("creates a peer partner", async () => {
@@ -48,7 +50,11 @@ describe("ManagerAdminPeersPage", () => {
         specialty: "Clínica médica",
       }),
     );
-    await waitFor(() => expect(screen.getByText("Convite enviado para ana@zelo-demo.local.")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(useToastStore.getState().toasts).toEqual([
+        expect.objectContaining({ tone: "success", message: "Convite enviado para ana@zelo-demo.local." }),
+      ]),
+    );
   });
 
   it("resends a set-password email for an active peer partner", async () => {
@@ -67,7 +73,11 @@ describe("ManagerAdminPeersPage", () => {
     await user.click(table.getByRole("button", { name: "Redefinir senha de Dr. Paulo" }));
 
     await waitFor(() => expect(container.sendPeerPartnerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("token", "peer-5"));
-    await waitFor(() => expect(screen.getByText("Convite enviado para paulo@zelo-demo.local.")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(useToastStore.getState().toasts).toEqual([
+        expect.objectContaining({ tone: "success", message: "Convite enviado para paulo@zelo-demo.local." }),
+      ]),
+    );
   });
 
   it('edits an existing peer partner\'s specialty from the edit modal, pre-filled from their current value', async () => {
@@ -279,6 +289,46 @@ describe("ManagerAdminPeersPage", () => {
     await waitFor(() => expect(screen.getByPlaceholderText('Buscar…')).toBeInTheDocument());
   });
 
+  it('raises a success toast naming the count and noun when a bulk pause succeeds', async () => {
+    vi.spyOn(container.listPeerPartnersUseCase, 'execute').mockResolvedValue([
+      { id: 'p1', name: 'Ana', email: 'ana@zelo-demo.local', specialty: 'Clínica médica', isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'p2', name: 'Bruno', email: 'bruno@zelo-demo.local', specialty: 'Cirurgia', isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    vi.spyOn(container.updatePeerPartnerUseCase, 'execute').mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Selecionar Ana' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Selecionar Bruno' }));
+    await user.click(screen.getByRole('button', { name: 'Pausar' }));
+
+    await waitFor(() =>
+      expect(useToastStore.getState().toasts).toEqual([
+        expect.objectContaining({ tone: 'success', message: '2 pares pausados.' }),
+      ]),
+    );
+  });
+
+  it('raises a success toast when a bulk delete succeeds', async () => {
+    vi.spyOn(container.listPeerPartnersUseCase, 'execute').mockResolvedValue([
+      { id: 'p1', name: 'Ana', email: 'ana@zelo-demo.local', specialty: 'Clínica médica', isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    vi.spyOn(container.deletePeerPartnerAdminUseCase, 'execute').mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Selecionar Ana' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Excluir par?' }));
+    await user.click(dialog.getByRole('button', { name: 'Excluir' }));
+
+    await waitFor(() =>
+      expect(useToastStore.getState().toasts).toEqual([
+        expect.objectContaining({ tone: 'success', message: '1 par excluído.' }),
+      ]),
+    );
+  });
+
   it('reports a partial bulk pause and keeps the selection so the still-active peer partner can be retried', async () => {
     vi.spyOn(container.listPeerPartnersUseCase, 'execute').mockResolvedValue([
       { id: 'p1', name: 'Ana', email: 'ana@zelo-demo.local', specialty: 'Clínica médica', isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
@@ -294,7 +344,14 @@ describe("ManagerAdminPeersPage", () => {
     await user.click(screen.getByRole('checkbox', { name: 'Selecionar Bruno' }));
     await user.click(screen.getByRole('button', { name: 'Pausar' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('1 de 2 pausados. Não foi possível atualizar. Tente de novo.');
+    await waitFor(() =>
+      expect(useToastStore.getState().toasts).toEqual([
+        expect.objectContaining({
+          tone: 'error',
+          message: '1 de 2 pausados. Não foi possível atualizar. Tente de novo.',
+        }),
+      ]),
+    );
     // The selection stays so the still-active row can be retried without
     // re-picking it from the table.
     expect(screen.getByRole('checkbox', { name: 'Selecionar Ana' })).toBeChecked();

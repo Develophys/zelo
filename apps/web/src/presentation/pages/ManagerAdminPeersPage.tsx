@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/presentation/ui/Button";
-import { Card } from "@/presentation/ui/Card";
 import { IconButton } from "@/presentation/ui/IconButton";
 import { Modal } from "@/presentation/ui/Modal";
 import { Pill } from "@/presentation/ui/Pill";
@@ -17,6 +16,7 @@ import { useBulkDelete } from "@/presentation/ui/DataTable/useBulkDelete";
 import { useBulkStatusUpdate } from "@/presentation/ui/DataTable/useBulkStatusUpdate";
 import { normalize } from "@/presentation/lib/normalize-search";
 import { accountStatusPill } from "@/presentation/lib/account-status-pill";
+import { toast } from "@/stores/toast.store";
 import { useAdminPeerPartners } from "@/presentation/hooks/useAdminPeerPartners";
 import { useCreatePeerPartner } from "@/presentation/hooks/useCreatePeerPartner";
 import { useUpdatePeerPartner } from "@/presentation/hooks/useUpdatePeerPartner";
@@ -54,7 +54,6 @@ export function ManagerAdminPeersPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [specialty, setSpecialty] = useState("");
-  const [inviteSentTo, setInviteSentTo] = useState<string | null>(null);
 
   const [formMode, setFormMode] = useState<"create" | "edit" | null>(null);
   const [editingPeerPartner, setEditingPeerPartner] = useState<PeerPartnerSummary | null>(null);
@@ -89,6 +88,7 @@ export function ManagerAdminPeersPage() {
 
   const bulkStatus = useBulkStatusUpdate({
     updateOne: (id, isActive) => updatePeerPartner.mutateAsync({ id, patch: { isActive } }),
+    noun: { singular: "par" },
   });
 
   const openCreate = () => {
@@ -114,7 +114,7 @@ export function ManagerAdminPeersPage() {
       { name, email, specialty },
       {
         onSuccess: (result) => {
-          setInviteSentTo(result.peerPartner.email);
+          toast.success(`Convite enviado para ${result.peerPartner.email}.`);
           closeModal();
         },
       },
@@ -130,7 +130,9 @@ export function ManagerAdminPeersPage() {
   };
 
   const handleSendSetPasswordEmail = (peerPartner: PeerPartnerSummary) => {
-    sendSetPasswordEmail.mutate(peerPartner.id, { onSuccess: () => setInviteSentTo(peerPartner.email) });
+    sendSetPasswordEmail.mutate(peerPartner.id, {
+      onSuccess: () => toast.success(`Convite enviado para ${peerPartner.email}.`),
+    });
   };
 
   const handleBulkPause = async () => {
@@ -170,20 +172,6 @@ export function ManagerAdminPeersPage() {
 
   return (
     <div className="flex flex-col gap-5 pt-6">
-      {inviteSentTo && (
-        <div role="status">
-          <Card tone="brand-tint">
-            <p className="text-label font-semibold text-ink-2">Convite enviado para {inviteSentTo}.</p>
-          </Card>
-        </div>
-      )}
-
-      {bulkStatus.message && (
-        <p role="alert" className="text-label text-danger">
-          {bulkStatus.message}
-        </p>
-      )}
-
       <ManagerPageHeader
         title="Pares anônimos"
         intro="Profissionais disponíveis para acolhimento entre pares. A identidade de quem procura acolhimento nunca é revelada."
