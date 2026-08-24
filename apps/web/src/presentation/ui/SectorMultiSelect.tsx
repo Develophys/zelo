@@ -83,7 +83,7 @@ export function SectorMultiSelect({ sectors, selected, onChange }: SectorMultiSe
           id={panelId}
           role="group"
           aria-label="Setores"
-          className="absolute z-20 mt-2 w-full rounded-control border border-line bg-surface p-2 shadow-lift"
+          className="absolute z-40 mt-2 max-h-72 w-full overflow-y-auto rounded-control border border-line bg-surface p-2 shadow-lift"
         >
           <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-control px-2 text-label font-semibold text-ink-2 hover:bg-canvas">
             <Checkbox checked={allSelected} onChange={() => { if (!allSelected) selectAll(); }} />

@@ -83,6 +83,28 @@ describe("SectorMultiSelect", () => {
     expect(trigger).toHaveFocus();
   });
 
+  it("stacks above the fixed bottom nav and caps its own height so a long sector list scrolls instead of hiding underneath it", async () => {
+    const user = userEvent.setup();
+    render(<SectorMultiSelect sectors={SECTORS} selected={undefined} onChange={() => {}} />);
+
+    await openPanel(user);
+
+    const panel = screen.getByRole("group", { name: "Setores" });
+    expect(panel).toHaveClass("z-40");
+    expect(panel).toHaveClass("max-h-72", "overflow-y-auto");
+  });
+
+  it("calls onChange with an explicit empty array, not undefined, when deselecting the last remaining sector", async () => {
+    const onChange = vi.fn();
+    const user = userEvent.setup();
+    render(<SectorMultiSelect sectors={SECTORS} selected={["a"]} onChange={onChange} />);
+
+    await openPanel(user);
+    await user.click(screen.getByLabelText("UTI"));
+
+    expect(onChange).toHaveBeenCalledWith([]);
+  });
+
   it("closes the panel when clicking outside of it", async () => {
     const user = userEvent.setup();
     render(
