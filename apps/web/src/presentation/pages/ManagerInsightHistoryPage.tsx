@@ -7,6 +7,7 @@ import { IconButton } from "@/presentation/ui/IconButton";
 import { ManagerPageHeader } from "@/presentation/layout/ManagerPageHeader";
 import { routes } from "@/presentation/lib/routes";
 import { useManagerInsightHistory } from "@/presentation/hooks/useManagerInsightHistory";
+import { useManagerInsight } from "@/presentation/hooks/useManagerInsight";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 import { downloadInsightAsPdf, downloadInsightAsText } from "@/presentation/lib/download-manager-insight";
@@ -75,42 +76,65 @@ function InsightRow({ entry }: { entry: StoredManagerInsight }) {
   );
 }
 
-function InsightCard({ entry }: { entry: StoredManagerInsight }) {
+function InsightCard({ entry, defaultOpen }: { entry: StoredManagerInsight; defaultOpen: boolean }) {
+  const [expanded, setExpanded] = useState(defaultOpen);
+  const regionId = `insight-card-region-${entry.id}`;
   const dateLabel = formatDate(entry.generatedAt);
 
   return (
     <Card>
-      <p className="font-mono text-[12px] text-muted-2">{dateLabel}</p>
-      {entry.createdByManagerName && (
-        <p className="mt-1 text-label text-muted">Gerado por {entry.createdByManagerName}</p>
+      <button
+        type="button"
+        aria-expanded={expanded}
+        aria-controls={expanded ? regionId : undefined}
+        aria-label={`Análise de ${dateLabel}: ${entry.summary}`}
+        onClick={() => setExpanded((value) => !value)}
+        className="flex w-full items-center justify-between gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+      >
+        <span className="min-w-0">
+          <span className="block font-mono text-[12px] text-muted-2">{dateLabel}</span>
+          <span className="mt-1 block truncate text-label text-ink-2">{entry.summary}</span>
+        </span>
+        <ChevronDown
+          size={18}
+          aria-hidden="true"
+          className={`flex-none text-muted transition-transform duration-150 ${expanded ? "rotate-180" : ""}`}
+        />
+      </button>
+      {expanded && (
+        <div id={regionId} className="mt-3 border-t border-line pt-3">
+          {entry.createdByManagerName && (
+            <p className="text-label text-muted">Gerado por {entry.createdByManagerName}</p>
+          )}
+          <p className="mt-2 text-label text-ink-2">{entry.interpretation}</p>
+          <ul className="mt-3 flex flex-col gap-2">
+            {entry.suggestedActions.map((action, index) => (
+              <li key={index} className="flex items-start gap-2 text-label text-ink-2">
+                <span className="text-brand">•</span>
+                <span>{action}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 flex gap-2">
+            <Button
+              variant="outline"
+              full={false}
+              aria-label={`Baixar PDF da análise de ${dateLabel}`}
+              onClick={() => downloadInsightAsPdf(entry)}
+            >
+              Baixar PDF
+            </Button>
+            <Button
+              variant="outline"
+              full={false}
+              aria-label={`Baixar texto da análise de ${dateLabel}`}
+              onClick={() => downloadInsightAsText(entry)}
+            >
+              Baixar texto
+            </Button>
+          </div>
+        </div>
       )}
-      <p className="mt-2 text-label text-ink-2">{entry.interpretation}</p>
-      <ul className="mt-3 flex flex-col gap-2">
-        {entry.suggestedActions.map((action, index) => (
-          <li key={index} className="flex items-start gap-2 text-label text-ink-2">
-            <span className="text-brand">•</span>
-            <span>{action}</span>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-3 flex gap-2">
-        <Button
-          variant="outline"
-          full={false}
-          aria-label={`Baixar PDF da análise de ${dateLabel}`}
-          onClick={() => downloadInsightAsPdf(entry)}
-        >
-          Baixar PDF
-        </Button>
-        <Button
-          variant="outline"
-          full={false}
-          aria-label={`Baixar texto da análise de ${dateLabel}`}
-          onClick={() => downloadInsightAsText(entry)}
-        >
-          Baixar texto
-        </Button>
-      </div>
     </Card>
   );
 }
@@ -119,6 +143,7 @@ export function ManagerInsightHistoryPage() {
   const navigate = useNavigate();
   const clearSession = useManagerSessionStore((state) => state.clearSession);
   const { data, error, isError } = useManagerInsightHistory();
+  const insight = useManagerInsight();
 
   useEffect(() => {
     if (isError && error instanceof UnauthorizedManagerError) {
@@ -134,25 +159,36 @@ export function ManagerInsightHistoryPage() {
       <ManagerPageHeader
         title="Análises com IA"
         intro="Histórico das análises geradas a partir dos indicadores agregados. Cada linha pode ser expandida para ver a interpretação completa."
+        actions={
+          <Button variant="outline" full={false} isLoading={insight.isPending} onClick={() => insight.mutate()}>
+            Gerar análise
+          </Button>
+        }
       />
+
+      {insight.isError && (
+        <p role="alert" className="text-label text-danger">
+          Não foi possível gerar a análise agora. Tente novamente.
+        </p>
+      )}
 
       {entries.length === 0 ? (
         <div className="rounded-card border border-line bg-surface p-6 text-center">
           <p className="text-body text-ink">Nenhuma análise gerada ainda.</p>
-          <p className="mt-1 text-label text-muted">Gere a primeira a partir da página de Tendências.</p>
+          <p className="mt-1 text-label text-muted">Use o botão Gerar análise, acima, para criar a primeira.</p>
         </div>
       ) : (
         <>
-          <ul className="hidden flex-col gap-2 md:flex">
+          <ul data-testid="insight-row-list" className="hidden flex-col gap-2 md:flex">
             {entries.map((entry) => (
               <InsightRow key={entry.id} entry={entry} />
             ))}
           </ul>
 
           <ul data-testid="insight-card-list" className="flex flex-col gap-3 md:hidden">
-            {entries.map((entry) => (
+            {entries.map((entry, index) => (
               <li key={entry.id}>
-                <InsightCard entry={entry} />
+                <InsightCard entry={entry} defaultOpen={index === 0} />
               </li>
             ))}
           </ul>

@@ -57,10 +57,16 @@ describe("ManagerInsightHistoryPage", () => {
   it("renders past analyses newest-first", async () => {
     renderHistory();
 
+    const rows = await screen.findByTestId("insight-row-list");
     await waitFor(() => {
-      expect(screen.getByText("A UTI mostra um padrão de aumento nos sinais.")).toBeInTheDocument();
+      expect(within(rows).getByText("resumo 1")).toBeInTheDocument();
     });
-    expect(screen.getByText("Padrão estável na última semana.")).toBeInTheDocument();
+    const summaries = within(rows)
+      .getAllByText(/^resumo \d$/)
+      .map((element) => element.textContent);
+    expect(summaries).toEqual(["resumo 1", "resumo 2"]);
+
+    expect(screen.getByText("A UTI mostra um padrão de aumento nos sinais.")).toBeInTheDocument();
     expect(screen.getByText("Agendar conversa com a liderança da UTI")).toBeInTheDocument();
   });
 
@@ -132,7 +138,8 @@ describe("ManagerInsightHistoryPage", () => {
     const user = userEvent.setup();
     renderHistory();
 
-    const row = await screen.findByRole("button", { name: /Análise de/ });
+    const rows = await screen.findByTestId("insight-row-list");
+    const row = within(rows).getByRole("button", { name: /Análise de/ });
     expect(row).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByText(/interpretação completa do modelo/i)).not.toBeInTheDocument();
 
@@ -155,5 +162,115 @@ describe("ManagerInsightHistoryPage", () => {
     vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockResolvedValue([]);
     renderHistory();
     expect(await screen.findByText("Nenhuma análise gerada ainda.")).toBeInTheDocument();
+  });
+
+  it("opens the first mobile card by default, leaving the rest collapsed", async () => {
+    renderHistory();
+
+    const cards = await screen.findByTestId("insight-card-list");
+    const buttons = within(cards).getAllByRole("button", { name: /Análise de/ });
+    expect(buttons).toHaveLength(2);
+    expect(buttons[0]).toHaveAttribute("aria-expanded", "true");
+    expect(buttons[1]).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("collapses an already-open mobile card back on a second tap", async () => {
+    const user = userEvent.setup();
+    renderHistory();
+
+    const cards = await screen.findByTestId("insight-card-list");
+    const [first] = within(cards).getAllByRole("button", { name: /Análise de/ });
+    expect(first).toHaveAttribute("aria-expanded", "true");
+
+    await user.click(first!);
+
+    expect(first).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("lets two mobile cards be open at once, so opening one does not close another", async () => {
+    const user = userEvent.setup();
+    renderHistory();
+
+    const cards = await screen.findByTestId("insight-card-list");
+    const [first, second] = within(cards).getAllByRole("button", { name: /Análise de/ });
+    expect(first).toHaveAttribute("aria-expanded", "true");
+    expect(second).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(second!);
+
+    expect(first).toHaveAttribute("aria-expanded", "true");
+    expect(second).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("calls the insight mutation when 'Gerar análise' is clicked from the page header", async () => {
+    const executeSpy = vi
+      .spyOn(container.generateManagerInsightUseCase, "execute")
+      .mockResolvedValue({ interpretation: "Nova interpretação.", suggestedActions: ["Ação nova"] });
+    const user = userEvent.setup();
+    renderHistory();
+
+    await waitFor(() => {
+      expect(screen.getByText("A UTI mostra um padrão de aumento nos sinais.")).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: "Gerar análise" }));
+
+    await waitFor(() => {
+      expect(executeSpy).toHaveBeenCalled();
+    });
+  });
+
+  it("offers the generate action from the empty state, not just a link to another page", async () => {
+    vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockResolvedValue([]);
+    renderHistory();
+
+    expect(await screen.findByText("Nenhuma análise gerada ainda.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Gerar análise" })).toBeInTheDocument();
+  });
+
+  it("shows the same inline retry message as Tendências when insight generation fails", async () => {
+    vi.spyOn(container.generateManagerInsightUseCase, "execute").mockRejectedValue(new Error("boom"));
+    const user = userEvent.setup();
+    renderHistory();
+
+    await waitFor(() => {
+      expect(screen.getByText("A UTI mostra um padrão de aumento nos sinais.")).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: "Gerar análise" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível gerar a análise agora. Tente novamente.");
+    });
+  });
+
+  it("refetches the history so a newly generated analysis appears without a manual reload", async () => {
+    const historySpy = vi.spyOn(container.getManagerInsightHistoryUseCase, "execute");
+    historySpy.mockResolvedValueOnce(HISTORY_RESPONSE);
+    historySpy.mockResolvedValueOnce([
+      {
+        id: "3",
+        interpretation: "Interpretação recém-gerada.",
+        suggestedActions: ["Ação nova"],
+        summary: "resumo novo",
+        generatedAt: "2026-08-10T00:00:00.000Z",
+        createdByManagerName: "Ana Konder",
+      },
+      ...HISTORY_RESPONSE,
+    ]);
+    vi.spyOn(container.generateManagerInsightUseCase, "execute").mockResolvedValue({
+      interpretation: "Interpretação recém-gerada.",
+      suggestedActions: ["Ação nova"],
+    });
+    const user = userEvent.setup();
+    renderHistory();
+
+    await waitFor(() => {
+      expect(screen.getByText("A UTI mostra um padrão de aumento nos sinais.")).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: "Gerar análise" }));
+
+    const rows = await screen.findByTestId("insight-row-list");
+    await waitFor(() => {
+      expect(within(rows).getByText("resumo novo")).toBeInTheDocument();
+    });
   });
 });
