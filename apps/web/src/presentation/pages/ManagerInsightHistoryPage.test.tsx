@@ -9,6 +9,10 @@ import * as container from "@/app/container";
 import * as downloadHelper from "@/presentation/lib/download-manager-insight";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 
+function formatDate(generatedAt: string): string {
+  return new Date(generatedAt).toLocaleDateString("pt-BR", { year: "numeric", month: "long", day: "numeric" });
+}
+
 function renderHistory() {
   const queryClient = new QueryClient();
   return render(
@@ -68,7 +72,7 @@ describe("ManagerInsightHistoryPage", () => {
     await waitFor(() => {
       expect(screen.getByText("A UTI mostra um padrão de aumento nos sinais.")).toBeInTheDocument();
     });
-    const pdfButtons = screen.getAllByRole("button", { name: "Baixar PDF" });
+    const pdfButtons = screen.getAllByRole("button", { name: /^Baixar PDF/ });
     await user.click(pdfButtons[0]!);
 
     expect(pdfSpy).toHaveBeenCalledWith(HISTORY_RESPONSE[0]);
@@ -82,7 +86,7 @@ describe("ManagerInsightHistoryPage", () => {
     await waitFor(() => {
       expect(screen.getByText("A UTI mostra um padrão de aumento nos sinais.")).toBeInTheDocument();
     });
-    const textButtons = screen.getAllByRole("button", { name: "Baixar texto" });
+    const textButtons = screen.getAllByRole("button", { name: /^Baixar texto/ });
     await user.click(textButtons[0]!);
 
     expect(textSpy).toHaveBeenCalledWith(HISTORY_RESPONSE[0]);
@@ -137,11 +141,14 @@ describe("ManagerInsightHistoryPage", () => {
   });
 
   it("labels the download actions in words on the card list", async () => {
-    vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockResolvedValue([HISTORY_RESPONSE[0]!]);
     renderHistory();
     const cards = await screen.findByTestId("insight-card-list");
     expect(cards.className).toContain("md:hidden");
-    expect(within(cards).getByRole("button", { name: "Baixar PDF" })).toBeInTheDocument();
+    expect(
+      within(cards).getByRole("button", {
+        name: `Baixar PDF da análise de ${formatDate(HISTORY_RESPONSE[0]!.generatedAt)}`,
+      }),
+    ).toBeInTheDocument();
   });
 
   it("shows an empty state when no analysis has been generated", async () => {

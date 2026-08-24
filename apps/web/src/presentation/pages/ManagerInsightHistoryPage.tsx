@@ -26,7 +26,7 @@ function InsightRow({ entry }: { entry: StoredManagerInsight }) {
       <button
         type="button"
         aria-expanded={expanded}
-        aria-controls={regionId}
+        aria-controls={expanded ? regionId : undefined}
         aria-label={`Análise de ${dateLabel}: ${entry.summary}`}
         onClick={() => setExpanded((value) => !value)}
         className="flex w-full items-center justify-between gap-3 px-cell-x py-cell-y text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
@@ -57,13 +57,13 @@ function InsightRow({ entry }: { entry: StoredManagerInsight }) {
           </ul>
           <div className="mt-3 flex gap-2">
             <IconButton
-              label="Baixar PDF"
+              label={`Baixar PDF da análise de ${dateLabel}`}
               icon={<FileDown size={16} />}
               variant="outline"
               onClick={() => downloadInsightAsPdf(entry)}
             />
             <IconButton
-              label="Baixar texto"
+              label={`Baixar texto da análise de ${dateLabel}`}
               icon={<FileText size={16} />}
               variant="outline"
               onClick={() => downloadInsightAsText(entry)}
@@ -76,9 +76,11 @@ function InsightRow({ entry }: { entry: StoredManagerInsight }) {
 }
 
 function InsightCard({ entry }: { entry: StoredManagerInsight }) {
+  const dateLabel = formatDate(entry.generatedAt);
+
   return (
     <Card>
-      <p className="font-mono text-[12px] text-muted-2">{formatDate(entry.generatedAt)}</p>
+      <p className="font-mono text-[12px] text-muted-2">{dateLabel}</p>
       {entry.createdByManagerName && (
         <p className="mt-1 text-label text-muted">Gerado por {entry.createdByManagerName}</p>
       )}
@@ -92,10 +94,20 @@ function InsightCard({ entry }: { entry: StoredManagerInsight }) {
         ))}
       </ul>
       <div className="mt-3 flex gap-2">
-        <Button variant="outline" full={false} onClick={() => downloadInsightAsPdf(entry)}>
+        <Button
+          variant="outline"
+          full={false}
+          aria-label={`Baixar PDF da análise de ${dateLabel}`}
+          onClick={() => downloadInsightAsPdf(entry)}
+        >
           Baixar PDF
         </Button>
-        <Button variant="outline" full={false} onClick={() => downloadInsightAsText(entry)}>
+        <Button
+          variant="outline"
+          full={false}
+          aria-label={`Baixar texto da análise de ${dateLabel}`}
+          onClick={() => downloadInsightAsText(entry)}
+        >
           Baixar texto
         </Button>
       </div>
