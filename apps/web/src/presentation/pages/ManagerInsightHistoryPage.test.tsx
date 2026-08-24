@@ -202,7 +202,7 @@ describe("ManagerInsightHistoryPage", () => {
     expect(second).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("calls the insight mutation when 'Gerar análise' is clicked from the page header", async () => {
+  it("calls the insight mutation when 'Gerar análise' is clicked", async () => {
     const executeSpy = vi
       .spyOn(container.generateManagerInsightUseCase, "execute")
       .mockResolvedValue({ interpretation: "Nova interpretação.", suggestedActions: ["Ação nova"] });
@@ -225,7 +225,28 @@ describe("ManagerInsightHistoryPage", () => {
 
     expect(await screen.findByText("Nenhuma análise gerada ainda.")).toBeInTheDocument();
     expect(screen.getByText("Use o botão Gerar análise, acima, para criar a primeira.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Gerar análise" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Tendências/i })).not.toBeInTheDocument();
+  });
+
+  it("places Gerar análise above the cards, ruled off from the header and aligned to the start of the row", async () => {
+    renderHistory();
+
+    await waitFor(() => {
+      expect(screen.getByText("A UTI mostra um padrão de aumento nos sinais.")).toBeInTheDocument();
+    });
+
+    const bar = screen.getByTestId("manager-action-bar");
+    const rule = bar.querySelector("hr");
+    const button = screen.getByRole("button", { name: "Gerar análise" });
+    expect(rule).not.toBeNull();
+    expect(rule!.compareDocumentPosition(button)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(bar.compareDocumentPosition(screen.getByTestId("insight-row-list"))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    const row = button.parentElement;
+    expect(row?.className).toContain("flex");
+    expect(row?.className).not.toContain("justify-end");
   });
 
   it("shows the same inline retry message as Tendências when insight generation fails", async () => {

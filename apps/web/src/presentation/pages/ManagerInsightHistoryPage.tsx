@@ -5,6 +5,7 @@ import { Card } from "@/presentation/ui/Card";
 import { Button } from "@/presentation/ui/Button";
 import { IconButton } from "@/presentation/ui/IconButton";
 import { ManagerPageHeader } from "@/presentation/layout/ManagerPageHeader";
+import { ManagerActionBar } from "@/presentation/layout/ManagerActionBar";
 import { routes } from "@/presentation/lib/routes";
 import { useManagerInsightHistory } from "@/presentation/hooks/useManagerInsightHistory";
 import { useManagerInsight } from "@/presentation/hooks/useManagerInsight";
@@ -160,12 +161,13 @@ export function ManagerInsightHistoryPage() {
       <ManagerPageHeader
         title="Análises com IA"
         intro="Histórico das análises geradas a partir dos indicadores agregados. Cada linha pode ser expandida para ver a interpretação completa."
-        actions={
-          <Button variant="outline" full={false} isLoading={insight.isPending} onClick={() => insight.mutate()}>
-            Gerar análise
-          </Button>
-        }
       />
+
+      <ManagerActionBar>
+        <Button variant="outline" full={false} isLoading={insight.isPending} onClick={() => insight.mutate()}>
+          Gerar análise
+        </Button>
+      </ManagerActionBar>
 
       {insight.isError && (
         <p role="alert" className="text-label text-danger">
