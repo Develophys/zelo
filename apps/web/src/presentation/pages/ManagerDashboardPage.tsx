@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { PrivacyBadge } from "@/presentation/ui/PrivacyBadge";
 import { SectionLabel } from "@/presentation/ui/SectionLabel";
 import { ManagerPageHeader } from "@/presentation/layout/ManagerPageHeader";
+import { ManagerActionBar } from "@/presentation/layout/ManagerActionBar";
 import { Card } from "@/presentation/ui/Card";
 import { Button } from "@/presentation/ui/Button";
 import { Skeleton } from "@/presentation/ui/Skeleton";
@@ -25,6 +26,9 @@ const SEGMENTS_SKELETON_ROW_COUNT = 3;
 const DASHBOARD_INTRO =
   "Indicadores agregados e anônimos do seu hospital. Nenhum dado individual é exibido; segmentos com menos de 5 respostas ficam ocultos.";
 
+const INSIGHT_EMPTY_EXPLANATION =
+  "Interpreta os indicadores agregados e anônimos desta página e sugere ações para a liderança, sem acesso a dados individuais de nenhum profissional.";
+
 function toTrendBarHeights(trend: { concerningRate: number }[]): number[] {
   return trend.map((point) => Math.max(MIN_TREND_BAR_HEIGHT, Math.round(point.concerningRate * 100)));
 }
@@ -40,9 +44,9 @@ function KpiCardSkeleton({ className = "" }: { className?: string }) {
 
 function TrendCardSkeleton() {
   return (
-    <Card className="h-full">
+    <Card className="flex h-full flex-col">
       <Skeleton className="h-4 w-32 rounded-md" />
-      <div className="mt-3 flex h-14 items-end gap-2">
+      <div className="mt-auto flex h-14 items-end gap-2">
         {Array.from({ length: TREND_SKELETON_BAR_COUNT }, (_, index) => (
           <Skeleton key={index} className="h-full w-full rounded-md" />
         ))}
@@ -99,7 +103,7 @@ function SectorFilter({ sectors, selectedSectorIds, onChange }: SectorFilterProp
   );
 
   return (
-    <div className="mt-3">
+    <div>
       <div data-testid="sector-filter-pills" className="hidden md:flex">
         <SectorPillPicker
           sectors={sectors}
@@ -144,7 +148,9 @@ export function ManagerDashboardPage() {
       <ManagerPageHeader title="Tendências" intro={DASHBOARD_INTRO} actions={<PrivacyBadge />} />
 
       {sectorsQuery.data && sectorsQuery.data.length > 1 && (
-        <SectorFilter sectors={sectorsQuery.data} selectedSectorIds={selectedSectorIds} onChange={setSelectedSectorIds} />
+        <ManagerActionBar>
+          <SectorFilter sectors={sectorsQuery.data} selectedSectorIds={selectedSectorIds} onChange={setSelectedSectorIds} />
+        </ManagerActionBar>
       )}
 
       <div data-testid="kpi-grid" className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -177,12 +183,12 @@ export function ManagerDashboardPage() {
           {isLoading ? (
             <TrendCardSkeleton />
           ) : (
-            <Card className="h-full" data-testid="manager-card">
+            <Card className="flex h-full flex-col" data-testid="manager-card">
               <div className="flex items-center justify-between">
                 <CardTitle>Tendência geral</CardTitle>
                 <p className="font-mono text-[12px] text-muted-2">últimas 6 semanas</p>
               </div>
-              <div className="mt-3 flex h-14 items-end gap-2">
+              <div className="mt-auto flex h-14 items-end gap-2">
                 {bars.map((height, index) => (
                   <div key={index} data-testid="trend-bar" className="w-full rounded-md bg-brand" style={{ height: `${height}%` }} />
                 ))}
@@ -229,7 +235,8 @@ export function ManagerDashboardPage() {
           </div>
           {!insight.data && (
             <div className="mt-3">
-              <Button className="p-2 cursor-pointer" variant="outline" full={false} isLoading={insight.isPending} onClick={() => insight.mutate()}>
+              <p className="text-label text-muted">{INSIGHT_EMPTY_EXPLANATION}</p>
+              <Button className="mt-3 p-2 cursor-pointer" variant="outline" full={false} isLoading={insight.isPending} onClick={() => insight.mutate()}>
                 Gerar análise
               </Button>
               {insight.isError && (

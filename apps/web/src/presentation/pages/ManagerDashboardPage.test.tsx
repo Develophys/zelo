@@ -441,4 +441,47 @@ describe("ManagerDashboardPage", () => {
       expect(card.className).toContain('h-full');
     }
   });
+
+  it('explains what the AI analysis does before one has been generated, without implying it sees individual data', async () => {
+    renderManager();
+    await waitFor(() => expect(screen.getByText('Plantão noturno')).toBeInTheDocument());
+
+    expect(
+      screen.getByText(
+        'Interpreta os indicadores agregados e anônimos desta página e sugere ações para a liderança, sem acesso a dados individuais de nenhum profissional.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('pushes the trend chart to the bottom of its card, so it ends on the same line as the taller segments card', async () => {
+    renderManager();
+    await waitFor(() => expect(screen.getByText('Plantão noturno')).toBeInTheDocument());
+
+    const grid = screen.getByTestId('trend-segments-grid');
+    const [trendCard] = within(grid).getAllByTestId('manager-card');
+    expect(trendCard!.className).toContain('flex');
+    expect(trendCard!.className).toContain('flex-col');
+    const barsRow = screen.getAllByTestId('trend-bar')[0]!.parentElement;
+    expect(barsRow?.className).toContain('mt-auto');
+  });
+
+  it('rules a line above the sector filter, separating it from the page header', async () => {
+    renderManager();
+    await waitFor(() => expect(screen.getByText('Plantão noturno')).toBeInTheDocument());
+
+    const bar = screen.getByTestId('manager-action-bar');
+    const rule = bar.querySelector('hr');
+    expect(rule).not.toBeNull();
+    expect(rule!.compareDocumentPosition(screen.getByTestId('sector-filter-pills'))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
+  it('does not render the filter rule when only one sector is accessible, since the filter itself is hidden', async () => {
+    vi.spyOn(container.listAccessibleSectorsUseCase, 'execute').mockResolvedValue([{ id: 'sector-1', name: 'UTI' }]);
+    renderManager();
+    await waitFor(() => expect(screen.getByText('Plantão noturno')).toBeInTheDocument());
+
+    expect(screen.queryByTestId('manager-action-bar')).not.toBeInTheDocument();
+  });
 });
