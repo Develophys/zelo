@@ -8,6 +8,7 @@ import { TextField } from "@/presentation/ui/TextField";
 import { ManagerPageHeader } from "@/presentation/layout/ManagerPageHeader";
 import { DataTable, type DataTableColumn } from "@/presentation/ui/DataTable/DataTable";
 import { DataTableEmpty } from "@/presentation/ui/DataTable/DataTableEmpty";
+import { DataTableError } from "@/presentation/ui/DataTable/DataTableError";
 import { DataTableToolbar } from "@/presentation/ui/DataTable/DataTableToolbar";
 import { BulkActionButton } from "@/presentation/ui/DataTable/BulkActionButton";
 import { useDataTableSelection } from "@/presentation/ui/DataTable/useDataTableSelection";
@@ -211,7 +212,11 @@ export function ManagerAdminPeersPage() {
           />
         }
         emptyState={
-          debouncedSearch.trim().length > 0 ? (
+          peerPartners.isLoading ? (
+            <DataTableEmpty title="Carregando pares…" hint="Isso deve levar só um instante." />
+          ) : peerPartners.isError ? (
+            <DataTableError message="Não foi possível carregar os pares." onRetry={() => peerPartners.refetch()} />
+          ) : debouncedSearch.trim().length > 0 ? (
             <DataTableEmpty
               title="Nenhum resultado nos itens carregados"
               hint="A busca ainda percorre apenas a lista já carregada."

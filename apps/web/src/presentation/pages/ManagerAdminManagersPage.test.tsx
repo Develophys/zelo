@@ -9,7 +9,7 @@ import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { AdminDeleteConflictError } from "@/ports/manager-admin.port";
 
 function renderPage() {
-  const queryClient = new QueryClient();
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={["/manager/admin/managers"]}>
@@ -446,5 +446,34 @@ describe("ManagerAdminManagersPage", () => {
 
     expect(await screen.findByText('Nenhum resultado nos itens carregados')).toBeInTheDocument();
     expect(screen.getByText('A busca ainda percorre apenas a lista já carregada.')).toBeInTheDocument();
+  });
+
+  it('shows a loading state while the managers are still fetching, instead of claiming none exist', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockReturnValue(new Promise(() => {}));
+    renderPage();
+
+    expect(await screen.findByText('Carregando gestores…')).toBeInTheDocument();
+    expect(screen.queryByText('Nenhum gestor cadastrado.')).not.toBeInTheDocument();
+  });
+
+  it('shows a retry affordance when the managers fail to load, instead of claiming none exist', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
+    const listSpy = vi
+      .spyOn(container.listManagersUseCase, 'execute')
+      .mockRejectedValueOnce(new Error('network down'))
+      .mockResolvedValueOnce([
+        { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      ]);
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível carregar os gestores.');
+    expect(screen.queryByText('Nenhum gestor cadastrado.')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Tentar de novo' }));
+
+    await waitFor(() => expect(listSpy).toHaveBeenCalledTimes(2));
+    expect(within(await screen.findByRole('table')).getByText('Ana')).toBeInTheDocument();
   });
 });

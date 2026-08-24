@@ -9,7 +9,7 @@ import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { AdminDeleteConflictError, SectorNameConflictError } from "@/ports/manager-admin.port";
 
 function renderPage() {
-  const queryClient = new QueryClient();
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={["/manager/admin/sectors"]}>
@@ -302,5 +302,32 @@ describe("ManagerAdminSectorsPage", () => {
 
     expect(await screen.findByText('Nenhum resultado nos itens carregados')).toBeInTheDocument();
     expect(screen.getByText('A busca ainda percorre apenas a lista já carregada.')).toBeInTheDocument();
+  });
+
+  it('shows a loading state while the sectors are still fetching, instead of claiming none exist', async () => {
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockReturnValue(new Promise(() => {}));
+    renderPage();
+
+    expect(await screen.findByText('Carregando setores…')).toBeInTheDocument();
+    expect(screen.queryByText('Nenhum setor cadastrado.')).not.toBeInTheDocument();
+  });
+
+  it('shows a retry affordance when the sectors fail to load, instead of claiming none exist', async () => {
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
+    const listSpy = vi
+      .spyOn(container.listSectorsUseCase, 'execute')
+      .mockRejectedValueOnce(new Error('network down'))
+      .mockResolvedValueOnce([{ id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null }]);
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível carregar os setores.');
+    expect(screen.queryByText('Nenhum setor cadastrado.')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Tentar de novo' }));
+
+    await waitFor(() => expect(listSpy).toHaveBeenCalledTimes(2));
+    expect(within(await screen.findByRole('table')).getByText('UTI')).toBeInTheDocument();
   });
 });

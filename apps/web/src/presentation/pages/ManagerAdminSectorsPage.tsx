@@ -9,6 +9,7 @@ import { TextField, SelectField } from "@/presentation/ui/TextField";
 import { ManagerPageHeader } from "@/presentation/layout/ManagerPageHeader";
 import { DataTable, type DataTableColumn } from "@/presentation/ui/DataTable/DataTable";
 import { DataTableEmpty } from "@/presentation/ui/DataTable/DataTableEmpty";
+import { DataTableError } from "@/presentation/ui/DataTable/DataTableError";
 import { DataTableToolbar } from "@/presentation/ui/DataTable/DataTableToolbar";
 import { BulkActionButton } from "@/presentation/ui/DataTable/BulkActionButton";
 import { useDataTableSelection } from "@/presentation/ui/DataTable/useDataTableSelection";
@@ -303,7 +304,11 @@ export function ManagerAdminSectorsPage() {
           />
         }
         emptyState={
-          debouncedSearch.trim().length > 0 ? (
+          sectorsQuery.isLoading ? (
+            <DataTableEmpty title="Carregando setores…" hint="Isso deve levar só um instante." />
+          ) : sectorsQuery.isError ? (
+            <DataTableError message="Não foi possível carregar os setores." onRetry={() => sectorsQuery.refetch()} />
+          ) : debouncedSearch.trim().length > 0 ? (
             <DataTableEmpty
               title="Nenhum resultado nos itens carregados"
               hint="A busca ainda percorre apenas a lista já carregada."

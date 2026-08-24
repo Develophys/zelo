@@ -9,6 +9,7 @@ import { TextField } from "@/presentation/ui/TextField";
 import { ManagerPageHeader } from "@/presentation/layout/ManagerPageHeader";
 import { DataTable, type DataTableColumn } from "@/presentation/ui/DataTable/DataTable";
 import { DataTableEmpty } from "@/presentation/ui/DataTable/DataTableEmpty";
+import { DataTableError } from "@/presentation/ui/DataTable/DataTableError";
 import { DataTableToolbar } from "@/presentation/ui/DataTable/DataTableToolbar";
 import { BulkActionButton } from "@/presentation/ui/DataTable/BulkActionButton";
 import { useDataTableSelection } from "@/presentation/ui/DataTable/useDataTableSelection";
@@ -310,7 +311,11 @@ export function ManagerAdminManagersPage() {
           />
         }
         emptyState={
-          debouncedSearch.trim().length > 0 ? (
+          managers.isLoading ? (
+            <DataTableEmpty title="Carregando gestores…" hint="Isso deve levar só um instante." />
+          ) : managers.isError ? (
+            <DataTableError message="Não foi possível carregar os gestores." onRetry={() => managers.refetch()} />
+          ) : debouncedSearch.trim().length > 0 ? (
             <DataTableEmpty
               title="Nenhum resultado nos itens carregados"
               hint="A busca ainda percorre apenas a lista já carregada."
