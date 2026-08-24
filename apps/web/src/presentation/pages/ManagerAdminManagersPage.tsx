@@ -242,6 +242,7 @@ export function ManagerAdminManagersPage() {
 
   const isSubmitDisabled =
     name.trim().length === 0 || email.trim().length === 0 || (role === "SECTOR_MANAGER" && selectedSectorIds.length === 0);
+  const isEditSubmitDisabled = editRole === "SECTOR_MANAGER" && editSectorIds.length === 0;
 
   const renderRowActions = (manager: ManagerSummary) => {
     const status = accountStatusPill(manager);
@@ -411,7 +412,13 @@ export function ManagerAdminManagersPage() {
               <Button variant="outline" full={false} onClick={closeModal}>
                 Cancelar
               </Button>
-              <Button variant="primary" full={false} isLoading={updateManager.isPending} onClick={handleSaveEdit}>
+              <Button
+                variant="primary"
+                full={false}
+                isLoading={updateManager.isPending}
+                disabled={isEditSubmitDisabled}
+                onClick={handleSaveEdit}
+              >
                 Salvar
               </Button>
             </>

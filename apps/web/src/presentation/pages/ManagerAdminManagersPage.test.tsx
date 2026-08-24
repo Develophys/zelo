@@ -172,6 +172,29 @@ describe("ManagerAdminManagersPage", () => {
     );
   });
 
+  it('disables Salvar in the edit modal when a sector manager is left with no sectors, same as the create guard', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
+      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null },
+    ]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
+      { id: 'manager-5', name: 'Paulo', email: 'paulo@zelo-demo.local', role: 'SECTOR_MANAGER', isActive: true, sectorNames: ['UTI'], hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    const updateSpy = vi.spyOn(container.updateManagerAdminUseCase, 'execute').mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(within(await screen.findByRole('table')).getByRole('button', { name: 'Editar Paulo' }));
+
+    const editForm = within(screen.getByRole('dialog'));
+    // Un-selecting the only sector would leave a sector manager who can log
+    // in and see nothing — the create form already guards against this.
+    await user.click(editForm.getByRole('button', { name: 'UTI' }));
+
+    expect(editForm.getByRole('button', { name: 'Salvar' })).toBeDisabled();
+    await user.click(editForm.getByRole('button', { name: 'Salvar' }));
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
   it("discards edits on Cancelar without calling the update mutation", async () => {
     vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
       { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
