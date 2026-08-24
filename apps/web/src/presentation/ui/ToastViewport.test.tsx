@@ -21,6 +21,15 @@ describe('ToastViewport', () => {
     expect(viewport.className).toContain('right-4');
   });
 
+  it('clears the chrome a popover gets from the user-agent stylesheet, which would otherwise box the stack in a border of its own', () => {
+    render(<ToastViewport />);
+    const viewport = screen.getByTestId('toast-viewport');
+
+    for (const reset of ['border-0', 'bg-transparent', 'p-0', 'm-0', 'outline-none']) {
+      expect(viewport.className).toContain(reset);
+    }
+  });
+
   it('shows a raised message and colours it by tone', () => {
     render(<ToastViewport />);
 

@@ -80,7 +80,7 @@ export function ToastViewport() {
         ref={ref}
         data-testid="toast-viewport"
         {...(SUPPORTS_POPOVER ? { popover: 'manual' } : {})}
-        className="pointer-events-none fixed inset-auto right-4 bottom-4 z-50 m-0 w-[min(22rem,calc(100vw-2rem))] bg-transparent p-0"
+        className="pointer-events-none fixed inset-auto right-4 bottom-4 z-50 m-0 w-[min(22rem,calc(100vw-2rem))] overflow-visible border-0 bg-transparent p-0 outline-none"
       >
         <ul className="flex flex-col gap-2">
           {toasts.map((toast) => (
