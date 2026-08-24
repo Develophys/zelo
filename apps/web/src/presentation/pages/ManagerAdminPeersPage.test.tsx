@@ -247,6 +247,48 @@ describe("ManagerAdminPeersPage", () => {
     expect(deleteSpy).toHaveBeenCalledWith('token', 'p2');
   });
 
+  it('pauses the selected peer partners and clears the selection on the happy path', async () => {
+    vi.spyOn(container.listPeerPartnersUseCase, 'execute').mockResolvedValue([
+      { id: 'p1', name: 'Ana', email: 'ana@zelo-demo.local', specialty: 'Clínica médica', isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'p2', name: 'Bruno', email: 'bruno@zelo-demo.local', specialty: 'Cirurgia', isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    const updateSpy = vi.spyOn(container.updatePeerPartnerUseCase, 'execute').mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Selecionar Ana' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Selecionar Bruno' }));
+    await user.click(screen.getByRole('button', { name: 'Pausar' }));
+
+    await waitFor(() => expect(updateSpy).toHaveBeenCalledTimes(2));
+    expect(updateSpy).toHaveBeenNthCalledWith(1, 'token', 'p1', { isActive: false });
+    expect(updateSpy).toHaveBeenNthCalledWith(2, 'token', 'p2', { isActive: false });
+    // Selection cleared: the toolbar falls back to its search field.
+    await waitFor(() => expect(screen.getByPlaceholderText('Buscar…')).toBeInTheDocument());
+  });
+
+  it('reports a partial bulk pause and keeps the selection so the still-active peer partner can be retried', async () => {
+    vi.spyOn(container.listPeerPartnersUseCase, 'execute').mockResolvedValue([
+      { id: 'p1', name: 'Ana', email: 'ana@zelo-demo.local', specialty: 'Clínica médica', isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'p2', name: 'Bruno', email: 'bruno@zelo-demo.local', specialty: 'Cirurgia', isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    vi.spyOn(container.updatePeerPartnerUseCase, 'execute').mockImplementation(async (_token: string, id: string) => {
+      if (id === 'p2') throw new Error('network down');
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Selecionar Ana' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Selecionar Bruno' }));
+    await user.click(screen.getByRole('button', { name: 'Pausar' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('1 de 2 pausados. Não foi possível atualizar. Tente de novo.');
+    // The selection stays so the still-active row can be retried without
+    // re-picking it from the table.
+    expect(screen.getByRole('checkbox', { name: 'Selecionar Ana' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Selecionar Bruno' })).toBeChecked();
+  });
+
   it('filters the table by name, accent-insensitively', async () => {
     vi.spyOn(container.listPeerPartnersUseCase, 'execute').mockResolvedValue([
       { id: 'p1', name: 'João', email: 'joao@zelo-demo.local', specialty: 'Clínica médica', isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },

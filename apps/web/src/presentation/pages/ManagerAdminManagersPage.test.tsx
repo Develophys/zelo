@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ManagerAdminManagersPage } from "./ManagerAdminManagersPage";
 import * as container from "@/app/container";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
-import { AdminDeleteConflictError } from "@/ports/manager-admin.port";
+import { AdminDeleteConflictError, LastActiveHospitalAdminError } from "@/ports/manager-admin.port";
 
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -413,6 +413,52 @@ describe("ManagerAdminManagersPage", () => {
 
     await waitFor(() => expect(deleteSpy).toHaveBeenCalledTimes(1));
     expect(deleteSpy).toHaveBeenCalledWith('token', 'm2');
+  });
+
+  it('pauses the selected managers and clears the selection on the happy path', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    const updateSpy = vi.spyOn(container.updateManagerAdminUseCase, 'execute').mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Selecionar Ana' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Selecionar Bruno' }));
+    await user.click(screen.getByRole('button', { name: 'Pausar' }));
+
+    await waitFor(() => expect(updateSpy).toHaveBeenCalledTimes(2));
+    expect(updateSpy).toHaveBeenNthCalledWith(1, 'token', 'm1', { isActive: false });
+    expect(updateSpy).toHaveBeenNthCalledWith(2, 'token', 'm2', { isActive: false });
+    // Selection cleared: the toolbar falls back to its search field.
+    await waitFor(() => expect(screen.getByPlaceholderText('Buscar…')).toBeInTheDocument());
+  });
+
+  it('reports a partial bulk pause and keeps the selection so the still-active row can be retried', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    vi.spyOn(container.updateManagerAdminUseCase, 'execute').mockImplementation(async (_token: string, id: string) => {
+      if (id === 'm2') throw new LastActiveHospitalAdminError();
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Selecionar Ana' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Selecionar Bruno' }));
+    await user.click(screen.getByRole('button', { name: 'Pausar' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '1 de 2 pausados. Este é o último administrador ativo do hospital. Mantenha-o ativo ou promova outro gestor antes de pausá-lo.',
+    );
+    // The selection stays so the still-active row can be retried without
+    // re-picking it from the table.
+    expect(screen.getByRole('checkbox', { name: 'Selecionar Ana' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Selecionar Bruno' })).toBeChecked();
   });
 
   it('filters the table by name, accent-insensitively', async () => {

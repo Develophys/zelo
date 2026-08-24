@@ -14,6 +14,7 @@ import { DataTableToolbar } from "@/presentation/ui/DataTable/DataTableToolbar";
 import { BulkActionButton } from "@/presentation/ui/DataTable/BulkActionButton";
 import { useDataTableSelection } from "@/presentation/ui/DataTable/useDataTableSelection";
 import { useBulkDelete } from "@/presentation/ui/DataTable/useBulkDelete";
+import { useBulkStatusUpdate } from "@/presentation/ui/DataTable/useBulkStatusUpdate";
 import { normalize } from "@/presentation/lib/normalize-search";
 import { useAdminSectors } from "@/presentation/hooks/useAdminSectors";
 import { useAdminManagers } from "@/presentation/hooks/useAdminManagers";
@@ -179,6 +180,10 @@ export function ManagerAdminSectorsPage() {
     onSuccess: () => selection.clear(),
   });
 
+  const bulkStatus = useBulkStatusUpdate({
+    updateOne: (id, isActive) => updateSector.mutateAsync({ id, patch: { isActive } }),
+  });
+
   const openCreate = () => {
     setName("");
     setManagerId(null);
@@ -232,18 +237,14 @@ export function ManagerAdminSectorsPage() {
     );
   };
 
-  const handleBulkPause = () => {
-    for (const id of selection.selectedIds) {
-      updateSector.mutate({ id, patch: { isActive: false } });
-    }
-    selection.clear();
+  const handleBulkPause = async () => {
+    const { failedIds } = await bulkStatus.run(selection.selectedIds, false);
+    if (failedIds.length === 0) selection.clear();
   };
 
-  const handleBulkActivate = () => {
-    for (const id of selection.selectedIds) {
-      updateSector.mutate({ id, patch: { isActive: true } });
-    }
-    selection.clear();
+  const handleBulkActivate = async () => {
+    const { failedIds } = await bulkStatus.run(selection.selectedIds, true);
+    if (failedIds.length === 0) selection.clear();
   };
 
   const isSubmitDisabled = name.trim().length === 0;
@@ -262,6 +263,12 @@ export function ManagerAdminSectorsPage() {
             <p className="text-label font-semibold text-ink-2">{notice}</p>
           </Card>
         </div>
+      )}
+
+      {bulkStatus.message && (
+        <p role="alert" className="text-label text-danger">
+          {bulkStatus.message}
+        </p>
       )}
 
       <ManagerPageHeader

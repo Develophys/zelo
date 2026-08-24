@@ -13,6 +13,7 @@ import { DataTableToolbar } from "@/presentation/ui/DataTable/DataTableToolbar";
 import { BulkActionButton } from "@/presentation/ui/DataTable/BulkActionButton";
 import { useDataTableSelection } from "@/presentation/ui/DataTable/useDataTableSelection";
 import { useBulkDelete } from "@/presentation/ui/DataTable/useBulkDelete";
+import { useBulkStatusUpdate } from "@/presentation/ui/DataTable/useBulkStatusUpdate";
 import { normalize } from "@/presentation/lib/normalize-search";
 import { accountStatusPill } from "@/presentation/lib/account-status-pill";
 import { useAdminPeerPartners } from "@/presentation/hooks/useAdminPeerPartners";
@@ -81,6 +82,10 @@ export function ManagerAdminPeersPage() {
     onSuccess: () => selection.clear(),
   });
 
+  const bulkStatus = useBulkStatusUpdate({
+    updateOne: (id, isActive) => updatePeerPartner.mutateAsync({ id, patch: { isActive } }),
+  });
+
   const openCreate = () => {
     setName("");
     setEmail("");
@@ -123,18 +128,14 @@ export function ManagerAdminPeersPage() {
     sendSetPasswordEmail.mutate(peerPartner.id, { onSuccess: () => setInviteSentTo(peerPartner.email) });
   };
 
-  const handleBulkPause = () => {
-    for (const id of selection.selectedIds) {
-      updatePeerPartner.mutate({ id, patch: { isActive: false } });
-    }
-    selection.clear();
+  const handleBulkPause = async () => {
+    const { failedIds } = await bulkStatus.run(selection.selectedIds, false);
+    if (failedIds.length === 0) selection.clear();
   };
 
-  const handleBulkActivate = () => {
-    for (const id of selection.selectedIds) {
-      updatePeerPartner.mutate({ id, patch: { isActive: true } });
-    }
-    selection.clear();
+  const handleBulkActivate = async () => {
+    const { failedIds } = await bulkStatus.run(selection.selectedIds, true);
+    if (failedIds.length === 0) selection.clear();
   };
 
   const isSubmitDisabled = name.trim().length === 0 || email.trim().length === 0 || specialty.trim().length === 0;
@@ -170,6 +171,12 @@ export function ManagerAdminPeersPage() {
             <p className="text-label font-semibold text-ink-2">Convite enviado para {inviteSentTo}.</p>
           </Card>
         </div>
+      )}
+
+      {bulkStatus.message && (
+        <p role="alert" className="text-label text-danger">
+          {bulkStatus.message}
+        </p>
       )}
 
       <ManagerPageHeader

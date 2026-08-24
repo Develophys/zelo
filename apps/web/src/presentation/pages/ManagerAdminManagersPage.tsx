@@ -14,8 +14,10 @@ import { DataTableToolbar } from "@/presentation/ui/DataTable/DataTableToolbar";
 import { BulkActionButton } from "@/presentation/ui/DataTable/BulkActionButton";
 import { useDataTableSelection } from "@/presentation/ui/DataTable/useDataTableSelection";
 import { useBulkDelete } from "@/presentation/ui/DataTable/useBulkDelete";
+import { useBulkStatusUpdate } from "@/presentation/ui/DataTable/useBulkStatusUpdate";
 import { normalize } from "@/presentation/lib/normalize-search";
 import { accountStatusPill } from "@/presentation/lib/account-status-pill";
+import { updateConflictMessage } from "@/ports/manager-admin.port";
 import { useAdminSectors } from "@/presentation/hooks/useAdminSectors";
 import { useAdminManagers } from "@/presentation/hooks/useAdminManagers";
 import { useCreateManager } from "@/presentation/hooks/useCreateManager";
@@ -170,6 +172,11 @@ export function ManagerAdminManagersPage() {
     onSuccess: () => selection.clear(),
   });
 
+  const bulkStatus = useBulkStatusUpdate({
+    updateOne: (id, isActive) => updateManager.mutateAsync({ id, patch: { isActive } }),
+    conflictMessage: updateConflictMessage,
+  });
+
   const toggleSector = (id: string) => {
     setSelectedSectorIds((current) => (current.includes(id) ? current.filter((sectorId) => sectorId !== id) : [...current, id]));
   };
@@ -223,18 +230,14 @@ export function ManagerAdminManagersPage() {
     sendSetPasswordEmail.mutate(manager.id, { onSuccess: () => setInviteSentTo(manager.email) });
   };
 
-  const handleBulkPause = () => {
-    for (const id of selection.selectedIds) {
-      updateManager.mutate({ id, patch: { isActive: false } });
-    }
-    selection.clear();
+  const handleBulkPause = async () => {
+    const { failedIds } = await bulkStatus.run(selection.selectedIds, false);
+    if (failedIds.length === 0) selection.clear();
   };
 
-  const handleBulkActivate = () => {
-    for (const id of selection.selectedIds) {
-      updateManager.mutate({ id, patch: { isActive: true } });
-    }
-    selection.clear();
+  const handleBulkActivate = async () => {
+    const { failedIds } = await bulkStatus.run(selection.selectedIds, true);
+    if (failedIds.length === 0) selection.clear();
   };
 
   const isSubmitDisabled =
@@ -269,6 +272,12 @@ export function ManagerAdminManagersPage() {
             <p className="text-label font-semibold text-ink-2">Convite enviado para {inviteSentTo}.</p>
           </Card>
         </div>
+      )}
+
+      {bulkStatus.message && (
+        <p role="alert" className="text-label text-danger">
+          {bulkStatus.message}
+        </p>
       )}
 
       <ManagerPageHeader

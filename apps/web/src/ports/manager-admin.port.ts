@@ -85,6 +85,12 @@ export function deleteConflictMessage(error: unknown): string | null {
   return error instanceof AdminDeleteConflictError ? CONFLICT_MESSAGE[error.reason] : null;
 }
 
+export function updateConflictMessage(error: unknown): string | null {
+  return error instanceof LastActiveHospitalAdminError
+    ? "Este é o último administrador ativo do hospital. Mantenha-o ativo ou promova outro gestor antes de pausá-lo."
+    : null;
+}
+
 export interface UpdateSectorParams {
   isActive?: boolean;
   managerId?: string | null;

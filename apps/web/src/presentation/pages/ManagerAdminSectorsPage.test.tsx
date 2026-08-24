@@ -271,6 +271,50 @@ describe("ManagerAdminSectorsPage", () => {
     expect(deleteSpy).toHaveBeenCalledWith('token', 'sector-2');
   });
 
+  it('pauses the selected sectors and clears the selection on the happy path', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
+      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null },
+      { id: 'sector-2', name: 'Pronto-Socorro', isActive: true, managerId: null, managerName: null },
+    ]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
+    const updateSpy = vi.spyOn(container.updateSectorUseCase, 'execute').mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Selecionar UTI' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Selecionar Pronto-Socorro' }));
+    await user.click(screen.getByRole('button', { name: 'Pausar' }));
+
+    await waitFor(() => expect(updateSpy).toHaveBeenCalledTimes(2));
+    expect(updateSpy).toHaveBeenNthCalledWith(1, 'token', 'sector-1', { isActive: false });
+    expect(updateSpy).toHaveBeenNthCalledWith(2, 'token', 'sector-2', { isActive: false });
+    // Selection cleared: the toolbar falls back to its search field.
+    await waitFor(() => expect(screen.getByPlaceholderText('Buscar…')).toBeInTheDocument());
+  });
+
+  it('reports a partial bulk pause and keeps the selection so the still-active sector can be retried', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
+      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null },
+      { id: 'sector-2', name: 'Pronto-Socorro', isActive: true, managerId: null, managerName: null },
+    ]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.updateSectorUseCase, 'execute').mockImplementation(async (_token: string, id: string) => {
+      if (id === 'sector-2') throw new Error('network down');
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Selecionar UTI' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Selecionar Pronto-Socorro' }));
+    await user.click(screen.getByRole('button', { name: 'Pausar' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('1 de 2 pausados. Não foi possível atualizar. Tente de novo.');
+    // The selection stays so the still-active row can be retried without
+    // re-picking it from the table.
+    expect(screen.getByRole('checkbox', { name: 'Selecionar UTI' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Selecionar Pronto-Socorro' })).toBeChecked();
+  });
+
   it("filters the table by the responsible manager's name, accent-insensitively", async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
       { id: 'sector-1', name: 'UTI', isActive: true, managerId: 'manager-1', managerName: 'João' },
