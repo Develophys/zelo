@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { Trash2 } from 'lucide-react';
@@ -215,6 +215,109 @@ describe('Tooltip', () => {
       widthSpy.mockRestore();
       heightSpy.mockRestore();
       Object.defineProperty(window, 'innerWidth', { value: originalInnerWidth, configurable: true });
+    }
+  });
+
+  it('flips below the trigger instead of running off the top when there is no room above it', async () => {
+    const user = userEvent.setup();
+    const rectSpy = vi
+      .spyOn(HTMLButtonElement.prototype, 'getBoundingClientRect')
+      .mockReturnValue({
+        top: 10,
+        left: 100,
+        right: 140,
+        bottom: 30,
+        width: 40,
+        height: 20,
+        x: 100,
+        y: 10,
+        toJSON() {},
+      } as DOMRect);
+    const widthSpy = vi.spyOn(HTMLSpanElement.prototype, 'offsetWidth', 'get').mockReturnValue(80);
+    const heightSpy = vi.spyOn(HTMLSpanElement.prototype, 'offsetHeight', 'get').mockReturnValue(32);
+
+    try {
+      render(
+        <Tooltip content="Explicação">
+          <button type="button">Ação</button>
+        </Tooltip>,
+      );
+      await user.tab();
+      const tooltip = screen.getByRole('tooltip');
+      expect(parseFloat(tooltip.style.top)).toBe(30 + 8);
+    } finally {
+      rectSpy.mockRestore();
+      widthSpy.mockRestore();
+      heightSpy.mockRestore();
+    }
+  });
+
+  it('does not detach and reattach a caller-supplied callback ref while the tooltip opens and closes', async () => {
+    const user = userEvent.setup();
+    const calls: Array<HTMLElement | null> = [];
+    const refCallback = (node: HTMLElement | null) => {
+      calls.push(node);
+    };
+
+    render(
+      <Tooltip content="Explicação">
+        <button type="button" ref={refCallback}>
+          Ação
+        </button>
+      </Tooltip>,
+    );
+    expect(calls).toHaveLength(1);
+
+    await user.tab();
+    await user.tab();
+
+    expect(calls).toHaveLength(1);
+  });
+
+  it('bails out of re-rendering the trigger when a scroll leaves the measured position unchanged', async () => {
+    const user = userEvent.setup();
+    const rectSpy = vi
+      .spyOn(HTMLButtonElement.prototype, 'getBoundingClientRect')
+      .mockReturnValue({
+        top: 100,
+        left: 100,
+        right: 140,
+        bottom: 120,
+        width: 40,
+        height: 20,
+        x: 100,
+        y: 100,
+        toJSON() {},
+      } as DOMRect);
+    const widthSpy = vi.spyOn(HTMLSpanElement.prototype, 'offsetWidth', 'get').mockReturnValue(80);
+    const heightSpy = vi.spyOn(HTMLSpanElement.prototype, 'offsetHeight', 'get').mockReturnValue(32);
+
+    let renderCount = 0;
+    function Trigger(props: Record<string, unknown>) {
+      renderCount += 1;
+      return (
+        <button type="button" {...props}>
+          Ação
+        </button>
+      );
+    }
+
+    try {
+      render(
+        <Tooltip content="Explicação">
+          <Trigger />
+        </Tooltip>,
+      );
+      await user.tab();
+      const countAfterOpen = renderCount;
+
+      fireEvent.scroll(window);
+
+      expect(renderCount).toBe(countAfterOpen);
+    } finally {
+      rectSpy.mockRestore();
+      widthSpy.mockRestore();
+      heightSpy.mockRestore();
     }
   });
 });

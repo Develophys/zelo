@@ -4,6 +4,7 @@ import {
   useEffect,
   useId,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type FocusEvent,
@@ -30,11 +31,21 @@ interface BubblePosition {
 
 function mergeRefs<T>(refs: Array<Ref<T> | null | undefined>) {
   return (node: T | null) => {
-    for (const ref of refs) {
-      if (!ref) continue;
-      if (typeof ref === 'function') ref(node);
-      else (ref as { current: T | null }).current = node;
-    }
+    const cleanups = refs.map((ref) => {
+      if (!ref) return undefined;
+      if (typeof ref === 'function') return ref(node);
+      (ref as { current: T | null }).current = node;
+      return undefined;
+    });
+
+    return () => {
+      refs.forEach((ref, index) => {
+        const cleanup = cleanups[index];
+        if (typeof cleanup === 'function') cleanup();
+        else if (typeof ref === 'function') ref(null);
+        else if (ref) (ref as { current: T | null }).current = null;
+      });
+    };
   };
 }
 
@@ -89,12 +100,17 @@ export function Tooltip({ content, children }: TooltipProps) {
     const centered = triggerRect.left + triggerRect.width / 2 - bubbleWidth / 2;
     const maxLeft = Math.max(window.innerWidth - VIEWPORT_MARGIN - bubbleWidth, VIEWPORT_MARGIN);
     const left = Math.min(Math.max(centered, VIEWPORT_MARGIN), maxLeft);
-    const top = triggerRect.top - bubbleHeight - TRIGGER_GAP;
-    setPosition({ top, left });
+
+    const fitsAbove = triggerRect.top - TRIGGER_GAP - bubbleHeight >= VIEWPORT_MARGIN;
+    const top = fitsAbove
+      ? triggerRect.top - bubbleHeight - TRIGGER_GAP
+      : triggerRect.bottom + TRIGGER_GAP;
+    const maxTop = Math.max(window.innerHeight - VIEWPORT_MARGIN - bubbleHeight, VIEWPORT_MARGIN);
+    const clampedTop = Math.min(Math.max(top, VIEWPORT_MARGIN), maxTop);
+
+    setPosition((current) => (current.top === clampedTop && current.left === left ? current : { top: clampedTop, left }));
   }, []);
 
-  // Measured only while open: the trigger's position is meaningless once the
-  // bubble is gone, and there is nothing to keep in sync with scroll/resize.
   useLayoutEffect(() => {
     if (!open) return;
     measure();
@@ -116,8 +132,11 @@ export function Tooltip({ content, children }: TooltipProps) {
       ours(event);
     };
 
+  const childRef = children.props.ref as Ref<HTMLElement> | undefined;
+  const mergedRef = useMemo(() => mergeRefs<HTMLElement>([childRef, triggerRef]), [childRef]);
+
   const trigger = cloneElement(children, {
-    ref: mergeRefs<HTMLElement>([children.props.ref as Ref<HTMLElement> | undefined, triggerRef]),
+    ref: mergedRef,
     'aria-describedby': open && !restatesTheName ? id : children.props['aria-describedby'],
     onPointerEnter: chain<PointerEvent>(children.props.onPointerEnter, (event) => {
       if (event.pointerType !== 'touch') setOpen(true);
