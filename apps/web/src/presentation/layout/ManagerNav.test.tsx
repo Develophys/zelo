@@ -37,7 +37,12 @@ beforeEach(() => {
 
 afterEach(() => {
   window.localStorage.clear();
-  useManagerPrefsStore.setState({ density: 'comfortable', accent: 'sage', sidebarCollapsed: false });
+  useManagerPrefsStore.setState({
+    density: 'comfortable',
+    accent: 'sage',
+    corners: 'sharp',
+    sidebarCollapsed: false,
+  });
   vi.restoreAllMocks();
 });
 

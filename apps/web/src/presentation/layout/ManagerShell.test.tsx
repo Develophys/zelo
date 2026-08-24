@@ -27,10 +27,12 @@ describe('ManagerShell', () => {
   afterEach(() => {
     delete document.documentElement.dataset.density;
     delete document.documentElement.dataset.accent;
+    delete document.documentElement.dataset.corners;
     window.localStorage.clear();
     useManagerPrefsStore.setState({
       density: 'comfortable',
       accent: 'sage',
+      corners: 'sharp',
       sidebarCollapsed: false,
     });
   });
@@ -78,10 +80,16 @@ describe('ManagerShell', () => {
   });
 
   it('applies the manager preferences exactly once, from here', () => {
-    useManagerPrefsStore.setState({ density: 'compact', accent: 'clay', sidebarCollapsed: false });
+    useManagerPrefsStore.setState({
+      density: 'compact',
+      accent: 'clay',
+      corners: 'rounded',
+      sidebarCollapsed: false,
+    });
     mount();
     expect(document.documentElement.dataset.density).toBe('compact');
     expect(document.documentElement.dataset.accent).toBe('clay');
+    expect(document.documentElement.dataset.corners).toBe('rounded');
   });
 });
 

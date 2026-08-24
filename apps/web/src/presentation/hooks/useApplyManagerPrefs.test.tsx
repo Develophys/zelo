@@ -15,6 +15,7 @@ describe('useApplyManagerPrefs', () => {
     useManagerPrefsStore.setState({
       density: 'comfortable',
       accent: 'sage',
+      corners: 'sharp',
       sidebarCollapsed: false,
     });
   });
@@ -22,6 +23,7 @@ describe('useApplyManagerPrefs', () => {
   afterEach(() => {
     delete root().dataset.density;
     delete root().dataset.accent;
+    delete root().dataset.corners;
     window.localStorage.clear();
   });
 
@@ -43,11 +45,24 @@ describe('useApplyManagerPrefs', () => {
     expect(root().dataset.accent).toBe('indigo');
   });
 
+  it('projects the corner preference onto the document root', () => {
+    render(<Panel />);
+    expect(root().dataset.corners).toBe('sharp');
+    act(() => useManagerPrefsStore.getState().setCorners('rounded'));
+    expect(root().dataset.corners).toBe('rounded');
+  });
+
   it('cleans up on unmount, so leaving the panel does not restyle the rest of the app', () => {
     const { unmount } = render(<Panel />);
     unmount();
     expect(root().dataset.density).toBeUndefined();
     expect(root().dataset.accent).toBeUndefined();
+  });
+
+  it('cleans up the corner attribute on unmount, like the others', () => {
+    const { unmount } = render(<Panel />);
+    unmount();
+    expect(root().dataset.corners).toBeUndefined();
   });
 });
 
@@ -57,14 +72,16 @@ describe('manager prefs store', () => {
     useManagerPrefsStore.setState({
       density: 'comfortable',
       accent: 'sage',
+      corners: 'sharp',
       sidebarCollapsed: false,
     });
   });
 
   it('defaults to the validated comfortable density and the existing sage brand', () => {
-    const { density, accent, sidebarCollapsed } = useManagerPrefsStore.getState();
+    const { density, accent, corners, sidebarCollapsed } = useManagerPrefsStore.getState();
     expect(density).toBe('comfortable');
     expect(accent).toBe('sage');
+    expect(corners).toBe('sharp');
     expect(sidebarCollapsed).toBe(false);
   });
 
@@ -81,5 +98,20 @@ describe('manager prefs store', () => {
     expect(JSON.parse(window.localStorage.getItem('zelo.manager.prefs') ?? '{}').state.accent).toBe(
       'clay',
     );
+  });
+
+  it('rehydrates a payload saved before "corners" existed as the sharp default', async () => {
+    window.localStorage.setItem(
+      'zelo.manager.prefs',
+      JSON.stringify({ state: { density: 'compact', accent: 'clay', sidebarCollapsed: true }, version: 0 }),
+    );
+
+    await useManagerPrefsStore.persist.rehydrate();
+
+    const state = useManagerPrefsStore.getState();
+    expect(state.corners).toBe('sharp');
+    expect(state.density).toBe('compact');
+    expect(state.accent).toBe('clay');
+    expect(state.sidebarCollapsed).toBe(true);
   });
 });

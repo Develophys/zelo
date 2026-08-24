@@ -266,6 +266,43 @@ html[data-density='compact'] {
   --color-surface-brand: #3e2b23;
 }
 
+[data-accent-swatch='sage'] {
+  --color-brand-fill: #2f6b5e;
+}
+[data-accent-swatch='teal'] {
+  --color-brand-fill: #2d6970;
+}
+[data-accent-swatch='indigo'] {
+  --color-brand-fill: #4f6092;
+}
+[data-accent-swatch='clay'] {
+  --color-brand-fill: #855642;
+}
+
+[data-theme='dark'][data-accent-swatch='sage'] {
+  --color-brand-fill: #357769;
+}
+[data-theme='dark'][data-accent-swatch='teal'] {
+  --color-brand-fill: #39757c;
+}
+[data-theme='dark'][data-accent-swatch='indigo'] {
+  --color-brand-fill: #5a6b9e;
+}
+[data-theme='dark'][data-accent-swatch='clay'] {
+  --color-brand-fill: #91604c;
+}
+
+/* The "arredondados" preference. The sharp scale is the default and lives in
+   @theme; this block only softens it, so a token that is a capsule by
+   geometry (--radius-pill) is deliberately untouched. */
+html[data-corners='rounded'] {
+  --radius-control: 12px;
+  --radius-status: 8px;
+  --radius-card: 18px;
+  --radius-card-lg: 22px;
+  --radius-icon: 12px;
+}
+
 /* Tablet/desktop type scale (design-tokens.md §2) — overrides the same custom
    properties the @theme block above defines, so every `text-h1`/`text-h2`/
    `text-body`/`text-label`/`text-body-strong` utility picks this up

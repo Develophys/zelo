@@ -24,6 +24,10 @@ import { ManagerLoginPage } from './ManagerLoginPage';
 import { YouPage } from './YouPage';
 import { ManagerInsightHistoryPage } from './ManagerInsightHistoryPage';
 import { ManagerNotificationsPage } from './ManagerNotificationsPage';
+import { ManagerSettingsPage } from './ManagerSettingsPage';
+import { ManagerAdminManagersPage } from './ManagerAdminManagersPage';
+import { ManagerAdminSectorsPage } from './ManagerAdminSectorsPage';
+import { ManagerAdminPeersPage } from './ManagerAdminPeersPage';
 import { useConsentStore } from '@/stores/consent.store';
 
 const RESULT_STATE = { scaleType: 'PHQ-9' as const, totalScore: 12, max: 27, riskSignal: true };
@@ -60,6 +64,10 @@ const SCREENS: { name: string; Component: ComponentType; path: string; state?: u
   { name: 'You', Component: YouPage, path: '/you' },
   { name: 'ManagerInsightHistory', Component: ManagerInsightHistoryPage, path: '/manager/history' },
   { name: 'ManagerNotifications', Component: ManagerNotificationsPage, path: '/manager/notifications' },
+  { name: 'ManagerSettings', Component: ManagerSettingsPage, path: '/manager/settings' },
+  { name: 'ManagerAdminManagers', Component: ManagerAdminManagersPage, path: '/manager/admin/managers' },
+  { name: 'ManagerAdminSectors', Component: ManagerAdminSectorsPage, path: '/manager/admin/sectors' },
+  { name: 'ManagerAdminPeers', Component: ManagerAdminPeersPage, path: '/manager/admin/peers' },
 ];
 
 function mount(element: ReactElement, path: string, state?: unknown) {
