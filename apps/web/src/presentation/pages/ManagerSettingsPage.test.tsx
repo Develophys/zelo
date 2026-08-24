@@ -78,6 +78,17 @@ describe('ManagerSettingsPage', () => {
     expect(sageSwatch).toHaveClass('bg-accent-sage-fill');
   });
 
+  it("renders every section title as a level-2 heading in the panel's shared card-title shape", () => {
+    render(<ManagerSettingsPage />);
+
+    for (const name of ['Cor de destaque', 'Densidade', 'Cantos', 'Tema']) {
+      const heading = screen.getByRole('heading', { level: 2, name });
+      expect(heading.className).toContain('font-serif');
+      expect(heading.className).toContain('text-lg');
+      expect(heading.className).toContain('text-ink');
+    }
+  });
+
   it('has no axe violations', async () => {
     const { container } = render(<ManagerSettingsPage />);
     expect(await axe(container, { rules: { region: { enabled: false } } })).toHaveNoViolations();

@@ -69,6 +69,21 @@ describe("ManagerDashboardPage", () => {
     expect(screen.getByText("111")).toBeInTheDocument();
   });
 
+  it("renders every card title as a level-2 heading in the panel's shared shape", async () => {
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+    });
+
+    for (const name of ["Tendência geral", "Sinais por setor", "Análise com IA", "Insumo para o PGR"]) {
+      const heading = screen.getByRole("heading", { level: 2, name });
+      expect(heading.className).toContain("font-serif");
+      expect(heading.className).toContain("text-lg");
+      expect(heading.className).toContain("text-ink");
+    }
+  });
+
   it("offers no back button — navigation in the panel is the nav, not history", () => {
     renderManager();
     expect(screen.queryByRole("button", { name: /voltar/i })).not.toBeInTheDocument();

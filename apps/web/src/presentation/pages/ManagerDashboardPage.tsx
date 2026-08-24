@@ -6,6 +6,7 @@ import { ManagerPageHeader } from "@/presentation/layout/ManagerPageHeader";
 import { Card } from "@/presentation/ui/Card";
 import { Button } from "@/presentation/ui/Button";
 import { Skeleton } from "@/presentation/ui/Skeleton";
+import { CardTitle } from "@/presentation/ui/CardTitle";
 import { SectorMultiSelect } from "@/presentation/ui/SectorMultiSelect";
 import { SectorPillPicker, SECTOR_PILL_CLASS } from "@/presentation/ui/SectorPillPicker";
 import { routes } from "@/presentation/lib/routes";
@@ -16,7 +17,6 @@ import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 import { downloadPgrReportAsCsv, downloadPgrReportAsPdf } from "@/presentation/lib/download-manager-pgr-report";
 import { ArrowRight } from "lucide-react";
-import type { ReactNode } from "react";
 
 const MIN_TREND_BAR_HEIGHT = 8;
 const TREND_SKELETON_BAR_COUNT = 6;
@@ -115,10 +115,6 @@ function SectorFilter({ sectors, selectedSectorIds, onChange }: SectorFilterProp
       </div>
     </div>
   );
-}
-
-function CardTitle({ children }: { children: ReactNode }) {
-  return <p className="font-serif text-lg text-ink">{children}</p>;
 }
 
 export function ManagerDashboardPage() {

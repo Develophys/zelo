@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Check } from "lucide-react";
 import { ManagerPageHeader } from "@/presentation/layout/ManagerPageHeader";
 import { Card } from "@/presentation/ui/Card";
+import { CardTitle } from "@/presentation/ui/CardTitle";
 import { ThemeToggle } from "@/presentation/ui/ThemeToggle";
 import {
   MANAGER_ACCENTS,
@@ -41,7 +42,7 @@ function SettingsSection({
 }) {
   return (
     <Card size="md">
-      <h2 className="text-body font-extrabold text-ink">{title}</h2>
+      <CardTitle>{title}</CardTitle>
       <p className="mt-1 text-caption text-muted">{description}</p>
       <div className={contentClassName}>{children}</div>
     </Card>
