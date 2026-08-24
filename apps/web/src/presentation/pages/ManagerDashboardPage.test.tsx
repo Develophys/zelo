@@ -296,11 +296,12 @@ describe("ManagerDashboardPage", () => {
     renderManager();
 
     await waitFor(() => {
-      expect(screen.getByLabelText("UTI")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "UTI" })).toBeInTheDocument();
     });
-    expect(screen.getByLabelText("Pronto-Socorro")).toBeInTheDocument();
+    const pills = within(screen.getByTestId("sector-filter-pills"));
+    expect(pills.getByRole("button", { name: "Pronto-Socorro" })).toBeInTheDocument();
 
-    await user.click(screen.getByLabelText("UTI"));
+    await user.click(pills.getByRole("button", { name: "UTI" }));
 
     await waitFor(() => {
       expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", ["sector-2"]);
@@ -326,12 +327,13 @@ describe("ManagerDashboardPage", () => {
     renderManager();
 
     await waitFor(() => {
-      expect(screen.getByLabelText("UTI")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "UTI" })).toBeInTheDocument();
     });
     expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
 
-    await user.click(screen.getByLabelText("UTI"));
-    await user.click(screen.getByLabelText("Pronto-Socorro"));
+    const pills = within(screen.getByTestId("sector-filter-pills"));
+    await user.click(pills.getByRole("button", { name: "UTI" }));
+    await user.click(pills.getByRole("button", { name: "Pronto-Socorro" }));
 
     await waitFor(() => {
       // Must be an explicit [] — NOT undefined, which would silently re-request
