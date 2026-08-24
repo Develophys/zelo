@@ -296,7 +296,7 @@ describe("ManagerDashboardPage", () => {
     renderManager();
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "UTI" })).toBeInTheDocument();
+      expect(within(screen.getByTestId("sector-filter-pills")).getByRole("button", { name: "UTI" })).toBeInTheDocument();
     });
     const pills = within(screen.getByTestId("sector-filter-pills"));
     expect(pills.getByRole("button", { name: "Pronto-Socorro" })).toBeInTheDocument();
@@ -327,7 +327,7 @@ describe("ManagerDashboardPage", () => {
     renderManager();
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "UTI" })).toBeInTheDocument();
+      expect(within(screen.getByTestId("sector-filter-pills")).getByRole("button", { name: "UTI" })).toBeInTheDocument();
     });
     expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
 

@@ -82,11 +82,18 @@ describe('ManagerShell', () => {
   it('fills the viewport width, with the sidebar flush to the edge instead of inset in a capped, padded wrapper', () => {
     const { container } = mount();
     const root = container.firstElementChild as HTMLElement;
-    expect(root.className).not.toMatch(/max-w-\d/);
-    expect(root.className).not.toContain('mx-auto');
-    expect(root.className).not.toMatch(/(^|\s)px-/);
     const sidebar = screen.getByTestId('manager-sidebar');
-    expect(sidebar.parentElement).toBe(root);
+    const row = sidebar.parentElement as HTMLElement;
+    expect(row).toBe(root);
+    expect(row.className).not.toMatch(/max-w-\d/);
+    expect(row.className).not.toContain('mx-auto');
+    expect(row.className).not.toMatch(/(^|\s)px-/);
+    expect(screen.getByRole('main').parentElement).toBe(row);
+  });
+
+  it('gives main its own horizontal padding, now that the shell no longer wraps it in a padded row', () => {
+    mount();
+    expect(screen.getByRole('main').className).toContain('px-6');
   });
 
   it('applies the manager preferences exactly once, from here', () => {
