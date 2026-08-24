@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
@@ -160,6 +160,62 @@ describe('Tooltip', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Ação' }));
     expect(clicks).toBe(1);
+  });
+
+  // z-50 does not help against an ancestor with overflow: hidden — the bubble
+  // is clipped, not stacked behind. Portaling to document.body sidesteps any
+  // clipping ancestor instead of hunting each one down.
+  it('portals the bubble past a clipping ancestor instead of being cut off by it', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <div style={{ overflow: 'hidden' }}>
+        <Tooltip content="Explicação">
+          <button type="button">Ação</button>
+        </Tooltip>
+      </div>,
+    );
+    await user.tab();
+    const tooltip = screen.getByRole('tooltip');
+    expect(container.contains(tooltip)).toBe(false);
+    expect(document.body.contains(tooltip)).toBe(true);
+  });
+
+  it('clamps the bubble inside the viewport instead of running off the edge near the trigger', async () => {
+    const user = userEvent.setup();
+    const originalInnerWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { value: 400, configurable: true });
+    const rectSpy = vi
+      .spyOn(HTMLButtonElement.prototype, 'getBoundingClientRect')
+      .mockReturnValue({
+        top: 40,
+        left: 380,
+        right: 420,
+        bottom: 60,
+        width: 40,
+        height: 20,
+        x: 380,
+        y: 40,
+        toJSON() {},
+      } as DOMRect);
+    const widthSpy = vi.spyOn(HTMLSpanElement.prototype, 'offsetWidth', 'get').mockReturnValue(200);
+    const heightSpy = vi.spyOn(HTMLSpanElement.prototype, 'offsetHeight', 'get').mockReturnValue(32);
+
+    try {
+      render(
+        <Tooltip content="Texto bem comprido para a dica de contexto">
+          <button type="button">Ação</button>
+        </Tooltip>,
+      );
+      await user.tab();
+      const tooltip = screen.getByRole('tooltip');
+      expect(parseFloat(tooltip.style.left)).toBe(400 - 8 - 200);
+      expect(parseFloat(tooltip.style.left)).toBeGreaterThanOrEqual(8);
+    } finally {
+      rectSpy.mockRestore();
+      widthSpy.mockRestore();
+      heightSpy.mockRestore();
+      Object.defineProperty(window, 'innerWidth', { value: originalInnerWidth, configurable: true });
+    }
   });
 });
 
