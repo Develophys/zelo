@@ -94,7 +94,7 @@ export function DataTable<T extends { id: string; isActive: boolean; name?: stri
                             ? 'block break-all whitespace-normal'
                             : isString
                               ? 'block truncate'
-                              : 'block'
+                              : 'block overflow-hidden'
                         }
                         title={column.breakAll || !isString ? undefined : value}
                       >

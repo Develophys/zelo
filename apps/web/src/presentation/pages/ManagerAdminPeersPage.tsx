@@ -26,15 +26,19 @@ import { Pencil, Mail, KeyRound } from "lucide-react";
 
 const COLUMNS: DataTableColumn<PeerPartnerSummary>[] = [
   { key: "name", header: "Nome", width: "w-[21%]", cell: (row) => row.name },
-  { key: "email", header: "Email", width: "w-[27%]", breakAll: true, cell: (row) => row.email },
+  { key: "email", header: "Email", width: "w-[23%]", breakAll: true, cell: (row) => row.email },
   { key: "specialty", header: "Especialidade", width: "w-[24%]", hideBelowLg: true, cell: (row) => row.specialty },
   {
     key: "status",
     header: "Status",
-    width: "w-[28%]",
+    width: "w-[32%]",
     cell: (row) => {
       const status = accountStatusPill(row);
-      return <Pill tone={status.tone}>{status.text}</Pill>;
+      return (
+        <Pill tone={status.tone} title={status.text}>
+          {status.text}
+        </Pill>
+      );
     },
   },
 ];

@@ -100,7 +100,7 @@ function RoleAndSectorFields({
 
 const COLUMNS: DataTableColumn<ManagerSummary>[] = [
   { key: "name", header: "Nome", width: "w-[18%]", cell: (row) => row.name },
-  { key: "email", header: "Email", width: "w-[22%]", breakAll: true, cell: (row) => row.email },
+  { key: "email", header: "Email", width: "w-[18%]", breakAll: true, cell: (row) => row.email },
   { key: "role", header: "Papel", width: "w-[18%]", cell: (row) => roleLabel(row.role) },
   {
     key: "sectors",
@@ -112,10 +112,14 @@ const COLUMNS: DataTableColumn<ManagerSummary>[] = [
   {
     key: "status",
     header: "Status",
-    width: "w-[26%]",
+    width: "w-[30%]",
     cell: (row) => {
       const status = accountStatusPill(row);
-      return <Pill tone={status.tone}>{status.text}</Pill>;
+      return (
+        <Pill tone={status.tone} title={status.text}>
+          {status.text}
+        </Pill>
+      );
     },
   },
 ];

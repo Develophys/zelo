@@ -92,10 +92,14 @@ describe('DataTable', () => {
     expect(screen.getByText('Ana')).toHaveAttribute('title', 'Ana');
   });
 
-  // truncate cuts a Pill off mid-word since it is a fixed-width inline-flex
-  // element, not text that can lose its tail gracefully — only a string cell
-  // should ever get the truncating wrapper.
-  it('does not wrap a Pill cell in a truncating span, but still truncates a string cell', () => {
+  // A Pill carries its own border and background, so an ancestor `truncate`
+  // wrapper can only hide the whole box or show it — it cannot slice the text
+  // inside the border gracefully. The floor has to live on the Pill itself:
+  // it clamps to its cell's width and ellipsizes its own text, while its
+  // wrapper still cuts off anything that manages to overflow that, so a
+  // longer status label added later degrades inside its cell instead of
+  // escaping into the actions column next to it.
+  it('contains a Pill cell instead of letting it escape into the actions column, and lets the Pill ellipsize its own text', () => {
     const pillColumns: DataTableColumn<Row>[] = [
       { key: 'name', header: 'Nome', width: 'w-[60%]', cell: (row) => row.name },
       {
@@ -122,10 +126,14 @@ describe('DataTable', () => {
 
     render(<PillHarness />);
 
-    const pillWrapper = screen.getByText('Ativa').parentElement as HTMLElement;
+    const pill = screen.getByText('Ativa');
+    expect(pill.className).toContain('max-w-full');
+    expect(pill.className).toContain('overflow-hidden');
+    expect(pill.className).toContain('text-ellipsis');
+
+    const pillWrapper = pill.parentElement as HTMLElement;
     expect(pillWrapper.className).toContain('block');
-    expect(pillWrapper.className).not.toContain('truncate');
-    expect(pillWrapper).not.toHaveAttribute('title');
+    expect(pillWrapper.className).toContain('overflow-hidden');
 
     expect(screen.getByText('Ana').className).toContain('truncate');
   });

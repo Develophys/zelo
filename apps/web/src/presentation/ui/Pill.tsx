@@ -22,7 +22,7 @@ export function Pill({ tone, children, className = '', ...rest }: PillProps) {
   return (
     <span
       className={[
-        'inline-flex items-center gap-1 rounded-status px-2 py-0.5 font-sans text-caption font-semibold whitespace-nowrap',
+        'inline-block max-w-full overflow-hidden text-ellipsis rounded-status px-2 py-0.5 align-middle font-sans text-caption font-semibold whitespace-nowrap',
         TONE_CLASS[tone],
         className,
       ]

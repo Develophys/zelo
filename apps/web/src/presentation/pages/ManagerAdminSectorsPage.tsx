@@ -127,7 +127,11 @@ const COLUMNS: DataTableColumn<AdminSector>[] = [
     width: "w-[25%]",
     cell: (row) => {
       const status = STATUS_PILL[sectorStatus(row)];
-      return <Pill tone={status.tone}>{status.text}</Pill>;
+      return (
+        <Pill tone={status.tone} title={status.text}>
+          {status.text}
+        </Pill>
+      );
     },
   },
 ];
