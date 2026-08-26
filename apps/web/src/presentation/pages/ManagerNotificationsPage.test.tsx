@@ -60,22 +60,6 @@ beforeEach(() => {
 });
 
 describe("ManagerNotificationsPage", () => {
-  it("renders the eyebrow, title and orientation paragraph every panel page shares", async () => {
-    vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
-      items: [],
-      nextCursor: null,
-      total: 0,
-    });
-    vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(0);
-
-    renderPage();
-
-    expect(await screen.findByRole("heading", { name: "Notificações" })).toBeInTheDocument();
-    expect(
-      screen.getByText(/Alertas do sistema sobre sinais agregados, convites e integrações/),
-    ).toBeInTheDocument();
-  });
-
   it("shows the empty state when nothing has happened yet", async () => {
     vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
       items: [],
@@ -195,7 +179,7 @@ describe("ManagerNotificationsPage", () => {
     expect(button === null || (button as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it("moves Marcar todas como lidas and Atualizar into the ruled-off action bar above the notification list, not the header's title row", async () => {
+  it("keeps Marcar todas como lidas and Atualizar in a plain row above the notification list", async () => {
     vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
       items: [UNREAD],
       nextCursor: null,
@@ -205,17 +189,14 @@ describe("ManagerNotificationsPage", () => {
 
     renderPage();
 
-    const bar = await screen.findByTestId("manager-action-bar");
+    const bar = await screen.findByTestId("notifications-action-row");
     expect(
       await within(bar).findByRole("button", { name: "Marcar todas como lidas" }),
     ).toBeInTheDocument();
     expect(within(bar).getByRole("button", { name: "Atualizar" })).toBeInTheDocument();
-    expect(bar.querySelector("hr")).not.toBeNull();
+    expect(bar.querySelector("hr")).toBeNull();
 
-    const heading = screen.getByRole("heading", { level: 1, name: "Notificações" });
-    expect(heading.parentElement).not.toContainElement(
-      within(bar).getByRole("button", { name: "Atualizar" }),
-    );
+    expect(bar.querySelector("ul, ol, table")).toBeNull();
   });
 
   it("clears the session and redirects to login on a 401", async () => {

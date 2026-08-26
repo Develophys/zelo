@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
-import { PrivacyBadge } from "@/presentation/ui/PrivacyBadge";
 import { SectionLabel } from "@/presentation/ui/SectionLabel";
-import { ManagerPageHeader } from "@/presentation/layout/ManagerPageHeader";
-import { ManagerActionBar } from "@/presentation/layout/ManagerActionBar";
 import { Card } from "@/presentation/ui/Card";
 import { Button } from "@/presentation/ui/Button";
 import { Skeleton } from "@/presentation/ui/Skeleton";
@@ -23,8 +20,8 @@ const MIN_TREND_BAR_HEIGHT = 8;
 const TREND_SKELETON_BAR_COUNT = 6;
 const SEGMENTS_SKELETON_ROW_COUNT = 3;
 
-const DASHBOARD_INTRO =
-  "Indicadores agregados e anônimos do seu hospital. Nenhum dado individual é exibido; segmentos com menos de 5 respostas ficam ocultos.";
+const DASHBOARD_DISCLOSURE =
+  "Nenhum dado individual é exibido; segmentos com menos de 5 respostas ficam ocultos.";
 
 const INSIGHT_EMPTY_EXPLANATION =
   "Interpreta os indicadores agregados e anônimos desta página e sugere ações para a liderança, sem acesso a dados individuais de nenhum profissional.";
@@ -144,14 +141,14 @@ export function ManagerDashboardPage() {
   const followUpResponseRate = data?.followUpResponseRate ?? 0;
 
   return (
-    <div className="pt-6">
-      <ManagerPageHeader title="Tendências" intro={DASHBOARD_INTRO} actions={<PrivacyBadge />} />
-
+    <div>
       {sectorsQuery.data && sectorsQuery.data.length > 1 && (
-        <ManagerActionBar>
+        <div data-testid="dashboard-filter-row" className="flex flex-wrap items-center gap-2">
           <SectorFilter sectors={sectorsQuery.data} selectedSectorIds={selectedSectorIds} onChange={setSelectedSectorIds} />
-        </ManagerActionBar>
+        </div>
       )}
+
+      <p className="mt-3 max-w-[62ch] text-label text-muted">{DASHBOARD_DISCLOSURE}</p>
 
       <div data-testid="kpi-grid" className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         {isLoading ? (

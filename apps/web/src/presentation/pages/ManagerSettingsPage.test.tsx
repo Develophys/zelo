@@ -20,7 +20,7 @@ describe('ManagerSettingsPage', () => {
     render(<ManagerSettingsPage />);
     expect(
       screen.getByText(
-        'Preferências de aparência do painel. Elas valem só para você, neste dispositivo — não mudam nada para os outros gestores do hospital.',
+        /Elas valem só para você, neste dispositivo — não mudam nada para os outros gestores do hospital\./,
       ),
     ).toBeInTheDocument();
   });
@@ -115,5 +115,50 @@ describe('ManagerSettingsPage', () => {
     for (const name of ['Cor de destaque', 'Densidade', 'Cantos', 'Tema']) {
       expect(within(grid).getByRole('heading', { level: 2, name })).toBeInTheDocument();
     }
+  });
+});
+
+describe('density preview', () => {
+  it('sits inside the Densidade card, under its control', () => {
+    render(<ManagerSettingsPage />);
+    const card = screen.getByRole('heading', { level: 2, name: 'Densidade' }).closest('div');
+    const preview = screen.getByTestId('density-preview');
+
+    expect(card).toContainElement(preview);
+    const control = screen.getByRole('radiogroup', { name: 'Densidade' });
+    expect(
+      control.compareDocumentPosition(preview) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('spaces its rows with the very tokens the real tables use, so it can never drift from them', () => {
+    render(<ManagerSettingsPage />);
+    const rows = within(screen.getByTestId('density-preview')).getAllByTestId(
+      'density-preview-row',
+    );
+
+    expect(rows.length).toBeGreaterThan(1);
+    rows.forEach((row) => {
+      expect(row).toHaveClass('px-cell-x', 'py-cell-y');
+      expect(row.className).not.toMatch(/(^|\s)(p|px|py)-\d/);
+    });
+  });
+
+  it('frames itself like the tables it is standing in for', () => {
+    render(<ManagerSettingsPage />);
+    expect(screen.getByTestId('density-preview')).toHaveClass('rounded-card', 'border', 'border-line');
+  });
+
+  it('stays out of the accessibility tree, since bare bars say nothing the radiogroup has not', () => {
+    render(<ManagerSettingsPage />);
+    expect(screen.getByTestId('density-preview')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('does not pulse, because a static sample is not a loading state', () => {
+    render(<ManagerSettingsPage />);
+    const preview = screen.getByTestId('density-preview');
+    expect(preview.className).not.toContain('animate-pulse');
+    expect(preview.querySelector('.animate-pulse')).toBeNull();
+    expect(within(preview).queryAllByTestId('skeleton')).toHaveLength(0);
   });
 });

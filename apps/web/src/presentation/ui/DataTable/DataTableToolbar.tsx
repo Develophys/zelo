@@ -4,11 +4,14 @@ import { Checkbox } from '@/presentation/ui/Checkbox';
 import type { DataTableSelection } from './useDataTableSelection';
 
 interface DataTableToolbarProps<T> {
-  selection: DataTableSelection<T>;
+  /** Omitted by tables whose rows cannot be selected, which also drops the checkbox. */
+  selection?: DataTableSelection<T>;
   search: string;
   onSearchChange(value: string): void;
   /** The bulk buttons, shown in place of the search field once a row is selected. */
-  actions: ReactNode;
+  actions?: ReactNode;
+  /** The page's own primary action. Anchored right, and never moves with the selection. */
+  action?: ReactNode;
 }
 
 export function DataTableToolbar<T>({
@@ -16,20 +19,23 @@ export function DataTableToolbar<T>({
   search,
   onSearchChange,
   actions,
+  action,
 }: DataTableToolbarProps<T>) {
-  const hasSelection = selection.selectedIds.length > 0;
+  const hasSelection = (selection?.selectedIds.length ?? 0) > 0;
 
   return (
     <div
       data-testid="data-table-toolbar"
-      className="flex h-14 items-center gap-3 border-b border-line px-cell-x"
+      className="flex h-14 flex-none items-center gap-3 border-b border-line px-cell-x"
     >
-      <Checkbox
-        aria-label="Selecionar todos"
-        checked={selection.allSelected}
-        indeterminate={selection.someSelected}
-        onChange={selection.toggleAll}
-      />
+      {selection && (
+        <Checkbox
+          aria-label="Selecionar todos"
+          checked={selection.allSelected}
+          indeterminate={selection.someSelected}
+          onChange={selection.toggleAll}
+        />
+      )}
       {hasSelection ? (
         <div
           data-testid="data-table-toolbar-actions"
@@ -49,6 +55,14 @@ export function DataTableToolbar<T>({
             className="min-w-0 flex-1 bg-transparent py-control-y text-label text-ink placeholder:text-muted focus-visible:outline-none"
           />
         </label>
+      )}
+      {action && (
+        <div
+          data-testid="data-table-toolbar-action"
+          className="ml-auto flex flex-none items-center gap-2"
+        >
+          {action}
+        </div>
       )}
     </div>
   );

@@ -6,8 +6,6 @@ import { IconButton } from "@/presentation/ui/IconButton";
 import { Modal } from "@/presentation/ui/Modal";
 import { Pill } from "@/presentation/ui/Pill";
 import { TextField, SelectField } from "@/presentation/ui/TextField";
-import { ManagerPageHeader } from "@/presentation/layout/ManagerPageHeader";
-import { ManagerActionBar } from "@/presentation/layout/ManagerActionBar";
 import { DataTable, type DataTableColumn } from "@/presentation/ui/DataTable/DataTable";
 import { DataTableEmpty } from "@/presentation/ui/DataTable/DataTableEmpty";
 import { DataTableError } from "@/presentation/ui/DataTable/DataTableError";
@@ -253,7 +251,7 @@ export function ManagerAdminSectorsPage() {
   const modalTitle = formMode === "create" ? "Adicionar setor" : editingSector ? `Editar ${editingSector.name}` : "";
 
   return (
-    <div className="flex flex-col gap-5 pt-6">
+    <div className="flex flex-col gap-5 md:h-full md:min-h-0">
       {notice && (
         <div role="status">
           <Card tone="brand-tint">
@@ -262,18 +260,8 @@ export function ManagerAdminSectorsPage() {
         </div>
       )}
 
-      <ManagerPageHeader
-        title="Setores"
-        intro="Áreas do hospital acompanhadas pelo Zelo. Cada setor pode ter um gestor responsável."
-      />
-
-      <ManagerActionBar>
-        <Button variant="primary" size="sm" full={false} onClick={openCreate}>
-          + Adicionar setor
-        </Button>
-      </ManagerActionBar>
-
       <DataTable
+        fill
         caption="Setores do hospital"
         columns={COLUMNS}
         rows={filteredSectors}
@@ -284,6 +272,11 @@ export function ManagerAdminSectorsPage() {
             selection={selection}
             search={search}
             onSearchChange={setSearch}
+            action={
+              <Button variant="primary" size="sm" full={false} onClick={openCreate}>
+                + Adicionar setor
+              </Button>
+            }
             actions={
               <>
                 <BulkActionButton

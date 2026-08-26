@@ -5,8 +5,6 @@ import { Modal } from "@/presentation/ui/Modal";
 import { Pill } from "@/presentation/ui/Pill";
 import { SectorPillPicker } from "@/presentation/ui/SectorPillPicker";
 import { TextField } from "@/presentation/ui/TextField";
-import { ManagerPageHeader } from "@/presentation/layout/ManagerPageHeader";
-import { ManagerActionBar } from "@/presentation/layout/ManagerActionBar";
 import { DataTable, type DataTableColumn } from "@/presentation/ui/DataTable/DataTable";
 import { DataTableEmpty } from "@/presentation/ui/DataTable/DataTableEmpty";
 import { DataTableError } from "@/presentation/ui/DataTable/DataTableError";
@@ -269,19 +267,9 @@ export function ManagerAdminManagersPage() {
   const modalTitle = formMode === "create" ? "Adicionar gestor" : editingManager ? `Editar ${editingManager.name}` : "";
 
   return (
-    <div className="flex flex-col gap-5 pt-6">
-      <ManagerPageHeader
-        title="Gestores"
-        intro="Quem tem acesso ao painel e a quais setores. Cadastre um gestor antes de vinculá-lo a um setor."
-      />
-
-      <ManagerActionBar>
-        <Button variant="primary" size="sm" full={false} onClick={openCreate}>
-          + Adicionar gestor
-        </Button>
-      </ManagerActionBar>
-
+    <div className="flex flex-col gap-5 md:h-full md:min-h-0">
       <DataTable
+        fill
         caption="Gestores do hospital"
         columns={COLUMNS}
         rows={filteredManagers}
@@ -292,6 +280,11 @@ export function ManagerAdminManagersPage() {
             selection={selection}
             search={search}
             onSearchChange={setSearch}
+            action={
+              <Button variant="primary" size="sm" full={false} onClick={openCreate}>
+                + Adicionar gestor
+              </Button>
+            }
             actions={
               <>
                 <BulkActionButton

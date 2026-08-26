@@ -123,16 +123,6 @@ describe("ManagerInsightHistoryPage", () => {
     expect(screen.queryByText(/Gerado por$/)).not.toBeInTheDocument();
   });
 
-  it("renders the page header with its normative intro", async () => {
-    renderHistory();
-    expect(await screen.findByRole("heading", { level: 1, name: "Análises com IA" })).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Histórico das análises geradas a partir dos indicadores agregados. Cada linha pode ser expandida para ver a interpretação completa.",
-      ),
-    ).toBeInTheDocument();
-  });
-
   it("collapses each analysis, expanding on demand", async () => {
     vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockResolvedValue([HISTORY_RESPONSE[0]!]);
     const user = userEvent.setup();
@@ -229,24 +219,23 @@ describe("ManagerInsightHistoryPage", () => {
     expect(screen.queryByRole("link", { name: /Tendências/i })).not.toBeInTheDocument();
   });
 
-  it("places Gerar análise above the cards, ruled off from the header and aligned to the start of the row", async () => {
+  it("anchors Gerar análise to the right of the table's own search row", async () => {
     renderHistory();
 
     await waitFor(() => {
       expect(screen.getByText("A UTI mostra um padrão de aumento nos sinais.")).toBeInTheDocument();
     });
 
-    const bar = screen.getByTestId("manager-action-bar");
-    const rule = bar.querySelector("hr");
-    const button = screen.getByRole("button", { name: "Gerar análise" });
-    expect(rule).not.toBeNull();
-    expect(rule!.compareDocumentPosition(button)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(bar.compareDocumentPosition(screen.getByTestId("insight-row-list"))).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
-    );
-    const row = button.parentElement;
-    expect(row?.className).toContain("flex");
-    expect(row?.className).not.toContain("justify-end");
+    const toolbar = screen.getByTestId("data-table-toolbar");
+    const slot = within(toolbar).getByTestId("data-table-toolbar-action");
+    expect(within(slot).getByRole("button", { name: "Gerar análise" })).toBeInTheDocument();
+    expect(slot.className).toContain("ml-auto");
+    expect(document.querySelector("hr")).toBeNull();
+    expect(
+      toolbar.compareDocumentPosition(screen.getByTestId("insight-row-list")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(slot.className).toContain("flex-none");
   });
 
   it("shows the same inline retry message as Tendências when insight generation fails", async () => {

@@ -4,8 +4,6 @@ import { IconButton } from "@/presentation/ui/IconButton";
 import { Modal } from "@/presentation/ui/Modal";
 import { Pill } from "@/presentation/ui/Pill";
 import { TextField } from "@/presentation/ui/TextField";
-import { ManagerPageHeader } from "@/presentation/layout/ManagerPageHeader";
-import { ManagerActionBar } from "@/presentation/layout/ManagerActionBar";
 import { DataTable, type DataTableColumn } from "@/presentation/ui/DataTable/DataTable";
 import { DataTableEmpty } from "@/presentation/ui/DataTable/DataTableEmpty";
 import { DataTableError } from "@/presentation/ui/DataTable/DataTableError";
@@ -171,19 +169,13 @@ export function ManagerAdminPeersPage() {
     formMode === "create" ? "Adicionar par" : editingPeerPartner ? `Editar ${editingPeerPartner.name}` : "";
 
   return (
-    <div className="flex flex-col gap-5 pt-6">
-      <ManagerPageHeader
-        title="Pares anônimos"
-        intro="Profissionais disponíveis para acolhimento entre pares. A identidade de quem procura acolhimento nunca é revelada."
-      />
-
-      <ManagerActionBar>
-        <Button variant="primary" size="sm" full={false} onClick={openCreate}>
-          + Adicionar par
-        </Button>
-      </ManagerActionBar>
+    <div className="flex flex-col gap-5 md:h-full md:min-h-0">
+      <p className="max-w-[62ch] text-label text-muted">
+        A identidade de quem procura acolhimento nunca é revelada.
+      </p>
 
       <DataTable
+        fill
         caption="Pares anônimos do hospital"
         columns={COLUMNS}
         rows={filteredPeerPartners}
@@ -194,6 +186,11 @@ export function ManagerAdminPeersPage() {
             selection={selection}
             search={search}
             onSearchChange={setSearch}
+            action={
+              <Button variant="primary" size="sm" full={false} onClick={openCreate}>
+                + Adicionar par
+              </Button>
+            }
             actions={
               <>
                 <BulkActionButton

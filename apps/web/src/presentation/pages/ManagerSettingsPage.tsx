@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Check } from "lucide-react";
-import { ManagerPageHeader } from "@/presentation/layout/ManagerPageHeader";
 import { Card } from "@/presentation/ui/Card";
 import { CardTitle } from "@/presentation/ui/CardTitle";
 import { ThemeToggle } from "@/presentation/ui/ThemeToggle";
@@ -91,6 +90,48 @@ function SegmentedField<T extends string>({
   );
 }
 
+const PREVIEW_ROWS: readonly [string, string][] = [
+  ["w-14", "w-8"],
+  ["w-10", "w-12"],
+  ["w-16", "w-6"],
+];
+
+function Bar({ width, tone = "bg-line" }: { width: string; tone?: string }) {
+  return <span className={`block h-2 rounded-pill ${tone} ${width}`} />;
+}
+
+/**
+ * Rows measured with the same px-cell-x/py-cell-y the real tables use, so the
+ * sample tightens with the choice instead of restating the token values.
+ */
+function DensityPreview() {
+  return (
+    <div
+      data-testid="density-preview"
+      aria-hidden="true"
+      className="overflow-hidden rounded-card border border-line bg-surface"
+    >
+      <div
+        data-testid="density-preview-row"
+        className="flex items-center gap-3 border-b border-line bg-canvas px-cell-x py-cell-y"
+      >
+        <Bar width="w-12" tone="bg-muted-2/40" />
+        <Bar width="w-8" tone="bg-muted-2/40" />
+      </div>
+      {PREVIEW_ROWS.map(([first, second], index) => (
+        <div
+          key={index}
+          data-testid="density-preview-row"
+          className="flex items-center gap-3 border-b border-line px-cell-x py-cell-y last:border-b-0"
+        >
+          <Bar width={first} />
+          <Bar width={second} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function AccentField({ value, onChange }: { value: ManagerAccent; onChange: (value: ManagerAccent) => void }) {
   return (
     <div role="radiogroup" aria-label="Cor de destaque" className="flex flex-wrap gap-2">
@@ -139,11 +180,11 @@ export function ManagerSettingsPage() {
   const setCorners = useManagerPrefsStore((state) => state.setCorners);
 
   return (
-    <div className="flex flex-col gap-5 pt-6">
-      <ManagerPageHeader
-        title="Configurações"
-        intro="Preferências de aparência do painel. Elas valem só para você, neste dispositivo — não mudam nada para os outros gestores do hospital."
-      />
+    <div className="flex flex-col gap-5">
+      <p className="max-w-[62ch] text-label text-muted">
+        Elas valem só para você, neste dispositivo — não mudam nada para os outros gestores do
+        hospital.
+      </p>
 
       <div data-testid="settings-grid" className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <SettingsSection title="Cor de destaque" description="Usada em botões, links e no item ativo do menu.">
@@ -158,6 +199,9 @@ export function ManagerSettingsPage() {
             value={density}
             onChange={setDensity}
           />
+          <div className="mt-3">
+            <DensityPreview />
+          </div>
         </SettingsSection>
 
         <SettingsSection title="Cantos" description="Define o arredondamento de botões, campos e cartões.">

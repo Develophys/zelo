@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { ChevronDown, FileDown, FileText } from "lucide-react";
 import { Card } from "@/presentation/ui/Card";
 import { Button } from "@/presentation/ui/Button";
 import { IconButton } from "@/presentation/ui/IconButton";
-import { ManagerPageHeader } from "@/presentation/layout/ManagerPageHeader";
-import { ManagerActionBar } from "@/presentation/layout/ManagerActionBar";
+import { DataTableShell } from "@/presentation/ui/DataTable/DataTableShell";
+import { DataTableToolbar } from "@/presentation/ui/DataTable/DataTableToolbar";
+import { DataTableEmpty } from "@/presentation/ui/DataTable/DataTableEmpty";
 import { routes } from "@/presentation/lib/routes";
 import { useManagerInsightHistory } from "@/presentation/hooks/useManagerInsightHistory";
 import { useManagerInsight } from "@/presentation/hooks/useManagerInsight";
@@ -18,46 +19,41 @@ function formatDate(generatedAt: string): string {
   return new Date(generatedAt).toLocaleDateString("pt-BR", { year: "numeric", month: "long", day: "numeric" });
 }
 
-function InsightRow({ entry }: { entry: StoredManagerInsight }) {
-  const [expanded, setExpanded] = useState(false);
-  const regionId = `insight-region-${entry.id}`;
+// The body an analysis carries is long and normally collapsed, so searching
+// only the visible summary would miss most of what the manager is looking for.
+function matches(entry: StoredManagerInsight, term: string): boolean {
+  const haystack = [entry.summary, entry.interpretation, ...entry.suggestedActions]
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(term);
+}
+
+function InsightDetail({
+  entry,
+  downloads,
+}: {
+  entry: StoredManagerInsight;
+  downloads: "icons" | "words";
+}) {
   const dateLabel = formatDate(entry.generatedAt);
 
   return (
-    <li className="overflow-hidden rounded-card border border-line bg-surface">
-      <button
-        type="button"
-        aria-expanded={expanded}
-        aria-controls={expanded ? regionId : undefined}
-        aria-label={`Análise de ${dateLabel}: ${entry.summary}`}
-        onClick={() => setExpanded((value) => !value)}
-        className="flex w-full items-center justify-between gap-3 px-cell-x py-cell-y text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-      >
-        <span className="min-w-0">
-          <span className="block font-mono text-[12px] text-muted-2">{dateLabel}</span>
-          <span className="mt-1 block truncate text-label text-ink-2">{entry.summary}</span>
-        </span>
-        <ChevronDown
-          size={18}
-          aria-hidden="true"
-          className={`flex-none text-muted transition-transform duration-150 ${expanded ? "rotate-180" : ""}`}
-        />
-      </button>
-      {expanded && (
-        <div id={regionId} className="border-t border-line px-cell-x py-cell-y">
-          {entry.createdByManagerName && (
-            <p className="text-label text-muted">Gerado por {entry.createdByManagerName}</p>
-          )}
-          <p className="mt-2 text-label text-ink-2">{entry.interpretation}</p>
-          <ul className="mt-3 flex flex-col gap-2">
-            {entry.suggestedActions.map((action, index) => (
-              <li key={index} className="flex items-start gap-2 text-label text-ink-2">
-                <span className="text-brand">•</span>
-                <span>{action}</span>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-3 flex gap-2">
+    <>
+      {entry.createdByManagerName && (
+        <p className="text-label text-muted">Gerado por {entry.createdByManagerName}</p>
+      )}
+      <p className="mt-2 text-label text-ink-2">{entry.interpretation}</p>
+      <ul className="mt-3 flex flex-col gap-2">
+        {entry.suggestedActions.map((action, index) => (
+          <li key={index} className="flex items-start gap-2 text-label text-ink-2">
+            <span className="text-brand">•</span>
+            <span>{action}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-3 flex gap-2">
+        {downloads === "icons" ? (
+          <>
             <IconButton
               label={`Baixar PDF da análise de ${dateLabel}`}
               icon={<FileDown size={16} />}
@@ -70,10 +66,71 @@ function InsightRow({ entry }: { entry: StoredManagerInsight }) {
               variant="outline"
               onClick={() => downloadInsightAsText(entry)}
             />
-          </div>
-        </div>
+          </>
+        ) : (
+          <>
+            <Button
+              variant="outline"
+              full={false}
+              aria-label={`Baixar PDF da análise de ${dateLabel}`}
+              onClick={() => downloadInsightAsPdf(entry)}
+            >
+              Baixar PDF
+            </Button>
+            <Button
+              variant="outline"
+              full={false}
+              aria-label={`Baixar texto da análise de ${dateLabel}`}
+              onClick={() => downloadInsightAsText(entry)}
+            >
+              Baixar texto
+            </Button>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+function InsightRow({ entry }: { entry: StoredManagerInsight }) {
+  const [expanded, setExpanded] = useState(false);
+  const regionId = `insight-region-${entry.id}`;
+  const dateLabel = formatDate(entry.generatedAt);
+
+  return (
+    <>
+      <tr className="border-b border-line last:border-b-0">
+        <td className="px-cell-x py-cell-y align-top">
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-controls={expanded ? regionId : undefined}
+            aria-label={`Análise de ${dateLabel}: ${entry.summary}`}
+            onClick={() => setExpanded((value) => !value)}
+            className="flex w-full items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          >
+            <ChevronDown
+              size={18}
+              aria-hidden="true"
+              className={`flex-none text-muted transition-transform duration-150 ${expanded ? "rotate-180" : ""}`}
+            />
+            <span className="min-w-0 flex-1">
+              <span className="block font-mono text-[12px] text-muted-2">{dateLabel}</span>
+              <span className={`mt-1 block text-label text-ink-2 ${expanded ? "" : "truncate"}`}>
+                {entry.summary}
+              </span>
+            </span>
+          </button>
+        </td>
+      </tr>
+      {expanded && (
+        <tr id={regionId} className="border-b border-line last:border-b-0">
+          <td className="bg-canvas px-cell-x py-cell-y">
+            <InsightDetail entry={entry} downloads="icons" />
+          </td>
+        </tr>
       )}
-    </li>
+    </>
   );
 }
 
@@ -105,36 +162,7 @@ function InsightCard({ entry, isDefaultOpen }: { entry: StoredManagerInsight; is
       </button>
       {expanded && (
         <div id={regionId} className="mt-3 border-t border-line pt-3">
-          {entry.createdByManagerName && (
-            <p className="text-label text-muted">Gerado por {entry.createdByManagerName}</p>
-          )}
-          <p className="mt-2 text-label text-ink-2">{entry.interpretation}</p>
-          <ul className="mt-3 flex flex-col gap-2">
-            {entry.suggestedActions.map((action, index) => (
-              <li key={index} className="flex items-start gap-2 text-label text-ink-2">
-                <span className="text-brand">•</span>
-                <span>{action}</span>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-3 flex gap-2">
-            <Button
-              variant="outline"
-              full={false}
-              aria-label={`Baixar PDF da análise de ${dateLabel}`}
-              onClick={() => downloadInsightAsPdf(entry)}
-            >
-              Baixar PDF
-            </Button>
-            <Button
-              variant="outline"
-              full={false}
-              aria-label={`Baixar texto da análise de ${dateLabel}`}
-              onClick={() => downloadInsightAsText(entry)}
-            >
-              Baixar texto
-            </Button>
-          </div>
+          <InsightDetail entry={entry} downloads="words" />
         </div>
       )}
     </Card>
@@ -146,6 +174,7 @@ export function ManagerInsightHistoryPage() {
   const clearSession = useManagerSessionStore((state) => state.clearSession);
   const { data, error, isError } = useManagerInsightHistory();
   const insight = useManagerInsight();
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     if (isError && error instanceof UnauthorizedManagerError) {
@@ -155,47 +184,62 @@ export function ManagerInsightHistoryPage() {
   }, [isError, error, clearSession, navigate]);
 
   const entries = data ?? [];
+  const term = search.trim().toLowerCase();
+  const filtered = useMemo(
+    () => (term.length === 0 ? entries : entries.filter((entry) => matches(entry, term))),
+    [entries, term],
+  );
+
+  const generate = (
+    <Button variant="primary" size="sm" full={false} isLoading={insight.isPending} onClick={() => insight.mutate()}>
+      Gerar análise
+    </Button>
+  );
 
   return (
-    <div className="flex flex-col gap-5 pt-6">
-      <ManagerPageHeader
-        title="Análises com IA"
-        intro="Histórico das análises geradas a partir dos indicadores agregados. Cada linha pode ser expandida para ver a interpretação completa."
-      />
-
-      <ManagerActionBar>
-        <Button variant="outline" full={false} isLoading={insight.isPending} onClick={() => insight.mutate()}>
-          Gerar análise
-        </Button>
-      </ManagerActionBar>
-
+    <div className="flex flex-col gap-5 md:h-full md:min-h-0">
       {insight.isError && (
         <p role="alert" className="text-label text-danger">
           Não foi possível gerar a análise agora. Tente novamente.
         </p>
       )}
 
-      {entries.length === 0 ? (
-        <div className="rounded-card border border-line bg-surface p-6 text-center">
-          <p className="text-body text-ink">Nenhuma análise gerada ainda.</p>
-          <p className="mt-1 text-label text-muted">Use o botão Gerar análise, acima, para criar a primeira.</p>
-        </div>
-      ) : (
-        <>
-          <ul data-testid="insight-row-list" className="hidden flex-col gap-2 md:flex">
-            {entries.map((entry) => (
-              <InsightRow key={entry.id} entry={entry} />
-            ))}
-          </ul>
+      <DataTableShell
+        fill
+        toolbar={<DataTableToolbar search={search} onSearchChange={setSearch} action={generate} />}
+      >
+        {filtered.length === 0 ? (
+          term.length > 0 ? (
+            <DataTableEmpty
+              title="Nenhuma análise corresponde à busca."
+              hint="A busca percorre o resumo, a interpretação e as ações sugeridas."
+            />
+          ) : (
+            <DataTableEmpty
+              title="Nenhuma análise gerada ainda."
+              hint="Use o botão Gerar análise, acima, para criar a primeira."
+            />
+          )
+        ) : (
+          <table data-testid="insight-row-list" className="hidden w-full table-fixed md:table">
+            <caption className="sr-only">Histórico de análises com IA</caption>
+            <tbody>
+              {filtered.map((entry) => (
+                <InsightRow key={entry.id} entry={entry} />
+              ))}
+            </tbody>
+          </table>
+        )}
+      </DataTableShell>
 
-          <ul data-testid="insight-card-list" className="flex flex-col gap-3 md:hidden">
-            {entries.map((entry, index) => (
-              <li key={entry.id}>
-                <InsightCard entry={entry} isDefaultOpen={index === 0} />
-              </li>
-            ))}
-          </ul>
-        </>
+      {filtered.length > 0 && (
+        <ul data-testid="insight-card-list" className="flex flex-col gap-3 md:hidden">
+          {filtered.map((entry, index) => (
+            <li key={entry.id}>
+              <InsightCard entry={entry} isDefaultOpen={index === 0} />
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

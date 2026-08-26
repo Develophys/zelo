@@ -85,28 +85,16 @@ describe("ManagerAdminSectorsPage", () => {
     );
   });
 
-  it('moves + Adicionar setor into the ruled-off action bar above the table, not the header\'s title row', async () => {
+  it('anchors + Adicionar setor to the right of the table\'s own search row', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
     renderPage();
 
-    const bar = await screen.findByTestId('manager-action-bar');
-    const action = within(bar).getByRole('button', { name: '+ Adicionar setor' });
-    expect(bar.querySelector('hr')).not.toBeNull();
-
-    const heading = screen.getByRole('heading', { level: 1, name: 'Setores' });
-    expect(heading.parentElement).not.toContainElement(action);
-  });
-
-  it('renders the page header with its normative intro', async () => {
-    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
-    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
-    renderPage();
-
-    expect(await screen.findByRole('heading', { level: 1, name: 'Setores' })).toBeInTheDocument();
-    expect(
-      screen.getByText('Áreas do hospital acompanhadas pelo Zelo. Cada setor pode ter um gestor responsável.'),
-    ).toBeInTheDocument();
+    const toolbar = await screen.findByTestId('data-table-toolbar');
+    const slot = within(toolbar).getByTestId('data-table-toolbar-action');
+    expect(within(slot).getByRole('button', { name: '+ Adicionar setor' })).toBeInTheDocument();
+    expect(slot.className).toContain('ml-auto');
+    expect(document.querySelector('hr')).toBeNull();
   });
 
   it('creates a sector with its responsible manager in one modal, not two steps', async () => {

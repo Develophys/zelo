@@ -1,5 +1,6 @@
 import type { JSX, ReactNode } from 'react';
 import { Checkbox } from '@/presentation/ui/Checkbox';
+import { DataTableShell } from './DataTableShell';
 import type { DataTableSelection } from './useDataTableSelection';
 
 export interface DataTableColumn<T> {
@@ -19,6 +20,8 @@ interface DataTableProps<T> {
   toolbar: ReactNode;
   emptyState: ReactNode;
   caption: string;
+  /** Fill the column and scroll the rows instead of the page. See DataTableShell. */
+  fill?: boolean;
 }
 
 function rowLabel(row: { name?: string; id: string }): string {
@@ -33,16 +36,16 @@ export function DataTable<T extends { id: string; isActive: boolean; name?: stri
   toolbar,
   emptyState,
   caption,
+  fill = false,
 }: DataTableProps<T>): JSX.Element {
   return (
-    <div className="overflow-hidden rounded-card border border-line bg-surface">
-      {toolbar}
+    <DataTableShell fill={fill} toolbar={toolbar}>
       {rows.length === 0 ? (
         emptyState
       ) : (
         <table className="hidden w-full table-fixed md:table">
           <caption className="sr-only">{caption}</caption>
-          <thead>
+          <thead className="sticky top-0 z-10 bg-surface">
             <tr className="border-b border-line">
               <th scope="col" className="w-12 px-cell-x py-cell-y">
                 <span className="sr-only">Seleção</span>
@@ -111,6 +114,6 @@ export function DataTable<T extends { id: string; isActive: boolean; name?: stri
           </tbody>
         </table>
       )}
-    </div>
+    </DataTableShell>
   );
 }

@@ -203,3 +203,47 @@ describe('DataTableEmpty', () => {
     expect(hint.className).toContain('text-muted');
   });
 });
+
+describe('DataTable fill mode', () => {
+  function FillHarness({ fill }: { fill?: boolean }) {
+    const selection = useDataTableSelection(ROWS, { singular: 'gestor', article: 'um' });
+    return (
+      <DataTable
+        caption="Gestores"
+        columns={COLUMNS}
+        rows={ROWS}
+        selection={selection}
+        fill={fill}
+        rowActions={() => null}
+        toolbar={<DataTableToolbar selection={selection} search="" onSearchChange={() => {}} actions={BULK_ACTIONS} />}
+        emptyState={<p>Nenhum gestor por aqui.</p>}
+      />
+    );
+  }
+
+  it('scrolls the page, not the rows, by default', () => {
+    render(<FillHarness />);
+    expect(screen.getByTestId('data-table-shell-body').className).not.toContain('overflow-y-auto');
+  });
+
+  it('hands the scroll to the rows from the tablet breakpoint up when filling', () => {
+    render(<FillHarness fill />);
+    expect(screen.getByTestId('data-table-shell-body').className).toContain('md:overflow-y-auto');
+    expect(screen.getByTestId('data-table-shell').className).toContain('md:flex-1');
+  });
+
+  it('pins the header row above the scrolling body, so the columns stay named', () => {
+    render(<FillHarness fill />);
+    const head = screen.getByRole('table').querySelector('thead');
+    expect(head?.className).toContain('sticky');
+    expect(head?.className).toContain('top-0');
+    expect(head?.className).toContain('bg-surface');
+  });
+
+  it('keeps the toolbar out of the scroller, so search and the page action stay reachable', () => {
+    render(<FillHarness fill />);
+    const toolbar = screen.getByTestId('data-table-toolbar');
+    expect(toolbar).toHaveClass('flex-none');
+    expect(screen.getByTestId('data-table-shell-body')).not.toContainElement(toolbar);
+  });
+});

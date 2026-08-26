@@ -16,6 +16,7 @@ function mount(path = '/manager') {
         <Routes>
           <Route element={<ManagerShell />}>
             <Route path="/manager" element={<p>conteúdo</p>} />
+            <Route path="/manager/settings" element={<p>configurações</p>} />
           </Route>
         </Routes>
       </MemoryRouter>
@@ -63,6 +64,29 @@ describe('ManagerShell', () => {
     expect(root.className).not.toContain('min-h-screen');
   });
 
+  it('pins the panel to the viewport from the tablet breakpoint up, so a table can own its own scroll', () => {
+    const { container } = mount();
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.className).toContain('md:h-dvh');
+    expect(root.className).toContain('md:overflow-hidden');
+  });
+
+  it('leaves the phone with the document scroll it has always had', () => {
+    const { container } = mount();
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.className).not.toMatch(/(^|\s)h-dvh/);
+    expect(root.className).not.toMatch(/(^|\s)overflow-hidden/);
+  });
+
+  it('gives main a definite height to divide, so a filling child has something to claim', () => {
+    mount();
+    const main = screen.getByRole('main');
+    expect(main.className).toContain('min-h-0');
+    expect(main.className).toContain('flex-1');
+    expect(main.className).toContain('flex-col');
+    expect(main.className).toContain('md:overflow-y-auto');
+  });
+
   it('carries the sidebar from a rail at md to labels at lg, in one element', () => {
     mount();
     const sidebar = screen.getByTestId('manager-sidebar');
@@ -88,12 +112,38 @@ describe('ManagerShell', () => {
     expect(row.className).not.toMatch(/max-w-\d/);
     expect(row.className).not.toContain('mx-auto');
     expect(row.className).not.toMatch(/(^|\s)px-/);
-    expect(screen.getByRole('main').parentElement).toBe(row);
+    expect(screen.getByRole('main').parentElement?.parentElement).toBe(row);
   });
 
   it('gives main its own horizontal padding, now that the shell no longer wraps it in a padded row', () => {
     mount();
     expect(screen.getByRole('main').className).toContain('px-6');
+  });
+
+  it('renders the shared header above main, outside its horizontal padding', () => {
+    mount();
+    const header = screen.getByTestId('app-header');
+    const main = screen.getByRole('main');
+    expect(header.compareDocumentPosition(main) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(header.parentElement).not.toBe(main);
+    expect(header.className).not.toMatch(/(^|\s)px-6/);
+  });
+
+  it('pins the header while the panel scrolls under it', () => {
+    mount();
+    expect(screen.getByTestId('app-header')).toHaveClass('sticky', 'top-0', 'z-30');
+  });
+
+  it('titles the panel home from the route table', () => {
+    mount();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Tendências');
+    expect(screen.queryByTestId('back-button')).not.toBeInTheDocument();
+  });
+
+  it('titles each panel page from the route table, with no back control anywhere', () => {
+    mount('/manager/settings');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Configurações');
+    expect(screen.queryByTestId('back-button')).not.toBeInTheDocument();
   });
 
   it('applies the manager preferences exactly once, from here', () => {

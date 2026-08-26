@@ -356,16 +356,6 @@ describe("ManagerDashboardPage", () => {
     expect(screen.queryByLabelText("UTI")).not.toBeInTheDocument();
   });
 
-  it('renders the page header with its normative intro', async () => {
-    renderManager();
-    expect(await screen.findByRole('heading', { level: 1, name: 'Tendências' })).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Indicadores agregados e anônimos do seu hospital. Nenhum dado individual é exibido; segmentos com menos de 5 respostas ficam ocultos.',
-      ),
-    ).toBeInTheDocument();
-  });
-
   it('filters by sector with pills from md up and a dropdown below it', async () => {
     renderManager();
     await waitFor(() => expect(screen.getByText('Plantão noturno')).toBeInTheDocument());
@@ -465,23 +455,25 @@ describe("ManagerDashboardPage", () => {
     expect(barsRow?.className).toContain('mt-auto');
   });
 
-  it('rules a line above the sector filter, separating it from the page header', async () => {
+  it('puts the sector filter in a plain row above the KPIs, with no rule drawn across the page', async () => {
     renderManager();
     await waitFor(() => expect(screen.getByText('Plantão noturno')).toBeInTheDocument());
 
-    const bar = screen.getByTestId('manager-action-bar');
-    const rule = bar.querySelector('hr');
-    expect(rule).not.toBeNull();
-    expect(rule!.compareDocumentPosition(screen.getByTestId('sector-filter-pills'))).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
-    );
+    const row = screen.getByTestId('dashboard-filter-row');
+    expect(row).toContainElement(screen.getByTestId('sector-filter-pills'));
+    expect(
+      row.compareDocumentPosition(screen.getByTestId('kpi-grid')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(row.querySelector('hr')).toBeNull();
+    expect(screen.queryByTestId('manager-action-bar')).not.toBeInTheDocument();
   });
 
-  it('does not render the filter rule when only one sector is accessible, since the filter itself is hidden', async () => {
+  it('does not render the filter row when only one sector is accessible, since the filter itself is hidden', async () => {
     vi.spyOn(container.listAccessibleSectorsUseCase, 'execute').mockResolvedValue([{ id: 'sector-1', name: 'UTI' }]);
     renderManager();
     await waitFor(() => expect(screen.getByText('Plantão noturno')).toBeInTheDocument());
 
-    expect(screen.queryByTestId('manager-action-bar')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('dashboard-filter-row')).not.toBeInTheDocument();
   });
 });

@@ -123,28 +123,15 @@ describe("ManagerAdminPeersPage", () => {
     expect(updateSpy).not.toHaveBeenCalled();
   });
 
-  it('moves + Adicionar par into the ruled-off action bar above the table, not the header\'s title row', async () => {
+  it('anchors + Adicionar par to the right of the table\'s own search row', async () => {
     vi.spyOn(container.listPeerPartnersUseCase, 'execute').mockResolvedValue([]);
     renderPage();
 
-    const bar = await screen.findByTestId('manager-action-bar');
-    const action = within(bar).getByRole('button', { name: '+ Adicionar par' });
-    expect(bar.querySelector('hr')).not.toBeNull();
-
-    const heading = screen.getByRole('heading', { level: 1, name: 'Pares anônimos' });
-    expect(heading.parentElement).not.toContainElement(action);
-  });
-
-  it('renders the page header with its normative intro', async () => {
-    vi.spyOn(container.listPeerPartnersUseCase, 'execute').mockResolvedValue([]);
-    renderPage();
-
-    expect(await screen.findByRole('heading', { level: 1, name: 'Pares anônimos' })).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Profissionais disponíveis para acolhimento entre pares. A identidade de quem procura acolhimento nunca é revelada.',
-      ),
-    ).toBeInTheDocument();
+    const toolbar = await screen.findByTestId('data-table-toolbar');
+    const slot = within(toolbar).getByTestId('data-table-toolbar-action');
+    expect(within(slot).getByRole('button', { name: '+ Adicionar par' })).toBeInTheDocument();
+    expect(slot.className).toContain('ml-auto');
+    expect(document.querySelector('hr')).toBeNull();
   });
 
   it('pluralises the bulk-action tooltip correctly for this noun', async () => {

@@ -223,30 +223,16 @@ describe("ManagerAdminManagersPage", () => {
     expect(updateSpy).not.toHaveBeenCalled();
   });
 
-  it('moves + Adicionar gestor into the ruled-off action bar above the table, not the header\'s title row', async () => {
+  it('anchors + Adicionar gestor to the right of the table\'s own search row', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
     renderPage();
 
-    const bar = await screen.findByTestId('manager-action-bar');
-    const action = within(bar).getByRole('button', { name: '+ Adicionar gestor' });
-    expect(bar.querySelector('hr')).not.toBeNull();
-
-    const heading = screen.getByRole('heading', { level: 1, name: 'Gestores' });
-    expect(heading.parentElement).not.toContainElement(action);
-  });
-
-  it('renders the page header with its normative intro', async () => {
-    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
-    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
-    renderPage();
-
-    expect(await screen.findByRole('heading', { level: 1, name: 'Gestores' })).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Quem tem acesso ao painel e a quais setores. Cadastre um gestor antes de vinculá-lo a um setor.',
-      ),
-    ).toBeInTheDocument();
+    const toolbar = await screen.findByTestId('data-table-toolbar');
+    const slot = within(toolbar).getByTestId('data-table-toolbar-action');
+    expect(within(slot).getByRole('button', { name: '+ Adicionar gestor' })).toBeInTheDocument();
+    expect(slot.className).toContain('ml-auto');
+    expect(document.querySelector('hr')).toBeNull();
   });
 
   it('shows status as a pill in the panel vocabulary, not "Senha definida"', async () => {

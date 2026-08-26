@@ -3,8 +3,6 @@ import { useNavigate } from "react-router";
 import { CheckCheck, RefreshCw } from "lucide-react";
 import { Button } from "@/presentation/ui/Button";
 import { Pill } from "@/presentation/ui/Pill";
-import { ManagerPageHeader } from "@/presentation/layout/ManagerPageHeader";
-import { ManagerActionBar } from "@/presentation/layout/ManagerActionBar";
 import { useManagerNotifications, useManagerUnreadCount } from "@/presentation/hooks/useManagerNotifications";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
@@ -28,13 +26,8 @@ export function ManagerNotificationsPage() {
   }, [error, clearSession, navigate]);
 
   return (
-    <div className="flex flex-col gap-5 pt-6">
-      <ManagerPageHeader
-        title="Notificações"
-        intro="Alertas do sistema sobre sinais agregados, convites e integrações. Marque como lida para tirar da lista."
-      />
-
-      <ManagerActionBar>
+    <div className="flex flex-col gap-5">
+      <div data-testid="notifications-action-row" className="flex flex-wrap items-center gap-2">
         {unreadCount > 0 && (
           <Button variant="outline" size="sm" full={false} onClick={markAllRead}>
             <CheckCheck size={16} aria-hidden="true" />
@@ -45,7 +38,7 @@ export function ManagerNotificationsPage() {
           <RefreshCw size={16} aria-hidden="true" />
           Atualizar
         </Button>
-      </ManagerActionBar>
+      </div>
 
       {error && !(error instanceof UnauthorizedManagerError) && (
         <p role="alert" className="text-label text-danger">
