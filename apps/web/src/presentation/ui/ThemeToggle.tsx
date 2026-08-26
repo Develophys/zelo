@@ -20,7 +20,7 @@ export function ThemeToggle() {
   const setPreference = useThemeStore((state) => state.setPreference);
 
   return (
-    <fieldset data-testid="theme-toggle" className="mt-4">
+    <fieldset data-testid="theme-toggle">
       <legend className="sr-only">Tema da interface</legend>
       <div className="flex gap-1 rounded-control bg-canvas-alt p-1">
         {OPTIONS.map(({ value, label, icon: Icon }) => {

@@ -22,6 +22,7 @@ function renderScale(scale: AssessmentScale, path: string) {
         <Routes>
           <Route path={path} element={<ScaleAssessmentPage scale={scale} />} />
           <Route path={routes.assessment} element={<div>Assessment select screen</div>} />
+          <Route path={routes.home} element={<div>Home screen</div>} />
           <Route path={routes.result} element={<ResultProbe />} />
         </Routes>
       </MemoryRouter>
@@ -78,8 +79,7 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     expect(screen.getByText(scale.questions[1]!)).toBeInTheDocument();
     expect(screen.getByText(`2/${total}`)).toBeInTheDocument();
 
-    expect(screen.queryByRole('button', { name: 'Voltar' })).not.toBeInTheDocument();
-    expect(screen.queryByTestId('back-button')).not.toBeInTheDocument();
+    expect(screen.getByText(scale.questions[1]!)).toBeInTheDocument();
   });
 
   it("carries the scale's own score ceiling through to the result screen", async () => {
@@ -204,8 +204,21 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
 
-  it('offers no back control at all, in the header or in the body', () => {
+  it('offers no back control in the body: the only one is the header escape hatch', () => {
     renderScale(scale, path);
-    expect(screen.queryByTestId('back-button')).not.toBeInTheDocument();
+    const back = screen.getByTestId('back-button');
+    expect(back.closest('[data-testid="app-header"]')).not.toBeNull();
+    expect(screen.getAllByTestId('back-button')).toHaveLength(1);
+  });
+
+  it('exits the assessment rather than stepping back a question', async () => {
+    const user = userEvent.setup();
+    renderScale(scale, path);
+
+    await user.click(screen.getByRole('button', { name: 'Nenhuma vez' }));
+    expect(screen.getByText(scale.questions[1]!)).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('back-button'));
+    expect(screen.getByText('Home screen')).toBeInTheDocument();
   });
 });

@@ -19,7 +19,7 @@ export function CrisisAcceptPage() {
   const direction = bond ? getCrisisDirectionUseCase.execute(bond) : null;
 
   return (
-    <PhoneShell centered>
+    <PhoneShell bottomNav centered>
       <div className="flex min-h-full flex-col">
 
         {!direction && (

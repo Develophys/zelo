@@ -82,7 +82,7 @@ export function ChatPage() {
   const toggleTray = useCallback(() => setTrayCollapsed((previous) => !previous), []);
 
   return (
-    <PhoneShell nav bleed fill bg="canvas" headerColumn={CHAT_COLUMN}>
+    <PhoneShell sidebar bleed fill bg="canvas" headerColumn={CHAT_COLUMN}>
       <div className="flex min-h-0 flex-1 flex-col">
         <ChatDisclaimerBanner />
 

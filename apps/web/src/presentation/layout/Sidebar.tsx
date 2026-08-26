@@ -1,6 +1,6 @@
 import { memo, useEffect, useState } from 'react';
 import { NavLink } from 'react-router';
-import { ADMIN_NAV_ITEM, NAV_TABS, type NavDestination } from './nav-tabs';
+import { NAV_TABS, SECONDARY_NAV_ITEMS, type NavDestination } from './nav-tabs';
 import { SidebarHeader } from './SidebarHeader';
 import { routes } from '@/presentation/lib/routes';
 import {
@@ -66,9 +66,11 @@ export const Sidebar = memo(function Sidebar() {
 
       <div
         data-testid="sidebar-admin-section"
-        className="flex flex-none flex-col border-t border-surface-brand px-2 py-4"
+        className="flex flex-none flex-col gap-1 border-t border-surface-brand px-2 py-4"
       >
-        <Destination destination={ADMIN_NAV_ITEM} collapsed={collapsed} />
+        {SECONDARY_NAV_ITEMS.map((item) => (
+          <Destination key={item.id} destination={item} collapsed={collapsed} />
+        ))}
       </div>
     </aside>
   );

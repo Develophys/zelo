@@ -1,8 +1,6 @@
 import { MessageCircle, Users } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { PhoneShell } from '@/presentation/layout/PhoneShell';
-import { BottomNav } from '@/presentation/layout/BottomNav';
-import { NAV_TABS, type NavTabId } from '@/presentation/layout/nav-tabs';
 import { CardButton } from '@/presentation/ui/CardButton';
 import { IconBadge } from '@/presentation/ui/IconBadge';
 import { routes } from '@/presentation/lib/routes';
@@ -15,17 +13,12 @@ import { HistoryChartCard } from './HistoryChartCard';
 export function HomePage() {
   const navigate = useNavigate();
 
-  const handleNavigate = (tab: NavTabId) => {
-    const target = NAV_TABS.find((t) => t.id === tab);
-    if (target) navigate(target.route);
-  };
-
   return (
     <PhoneShell
-      nav
+      sidebar
+      bottomNav
       centered
       headerOverride={{ title: getGreeting(new Date().getHours()) }}
-      footer={<BottomNav active="home" onNavigate={handleNavigate} />}
     >
       <div className="flex flex-col">
         <FollowUpCard />

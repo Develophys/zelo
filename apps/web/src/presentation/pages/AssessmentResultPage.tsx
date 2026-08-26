@@ -27,7 +27,7 @@ export function AssessmentResultPage() {
   const band = bandFor(scaleType, totalScore);
 
   return (
-    <PhoneShell centered>
+    <PhoneShell bottomNav centered>
       <div>
         <ResultBandCard scaleType={scaleType} score={totalScore} max={max} band={band} />
 

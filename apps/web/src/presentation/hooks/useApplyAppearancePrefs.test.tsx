@@ -1,16 +1,32 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { render, act } from '@testing-library/react';
-import { useApplyManagerPrefs } from './useApplyManagerPrefs';
+import { createMemoryRouter, Outlet, RouterProvider } from 'react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
+import { useApplyAppearancePrefs } from './useApplyAppearancePrefs';
 import { useManagerPrefsStore } from '@/stores/manager-prefs.store';
+import { useConsentStore } from '@/stores/consent.store';
+import { useManagerSessionStore } from '@/stores/manager-session.store';
+import { routeChildren } from '@/app/router';
+
+// Stands in for App.tsx: the root that owns the preferences, wrapped around
+// the real route tree so leaving the panel is a real unmount.
+function AppRoot({ children }: { children: ReactNode }) {
+  useApplyAppearancePrefs();
+  return <>{children}</>;
+}
 
 function Panel() {
-  useApplyManagerPrefs();
+  useApplyAppearancePrefs();
   return <div>painel</div>;
 }
 
 const root = () => document.documentElement;
 
-describe('useApplyManagerPrefs', () => {
+describe('useApplyAppearancePrefs', () => {
   beforeEach(() => {
     useManagerPrefsStore.setState({
       density: 'comfortable',
@@ -113,5 +129,61 @@ describe('manager prefs store', () => {
     expect(state.density).toBe('compact');
     expect(state.accent).toBe('clay');
     expect(state.sidebarCollapsed).toBe(true);
+  });
+});
+
+describe('appearance prefs outlive the manager panel', () => {
+  it('keeps the corner choice on <html> after the doctor leaves the panel', async () => {
+    useConsentStore.setState({ hasConsented: true, consentedAt: '2026-01-01T00:00:00.000Z' });
+    useManagerSessionStore.setState({
+      token: 'abc.def',
+      expiresAt: new Date('2099-01-01T00:00:00.000Z').toISOString(),
+      role: 'HOSPITAL_ADMIN',
+    });
+    useManagerPrefsStore.setState({
+      density: 'comfortable',
+      accent: 'clay',
+      corners: 'rounded',
+      sidebarCollapsed: false,
+    });
+
+    const router = createMemoryRouter(
+      [{ id: 'root', path: '/', Component: () => <Outlet />, children: routeChildren }],
+      { initialEntries: ['/manager/settings'] },
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AppRoot>
+          <RouterProvider router={router} />
+        </AppRoot>
+      </QueryClientProvider>,
+    );
+
+    expect(root().dataset.corners).toBe('rounded');
+
+    await act(async () => {
+      await router.navigate('/home');
+    });
+
+    // The panel unmounting must not take the preference with it: accent and
+    // corners move tokens every screen paints with, not only the panel's.
+    expect(root().dataset.corners).toBe('rounded');
+    expect(root().dataset.accent).toBe('clay');
+  });
+});
+
+describe('App wiring', () => {
+  it('is mounted from the app root, not from the manager shell', () => {
+    const app = readFileSync(
+      path.join(path.dirname(fileURLToPath(import.meta.url)), '../../app/App.tsx'),
+      'utf8',
+    );
+    const shell = readFileSync(
+      path.join(path.dirname(fileURLToPath(import.meta.url)), '../layout/ManagerShell.tsx'),
+      'utf8',
+    );
+    expect(app).toContain('useApplyAppearancePrefs()');
+    expect(shell).not.toContain('useApplyAppearancePrefs');
   });
 });

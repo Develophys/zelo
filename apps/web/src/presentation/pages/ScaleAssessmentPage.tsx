@@ -54,7 +54,7 @@ export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
   };
 
   return (
-    <PhoneShell centered>
+    <PhoneShell bottomNav centered>
       <div className="md:pt-4">
         <div className="flex items-center gap-3">
           <div className="flex-1">

@@ -1,5 +1,4 @@
 import { Outlet } from 'react-router';
-import { useApplyManagerPrefs } from '@/presentation/hooks/useApplyManagerPrefs';
 import { AppHeader } from './AppHeader';
 import { ManagerSidebar } from './ManagerSidebar';
 import { ManagerBottomNav } from './ManagerBottomNav';
@@ -14,8 +13,6 @@ import { ManagerBottomNav } from './ManagerBottomNav';
  * clearance measured against it.
  */
 export function ManagerShell() {
-  useApplyManagerPrefs();
-
   return (
     <div className="flex min-h-dvh bg-surface md:h-dvh md:overflow-hidden">
       <ManagerSidebar />

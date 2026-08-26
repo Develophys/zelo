@@ -12,7 +12,7 @@ export function CrisisOfferPage() {
   const line = getCrisisLine();
 
   return (
-    <PhoneShell centered>
+    <PhoneShell bottomNav centered>
       <div className="flex min-h-full flex-col gap-3">
         <IconBadge icon={HeartHandshake} size={60} />
         <p className="mt-2 text-body text-muted">

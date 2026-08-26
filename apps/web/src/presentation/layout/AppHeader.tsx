@@ -1,18 +1,34 @@
 import { useState } from 'react';
-import { useLocation } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
+import { BackButton } from '@/presentation/ui/BackButton';
 import { PrivacyBadge } from '@/presentation/ui/PrivacyBadge';
 import { ThemeSwitchButton } from '@/presentation/ui/ThemeSwitchButton';
 import { EncryptionInfoModal } from '@/presentation/components/EncryptionInfoModal';
+import { routes } from '@/presentation/lib/routes';
 import { type AppHeaderOverride, resolveAppHeaderMeta } from './app-header-meta';
+
+/**
+ * Where the escape hatch is needed. The shell knows which navs it renders at
+ * which width, so it decides; the header only draws it.
+ */
+export type AppHeaderBack = 'always' | 'below-md' | 'from-md';
+
+const BACK_CLASS: Record<AppHeaderBack, string> = {
+  always: '',
+  'below-md': 'md:hidden',
+  'from-md': 'hidden md:flex',
+};
 
 interface AppHeaderProps {
   override?: AppHeaderOverride;
   column?: string;
   className?: string;
+  back?: AppHeaderBack;
 }
 
-export function AppHeader({ override, column = '', className = '' }: AppHeaderProps) {
+export function AppHeader({ override, column = '', className = '', back }: AppHeaderProps) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const [isEncryptionInfoOpen, setIsEncryptionInfoOpen] = useState(false);
 
   const meta = resolveAppHeaderMeta(pathname);
@@ -33,6 +49,9 @@ export function AppHeader({ override, column = '', className = '' }: AppHeaderPr
         data-testid="app-header-row"
         className={`flex w-full items-center gap-3 py-3.5 short:py-2 md:py-2.5 ${column}`}
       >
+        {back && (
+          <BackButton className={BACK_CLASS[back]} onClick={() => navigate(routes.home)} />
+        )}
         <div className="min-w-0">
           <h1 className="font-sans text-body-strong text-ink">{title}</h1>
           <p

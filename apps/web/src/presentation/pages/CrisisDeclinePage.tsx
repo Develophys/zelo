@@ -10,7 +10,7 @@ export function CrisisDeclinePage() {
   const line = getCrisisLine();
 
   return (
-    <PhoneShell centered>
+    <PhoneShell bottomNav centered>
       <div className="flex min-h-full flex-col gap-3">
         <p className="text-body text-muted">
           A oferta continua aberta a qualquer momento — sem pressa e sem penalidade.

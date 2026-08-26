@@ -38,6 +38,7 @@ describe("routes", () => {
       managerLogin: "/manager/login",
       managerFinishSetup: "/manager/finish-setup",
       you: "/you",
+      settings: "/settings",
       managerHistory: "/manager/history",
       linkInstitution: "/you/link",
       adminLogin: "/admin/login",

@@ -4,9 +4,10 @@ interface BackButtonProps {
   label?: string;
   onClick: () => void;
   disabled?: boolean;
+  className?: string;
 }
 
-export function BackButton({ label, onClick, disabled = false }: BackButtonProps) {
+export function BackButton({ label, onClick, disabled = false, className = '' }: BackButtonProps) {
   return (
     <button
       type="button"
@@ -14,7 +15,7 @@ export function BackButton({ label, onClick, disabled = false }: BackButtonProps
       onClick={onClick}
       disabled={disabled}
       aria-label={label ? undefined : 'Voltar'}
-      className="cursor-pointer flex min-h-11 min-w-11 items-center gap-1 text-label font-semibold text-muted transition-opacity duration-150 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+      className={`cursor-pointer flex min-h-11 min-w-11 items-center gap-1 text-label font-semibold text-muted transition-opacity duration-150 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${className}`}
     >
       <ChevronLeft size={18} />
       {label}

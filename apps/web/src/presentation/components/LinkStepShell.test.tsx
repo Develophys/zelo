@@ -41,6 +41,7 @@ describe("LinkStepShell", () => {
     const header = screen.getByTestId("app-header");
     expect(header).toHaveTextContent("Qual seu setor?");
     expect(header).toHaveTextContent("Vinculando a Hospital São Lucas.");
-    expect(screen.queryByTestId("back-button")).not.toBeInTheDocument();
+    // The flow has no sidebar, so the header carries the desktop escape hatch.
+    expect(screen.getByTestId("back-button")).toHaveClass("hidden", "md:flex");
   });
 });

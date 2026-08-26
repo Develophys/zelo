@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router';
 import { Sidebar } from './Sidebar';
@@ -191,5 +191,17 @@ describe('Sidebar administration section', () => {
     renderAt(routes.home);
     await user.click(screen.getByRole('button', { name: 'Recolher menu' }));
     expect(screen.getByText('Administração')).not.toHaveClass('lg:block');
+  });
+
+  it("offers Configurações above Administração in the ruled-off section", () => {
+    renderAt(routes.home);
+    const section = screen.getByTestId("sidebar-admin-section");
+    const links = within(section).getAllByRole("link");
+
+    expect(links.map((link) => link.getAttribute("aria-label"))).toEqual([
+      "Configurações",
+      "Administração",
+    ]);
+    expect(links[0]).toHaveAttribute("href", "/settings");
   });
 });

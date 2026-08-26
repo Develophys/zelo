@@ -35,6 +35,7 @@ the existing use-cases on submit.
 | `/manager/admin/sectors` | `ManagerAdminSectorsPage` | HOSPITAL_ADMIN only |
 | `/manager/admin/peers` | `ManagerAdminPeersPage` | HOSPITAL_ADMIN only |
 | `/you` | `YouPage` | Consent status + revoke; institution-link status + entry point (see below); added after the original 13 (see `screens/15-you.md`) |
+| `/settings` | `SettingsPage` | Appearance preferences (theme, accent, corners) for the doctor, gated by consent like `/you`; reached from `/you` rather than a fifth nav tab |
 | `/you/link` | `LinkInstitutionPage` | Optional invite-code → department linking flow, gated by consent like `/you`/`/home`; added by `2026-08-02-multi-institution-data-partitioning-design.md` (see `screens/16-link-institution.md`) |
 
 > Keep the current data-router shape (`id: "root"`, `Component: () => <Outlet/>`). Add a
@@ -132,7 +133,7 @@ export const routes = {
   result: "/assessment/result", crisis: "/crisis", crisisConnect: "/crisis/connect",
   crisisLine: "/crisis/line", chat: "/chat", peers: "/peers", manager: "/manager",
   managerLogin: "/manager/login", managerHistory: "/manager/history", you: "/you",
-  linkInstitution: "/you/link",
+  settings: "/settings", linkInstitution: "/you/link",
 } as const;
 ```
 

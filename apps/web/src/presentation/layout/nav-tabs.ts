@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { Home, ClipboardCheck, MessageCircle, UserRound, ShieldCheck } from "lucide-react";
+import { Home, ClipboardCheck, MessageCircle, UserRound, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import { routes } from "@/presentation/lib/routes";
 
 export type NavTabId = "home" | "checkin" | "chat" | "you";
@@ -25,11 +25,24 @@ export const NAV_TABS: NavTab[] = [
   { id: "you", label: "Você", icon: UserRound, route: routes.you },
 ];
 
-// Secondary destination, deliberately outside NAV_TABS: it is not one of the
-// medico's primary tabs, and both navs render it in its own ruled-off section.
+// Secondary destinations, deliberately outside NAV_TABS: neither is one of the
+// medico's primary tabs, and both navs render them in their own ruled-off
+// section, Configurações above Administração.
+export const SETTINGS_NAV_ITEM: NavDestination = {
+  id: "settings",
+  label: "Configurações",
+  icon: SlidersHorizontal,
+  route: routes.settings,
+};
+
 export const ADMIN_NAV_ITEM: NavDestination = {
   id: "admin",
   label: "Administração",
   icon: ShieldCheck,
   route: routes.manager,
 };
+
+export const SECONDARY_NAV_ITEMS: readonly NavDestination[] = [
+  SETTINGS_NAV_ITEM,
+  ADMIN_NAV_ITEM,
+];

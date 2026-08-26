@@ -195,10 +195,10 @@ describe("onboarding router flow", () => {
     buildTestRouter("/home");
     const user = userEvent.setup();
 
-    // Click the Você button in the BottomNav
+    // Follow the Você tab in the BottomNav
     const bottomNav = await screen.findByTestId("bottom-nav");
-    const vocêButton = bottomNav.querySelector('button[aria-label="Você"]');
-    if (!vocêButton) throw new Error("Você button not found in BottomNav");
+    const vocêButton = bottomNav.querySelector('a[aria-label="Você"]');
+    if (!vocêButton) throw new Error("Você tab not found in BottomNav");
     await user.click(vocêButton);
 
     expect(await screen.findByText("Consentimento ativo")).toBeInTheDocument();
@@ -230,5 +230,18 @@ describe("onboarding router flow", () => {
     buildTestRouter(routes.gad7);
     expect(await screen.findByText(GAD7_QUESTIONS[0])).toBeInTheDocument();
     expect(screen.getByText(`1/${GAD7_QUESTIONS.length}`)).toBeInTheDocument();
+  });
+
+  it("reaches the doctor's Configurações screen behind the consent guard", async () => {
+    useConsentStore.setState({ hasConsented: true, consentedAt: "2026-01-01T00:00:00.000Z" });
+    buildTestRouter("/settings");
+
+    expect(await screen.findByRole("heading", { level: 2, name: "Cor de destaque" })).toBeInTheDocument();
+  });
+
+  it("redirects an unconsented visitor away from Configurações, like every other gated screen", async () => {
+    buildTestRouter("/settings");
+
+    expect(await screen.findByText("Como o Zelo protege você")).toBeInTheDocument();
   });
 });

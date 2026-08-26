@@ -1323,8 +1323,10 @@ describe('ChatPage', () => {
     const row = header.firstElementChild;
     const theme = within(header).getByTestId('theme-switch');
     const subtitle = within(header).getByTestId('app-header-subtitle');
+    const back = within(header).getByTestId('back-button');
 
-    expect(row?.children).toHaveLength(2);
+    expect(row?.children).toHaveLength(3);
+    expect(back).toHaveClass('md:hidden', 'min-w-11');
     expect(theme).toHaveClass('min-w-11');
     expect(theme.parentElement).toHaveClass('flex-none');
     expect(subtitle.parentElement).toHaveClass('min-w-0');

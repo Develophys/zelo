@@ -26,6 +26,7 @@ const IN_SCOPE = [
   routes.peers,
   routes.you,
   routes.linkInstitution,
+  routes.settings,
   routes.manager,
   routes.managerNotifications,
   routes.managerHistory,

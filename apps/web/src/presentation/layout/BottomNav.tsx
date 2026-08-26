@@ -1,19 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { ArrowDown, ArrowUp } from 'lucide-react';
-import { ADMIN_NAV_ITEM, NAV_TABS, type NavTabId } from './nav-tabs';
-
-interface BottomNavProps {
-  active: NavTabId;
-  onNavigate: (tab: NavTabId) => void;
-}
+import { NAV_TABS, SECONDARY_NAV_ITEMS } from './nav-tabs';
 
 const SECONDARY_MENU_ID = 'bottom-nav-secondary-menu';
 
-export function BottomNav({ active, onNavigate }: BottomNavProps) {
+/**
+ * The active tab is read from the route rather than passed in: the nav is
+ * mounted by the shell on every screen now, and a prop would have to be
+ * threaded through pages that know nothing about it. Longest match wins, so
+ * /assessment/phq9 lights Check-in and /you/link lights Você.
+ */
+function activeTabRoute(pathname: string): string | undefined {
+  return NAV_TABS.map((tab) => tab.route)
+    .filter((route) => pathname === route || pathname.startsWith(`${route}/`))
+    .sort((a, b) => b.length - a.length)[0];
+}
+
+export function BottomNav() {
+  const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const secondaryRef = useRef<HTMLDivElement>(null);
-  const AdminIcon = ADMIN_NAV_ITEM.icon;
+  const activeRoute = activeTabRoute(pathname);
 
   useEffect(() => {
     if (!open) return;
@@ -36,24 +44,24 @@ export function BottomNav({ active, onNavigate }: BottomNavProps) {
   return (
     <nav
       data-testid="bottom-nav"
-      className="flex flex-none justify-around border-t border-surface-brand bg-surface px-2 pb-6 pt-3"
+      aria-label="Navegação principal no celular"
+      className="flex flex-none justify-around border-t border-surface-brand bg-surface px-2 pb-6 pt-3 md:hidden"
     >
-      {NAV_TABS.map(({ id, label, icon: Icon }) => {
-        const isActive = id === active;
+      {NAV_TABS.map(({ id, label, icon: Icon, route }) => {
+        const isActive = route === activeRoute;
         return (
-          <button
+          <Link
             key={id}
-            type="button"
+            to={route}
             aria-label={label}
             aria-current={isActive ? 'page' : undefined}
-            onClick={() => onNavigate(id)}
             className={`flex min-h-11 min-w-11 flex-col items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
               isActive ? 'text-brand' : 'text-muted'
             }`}
           >
             <Icon size={22} />
             <span className="font-sans text-[11px] font-semibold">{label}</span>
-          </button>
+          </Link>
         );
       })}
 
@@ -80,15 +88,18 @@ export function BottomNav({ active, onNavigate }: BottomNavProps) {
             role="menu"
             className="absolute bottom-full right-0 mb-2 min-w-45 rounded-card border border-surface-brand bg-surface p-1 shadow-card-lg"
           >
-            <Link
-              role="menuitem"
-              to={ADMIN_NAV_ITEM.route}
-              onClick={() => setOpen(false)}
-              className="flex min-h-11 items-center gap-3 rounded-control px-3 py-2 text-muted transition-colors duration-150 hover:bg-canvas hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-            >
-              <AdminIcon size={20} />
-              <span className="font-sans text-[14px] font-semibold">{ADMIN_NAV_ITEM.label}</span>
-            </Link>
+            {SECONDARY_NAV_ITEMS.map(({ id, label, icon: Icon, route }) => (
+              <Link
+                key={id}
+                role="menuitem"
+                to={route}
+                onClick={() => setOpen(false)}
+                className="flex min-h-11 items-center gap-3 rounded-control px-3 py-2 text-muted transition-colors duration-150 hover:bg-canvas hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              >
+                <Icon size={20} />
+                <span className="font-sans text-[14px] font-semibold">{label}</span>
+              </Link>
+            ))}
           </div>
         )}
       </div>

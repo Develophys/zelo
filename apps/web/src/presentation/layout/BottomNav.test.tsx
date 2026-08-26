@@ -1,16 +1,16 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
-import type { ComponentProps } from "react";
 import { BottomNav } from "./BottomNav";
 import { routes } from "@/presentation/lib/routes";
 
-function renderNav(props: Partial<ComponentProps<typeof BottomNav>> = {}) {
+
+function renderNav(pathname: string = routes.home) {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[pathname]}>
       <button type="button">Fora do menu</button>
-      <BottomNav active="home" onNavigate={vi.fn()} {...props} />
+      <BottomNav />
     </MemoryRouter>,
   );
 }
@@ -25,16 +25,34 @@ describe("BottomNav", () => {
   });
 
   it("styles the active tab with brand color", () => {
-    renderNav({ active: "chat" });
-    expect(screen.getByText("Conversar").closest("button")).toHaveClass("text-brand");
-    expect(screen.getByText("Início").closest("button")).toHaveClass("text-muted");
+    renderNav(routes.chat);
+    expect(screen.getByText("Conversar").closest("a")).toHaveClass("text-brand");
+    expect(screen.getByText("Início").closest("a")).toHaveClass("text-muted");
   });
 
-  it("calls onNavigate with the tapped tab", async () => {
-    const onNavigate = vi.fn();
-    renderNav({ onNavigate });
-    await userEvent.click(screen.getByRole("button", { name: /check-in/i }));
-    expect(onNavigate).toHaveBeenCalledWith("checkin");
+  it("links each tab straight at its route, with no handler to wire up", () => {
+    renderNav();
+    expect(screen.getByRole("link", { name: /check-in/i })).toHaveAttribute(
+      "href",
+      routes.assessment,
+    );
+  });
+
+  it("lights the tab that owns the current branch, not only its exact route", () => {
+    renderNav(routes.phq9);
+    expect(screen.getByRole("link", { name: /check-in/i })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+
+    renderNav(routes.linkInstitution);
+    const youTabs = screen.getAllByRole("link", { name: "Você" });
+    expect(youTabs[youTabs.length - 1]).toHaveAttribute("aria-current", "page");
+  });
+
+  it("stays off the tablet breakpoint up, where the sidebar replaces it", () => {
+    renderNav();
+    expect(screen.getByTestId("bottom-nav")).toHaveClass("md:hidden");
   });
 });
 
@@ -100,7 +118,19 @@ describe("BottomNav secondary menu", () => {
   it("places the toggle after the last primary tab", () => {
     renderNav();
     const toggle = screen.getByRole("button", { name: "Mais opções" });
-    const you = screen.getByText("Você").closest("button") as HTMLElement;
+    const you = screen.getByText("Você").closest("a") as HTMLElement;
     expect(you.compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("lists Configurações above Administração in the more-options sheet, matching the sidebar", async () => {
+    renderNav();
+    await userEvent.click(screen.getByRole("button", { name: "Mais opções" }));
+
+    const items = screen.getAllByRole("menuitem");
+    expect(items.map((item) => item.textContent)).toEqual([
+      "Configurações",
+      "Administração",
+    ]);
+    expect(items[0]).toHaveAttribute("href", "/settings");
   });
 });

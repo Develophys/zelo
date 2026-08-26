@@ -14,6 +14,7 @@ function renderYou() {
         <Route path="/home" element={<div>Home screen</div>} />
         <Route path="/" element={<div>Splash screen</div>} />
         <Route path="/you/link" element={<div>Link institution screen</div>} />
+        <Route path="/settings" element={<div>Settings screen</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -94,5 +95,12 @@ describe("YouPage", () => {
 
     expect(useInstitutionLinkStore.getState().institutionId).toBeNull();
     expect(screen.getByRole("button", { name: "Vincular agora" })).toBeInTheDocument();
+  });
+
+  it("carries no appearance control of its own: that lives in Configurações, off the nav", () => {
+    renderYou();
+
+    expect(screen.queryByTestId("theme-toggle")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Configurações/ })).not.toBeInTheDocument();
   });
 });

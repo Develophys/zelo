@@ -146,7 +146,7 @@ describe('ManagerShell', () => {
     expect(screen.queryByTestId('back-button')).not.toBeInTheDocument();
   });
 
-  it('applies the manager preferences exactly once, from here', () => {
+  it('leaves the appearance preferences to the app root, since accent and corners move tokens every screen uses', () => {
     useManagerPrefsStore.setState({
       density: 'compact',
       accent: 'clay',
@@ -154,9 +154,9 @@ describe('ManagerShell', () => {
       sidebarCollapsed: false,
     });
     mount();
-    expect(document.documentElement.dataset.density).toBe('compact');
-    expect(document.documentElement.dataset.accent).toBe('clay');
-    expect(document.documentElement.dataset.corners).toBe('rounded');
+    expect(document.documentElement.dataset.density).toBeUndefined();
+    expect(document.documentElement.dataset.accent).toBeUndefined();
+    expect(document.documentElement.dataset.corners).toBeUndefined();
   });
 });
 

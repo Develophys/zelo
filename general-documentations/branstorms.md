@@ -123,3 +123,10 @@ Legenda de escopo: `[Global]` `[Médico]` `[Chat]` `[Autoavaliação]` `[Admin]`
 
 - [x] **`[Chat]`** Transformar em conteúdo colapsável a seção com botão que redireciona para um chat
   real ou para as páginas de checking.
+
+---
+
+## Fast notes
+- sair do manager deve redirecionar para pagina inicial do usuario comum
+- Na tela Tendencias (visao manager) os items do grafico poderiam triggar um tooltip
+que traz informacoes detalhadas daquele periodo

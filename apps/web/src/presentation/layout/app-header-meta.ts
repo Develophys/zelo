@@ -26,6 +26,7 @@ export const APP_HEADER_META: Record<string, AppHeaderMeta> = {
   },
   [routes.you]: { title: 'Você', subtitle: 'Seu consentimento e sua privacidade.' },
   [routes.linkInstitution]: { title: 'Vincular ao hospital' },
+  [routes.settings]: { title: 'Configurações', subtitle: 'Aparência do app neste dispositivo.' },
   [routes.manager]: {
     title: 'Tendências',
     subtitle: 'Indicadores agregados e anônimos do seu hospital.',

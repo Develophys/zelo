@@ -164,16 +164,16 @@ describe("HomePage", () => {
     vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue(SIX_NULL_POINTS);
     renderHome();
     const bottomNav = screen.getByTestId("bottom-nav");
-    expect(bottomNav.querySelector('button[aria-label="Início"]')).toHaveAttribute("aria-current", "page");
+    expect(bottomNav.querySelector('a[aria-label="Início"]')).toHaveAttribute("aria-current", "page");
   });
 
   it("navigates to /you when the Você tab is tapped", async () => {
     vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue(SIX_NULL_POINTS);
     renderHome();
     const bottomNav = screen.getByTestId("bottom-nav");
-    const vocêButton = bottomNav.querySelector('button[aria-label="Você"]');
-    if (!vocêButton) throw new Error("Você button not found in bottom nav");
-    await userEvent.click(vocêButton);
+    const vocêTab = bottomNav.querySelector('a[aria-label="Você"]');
+    if (!vocêTab) throw new Error("Você tab not found in bottom nav");
+    await userEvent.click(vocêTab);
     expect(screen.getByText("You screen")).toBeInTheDocument();
   });
 

@@ -17,6 +17,8 @@ export function PeersPage() {
   if (!institutionId) {
     return (
       <PhoneShell
+        sidebar
+        bottomNav
         centered
         headerOverride={{ subtitle: 'Vincule-se ao seu hospital para falar com um colega.' }}
       >
@@ -37,7 +39,7 @@ export function PeersPage() {
   }
 
   return (
-    <PhoneShell centered>
+    <PhoneShell sidebar bottomNav centered>
       <div>
         {state === 'idle' && (
           <div className="mt-5">

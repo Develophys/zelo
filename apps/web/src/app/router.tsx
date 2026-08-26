@@ -24,6 +24,7 @@ import { ManagerLoginPage } from "@/presentation/pages/ManagerLoginPage";
 import { ManagerFinishSetupPage } from "@/presentation/pages/ManagerFinishSetupPage";
 import { ManagerInsightHistoryPage } from "@/presentation/pages/ManagerInsightHistoryPage";
 import { YouPage } from "@/presentation/pages/YouPage";
+import { SettingsPage } from "@/presentation/pages/SettingsPage";
 import { LinkInstitutionPage } from "@/presentation/pages/LinkInstitutionPage";
 import { AdminLoginPage } from "@/presentation/pages/AdminLoginPage";
 import { AdminInstitutionsPage } from "@/presentation/pages/AdminInstitutionsPage";
@@ -118,6 +119,11 @@ export const routeChildren: RouteObject[] = [
   {
     path: "you",
     Component: YouPage,
+    loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
+  },
+  {
+    path: "settings",
+    Component: SettingsPage,
     loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
   },
   {

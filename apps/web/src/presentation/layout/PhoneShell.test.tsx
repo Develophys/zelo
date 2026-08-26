@@ -1,7 +1,8 @@
 import type { ReactElement } from "react";
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, Route, Routes } from "react-router";
+import userEvent from "@testing-library/user-event";
 import { PhoneShell } from "./PhoneShell";
 
 // PhoneShell mounts the shared AppHeader, which reads the pathname, so even the
@@ -23,9 +24,14 @@ describe("PhoneShell", () => {
     expect(screen.getByTestId("phone-shell-body")).not.toHaveClass("px-6");
   });
 
-  it("renders the footer in a flex-none slot when provided", () => {
-    renderShell(<PhoneShell footer={<div data-testid="my-footer">nav</div>}>content</PhoneShell>);
-    expect(screen.getByTestId("my-footer")).toBeInTheDocument();
+  it("mounts the bottom nav itself, so no page can forget to pass one", () => {
+    renderShell(<PhoneShell bottomNav>content</PhoneShell>);
+    expect(screen.getByTestId("bottom-nav")).toBeInTheDocument();
+  });
+
+  it("leaves the bottom nav out when the page owns its own bottom edge", () => {
+    renderShell(<PhoneShell>content</PhoneShell>);
+    expect(screen.queryByTestId("bottom-nav")).not.toBeInTheDocument();
   });
 
   it("defaults to the canvas background", () => {
@@ -41,50 +47,44 @@ describe("PhoneShell", () => {
   });
 });
 
-describe("PhoneShell nav mode", () => {
-  it("does not render a Sidebar when nav is unset", () => {
+describe("PhoneShell sidebar mode", () => {
+  it("does not render a Sidebar when sidebar is unset", () => {
     renderShell(<PhoneShell>content</PhoneShell>);
     expect(screen.queryByRole("navigation", { name: "Navegação principal" })).not.toBeInTheDocument();
   });
 
-  it("does not add flex-1 to phone-shell-root when nav is unset", () => {
+  it("does not add flex-1 to phone-shell-root when sidebar is unset", () => {
     renderShell(<PhoneShell>content</PhoneShell>);
     expect(screen.getByTestId("phone-shell-root")).not.toHaveClass("flex-1");
   });
 
-  it("renders the Sidebar when nav is set", () => {
+  it("renders the Sidebar when sidebar is set", () => {
     render(
       <MemoryRouter>
-        <PhoneShell nav>content</PhoneShell>
+        <PhoneShell sidebar>content</PhoneShell>
       </MemoryRouter>,
     );
     expect(screen.getByRole("navigation", { name: "Navegação principal" })).toBeInTheDocument();
   });
 
-  it("adds flex-1 to phone-shell-root when nav is set", () => {
+  it("adds flex-1 to phone-shell-root when sidebar is set", () => {
     render(
       <MemoryRouter>
-        <PhoneShell nav>content</PhoneShell>
+        <PhoneShell sidebar>content</PhoneShell>
       </MemoryRouter>,
     );
     expect(screen.getByTestId("phone-shell-root")).toHaveClass("flex-1");
   });
 
-  it("hides the footer at the tablet breakpoint when nav is set", () => {
-    render(
-      <MemoryRouter>
-        <PhoneShell nav footer={<div data-testid="my-footer">nav</div>}>
-          content
-        </PhoneShell>
-      </MemoryRouter>,
-    );
-    expect(screen.getByTestId("my-footer").parentElement).toHaveClass("md:hidden");
+  it("keeps the bottom nav off the tablet breakpoint up, where the sidebar takes over", () => {
+    renderShell(<PhoneShell sidebar bottomNav>content</PhoneShell>);
+    expect(screen.getByTestId("bottom-nav")).toHaveClass("md:hidden");
   });
 
-  it("uses dynamic viewport height on the outer nav wrapper too", () => {
+  it("uses dynamic viewport height on the outer sidebar wrapper too", () => {
     const { container } = render(
       <MemoryRouter>
-        <PhoneShell nav>content</PhoneShell>
+        <PhoneShell sidebar>content</PhoneShell>
       </MemoryRouter>,
     );
     expect(container.firstElementChild).toHaveClass("min-h-dvh");
@@ -110,7 +110,7 @@ describe("PhoneShell fill mode", () => {
   it("also pins the outer nav wrapper so the Sidebar cannot push the column taller than the viewport", () => {
     const { container } = render(
       <MemoryRouter>
-        <PhoneShell nav fill>
+        <PhoneShell sidebar fill>
           content
         </PhoneShell>
       </MemoryRouter>,
@@ -187,5 +187,48 @@ describe("PhoneShell header", () => {
   it("keeps the fill body flush against the header, since the page owns its own chrome", () => {
     mountAt("/chat", <PhoneShell fill bleed>content</PhoneShell>);
     expect(screen.getByTestId("phone-shell-body")).not.toHaveClass("pt-6");
+  });
+});
+
+describe("PhoneShell escape hatch", () => {
+  function mountAt(path: string, element: ReactElement) {
+    return render(<MemoryRouter initialEntries={[path]}>{element}</MemoryRouter>);
+  }
+
+  it("draws no back button when both navs are there", () => {
+    mountAt("/you", <PhoneShell sidebar bottomNav>content</PhoneShell>);
+    expect(screen.queryByTestId("back-button")).not.toBeInTheDocument();
+  });
+
+  it("shows it only on the phone when the page owns the bottom edge, as the chat does", () => {
+    mountAt("/chat", <PhoneShell sidebar fill>content</PhoneShell>);
+    expect(screen.getByTestId("back-button")).toHaveClass("md:hidden");
+  });
+
+  it("shows it only from the tablet up on a focused flow, which has no sidebar", () => {
+    mountAt("/assessment/phq9", <PhoneShell bottomNav centered>content</PhoneShell>);
+    const back = screen.getByTestId("back-button");
+    expect(back).toHaveClass("hidden", "md:flex");
+  });
+
+  it("shows it at every width when the shell offers no nav at all", () => {
+    mountAt("/you", <PhoneShell centered>content</PhoneShell>);
+    const back = screen.getByTestId("back-button");
+    expect(back.className).not.toContain("hidden");
+    expect(back.className).not.toContain("md:hidden");
+  });
+
+  it("sends the escape hatch home, not one step back", async () => {
+    render(
+      <MemoryRouter initialEntries={["/assessment/phq9"]}>
+        <Routes>
+          <Route path="/home" element={<p>Home screen</p>} />
+          <Route path="*" element={<PhoneShell bottomNav centered>content</PhoneShell>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await userEvent.click(screen.getByTestId("back-button"));
+    expect(screen.getByText("Home screen")).toBeInTheDocument();
   });
 });

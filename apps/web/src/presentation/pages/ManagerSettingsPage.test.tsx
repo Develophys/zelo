@@ -62,7 +62,9 @@ describe('ManagerSettingsPage', () => {
   it('explains what each control affects', () => {
     render(<ManagerSettingsPage />);
     expect(screen.getByText('Usada em botões, links e no item ativo do menu.')).toBeInTheDocument();
-    expect(screen.getByText('Controla o espaçamento das tabelas e do menu.')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Controla o espaçamento das tabelas e do menu\./),
+    ).toBeInTheDocument();
     expect(screen.getByText('Define o arredondamento de botões, campos e cartões.')).toBeInTheDocument();
   });
 
@@ -78,15 +80,43 @@ describe('ManagerSettingsPage', () => {
     expect(sageSwatch).toHaveClass('bg-accent-sage-fill');
   });
 
-  it("renders every section title as a level-2 heading in the panel's shared card-title shape", () => {
+  it('titles every setting as a level-2 heading, sized as a row label rather than a card title', () => {
     render(<ManagerSettingsPage />);
 
     for (const name of ['Cor de destaque', 'Densidade', 'Cantos', 'Tema']) {
       const heading = screen.getByRole('heading', { level: 2, name });
-      expect(heading.className).toContain('font-serif');
-      expect(heading.className).toContain('text-lg');
+      expect(heading.className).toContain('font-sans');
+      expect(heading.className).toContain('text-body');
       expect(heading.className).toContain('text-ink');
     }
+  });
+
+  it('stacks the settings as ruled rows rather than a grid of cards', () => {
+    render(<ManagerSettingsPage />);
+
+    expect(screen.queryByTestId('settings-grid')).not.toBeInTheDocument();
+    const rows = screen.getAllByTestId('settings-row');
+    expect(rows).toHaveLength(4);
+    rows.forEach((row) => {
+      expect(row.className).toContain('border-b');
+      expect(row.className).not.toContain('rounded-card');
+      expect(row.className).not.toMatch(/sm:|xl:|2xl:/);
+    });
+  });
+
+  it('keeps every setting inside the row stack', () => {
+    render(<ManagerSettingsPage />);
+    const stack = screen.getByTestId('appearance-settings');
+    for (const name of ['Cor de destaque', 'Densidade', 'Cantos', 'Tema']) {
+      expect(within(stack).getByRole('heading', { level: 2, name })).toBeInTheDocument();
+    }
+  });
+
+  it('measures the rows with fixed spacing, so changing Densidade cannot resize the screen that changes it', () => {
+    render(<ManagerSettingsPage />);
+    screen.getAllByTestId('settings-row').forEach((row) => {
+      expect(row.className).not.toMatch(/(py|px|p|gap)-(cell|nav|control)-/);
+    });
   });
 
   it('has no axe violations', async () => {
@@ -94,37 +124,44 @@ describe('ManagerSettingsPage', () => {
     expect(await axe(container, { rules: { region: { enabled: false } } })).toHaveNoViolations();
   });
 
-  it('lays out the four settings cards in a single-row 4-column grid at lg', () => {
+});
+
+describe('parity with the doctor’s Configurações', () => {
+  it('holds the same reading column, so a row is the same shape in both panels', () => {
     render(<ManagerSettingsPage />);
-    const grid = screen.getByTestId('settings-grid');
-    expect(grid.className).toContain('grid');
-    expect(grid.className).toContain('lg:grid-cols-4');
+    const stack = screen.getByTestId('appearance-settings');
+    const column = stack.parentElement;
+
+    expect(column?.className).toContain('md:max-w-170');
   });
 
-  it('reflows the settings grid down through md before collapsing to one column, using only the md/lg breakpoints', () => {
+  it('top-aligns the label, so a tall control cannot leave it floating beside nothing', () => {
     render(<ManagerSettingsPage />);
-    const grid = screen.getByTestId('settings-grid');
-    expect(grid.className).toContain('grid-cols-1');
-    expect(grid.className).toContain('md:grid-cols-2');
-    expect(grid.className).not.toMatch(/\bsm:|xl:|2xl:/);
+    screen.getAllByTestId('settings-row').forEach((row) => {
+      expect(row.className).toContain('md:items-start');
+      expect(row.className).not.toContain('md:items-center');
+    });
   });
 
-  it('keeps all four settings cards inside the reflowing grid', () => {
+  it('lays the four accents on one row instead of wrapping the last one alone', () => {
     render(<ManagerSettingsPage />);
-    const grid = screen.getByTestId('settings-grid');
-    for (const name of ['Cor de destaque', 'Densidade', 'Cantos', 'Tema']) {
-      expect(within(grid).getByRole('heading', { level: 2, name })).toBeInTheDocument();
-    }
+    const group = screen.getByRole('radiogroup', { name: 'Cor de destaque' });
+
+    expect(group.className).toContain('grid-cols-4');
+    expect(group.className).not.toContain('flex-wrap');
+    expect(group.children).toHaveLength(4);
   });
 });
 
 describe('density preview', () => {
-  it('sits inside the Densidade card, under its control', () => {
+  it('sits inside the Densidade row, under its control', () => {
     render(<ManagerSettingsPage />);
-    const card = screen.getByRole('heading', { level: 2, name: 'Densidade' }).closest('div');
+    const row = screen
+      .getByRole('heading', { level: 2, name: 'Densidade' })
+      .closest('[data-testid="settings-row"]');
     const preview = screen.getByTestId('density-preview');
 
-    expect(card).toContainElement(preview);
+    expect(row).toContainElement(preview);
     const control = screen.getByRole('radiogroup', { name: 'Densidade' });
     expect(
       control.compareDocumentPosition(preview) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -147,6 +184,15 @@ describe('density preview', () => {
   it('frames itself like the tables it is standing in for', () => {
     render(<ManagerSettingsPage />);
     expect(screen.getByTestId('density-preview')).toHaveClass('rounded-card', 'border', 'border-line');
+  });
+
+  it('holds one height across both densities, fitting more rows in rather than growing', () => {
+    render(<ManagerSettingsPage />);
+    const preview = screen.getByTestId('density-preview');
+
+    expect(preview).toHaveClass('h-36', 'overflow-hidden');
+    expect(preview.className).not.toMatch(/(^|\s)(min-h|max-h)-/);
+    expect(screen.getAllByTestId('density-preview-row').length).toBeGreaterThan(4);
   });
 
   it('stays out of the accessibility tree, since bare bars say nothing the radiogroup has not', () => {

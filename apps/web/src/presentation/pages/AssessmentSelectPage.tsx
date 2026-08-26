@@ -8,7 +8,7 @@ export function AssessmentSelectPage() {
   const navigate = useNavigate();
 
   return (
-    <PhoneShell nav centered>
+    <PhoneShell sidebar bottomNav centered>
       <div className="md:pt-4">
         <div className="flex flex-col gap-3 md:grid md:grid-cols-2 md:gap-4">
           <CardButton

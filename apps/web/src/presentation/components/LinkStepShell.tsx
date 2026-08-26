@@ -23,7 +23,7 @@ export function LinkStepShell({
   children,
 }: LinkStepShellProps) {
   return (
-    <PhoneShell centered headerOverride={{ title, subtitle }}>
+    <PhoneShell bottomNav centered headerOverride={{ title, subtitle }}>
       <form onSubmit={onSubmit}>
         <Card>{children}</Card>
 
