@@ -13,9 +13,8 @@ export function CrisisOfferPage() {
 
   return (
     <PhoneShell centered>
-      <div className="flex min-h-full flex-col pt-7.5 gap-3">
+      <div className="flex min-h-full flex-col gap-3">
         <IconBadge icon={HeartHandshake} size={60} />
-        <h1 className="text-h1 text-ink">Você não está sozinho(a).</h1>
         <p className="mt-2 text-body text-muted">
           A escolha é sempre sua. Você prefere falar com uma pessoa de verdade agora?
         </p>

@@ -1,14 +1,11 @@
 import type { SubmitEvent, ReactNode } from 'react';
 import { PhoneShell } from '@/presentation/layout/PhoneShell';
-import { BackButton } from '@/presentation/ui/BackButton';
 import { Button } from '@/presentation/ui/Button';
 import { Card } from '@/presentation/ui/Card';
 
 interface LinkStepShellProps {
-  backLabel: string;
-  onBack: () => void;
   title: string;
-  subtitle: ReactNode;
+  subtitle: string;
   onSubmit: (event: SubmitEvent) => void;
   submitLabel: string;
   submitDisabled: boolean;
@@ -17,8 +14,6 @@ interface LinkStepShellProps {
 }
 
 export function LinkStepShell({
-  backLabel,
-  onBack,
   title,
   subtitle,
   onSubmit,
@@ -28,22 +23,16 @@ export function LinkStepShell({
   children,
 }: LinkStepShellProps) {
   return (
-    <PhoneShell centered>
-      <div className="pt-7.5">
-        <BackButton label={backLabel} onClick={onBack} />
-        <h1 className="mb-1.5 mt-4 text-h1 text-ink">{title}</h1>
-        <p className="text-caption text-muted">{subtitle}</p>
+    <PhoneShell centered headerOverride={{ title, subtitle }}>
+      <form onSubmit={onSubmit}>
+        <Card>{children}</Card>
 
-        <form onSubmit={onSubmit}>
-          <Card className="mt-5">{children}</Card>
-
-          <div className="mt-6 px-4.5">
-            <Button type="submit" variant="primary" isLoading={submitLoading} disabled={submitDisabled}>
-              {submitLabel}
-            </Button>
-          </div>
-        </form>
-      </div>
+        <div className="mt-6 px-4.5">
+          <Button type="submit" variant="primary" isLoading={submitLoading} disabled={submitDisabled}>
+            {submitLabel}
+          </Button>
+        </div>
+      </form>
     </PhoneShell>
   );
 }

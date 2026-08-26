@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
+import { AppHeader } from './AppHeader';
+import type { AppHeaderOverride } from './app-header-meta';
 
 interface PhoneShellProps {
   children: ReactNode;
@@ -19,6 +21,13 @@ interface PhoneShellProps {
   // page. For surfaces that own an internal scroll region and must keep their
   // own chrome pinned (chat). Every other page keeps the min-height default.
   fill?: boolean;
+  // Title, subtitle or back handler the route table cannot express on its own
+  // — the greeting on Home, the two link steps, the assessment's per-question
+  // back. See app-header-meta.ts.
+  headerOverride?: AppHeaderOverride;
+  // Inner column for the header row, when it must not follow `centered` — the
+  // chat measures its header against the 900px transcript column instead.
+  headerColumn?: string;
 }
 
 const BG_CLASS: Record<NonNullable<PhoneShellProps['bg']>, string> = {
@@ -35,6 +44,8 @@ export function PhoneShell({
   nav = false,
   centered = false,
   fill = false,
+  headerOverride,
+  headerColumn,
 }: PhoneShellProps) {
   const column = (
     <div
@@ -43,10 +54,15 @@ export function PhoneShell({
         nav ? 'min-w-0 flex-1' : ''
       } flex-col ${BG_CLASS[bg]}`}
     >
+      <AppHeader
+        className={fill ? 'flex-none' : 'sticky top-0 z-30'}
+        override={headerOverride}
+        column={headerColumn ?? (centered ? 'md:mx-auto md:max-w-170' : '')}
+      />
       <main
         data-testid="phone-shell-body"
         className={`no-scrollbar ${
-          fill ? 'flex min-h-0 flex-1 flex-col overflow-hidden' : 'flex-1 overflow-y-auto'
+          fill ? 'flex min-h-0 flex-1 flex-col overflow-hidden' : 'flex-1 overflow-y-auto pt-6'
         } ${bleed ? '' : 'px-6'} ${centered ? 'md:mx-auto md:w-full md:max-w-170' : ''}`}
       >
         {children}

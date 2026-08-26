@@ -62,8 +62,6 @@ export function useLinkInstitutionFlow() {
     onSectorSelect: setSectorId,
     handleCodeSubmit,
     handleSectorSubmit,
-    goToCodeStep: () => setStep("code"),
-    goToYou: () => navigate(routes.you),
   };
 }
 

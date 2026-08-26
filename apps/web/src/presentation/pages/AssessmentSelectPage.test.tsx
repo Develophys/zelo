@@ -42,12 +42,7 @@ describe("AssessmentSelectPage", () => {
     expect(screen.getByText("PHQ-9 screen")).toBeInTheDocument();
   });
 
-  it("shows the on-device trust line", () => {
-    renderSelect();
-    expect(screen.getByText("tudo processado no seu aparelho")).toBeInTheDocument();
-  });
-
-  it("opens the encryption info modal when the trust footer is tapped", async () => {
+  it("opens the encryption info modal from the header privacy badge", async () => {
     const user = userEvent.setup();
     renderSelect();
 
@@ -85,7 +80,7 @@ describe("AssessmentSelectPage", () => {
     );
   });
 
-  it("gives the trust footer a full touch target despite its 12px content", () => {
+  it("gives the privacy badge a full touch target despite its 12px content", () => {
     renderSelect();
     expect(
       screen.getByRole("button", { name: /Saiba mais sobre a criptografia AES-256/ }),

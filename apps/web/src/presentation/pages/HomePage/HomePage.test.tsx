@@ -7,6 +7,7 @@ import { HomePage } from "./HomePage";
 import * as container from "@/app/container";
 import { useFollowUpStore } from "@/stores/followup.store";
 import { useInstitutionLinkStore } from "@/stores/institution-link.store";
+import { getGreeting } from "@/presentation/lib/get-greeting";
 
 function renderHome() {
   const queryClient = new QueryClient();
@@ -214,5 +215,21 @@ describe("HomePage manager entry point", () => {
     await user.click(screen.getByRole("button", { name: "Mais opções" }));
     await user.click(screen.getByRole("menuitem", { name: "Administração" }));
     expect(await screen.findByText("Manager screen")).toBeInTheDocument();
+  });
+});
+
+describe("HomePage header", () => {
+  it("greets by time of day in the shared header, with no back button on home", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-25T09:00:00"));
+    try {
+      renderHome();
+
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(getGreeting(9));
+      expect(screen.getByTestId("app-header-subtitle")).toHaveTextContent("Bom te ver por aqui");
+      expect(screen.queryByTestId("back-button")).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

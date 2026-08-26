@@ -6,11 +6,11 @@ import { NAV_TABS, type NavTabId } from '@/presentation/layout/nav-tabs';
 import { CardButton } from '@/presentation/ui/CardButton';
 import { IconBadge } from '@/presentation/ui/IconBadge';
 import { routes } from '@/presentation/lib/routes';
+import { getGreeting } from '@/presentation/lib/get-greeting';
 import { InstitutionLinkCard } from '@/presentation/components/InstitutionLinkCard';
 import { CheckInHeroCard } from './CheckInHeroCard';
 import { FollowUpCard } from './FollowUpCard';
 import { HistoryChartCard } from './HistoryChartCard';
-import { HomeGreeting } from './HomeGreeting';
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -21,10 +21,14 @@ export function HomePage() {
   };
 
   return (
-    <PhoneShell nav centered footer={<BottomNav active="home" onNavigate={handleNavigate} />}>
-      <div className="flex flex-col pt-6">
-        <HomeGreeting />
-        <FollowUpCard className="mt-4" />
+    <PhoneShell
+      nav
+      centered
+      headerOverride={{ title: getGreeting(new Date().getHours()) }}
+      footer={<BottomNav active="home" onNavigate={handleNavigate} />}
+    >
+      <div className="flex flex-col">
+        <FollowUpCard />
         <InstitutionLinkCard className="mt-4" />
         <CheckInHeroCard />
         <HistoryChartCard />

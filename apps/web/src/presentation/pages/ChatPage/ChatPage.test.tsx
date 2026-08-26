@@ -904,7 +904,7 @@ describe('ChatPage', () => {
 
   it('locks the chat header to the same height token as the sidebar header, so the two bottom rules line up on wide screens', () => {
     renderChat();
-    expect(screen.getByTestId('chat-header')).toHaveClass('md:min-h-app-header');
+    expect(screen.getByTestId('app-header')).toHaveClass('md:min-h-app-header');
     expect(screen.getByTestId('sidebar-header')).toHaveClass('md:min-h-app-header');
   });
 
@@ -1037,7 +1037,7 @@ describe('ChatPage', () => {
 
   it('hangs the header gutter outside the reading column, so its content shares a left edge with the bubbles instead of sitting inboard of them on a wide window', () => {
     renderChat();
-    const header = screen.getByTestId('chat-header');
+    const header = screen.getByTestId('app-header');
 
     expect(header).toHaveClass('px-4');
     expect(header.firstElementChild).toHaveClass('max-w-chat', 'mx-auto');
@@ -1071,10 +1071,13 @@ describe('ChatPage', () => {
 
   it('gives the anonymity promise one brand signature wherever it appears, instead of the faintest gray on the page', () => {
     renderChat();
-    const notes = screen.getAllByTestId('anonymity-note');
+    const promises = [
+      screen.getByTestId('app-header-subtitle'),
+      ...screen.getAllByTestId('anonymity-note'),
+    ];
 
-    expect(notes).toHaveLength(2);
-    notes.forEach((note) => expect(note).toHaveClass('text-brand'));
+    expect(promises).toHaveLength(2);
+    promises.forEach((promise) => expect(promise).toHaveClass('text-brand'));
   });
 
   it('tints the typing dots with the assistant voice rather than leaving them as gray system chrome', async () => {
@@ -1307,8 +1310,8 @@ describe('ChatPage', () => {
     const MONO_ADVANCE = 0.6 * 12;
 
     renderChat();
-    const header = screen.getByTestId('chat-header');
-    const promise = within(header).getByTestId('anonymity-note').textContent ?? '';
+    const header = screen.getByTestId('app-header');
+    const promise = within(header).getByTestId('app-header-subtitle').textContent ?? '';
 
     expect(promise).toBe('anonimizado antes do envio');
     expect(promise.length * MONO_ADVANCE).toBeLessThanOrEqual(NARROWEST_PHONE - CHROME);
@@ -1316,24 +1319,23 @@ describe('ChatPage', () => {
 
   it('makes the anonymity promise the only part of the header that yields at 320px, so the theme switch can never squeeze itself or push the header onto a second line', () => {
     renderChat();
-    const header = screen.getByTestId('chat-header');
+    const header = screen.getByTestId('app-header');
     const row = header.firstElementChild;
     const theme = within(header).getByTestId('theme-switch');
-    const back = within(header).getByTestId('back-button');
-    const note = within(header).getByTestId('anonymity-note');
+    const subtitle = within(header).getByTestId('app-header-subtitle');
 
-    expect(row?.children).toHaveLength(3);
-    expect(theme).toHaveClass('flex-none', 'min-w-11');
-    expect(back).toHaveClass('min-w-11');
-    expect(note.parentElement).toHaveClass('min-w-0');
-    expect(note.querySelector('span')).toHaveClass('min-w-0', 'truncate');
+    expect(row?.children).toHaveLength(2);
+    expect(theme).toHaveClass('min-w-11');
+    expect(theme.parentElement).toHaveClass('flex-none');
+    expect(subtitle.parentElement).toHaveClass('min-w-0');
+    expect(subtitle).toHaveClass('min-w-0', 'truncate');
   });
 
   it('lets the header anonymity promise shrink, since truncate alone never overrides a flex item min-width and the line would push the header past its 65px', () => {
     renderChat();
-    const header = screen.getByTestId('chat-header');
-    const note = within(header).getByTestId('anonymity-note');
+    const header = screen.getByTestId('app-header');
+    const subtitle = within(header).getByTestId('app-header-subtitle');
 
-    expect(note.querySelector('span')).toHaveClass('min-w-0', 'truncate');
+    expect(subtitle).toHaveClass('min-w-0', 'truncate');
   });
 });

@@ -4,7 +4,7 @@ import { TextField } from '@/presentation/ui/TextField';
 
 type LinkInstitutionCodeStepProps = Pick<
   LinkInstitutionFlow,
-  'code' | 'onCodeChange' | 'codeErrorMessage' | 'isLookupPending' | 'handleCodeSubmit' | 'goToYou'
+  'code' | 'onCodeChange' | 'codeErrorMessage' | 'isLookupPending' | 'handleCodeSubmit'
 >;
 
 export function LinkInstitutionCodeStep({
@@ -13,12 +13,9 @@ export function LinkInstitutionCodeStep({
   codeErrorMessage,
   isLookupPending,
   handleCodeSubmit,
-  goToYou,
 }: LinkInstitutionCodeStepProps) {
   return (
     <LinkStepShell
-      backLabel="Você"
-      onBack={goToYou}
       title="Vincular ao hospital"
       subtitle="Digite o código do seu hospital para aparecer nos números do seu time."
       onSubmit={handleCodeSubmit}

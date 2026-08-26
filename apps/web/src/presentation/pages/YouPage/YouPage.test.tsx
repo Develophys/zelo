@@ -43,12 +43,6 @@ describe("YouPage", () => {
     expect(screen.getByText("anônimo")).toBeInTheDocument();
   });
 
-  it("back button navigates to /home", async () => {
-    renderYou();
-    await userEvent.click(screen.getByTestId("back-button"));
-    expect(screen.getByText("Home screen")).toBeInTheDocument();
-  });
-
   it("tapping Revogar consentimento reveals the confirm step without changing state", async () => {
     renderYou();
     await userEvent.click(screen.getByRole("button", { name: "Revogar consentimento" }));

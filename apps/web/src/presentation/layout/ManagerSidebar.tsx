@@ -90,6 +90,14 @@ export function ManagerSidebar({ className = '' }: ManagerSidebarProps) {
         aria-label="Navegação do painel"
         className="flex flex-1 flex-col gap-1 overflow-y-auto px-2 py-4"
       >
+        <p
+          data-testid="manager-sidebar-caption"
+          className={`px-3 pb-2 font-mono text-eyebrow text-muted uppercase ${
+            collapsed ? 'sr-only' : 'sr-only lg:not-sr-only'
+          }`}
+        >
+          Painel do gestor
+        </p>
         {MANAGER_PRIMARY_NAV.map((item) => (
           <Item
             key={item.id}

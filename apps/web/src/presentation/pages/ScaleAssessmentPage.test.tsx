@@ -70,7 +70,7 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     expect(screen.getByText(`1/${total}`)).toBeInTheDocument();
   });
 
-  it('auto-advances on selection; back steps to the previous question, then to the selector', async () => {
+  it('auto-advances on selection, with no way back to the previous question', async () => {
     const user = userEvent.setup();
     renderScale(scale, path);
 
@@ -78,11 +78,8 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     expect(screen.getByText(scale.questions[1]!)).toBeInTheDocument();
     expect(screen.getByText(`2/${total}`)).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Voltar' }));
-    expect(screen.getByText(scale.questions[0]!)).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Voltar' }));
-    expect(screen.getByText('Assessment select screen')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Voltar' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('back-button')).not.toBeInTheDocument();
   });
 
   it("carries the scale's own score ceiling through to the result screen", async () => {
@@ -131,7 +128,6 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     expect(screen.queryByTestId('skeleton')).not.toBeInTheDocument();
 
     expect(screen.getByText('Enviando…')).toBeInTheDocument();
-    expect(screen.getByTestId('back-button')).toBeDisabled();
     expect(chosen.closest('[aria-busy]')).toHaveAttribute('aria-busy', 'true');
 
     resolve({ totalScore: 0, riskSignal: false, submissionSucceeded: true });
@@ -189,7 +185,6 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     );
     expect(alert.closest('[aria-busy]')).toBeNull();
     expect(screen.queryByText('Enviando…')).not.toBeInTheDocument();
-    expect(screen.getByTestId('back-button')).toBeEnabled();
 
     vi.spyOn(container.submitAssessmentUseCase, 'execute').mockResolvedValue({
       totalScore: 5,
@@ -203,28 +198,14 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     });
   });
 
-  it('drops the submit failure alert when the user steps back to another question', async () => {
-    vi.spyOn(container.submitAssessmentUseCase, 'execute').mockRejectedValueOnce(
-      new Error('offline'),
-    );
-    const user = userEvent.setup();
+  it('names the scale in the shared header rather than a hidden heading', () => {
     renderScale(scale, path);
-
-    for (let i = 0; i < total; i++) {
-      await user.click(screen.getByRole('button', { name: 'Nenhuma vez' }));
-    }
-    await screen.findByRole('alert');
-
-    await user.click(screen.getByRole('button', { name: 'Voltar' }));
-
-    expect(screen.getByText(scale.questions[total - 2]!)).toBeInTheDocument();
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(scale.type);
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
 
-  it('names the scale in a page heading for assistive technology', () => {
+  it('offers no back control at all, in the header or in the body', () => {
     renderScale(scale, path);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      `Autoavaliação ${scale.type}`,
-    );
+    expect(screen.queryByTestId('back-button')).not.toBeInTheDocument();
   });
 });

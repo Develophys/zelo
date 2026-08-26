@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { PrivacyBadge } from "./PrivacyBadge";
 import { SectionLabel } from "./SectionLabel";
 
@@ -22,6 +23,35 @@ describe("PrivacyBadge", () => {
   it("renders the inline variant without the chip background", () => {
     render(<PrivacyBadge variant="inline" />);
     expect(screen.getByTestId("privacy-badge")).not.toHaveClass("bg-surface-brand");
+  });
+});
+
+describe("PrivacyBadge as a control", () => {
+  it("stays a plain span when no handler is given", () => {
+    render(<PrivacyBadge />);
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.getByTestId("privacy-badge").tagName).toBe("SPAN");
+  });
+
+  it("becomes a labelled button when a handler is given", async () => {
+    const onClick = vi.fn();
+    render(<PrivacyBadge onClick={onClick} />);
+
+    const button = screen.getByRole("button", {
+      name: "Saiba mais sobre a criptografia AES-256",
+    });
+    await userEvent.click(button);
+
+    expect(onClick).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the chip look while giving the control a full touch target", () => {
+    render(<PrivacyBadge onClick={() => {}} />);
+    expect(screen.getByTestId("privacy-badge")).toHaveClass("min-h-11");
+    expect(screen.getByTestId("privacy-badge-chip")).toHaveClass(
+      "rounded-status",
+      "bg-surface-brand",
+    );
   });
 });
 

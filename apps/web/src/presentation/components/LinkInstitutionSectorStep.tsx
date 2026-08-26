@@ -3,7 +3,7 @@ import { LinkStepShell } from '@/presentation/components/LinkStepShell';
 
 type LinkInstitutionSectorStepProps = Pick<
   LinkInstitutionFlow,
-  'institutionName' | 'sectors' | 'sectorId' | 'onSectorSelect' | 'handleSectorSubmit' | 'goToCodeStep'
+  'institutionName' | 'sectors' | 'sectorId' | 'onSectorSelect' | 'handleSectorSubmit'
 >;
 
 export function LinkInstitutionSectorStep({
@@ -12,12 +12,9 @@ export function LinkInstitutionSectorStep({
   sectorId,
   onSectorSelect,
   handleSectorSubmit,
-  goToCodeStep,
 }: LinkInstitutionSectorStepProps) {
   return (
     <LinkStepShell
-      backLabel="Voltar"
-      onBack={goToCodeStep}
       title="Qual seu setor?"
       subtitle={`Vinculando a ${institutionName}.`}
       onSubmit={handleSectorSubmit}

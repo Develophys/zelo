@@ -13,7 +13,6 @@ import { ChatAlerts } from './ChatAlerts';
 import { ChatComposer } from './ChatComposer';
 import { ChatDisclaimerBanner } from './ChatDisclaimerBanner';
 import { ChatEmptyState } from './ChatEmptyState';
-import { ChatHeader } from './ChatHeader';
 import { ChatMessageBubble } from './ChatMessageBubble';
 import { CHAT_COLUMN } from './chat-column';
 
@@ -83,9 +82,8 @@ export function ChatPage() {
   const toggleTray = useCallback(() => setTrayCollapsed((previous) => !previous), []);
 
   return (
-    <PhoneShell nav bleed fill bg="canvas">
+    <PhoneShell nav bleed fill bg="canvas" headerColumn={CHAT_COLUMN}>
       <div className="flex min-h-0 flex-1 flex-col">
-        <ChatHeader />
         <ChatDisclaimerBanner />
 
         <div className="relative flex min-h-0 flex-1 flex-col">

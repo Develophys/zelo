@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { PhoneShell } from '@/presentation/layout/PhoneShell';
-import { BackButton } from '@/presentation/ui/BackButton';
 import { ProgressBar } from '@/presentation/ui/ProgressBar';
 import { WaveText } from '@/presentation/ui/WaveText';
 import { QuestionCard } from '@/presentation/components/QuestionCard';
@@ -25,15 +24,6 @@ export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
   const total = scale.questions.length;
   const isLast = questionIndex === total - 1;
   const question = scale.questions[questionIndex]!;
-
-  const handleBack = () => {
-    setSubmitError(false);
-    if (questionIndex === 0) {
-      navigate(routes.assessment);
-      return;
-    }
-    setQuestionIndex((index) => index - 1);
-  };
 
   const handleSelect = async (value: number) => {
     setSubmitError(false);
@@ -65,11 +55,8 @@ export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
 
   return (
     <PhoneShell centered>
-      <div className="pt-6 md:pt-10">
-        <h1 className="sr-only">Autoavaliação {scale.type}</h1>
-
+      <div className="md:pt-4">
         <div className="flex items-center gap-3">
-          <BackButton onClick={handleBack} disabled={isPending} />
           <div className="flex-1">
             <ProgressBar
               value={Math.round(((questionIndex + 1) / total) * 100)}

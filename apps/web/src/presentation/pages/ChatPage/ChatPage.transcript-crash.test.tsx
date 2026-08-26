@@ -41,7 +41,7 @@ describe('ChatPage transcript crash', () => {
     expect(screen.getByRole('button', { name: HANDOFF_LABEL })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Avaliar como estou' })).toBeInTheDocument();
     expect(screen.getByLabelText('Mensagem')).toBeInTheDocument();
-    expect(screen.getByTestId('chat-header')).toBeInTheDocument();
+    expect(screen.getByTestId('app-header')).toBeInTheDocument();
 
     log.mockRestore();
   });

@@ -239,3 +239,35 @@ describe('ManagerBottomNav', () => {
     expect(await axe(container, { rules: { region: { enabled: false } } })).toHaveNoViolations();
   });
 });
+
+describe('manager sidebar caption', () => {
+  it('names the panel once, under the logo, instead of on every page', () => {
+    mount(<ManagerSidebar />);
+    const caption = screen.getByTestId('manager-sidebar-caption');
+    const header = screen.getByTestId('manager-sidebar-header');
+
+    expect(caption).toHaveTextContent('Painel do gestor');
+    expect(header.compareDocumentPosition(caption) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('keeps the caption out of the logo block, which is capped at the shared header height', () => {
+    mount(<ManagerSidebar />);
+    const header = screen.getByTestId('manager-sidebar-header');
+    expect(header).not.toContainElement(screen.getByTestId('manager-sidebar-caption'));
+    expect(header.className).toContain('md:min-h-app-header');
+  });
+
+  it('leaves the caption to screen readers only while the rail is collapsed', () => {
+    useManagerPrefsStore.setState({ sidebarCollapsed: true });
+    mount(<ManagerSidebar />);
+    const caption = screen.getByTestId('manager-sidebar-caption');
+    expect(caption.className).toContain('sr-only');
+    expect(caption.className).not.toContain('lg:not-sr-only');
+  });
+
+  it('shows the caption once the sidebar is expanded', () => {
+    useManagerPrefsStore.setState({ sidebarCollapsed: false });
+    mount(<ManagerSidebar />);
+    expect(screen.getByTestId('manager-sidebar-caption').className).toContain('lg:not-sr-only');
+  });
+});

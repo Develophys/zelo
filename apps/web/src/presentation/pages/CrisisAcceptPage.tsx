@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { PhoneShell } from '@/presentation/layout/PhoneShell';
-import { BackButton } from '@/presentation/ui/BackButton';
 import { Button } from '@/presentation/ui/Button';
 import { Card } from '@/presentation/ui/Card';
 import { routes } from '@/presentation/lib/routes';
@@ -21,9 +20,7 @@ export function CrisisAcceptPage() {
 
   return (
     <PhoneShell centered>
-      <div className="flex min-h-full flex-col pt-7.5">
-        <BackButton label="Voltar" onClick={() => navigate(routes.crisis)} />
-        <h1 className="mb-2 mt-4 text-h1 text-ink">Vamos te direcionar</h1>
+      <div className="flex min-h-full flex-col">
 
         {!direction && (
           <>

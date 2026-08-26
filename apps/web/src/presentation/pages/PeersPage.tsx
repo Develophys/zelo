@@ -1,10 +1,7 @@
 import { Lock } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { PhoneShell } from '@/presentation/layout/PhoneShell';
-import { BackButton } from '@/presentation/ui/BackButton';
 import { Button } from '@/presentation/ui/Button';
-import { PrivacyBadge } from '@/presentation/ui/PrivacyBadge';
-import { ThemeSwitchButton } from '@/presentation/ui/ThemeSwitchButton';
 import { PeerChatRoom } from '@/presentation/components/PeerChatRoom';
 import { routes } from '@/presentation/lib/routes';
 import { useInstitutionLinkStore } from '@/stores/institution-link.store';
@@ -17,30 +14,16 @@ export function PeersPage() {
   const { state, specialty, messages, peerLeft, requestPeer, sendMessage, leave } =
     usePeerRequest();
 
-  const header = (
-    <div className="flex items-center justify-between">
-      <BackButton label="Início" onClick={() => navigate(routes.home)} />
-      <div className="flex flex-none items-center gap-1">
-        <ThemeSwitchButton />
-        <PrivacyBadge />
-      </div>
-    </div>
-  );
-
   if (!institutionId) {
     return (
-      <PhoneShell centered>
-        <div className="pt-6.5">
-          {header}
-          <h1 className="mt-4 text-h1 text-ink">Pares anônimos</h1>
-          <p className="mt-1 text-caption text-muted">
-            Vincule-se ao seu hospital para falar com um colega.
-          </p>
-          <div className="mt-5">
-            <Button variant="outline" onClick={() => navigate(routes.linkInstitution)}>
-              Vincular ao hospital
-            </Button>
-          </div>
+      <PhoneShell
+        centered
+        headerOverride={{ subtitle: 'Vincule-se ao seu hospital para falar com um colega.' }}
+      >
+        <div>
+          <Button variant="outline" onClick={() => navigate(routes.linkInstitution)}>
+            Vincular ao hospital
+          </Button>
 
           <div className="mt-6 flex items-center justify-center gap-1 rounded-card bg-surface-brand p-3.25">
             <Lock size={14} className="text-brand" />
@@ -55,13 +38,7 @@ export function PeersPage() {
 
   return (
     <PhoneShell centered>
-      <div className="pt-6.5">
-        {header}
-        <h1 className="mt-4 text-h1 text-ink">Pares anônimos</h1>
-        <p className="mt-1 text-caption text-muted">
-          Médicos treinados para ouvir. Nem você nem seu par veem a identidade um do outro.
-        </p>
-
+      <div>
         {state === 'idle' && (
           <div className="mt-5">
             <Button
