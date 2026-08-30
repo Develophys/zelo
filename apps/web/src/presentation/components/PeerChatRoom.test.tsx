@@ -18,6 +18,65 @@ describe("PeerChatRoom", () => {
     expect(screen.getByText("olá")).toBeInTheDocument();
   });
 
+  it("gives each side a distinct bubble rather than a bare left/right paragraph", () => {
+    render(
+      <PeerChatRoom
+        messages={[{ from: "me", text: "oi" }, { from: "peer", text: "olá" }]}
+        onSend={() => {}}
+        onLeave={() => {}}
+        peerLeft={false}
+      />,
+    );
+
+    expect(screen.getByTestId("peer-bubble-own")).toHaveTextContent("oi");
+    expect(screen.getByTestId("peer-bubble-other")).toHaveTextContent("olá");
+  });
+
+  it("announces an incoming peer message through a live region", () => {
+    const { rerender } = render(
+      <PeerChatRoom
+        messages={[{ from: "me", text: "oi" }]}
+        onSend={() => {}}
+        onLeave={() => {}}
+        peerLeft={false}
+      />,
+    );
+
+    const log = screen.getByRole("log");
+    expect(log).toHaveAttribute("aria-live", "polite");
+    expect(log).toHaveAccessibleName("Conversa com o colega");
+
+    rerender(
+      <PeerChatRoom
+        messages={[{ from: "me", text: "oi" }, { from: "peer", text: "olá" }]}
+        onSend={() => {}}
+        onLeave={() => {}}
+        peerLeft={false}
+      />,
+    );
+
+    expect(screen.getByRole("log")).toHaveTextContent("olá");
+  });
+
+  it("welcomes the pair before either has spoken, and steps aside once they have", () => {
+    const { rerender } = render(
+      <PeerChatRoom messages={[]} onSend={() => {}} onLeave={() => {}} peerLeft={false} />,
+    );
+
+    expect(screen.getByText("Vocês estão conectados.")).toBeInTheDocument();
+
+    rerender(
+      <PeerChatRoom
+        messages={[{ from: "me", text: "oi" }]}
+        onSend={() => {}}
+        onLeave={() => {}}
+        peerLeft={false}
+      />,
+    );
+
+    expect(screen.queryByText("Vocês estão conectados.")).not.toBeInTheDocument();
+  });
+
   it("calls onSend with the trimmed message and clears the input", async () => {
     const onSend = vi.fn();
     const user = userEvent.setup();
