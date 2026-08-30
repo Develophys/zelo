@@ -64,13 +64,18 @@ export function AppHeader({
         )}
         <div className="min-w-0">
           <h1 className="font-sans text-body-strong text-ink">{title}</h1>
-          <p
-            data-testid="app-header-subtitle"
-            className="min-w-0 truncate font-mono text-mono-data text-brand"
-            title={subtitle}
-          >
-            {subtitle}
-          </p>
+          {/* Rendered only when there is something to say: an empty paragraph
+              still occupies its line box and pushes the title off optical
+              centre on every route without a subtitle. */}
+          {subtitle && (
+            <p
+              data-testid="app-header-subtitle"
+              className="min-w-0 truncate font-mono text-mono-data text-brand"
+              title={subtitle}
+            >
+              {subtitle}
+            </p>
+          )}
         </div>
         <div className="ml-auto flex flex-none items-center gap-1">
           <ThemeSwitchButton />

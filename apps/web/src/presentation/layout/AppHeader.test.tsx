@@ -28,10 +28,12 @@ describe('AppHeader', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('omits the subtitle when the route has none', () => {
+  it('omits the subtitle element entirely when the route has none', () => {
     mount(routes.crisisConnect);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Falar com alguém');
-    expect(screen.getByTestId('app-header-subtitle')).toBeEmptyDOMElement();
+    // An empty paragraph still occupies its line box, which pushes the title off
+    // optical centre on every route without a subtitle.
+    expect(screen.queryByTestId('app-header-subtitle')).not.toBeInTheDocument();
   });
 
   it('carries no back button, on any route', () => {

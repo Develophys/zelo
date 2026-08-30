@@ -59,26 +59,39 @@ export function ManagerNotificationsPage() {
         {notifications.map((notification) => {
           const { evento, detalhe } = notificationCopy(notification);
           const unread = notification.readAt === null;
+          const rowClass = `flex w-full flex-col gap-2 rounded-card border px-cell-x py-cell-y text-left motion-safe:transition-colors motion-safe:duration-150 md:flex-row md:items-center md:justify-between ${
+            unread
+              ? "cursor-pointer border-warn bg-warn-bg/40 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
+              : "border-line bg-surface"
+          }`;
+
+          const body = (
+            <>
+              <span className="min-w-0">
+                <span className="block font-sans text-body-strong text-ink">{evento}</span>
+                <span className="block text-label text-muted">{detalhe}</span>
+              </span>
+              <span className="flex flex-none items-center gap-3">
+                <span className="font-mono text-mono-data text-muted-2">
+                  {new Date(notification.createdAt).toLocaleDateString("pt-BR", DATE_FORMAT)}
+                </span>
+                {unread ? <Pill tone="warning">Não lida</Pill> : <Pill tone="neutral">Lida</Pill>}
+              </span>
+            </>
+          );
+
           return (
             <li key={notification.id}>
-              <button
-                type="button"
-                onClick={() => unread && markRead(notification.id)}
-                className={`flex w-full flex-col gap-2 rounded-card border px-cell-x py-cell-y text-left motion-safe:transition-colors motion-safe:duration-150 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none md:flex-row md:items-center md:justify-between ${
-                  unread ? "border-warn bg-warn-bg/40 cursor-pointer" : "border-line bg-surface"
-                }`}
-              >
-                <span className="min-w-0">
-                  <span className="block font-sans text-body-strong text-ink">{evento}</span>
-                  <span className="block text-label text-muted">{detalhe}</span>
-                </span>
-                <span className="flex flex-none items-center gap-3">
-                  <span className="font-mono text-mono-data text-muted-2">
-                    {new Date(notification.createdAt).toLocaleDateString("pt-BR", DATE_FORMAT)}
-                  </span>
-                  {unread ? <Pill tone="warning">Não lida</Pill> : <Pill tone="neutral">Lida</Pill>}
-                </span>
-              </button>
+              {/* Only an unread row does anything, so only an unread row is a
+                  button. Leaving read ones focusable made a keyboard user tab
+                  through every archived notification to reach what is below. */}
+              {unread ? (
+                <button type="button" onClick={() => markRead(notification.id)} className={rowClass}>
+                  {body}
+                </button>
+              ) : (
+                <div className={rowClass}>{body}</div>
+              )}
             </li>
           );
         })}

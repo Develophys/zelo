@@ -99,11 +99,15 @@ describe("ManagerNotificationsPage", () => {
     renderPage();
 
     const unreadRow = await screen.findByRole("button", { name: /Paulo/ });
-    const readRow = screen.getByRole("button", { name: /Marta/ });
-
     expect(unreadRow).toHaveAccessibleName(/Não lida/);
-    expect(readRow).toHaveAccessibleName(/Lida/);
-    expect(readRow).not.toHaveAccessibleName(/Não lida/);
+
+    // A read row is no longer a button — it does nothing — so the guarantee is
+    // that its state still reaches assistive tech as text rather than only as a
+    // colour. The pill is inside the row and read in document order.
+    const readRow = screen.getByText(/Marta/).closest("li")!;
+    expect(readRow).toHaveTextContent(/(?<!Não )lida/i);
+    expect(readRow).not.toHaveTextContent(/Não lida/);
+    expect(within(readRow).queryByRole("button")).toBeNull();
   });
 
   it("marks a row read by clicking anywhere on it, not only a control", async () => {
@@ -211,5 +215,35 @@ describe("ManagerNotificationsPage", () => {
       expect(screen.getByText("Login screen")).toBeInTheDocument();
     });
     expect(useManagerSessionStore.getState().token).toBeNull();
+  });
+
+  it('leaves a read notification out of the tab order instead of offering a dead button', async () => {
+    vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
+      items: [READ],
+      nextCursor: null,
+      total: 1,
+    });
+    vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(0);
+
+    renderPage();
+    await screen.findByText("Lida");
+
+    // The row's onClick already no-ops once read; leaving it a <button> still
+    // makes a keyboard user tab through every archived notification.
+    expect(document.querySelectorAll("li button")).toHaveLength(0);
+  });
+
+  it('keeps an unread notification actionable', async () => {
+    vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
+      items: [UNREAD],
+      nextCursor: null,
+      total: 1,
+    });
+    vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(1);
+
+    renderPage();
+    await screen.findByText("Não lida");
+
+    expect(document.querySelectorAll("li button")).toHaveLength(1);
   });
 });

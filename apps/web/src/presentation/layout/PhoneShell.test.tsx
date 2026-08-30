@@ -231,4 +231,17 @@ describe("PhoneShell escape hatch", () => {
     await userEvent.click(screen.getByTestId("back-button"));
     expect(screen.getByText("Home screen")).toBeInTheDocument();
   });
+
+  it('hides the scrollbar only on phones, where the OS draws an overlay one anyway', () => {
+    render(
+      <MemoryRouter initialEntries={['/home']}>
+        <PhoneShell>content</PhoneShell>
+      </MemoryRouter>,
+    );
+
+    // On desktop the scrollbar is the only cue that a long page continues below.
+    const body = screen.getByTestId('phone-shell-body');
+    expect(body.className).toContain('max-md:no-scrollbar');
+    expect(body.className).not.toMatch(/(^|\s)no-scrollbar(\s|$)/);
+  });
 });

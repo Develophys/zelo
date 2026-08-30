@@ -69,7 +69,7 @@ export function PhoneShell({
       />
       <main
         data-testid="phone-shell-body"
-        className={`no-scrollbar ${
+        className={`max-md:no-scrollbar ${
           fill ? 'flex min-h-0 flex-1 flex-col overflow-hidden' : 'flex-1 overflow-y-auto pt-6'
         } ${bleed ? '' : 'px-6'} ${centered ? 'md:mx-auto md:w-full md:max-w-170' : ''}`}
       >
