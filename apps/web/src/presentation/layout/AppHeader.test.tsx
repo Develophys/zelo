@@ -6,11 +6,11 @@ import { AppHeader } from './AppHeader';
 import type { AppHeaderOverride } from './app-header-meta';
 import { routes } from '@/presentation/lib/routes';
 
-function mount(path: string, override?: AppHeaderOverride) {
+function mount(path: string, override?: AppHeaderOverride, chrome?: 'doctor' | 'manager') {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path="*" element={<AppHeader override={override} />} />
+        <Route path="*" element={<AppHeader override={override} chrome={chrome} />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -30,7 +30,7 @@ describe('AppHeader', () => {
 
   it('omits the subtitle when the route has none', () => {
     mount(routes.crisisConnect);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Vamos te direcionar');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Falar com alguém');
     expect(screen.getByTestId('app-header-subtitle')).toBeEmptyDOMElement();
   });
 
@@ -59,6 +59,19 @@ describe('AppHeader', () => {
     expect(
       screen.getByRole('button', { name: 'Saiba mais sobre a criptografia AES-256' }),
     ).toBeInTheDocument();
+  });
+
+  it('withholds the anonymity badge from the manager chrome, whose session is named', () => {
+    mount(routes.manager, undefined, 'manager');
+    expect(screen.queryByTestId('privacy-badge')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Saiba mais sobre a criptografia AES-256' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the theme switch in the manager chrome', () => {
+    mount(routes.manager, undefined, 'manager');
+    expect(screen.getByTestId('theme-switch')).toBeInTheDocument();
   });
 
   it('opens the encryption modal from the privacy badge', async () => {

@@ -15,8 +15,13 @@ import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 import { downloadPgrReportAsCsv, downloadPgrReportAsPdf } from "@/presentation/lib/download-manager-pgr-report";
 import { ArrowRight } from "lucide-react";
+import {
+  describeSegment,
+  describeTrendWeek,
+  toTrendBars,
+  weekLabel,
+} from "@/presentation/lib/manager-trend-chart";
 
-const MIN_TREND_BAR_HEIGHT = 8;
 const TREND_SKELETON_BAR_COUNT = 6;
 const SEGMENTS_SKELETON_ROW_COUNT = 3;
 
@@ -25,10 +30,6 @@ const DASHBOARD_DISCLOSURE =
 
 const INSIGHT_EMPTY_EXPLANATION =
   "Interpreta os indicadores agregados e anônimos desta página e sugere ações para a liderança, sem acesso a dados individuais de nenhum profissional.";
-
-function toTrendBarHeights(trend: { concerningRate: number }[]): number[] {
-  return trend.map((point) => Math.max(MIN_TREND_BAR_HEIGHT, Math.round(point.concerningRate * 100)));
-}
 
 function KpiCardSkeleton({ className = "" }: { className?: string }) {
   return (
@@ -133,8 +134,8 @@ export function ManagerDashboardPage() {
     }
   }, [isError, error, clearSession, navigate]);
 
-  const trend = data?.weeklyTrend ?? [];
-  const bars = toTrendBarHeights(trend);
+  const weeklyTrend = data?.weeklyTrend ?? [];
+  const bars = toTrendBars(weeklyTrend);
   const segments = data?.segments ?? [];
   const overallConcerningRate = data?.overallConcerningRate ?? 0;
   const checkInsLast4Weeks = data?.checkInsLast4Weeks ?? 0;
@@ -150,7 +151,7 @@ export function ManagerDashboardPage() {
 
       <p className="mt-3 max-w-[62ch] text-label text-muted">{DASHBOARD_DISCLOSURE}</p>
 
-      <div data-testid="kpi-grid" className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div data-testid="kpi-grid" className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {isLoading ? (
           <>
             <KpiCardSkeleton />
@@ -160,7 +161,10 @@ export function ManagerDashboardPage() {
         ) : (
           <>
             <Card className="h-full text-center" data-testid="kpi-card">
-              <p className="font-serif text-[30px] text-warn">{Math.round(overallConcerningRate * 100)}%</p>
+              {/* Deliberately not tone-coded. What counts as a concerning rate is
+                  an open product question (PRODUCT.md), and an unconditional
+                  amber reads as a warning even at 0%. */}
+              <p className="font-serif text-[30px] text-ink">{Math.round(overallConcerningRate * 100)}%</p>
               <p className="text-caption text-muted">sinais de burnout na equipe</p>
             </Card>
             <Card className="h-full text-center" data-testid="kpi-card">
@@ -185,9 +189,29 @@ export function ManagerDashboardPage() {
                 <CardTitle>Tendência geral</CardTitle>
                 <p className="font-mono text-[12px] text-muted-2">últimas 6 semanas</p>
               </div>
-              <div className="mt-auto flex h-14 items-end gap-2">
-                {bars.map((height, index) => (
-                  <div key={index} data-testid="trend-bar" className="w-full rounded-md bg-brand" style={{ height: `${height}%` }} />
+              <ul data-testid="trend-description" className="sr-only">
+                {weeklyTrend.map((point, index) => (
+                  <li key={index}>{describeTrendWeek(point, index, weeklyTrend.length - 1)}</li>
+                ))}
+              </ul>
+              <div className="mt-auto flex h-14 items-end gap-2" aria-hidden="true">
+                {bars.map((bar, index) => (
+                  <div
+                    key={index}
+                    data-testid="trend-bar"
+                    className={`w-full rounded-md ${bar.isZero ? "bg-track" : "bg-brand"}`}
+                    style={{ height: `${bar.height}%` }}
+                  />
+                ))}
+              </div>
+              <div className="mt-1.5 flex gap-2" aria-hidden="true">
+                {weeklyTrend.map((point, index) => (
+                  <span
+                    key={index}
+                    className="w-full truncate text-center font-mono text-[12px] text-muted-2"
+                  >
+                    {weekLabel(point.weekStart)}
+                  </span>
                 ))}
               </div>
             </Card>
@@ -199,13 +223,18 @@ export function ManagerDashboardPage() {
           ) : (
             <Card className="h-full" data-testid="manager-card">
               <CardTitle>Sinais por setor</CardTitle>
-              <div className="mt-3 flex flex-col gap-3">
+              <ul data-testid="segments-description" className="sr-only">
+                {segments.map((segment) => (
+                  <li key={segment.label}>{describeSegment(segment)}</li>
+                ))}
+              </ul>
+              <div className="mt-3 flex flex-col gap-3" aria-hidden="true">
                 {segments.map((segment) => (
                   <div key={segment.label}>
                     <div className="flex items-center justify-between text-label text-ink-2">
                       <span>{segment.label}</span>
                       <span className="font-mono text-[12px] text-muted-2">
-                        {segment.value}% · n={segment.n}
+                        {segment.value}% · {segment.n} {segment.n === 1 ? "resposta" : "respostas"}
                       </span>
                     </div>
                     <div className="mt-1 h-2 overflow-hidden rounded-pill bg-canvas-alt">

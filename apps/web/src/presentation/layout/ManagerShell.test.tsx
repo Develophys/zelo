@@ -38,6 +38,12 @@ describe('ManagerShell', () => {
     });
   });
 
+  it('does not tell a named manager they are anonymous', () => {
+    mount();
+    expect(screen.queryByTestId('privacy-badge')).not.toBeInTheDocument();
+    expect(screen.queryByText('anônimo')).not.toBeInTheDocument();
+  });
+
   it('renders the routed page inside a single main region', () => {
     mount();
     const main = screen.getByRole('main');
