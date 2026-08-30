@@ -8,7 +8,7 @@ Every claim below cites a file and line.
 
 **Legend.** A heading ending `— ✅ FIXED` is done and covered by tests. A ✅ *inside* a finding's body means that specific claim was independently re-verified when the critique was written — it marks a confirmed bug, not a completed fix.
 
-**Status:** P0 (items 1–3) is closed. P1 items 4, 5, 6, 7, 9, 10, 11 and 12 are closed; **item 8 is won't-fix by product decision**. P2 items 13 and 14 are closed. **Open: P2 items 15–17, and P3** (plus the route-announcement half of item 14). One part of item 7 is deliberately not done — see its entry.
+**Status:** P0 (items 1–3) is closed. P1 items 4, 5, 6, 7, 9, 10, 11 and 12 are closed; **item 8 is won't-fix by product decision**. P2 items 13, 14, 16 and 17 are closed. **Open: P2 item 15, and P3** (plus the route-announcement half of item 14). One part of item 7 is deliberately not done — see its entry.
 
 ---
 
@@ -252,13 +252,17 @@ A tired doctor has to *decide* before they can *act*.
 
 **Fix.** Promote `CheckInHeroCard` to first. Demote the institution-link nag to a dismissible strip or move it to `/you`.
 
-### 16. Native radios bypass the design system
+### 16. Native radios bypass the design system — ✅ FIXED
 
 `LinkInstitutionSectorStep.tsx:33-42` and `ManagerAdminManagersPage.tsx:55-77` render bare, unstyled `<input type="radio">` — 13px controls in ~36px rows — while `ui/Checkbox.tsx` and `components/settings/SegmentedField.tsx` show the team knows exactly how to build a token-driven control. There is no `Radio` primitive.
 
-**Fix.** Build `ui/Radio.tsx` mirroring `Checkbox.tsx`'s 20px box + `-inset-3` = 44px pattern, and adopt it in both flows.
+**Shipped.** `ui/Radio.tsx` is built the same way as `Checkbox`: a real `<input type="radio">` kept in the accessibility tree, with the visible dot drawn by a sibling reading state through `peer-*`, and `-inset-3` bleed turning a 20px control into a 44px target without growing the row. The dot is hidden by colour rather than its own `peer-*` class, for the reason `Checkbox` documents — `peer-*` compiles to a sibling selector and the dot is a descendant of the sibling, not a sibling itself.
 
-### 17. Other sub-44px hit targets
+Adopted at both bare call sites — `LinkInstitutionSectorStep` (sector choice) and `ManagerAdminManagersPage` (manager role) — whose rows also gained `min-h-11` and a real `<label>` wrapper.
+
+The four remaining `type="radio"` occurrences are intentional and were left alone: `QuestionCard`, `AccentField`, `SegmentedField` and `ThemeToggle` all use an `sr-only` native radio inside a custom-drawn control, which is the correct pattern, not the bare unstyled one this finding was about.
+
+### 17. Other sub-44px hit targets — ✅ FIXED
 
 | Location | Element | Computed |
 |---|---|---|
@@ -266,7 +270,7 @@ A tired doctor has to *decide* before they can *act*.
 | `pages/ManagerDashboardPage.tsx:228` | "Ver histórico" link | ~22px |
 | `pages/AdminInstitutionsPage.tsx:45-52` | logout button | ~21px |
 
-`IconButton.tsx:43-44` (32px box + `before:-inset-1.5` = 44px) and `Checkbox.tsx:24-28` (`-inset-3` = 44px) are the correct pattern — these three just don't use it.
+**Shipped.** All three now use the pattern `IconButton` and `Checkbox` already established. The toast dismiss keeps its 24px box and reaches 44px through `before:-inset-2.5`, so the toast does not grow. The two text links became inline-flex with `min-h-11`, and each gained a focus ring while it was being touched.
 
 ---
 

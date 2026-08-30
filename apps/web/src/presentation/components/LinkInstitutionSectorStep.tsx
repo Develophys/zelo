@@ -1,5 +1,6 @@
 import type { LinkInstitutionFlow } from '@/presentation/hooks/useLinkInstitutionFlow';
 import { LinkStepShell } from '@/presentation/components/LinkStepShell';
+import { Radio } from '@/presentation/ui/Radio';
 
 type LinkInstitutionSectorStepProps = Pick<
   LinkInstitutionFlow,
@@ -30,9 +31,11 @@ export function LinkInstitutionSectorStep({
       {!sectors.isLoading &&
         sectors.hasSectors &&
         sectors.list.map((sector) => (
-          <label key={sector.id} className="flex items-center gap-2 py-2 text-label text-ink-2">
-            <input
-              type="radio"
+          <label
+            key={sector.id}
+            className="flex min-h-11 cursor-pointer items-center gap-3 text-label text-ink-2"
+          >
+            <Radio
               name="sector"
               value={sector.id}
               checked={sectorId === sector.id}

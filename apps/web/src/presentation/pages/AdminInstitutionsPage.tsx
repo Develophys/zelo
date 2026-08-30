@@ -48,7 +48,7 @@ export function AdminInstitutionsPage() {
               clearSession();
               navigate(routes.adminLogin, { replace: true });
             }}
-            className="text-label font-bold text-danger"
+            className="inline-flex min-h-11 cursor-pointer items-center rounded-control text-label font-bold text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           >
             Sair
           </button>

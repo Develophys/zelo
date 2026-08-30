@@ -43,7 +43,7 @@ function ToastRow({ toast }: { toast: Toast }) {
         type="button"
         aria-label="Fechar aviso"
         onClick={() => dismiss(toast.id)}
-        className="-m-1 flex-none cursor-pointer rounded-control p-1 text-muted transition-colors hover:text-ink focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
+        className="relative -m-1 flex-none cursor-pointer rounded-control p-1 text-muted transition-colors before:absolute before:-inset-2.5 before:content-[''] hover:text-ink focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
       >
         <X size={16} aria-hidden="true" />
       </button>

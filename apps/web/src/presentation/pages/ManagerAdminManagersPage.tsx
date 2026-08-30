@@ -4,6 +4,7 @@ import { IconButton } from "@/presentation/ui/IconButton";
 import { Modal } from "@/presentation/ui/Modal";
 import { Pill } from "@/presentation/ui/Pill";
 import { SectorPillPicker } from "@/presentation/ui/SectorPillPicker";
+import { Radio } from "@/presentation/ui/Radio";
 import { TextField } from "@/presentation/ui/TextField";
 import { DataTable, type DataTableColumn } from "@/presentation/ui/DataTable/DataTable";
 import { DataTableEmpty } from "@/presentation/ui/DataTable/DataTableEmpty";
@@ -52,30 +53,30 @@ function RoleAndSectorFields({
       <fieldset className="mt-3">
         <legend className="text-label font-semibold text-ink-2">Tipo de gestor</legend>
         <div className="mt-2 flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <input
-              type="radio"
+          <label
+            htmlFor={`${idPrefix}-role-hospital-admin`}
+            className="flex min-h-11 cursor-pointer items-center gap-3 text-label text-ink-2"
+          >
+            <Radio
               id={`${idPrefix}-role-hospital-admin`}
               name={`${idPrefix}-manager-role`}
               checked={role === "HOSPITAL_ADMIN"}
               onChange={() => onRoleChange("HOSPITAL_ADMIN")}
             />
-            <label htmlFor={`${idPrefix}-role-hospital-admin`} className="text-label text-ink-2">
-              Gestor do hospital
-            </label>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="radio"
+            Gestor do hospital
+          </label>
+          <label
+            htmlFor={`${idPrefix}-role-sector-manager`}
+            className="flex min-h-11 cursor-pointer items-center gap-3 text-label text-ink-2"
+          >
+            <Radio
               id={`${idPrefix}-role-sector-manager`}
               name={`${idPrefix}-manager-role`}
               checked={role === "SECTOR_MANAGER"}
               onChange={() => onRoleChange("SECTOR_MANAGER")}
             />
-            <label htmlFor={`${idPrefix}-role-sector-manager`} className="text-label text-ink-2">
-              Gestor de setor
-            </label>
-          </div>
+            Gestor de setor
+          </label>
         </div>
       </fieldset>
 
