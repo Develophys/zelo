@@ -198,6 +198,73 @@ describe("HomePage", () => {
   });
 });
 
+describe("HomePage hierarchy", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useFollowUpStore.setState({ answer: null, answeredAt: null });
+    useInstitutionLinkStore.setState({
+      institutionId: null,
+      institutionName: null,
+      sectorId: null,
+      sectorName: null,
+      deviceSignalId: null,
+    });
+  });
+
+  function follows(earlier: HTMLElement, later: HTMLElement) {
+    return Boolean(
+      earlier.compareDocumentPosition(later) & Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  }
+
+  it("leads with the check-in, so a tired doctor acts before deciding", async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue(SIX_NULL_POINTS);
+    renderHome();
+
+    const checkIn = screen.getByRole("button", { name: "Fazer check-in" });
+    const chat = screen.getByRole("button", { name: /conversar agora/i });
+    const linkNag = screen.getByRole("button", { name: "Vincular agora" });
+
+    expect(follows(checkIn, chat)).toBe(true);
+    expect(follows(checkIn, linkNag)).toBe(true);
+  });
+
+  it("places a pending follow-up directly after the check-in", async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
+      { weekStart: OLD_ENOUGH_WEEK_START, severityFraction: 0.4 },
+    ]);
+    renderHome();
+
+    await screen.findByText("Como você está, um tempo depois?");
+    const checkIn = screen.getByRole("button", { name: "Fazer check-in" });
+    const followUp = screen.getByRole("button", { name: "Estou bem" });
+    const chat = screen.getByRole("button", { name: /conversar agora/i });
+
+    expect(follows(checkIn, followUp)).toBe(true);
+    expect(follows(followUp, chat)).toBe(true);
+  });
+
+  it("puts the ways to reach someone above the chart that merely reports", async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue(SIX_NULL_POINTS);
+    renderHome();
+
+    const peers = screen.getByRole("button", { name: /falar com um par/i });
+    const chart = await screen.findByText("Seu histórico");
+
+    expect(follows(peers, chart)).toBe(true);
+  });
+
+  it("demotes the hospital-link prompt below everything the doctor came for", async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue(SIX_NULL_POINTS);
+    renderHome();
+
+    const chart = await screen.findByText("Seu histórico");
+    const linkNag = screen.getByRole("button", { name: "Vincular agora" });
+
+    expect(follows(chart, linkNag)).toBe(true);
+  });
+});
+
 describe("HomePage manager entry point", () => {
   beforeEach(() => {
     localStorage.clear();

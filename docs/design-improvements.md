@@ -8,7 +8,7 @@ Every claim below cites a file and line.
 
 **Legend.** A heading ending `— ✅ FIXED` is done and covered by tests. A ✅ *inside* a finding's body means that specific claim was independently re-verified when the critique was written — it marks a confirmed bug, not a completed fix.
 
-**Status:** P0 (items 1–3) is closed. P1 items 4, 5, 6, 7, 9, 10, 11 and 12 are closed; **item 8 is won't-fix by product decision**. P2 items 13, 14, 16 and 17 are closed. **Open: P2 item 15, and P3** (plus the route-announcement half of item 14). One part of item 7 is deliberately not done — see its entry.
+**Status:** P0 (items 1–3) is closed. P1 items 4, 5, 6, 7, 9, 10, 11 and 12 are closed; **item 8 is won't-fix by product decision**. **P0, P1 and P2 are all closed** (item 8 won't-fix by product decision). **Open: P3**, plus the route-announcement half of item 14 and the bar-tone half of item 7. One part of item 7 is deliberately not done — see its entry.
 
 ---
 
@@ -203,7 +203,7 @@ Four tests, one per state plus the retry path.
 
 ---
 
-## P2 — Next pass.
+## P2 — Next pass. ✅ Fixed 2026-08-30.
 
 ### 13. `PeerChatRoom` is an unstyled prototype on the human-connection path — ✅ FIXED
 
@@ -244,13 +244,21 @@ The discriminator is `UIEvent.detail` — `0` for a keyboard-generated click, `>
 
 **Still open from this item: route-change announcements.** `index.html` has a static `<title>` no route updates, and `router.tsx` has no focus management, so a blind user who submits still gets no reliable notification that the page changed. That is app-wide work touching every route and interacting with the shared `AppHeader` h1, so it was deliberately kept out of this change rather than bolted on.
 
-### 15. `HomePage` has six competing CTAs and no primary
+### 15. `HomePage` has six competing CTAs and no primary — ✅ FIXED
 
 `HomePage.tsx:23-38` renders, in one scroll: FollowUpCard (2 buttons), InstitutionLinkCard (1 CTA), CheckInHeroCard (1 CTA), HistoryChartCard, and two quick-action cards. The brand-filled check-in hero — the app's actual primary action — is buried third, below a follow-up prompt and a "you're not linked to a hospital yet" nag.
 
 A tired doctor has to *decide* before they can *act*.
 
-**Fix.** Promote `CheckInHeroCard` to first. Demote the institution-link nag to a dismissible strip or move it to `/you`.
+**Shipped.** Reordered to: check-in hero, pending follow-up, the two ways to reach a person, the history chart, the hospital-link prompt.
+
+The first two were a product call: the check-in is always primary, and a pending follow-up sits directly with it because it is the same question asked later. The rest follows from what each element is for — the quick actions are *actions*, and nobody in distress should have to scroll past a chart to find "Falar com um par"; the chart only reports, so it drops below them; and the hospital-link prompt is last, because it is housekeeping that serves the institution's aggregate rather than the reason this person opened the app.
+
+`CheckInHeroCard` lost its `mt-5` now that it leads, and the rhythm below it is uniform.
+
+Four tests hold the order as DOM position rather than as a snapshot, so a future card cannot quietly slot in above the check-in.
+
+**Not done: making the link prompt dismissible.** The finding offered that as an alternative to demoting it. It is a persistent nag that reappears on every visit until the user links, and dismissal would need a store plus persistence — a feature rather than a reorder. Demoting it fixes the hierarchy problem this item is about; dismissal is worth considering separately.
 
 ### 16. Native radios bypass the design system — ✅ FIXED
 
