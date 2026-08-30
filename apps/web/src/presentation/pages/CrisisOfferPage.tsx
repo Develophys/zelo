@@ -4,6 +4,7 @@ import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { Button } from "@/presentation/ui/Button";
 import { Card } from "@/presentation/ui/Card";
 import { IconBadge } from "@/presentation/ui/IconBadge";
+import { CrisisCallLink } from "@/presentation/components/CrisisCallLink";
 import { getCrisisLine } from "@/presentation/lib/crisis-line";
 import { routes } from "@/presentation/lib/routes";
 
@@ -14,8 +15,9 @@ export function CrisisOfferPage() {
   return (
     <PhoneShell bottomNav centered>
       <div className="flex min-h-full flex-col gap-3">
-        <IconBadge icon={HeartHandshake} size={60} />
-        <p className="mt-2 text-body text-muted">
+        <IconBadge icon={HeartHandshake} size={38} />
+        <h2 className="mt-2 font-serif text-h2 text-ink">Você não está sozinho(a).</h2>
+        <p className="text-body text-muted">
           A escolha é sempre sua. Você prefere falar com uma pessoa de verdade agora?
         </p>
 
@@ -28,15 +30,18 @@ export function CrisisOfferPage() {
           </Button>
         </div>
 
-        <div className="flex-1" />
+        <div className="mt-6">
+          <Card tone="brand-tint">
+            <p className="font-mono text-eyebrow uppercase text-brand">sempre disponível</p>
+            <p className="mt-1 text-caption text-muted">Ligação gratuita e sigilosa, 24h.</p>
+            <CrisisCallLink
+              line={line}
+              className="mt-3 w-full justify-center border border-fill-edge bg-brand-fill text-on-fill"
+            />
+          </Card>
+        </div>
 
-        <Card tone="brand-tint">
-          <p className="font-mono text-eyebrow uppercase text-brand">sempre disponível</p>
-          <p className="mt-1 text-body font-extrabold text-ink">
-            {line.label} · {line.phone}
-          </p>
-          <p className="text-caption text-muted">Ligação gratuita e sigilosa, 24h.</p>
-        </Card>
+        <div data-testid="crisis-offer-spacer" className="flex-1" />
       </div>
     </PhoneShell>
   );

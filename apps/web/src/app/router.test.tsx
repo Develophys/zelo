@@ -91,7 +91,9 @@ describe("onboarding router flow", () => {
 
     expect(await screen.findByRole("button", { name: "Agora não" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Agora não" }));
-    expect(await screen.findByText("Tudo bem. A escolha é sua.")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { level: 2, name: "Tudo bem. A escolha é sua." }),
+    ).toBeInTheDocument();
   });
 
   it("Home's quick action reaches Peers", async () => {
@@ -110,6 +112,13 @@ describe("onboarding router flow", () => {
 
     await user.click(await screen.findByRole("button", { name: "Mais opções" }));
     await user.click(await screen.findByRole("menuitem", { name: "Administração" }));
+    expect(await screen.findByText("Acesso do gestor")).toBeInTheDocument();
+  });
+
+  it("the manager login screen is still reachable by its own route", async () => {
+    useConsentStore.setState({ hasConsented: true, consentedAt: "2026-01-01T00:00:00.000Z" });
+    buildTestRouter("/manager/login");
+
     expect(await screen.findByText("Acesso do gestor")).toBeInTheDocument();
   });
 

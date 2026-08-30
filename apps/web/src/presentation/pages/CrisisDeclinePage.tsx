@@ -12,6 +12,7 @@ export function CrisisDeclinePage() {
   return (
     <PhoneShell bottomNav centered>
       <div className="flex min-h-full flex-col gap-3">
+        <h2 className="font-serif text-h2 text-ink">Tudo bem. A escolha é sua.</h2>
         <p className="text-body text-muted">
           A oferta continua aberta a qualquer momento — sem pressa e sem penalidade.
         </p>

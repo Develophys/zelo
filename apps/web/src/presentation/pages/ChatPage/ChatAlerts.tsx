@@ -1,7 +1,8 @@
-import { RotateCw, Phone, Wifi, WifiOff } from 'lucide-react';
+import { RotateCw, Wifi, WifiOff } from 'lucide-react';
 import { memo } from 'react';
 import { Button } from '@/presentation/ui/Button';
-import { getCrisisLine, type CrisisLine } from '@/presentation/lib/crisis-line';
+import { CrisisCallLink } from '@/presentation/components/CrisisCallLink';
+import { getCrisisLine } from '@/presentation/lib/crisis-line';
 import type { ChatStreamError } from '@/presentation/hooks/useChatConversation';
 
 interface ChatAlertsProps {
@@ -9,18 +10,6 @@ interface ChatAlertsProps {
   crisisFallback: boolean;
   isOnline: boolean;
   onRetry: () => void;
-}
-
-function CrisisCallLink({ line, className }: { line: CrisisLine; className: string }) {
-  return (
-    <a
-      href={line.telHref}
-      className={`inline-flex min-h-11 items-center gap-1.5 rounded-control px-4 text-label font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${className}`}
-    >
-      <Phone size={15} className="shrink-0" />
-      Ligar para o {line.label} · {line.phone}
-    </a>
-  );
 }
 
 export const ChatAlerts = memo(function ChatAlerts({

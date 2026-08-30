@@ -17,9 +17,12 @@ export const APP_HEADER_META: Record<string, AppHeaderMeta> = {
   [routes.phq9]: { title: 'PHQ-9', subtitle: 'Humor e sinais de depressão' },
   [routes.gad7]: { title: 'GAD-7', subtitle: 'Ansiedade' },
   [routes.result]: { title: 'Resultado' },
-  [routes.crisis]: { title: 'Você não está sozinho(a).' },
-  [routes.crisisConnect]: { title: 'Vamos te direcionar' },
-  [routes.crisisLine]: { title: 'Tudo bem. A escolha é sua.' },
+  // Neutral labels on purpose. The header renders its title at 15px sans beside
+  // a theme toggle; an emotional headline squeezed into that slot reads as
+  // chrome. Each crisis screen owns its own serif headline in the body instead.
+  [routes.crisis]: { title: 'Apoio' },
+  [routes.crisisConnect]: { title: 'Falar com alguém' },
+  [routes.crisisLine]: { title: 'Linha de crise' },
   [routes.peers]: {
     title: 'Pares anônimos',
     subtitle: 'Médicos treinados para ouvir. Nem você nem seu par veem a identidade um do outro.',
