@@ -78,7 +78,7 @@ describe("HomePage", () => {
   });
 
   it.each([
-    [3, "Boa noite."], // plantão noturno — the greeting should meet a 3am check-in too
+    [3, "Boa madrugada."], // plantão noturno — 3am is mid-shift, not a late night
     [9, "Bom dia."],
     [15, "Boa tarde."],
     [21, "Boa noite."],
@@ -114,8 +114,8 @@ describe("HomePage", () => {
     renderHome();
     // The 6 history-bar elements exist from the very first render (via the EMPTY_POINTS
     // fallback), so findAllByTestId's existence check alone would race the async query
-    // resolution — wait for the resolved (non-neutral) class instead, as HealthBanner.test.tsx
-    // does for the same useQuery-resolution race.
+    // resolution — wait for the resolved (non-neutral) class instead, to avoid the
+    // same useQuery-resolution race.
     await waitFor(() => {
       expect(screen.getAllByTestId("history-bar").filter((bar) => bar.className.includes("bg-warn"))).toHaveLength(
         1,

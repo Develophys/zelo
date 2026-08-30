@@ -302,8 +302,8 @@ export function ManagerAdminSectorsPage() {
             <DataTableError message="Não foi possível carregar os setores." onRetry={() => sectorsQuery.refetch()} />
           ) : debouncedSearch.trim().length > 0 ? (
             <DataTableEmpty
-              title="Nenhum resultado nos itens carregados"
-              hint="A busca ainda percorre apenas a lista já carregada."
+              title="Nada encontrado para esta busca"
+              hint="Tente outro termo ou revise a ortografia."
             />
           ) : (
             <DataTableEmpty title="Nenhum setor cadastrado." hint="Adicione o primeiro para começar a acompanhar." />

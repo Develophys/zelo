@@ -216,8 +216,8 @@ export function ManagerAdminPeersPage() {
             <DataTableError message="Não foi possível carregar os pares." onRetry={() => peerPartners.refetch()} />
           ) : debouncedSearch.trim().length > 0 ? (
             <DataTableEmpty
-              title="Nenhum resultado nos itens carregados"
-              hint="A busca ainda percorre apenas a lista já carregada."
+              title="Nada encontrado para esta busca"
+              hint="Tente outro termo ou revise a ortografia."
             />
           ) : (
             <DataTableEmpty
