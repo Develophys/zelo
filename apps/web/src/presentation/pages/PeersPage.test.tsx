@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { PeersPage } from "./PeersPage";
@@ -97,5 +97,65 @@ describe("PeersPage", () => {
   it("shows the mutual-anonymity guarantee regardless of state", () => {
     renderPeers();
     expect(screen.getByText("conexão sem troca de identidade")).toBeInTheDocument();
+  });
+
+  it("keeps the crisis line reachable on this screen, in every state", async () => {
+    useInstitutionLinkStore.setState({ institutionId: "institution-1", institutionName: "Hospital Teste", sectorId: "sector-1", sectorName: "UTI", deviceSignalId: "device-1" });
+    const user = userEvent.setup();
+    renderPeers();
+
+    expect(screen.getByRole("link", { name: /Ligar para o CVV/ })).toHaveAttribute(
+      "href",
+      "tel:188",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Falar com um colega" }));
+    expect(screen.getByRole("link", { name: /Ligar para o CVV/ })).toHaveAttribute(
+      "href",
+      "tel:188",
+    );
+  });
+
+  it("offers the crisis line as an action when no colleague could be found", async () => {
+    useInstitutionLinkStore.setState({ institutionId: "institution-1", institutionName: "Hospital Teste", sectorId: "sector-1", sectorName: "UTI", deviceSignalId: "device-1" });
+    const user = userEvent.setup();
+    renderPeers();
+    await user.click(screen.getByRole("button", { name: "Falar com um colega" }));
+
+    handlers["no_peer_available"]!();
+
+    // The person asked for a human and got none, so the fallback human channel
+    // belongs with the retry, not only in the page footer.
+    const actions = await screen.findByTestId("no-peer-actions");
+    expect(within(actions).getByRole("link", { name: /Ligar para o CVV/ })).toBeInTheDocument();
+    expect(within(actions).getByRole("button", { name: "Tentar novamente" })).toBeInTheDocument();
+  });
+
+  it("says when the search is taking longer than usual, without giving up on it", async () => {
+    useInstitutionLinkStore.setState({ institutionId: "institution-1", institutionName: "Hospital Teste", sectorId: "sector-1", sectorName: "UTI", deviceSignalId: "device-1" });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      renderPeers();
+      await user.click(screen.getByRole("button", { name: "Falar com um colega" }));
+
+      expect(screen.queryByText(/demorando mais que o normal/i)).not.toBeInTheDocument();
+
+      await act(async () => {
+        vi.advanceTimersByTime(15_000);
+      });
+
+      expect(screen.getByText(/demorando mais que o normal/i)).toBeInTheDocument();
+      // Still searching: the message informs, it does not give up for the user.
+      expect(screen.getByRole("button", { name: /Procurando um colega/ })).toBeDisabled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("states the mutual-anonymity guarantee once, not once per branch", () => {
+    useInstitutionLinkStore.setState({ institutionId: "institution-1", institutionName: "Hospital Teste", sectorId: "sector-1", sectorName: "UTI", deviceSignalId: "device-1" });
+    renderPeers();
+    expect(screen.getAllByText("conexão sem troca de identidade")).toHaveLength(1);
   });
 });
