@@ -8,7 +8,7 @@ Every claim below cites a file and line.
 
 **Legend.** A heading ending `— ✅ FIXED` is done and covered by tests. A ✅ *inside* a finding's body means that specific claim was independently re-verified when the critique was written — it marks a confirmed bug, not a completed fix.
 
-**Status:** P0 (items 1–3) is closed. P1 items 4, 5, 6, 7, 9, 10, 11 and 12 are closed; **item 8 is won't-fix by product decision**. P2 item 13 is closed. **Open: P2 items 14–17, and P3.** One part of item 7 is deliberately not done — see its entry.
+**Status:** P0 (items 1–3) is closed. P1 items 4, 5, 6, 7, 9, 10, 11 and 12 are closed; **item 8 is won't-fix by product decision**. P2 items 13 and 14 are closed. **Open: P2 items 15–17, and P3** (plus the route-announcement half of item 14). One part of item 7 is deliberately not done — see its entry.
 
 ---
 
@@ -226,13 +226,23 @@ Two small primitives instead, both used by both surfaces:
 - *Typing indicator.* Needs a "peer is typing" socket event that does not exist server-side.
 - *The `rounded-[20px]` hardcode* (P3) that bypasses the `data-corners` preference. It moved verbatim into `ui/message-bubble.ts`; changing it now would alter the AI chat's appearance, which was not in scope. It is still worth fixing, and is now fixable in one place for both surfaces.
 
-### 14. Assessment options are buttons, not a radiogroup
+### 14. Assessment options are buttons, not a radiogroup — ✅ FIXED (radiogroup; route announcements still open)
 
 `QuestionCard.tsx:30` renders `<button aria-pressed>`, so VoiceOver announces "botão, pressionado" for a 4-point Likert scale — no "1 de 4", no group name, no sense that the options are mutually exclusive. After selection, focus is destroyed with the button and lands nowhere.
 
 Compounding it: there is no route-change announcement anywhere in the app. `index.html:9` is a static `<title>Zelo</title>` and no route updates it; there is no `ScrollRestoration` or focus hook in `router.tsx`. A blind user submits item 9 and has no reliable notification that they are on a different page.
 
-**Fix.** Convert to a real `radiogroup` with roving tabindex. Add per-route titles and a focus-to-`<h1>` on navigation.
+**Shipped.** `QuestionCard` is now a `radiogroup` mirroring the pattern `SegmentedField` already established here — a labelled group of `sr-only` native radios inside styled `<label>`s — so the semantics come from the platform rather than a hand-rolled roving tabindex. VoiceOver announces "1 de 4", the group name and mutual exclusivity instead of "botão, pressionado".
+
+**The hazard this uncovered, which the finding did not mention.** Selecting auto-advances. Native radios select on arrow key — and keyboard selection runs a radio's *full activation behavior*, so arrow keys fire `click` too, not just `change`. Wiring advance to `click` naively would have thrown a keyboard user to the next question the moment they pressed ArrowDown to explore the scale, on an instrument whose last item asks about self-harm. That is worse than the bug being fixed. A test caught it: the first implementation failed `'lets the keyboard explore the scale without being thrown to the next question'`.
+
+The discriminator is `UIEvent.detail` — `0` for a keyboard-generated click, `>=1` for a real pointer. So:
+
+- `onChange` records the answer. Every keyboard path lands here and the screen stays put.
+- `onClick` advances only when `detail > 0`. The one-tap pointer path is unchanged.
+- A "Próxima" button renders **only when an answer already exists** for the current question. A pointer user on a fresh question never sees it, because tapping advances first. A keyboard user sees it the moment they choose. Anyone returning from the review to an answered question sees it too — closing a real gap, since previously the only way onward was to re-tap an answer you already agreed with. On the last item it reads "Revisar respostas", naming where it actually goes.
+
+**Still open from this item: route-change announcements.** `index.html` has a static `<title>` no route updates, and `router.tsx` has no focus management, so a blind user who submits still gets no reliable notification that the page changed. That is app-wide work touching every route and interacting with the shared `AppHeader` h1, so it was deliberately kept out of this change rather than bolted on.
 
 ### 15. `HomePage` has six competing CTAs and no primary
 

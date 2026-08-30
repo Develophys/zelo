@@ -75,7 +75,7 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     const user = userEvent.setup();
     renderScale(scale, path);
 
-    await user.click(screen.getByRole('button', { name: 'Nenhuma vez' }));
+    await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
     expect(screen.getByText(scale.questions[1]!)).toBeInTheDocument();
     expect(screen.getByText(`2/${total}`)).toBeInTheDocument();
   });
@@ -84,29 +84,26 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     const user = userEvent.setup();
     renderScale(scale, path);
 
-    await user.click(screen.getByRole('button', { name: 'Vários dias' }));
+    await user.click(screen.getByRole('radio', { name: 'Vários dias' }));
     expect(screen.getByText(scale.questions[1]!)).toBeInTheDocument();
 
     await user.click(screen.getByTestId('question-back'));
 
     expect(screen.getByText(scale.questions[0]!)).toBeInTheDocument();
     expect(screen.getByText(`1/${total}`)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Vários dias' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(screen.getByRole('radio', { name: 'Vários dias' })).toBeChecked();
   });
 
   it('records a changed answer instead of the one first tapped', async () => {
     const user = userEvent.setup();
     renderScale(scale, path);
 
-    await user.click(screen.getByRole('button', { name: 'Quase todos os dias' }));
+    await user.click(screen.getByRole('radio', { name: 'Quase todos os dias' }));
     await user.click(screen.getByTestId('question-back'));
-    await user.click(screen.getByRole('button', { name: 'Nenhuma vez' }));
+    await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
 
     for (let i = 1; i < total; i++) {
-      await user.click(screen.getByRole('button', { name: 'Nenhuma vez' }));
+      await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
     }
     await user.click(screen.getByRole('button', { name: 'Enviar respostas' }));
 
@@ -128,7 +125,7 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     renderScale(scale, path);
 
     for (let i = 0; i < total; i++) {
-      await user.click(screen.getByRole('button', { name: 'Nenhuma vez' }));
+      await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
     }
     await user.click(screen.getByRole('button', { name: 'Enviar respostas' }));
 
@@ -147,7 +144,7 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     renderScale(scale, path);
 
     for (let i = 0; i < total; i++) {
-      await user.click(screen.getByRole('button', { name: 'Nenhuma vez' }));
+      await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
     }
 
     expect(container.submitAssessmentUseCase.execute).not.toHaveBeenCalled();
@@ -162,16 +159,13 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     renderScale(scale, path);
 
     for (let i = 0; i < total; i++) {
-      await user.click(screen.getByRole('button', { name: 'Nenhuma vez' }));
+      await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
     }
 
     await user.click(screen.getByTestId('review-edit-0'));
 
     expect(screen.getByText(`1/${total}`)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Nenhuma vez' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(screen.getByRole('radio', { name: 'Nenhuma vez' })).toBeChecked();
   });
 
   it('announces each question change to assistive technology', async () => {
@@ -181,7 +175,7 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     const status = screen.getByRole('status');
     expect(status).toHaveTextContent(`Pergunta 1 de ${total}: ${scale.questions[0]}`);
 
-    await user.click(screen.getByRole('button', { name: 'Nenhuma vez' }));
+    await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
     expect(status).toHaveTextContent(`Pergunta 2 de ${total}: ${scale.questions[1]}`);
   });
 
@@ -191,7 +185,7 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     renderScale(scale, path);
 
     for (let i = 0; i < total; i++) {
-      await user.click(screen.getByRole('button', { name: 'Nenhuma vez' }));
+      await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
     }
     const submit = screen.getByRole('button', { name: 'Enviar respostas' });
     await user.click(submit);
@@ -215,7 +209,7 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     renderScale(scale, path);
 
     for (let i = 0; i < total; i++) {
-      await user.click(screen.getByRole('button', { name: 'Nenhuma vez' }));
+      await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
     }
     await user.click(screen.getByRole('button', { name: 'Enviar respostas' }));
 
@@ -228,7 +222,7 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     renderScale(scale, path);
 
     for (let i = 0; i < total; i++) {
-      await user.click(screen.getByRole('button', { name: 'Nenhuma vez' }));
+      await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
     }
 
     const submit = screen.getByRole('button', { name: 'Enviar respostas' });
@@ -250,7 +244,7 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     renderScale(scale, path);
 
     for (let i = 0; i < total; i++) {
-      await user.click(screen.getByRole('button', { name: 'Nenhuma vez' }));
+      await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
     }
     await user.click(screen.getByRole('button', { name: 'Enviar respostas' }));
 
@@ -287,7 +281,7 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     const user = userEvent.setup();
     renderScale(scale, path);
 
-    await user.click(screen.getByRole('button', { name: 'Nenhuma vez' }));
+    await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
     expect(screen.getByText(scale.questions[1]!)).toBeInTheDocument();
 
     await user.click(screen.getByTestId('back-button'));

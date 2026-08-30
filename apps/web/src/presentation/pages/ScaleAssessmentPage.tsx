@@ -30,13 +30,17 @@ export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
   const isReview = questionIndex === total;
   const question = scale.questions[questionIndex];
 
-  const handleSelect = (value: number) => {
+  const recordAnswer = (value: number) => {
     setSubmitError(false);
     setAnswers((current) => {
       const next = [...current];
       next[questionIndex] = value;
       return next;
     });
+  };
+
+  const commitAnswer = (value: number) => {
+    recordAnswer(value);
     setQuestionIndex((index) => index + 1);
   };
 
@@ -114,7 +118,9 @@ export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
               question={question!}
               options={scale.options}
               selected={answers[questionIndex]}
-              onSelect={handleSelect}
+              onSelect={recordAnswer}
+              onCommit={commitAnswer}
+              advanceLabel={questionIndex === total - 1 ? 'Revisar respostas' : 'Próxima'}
               disabled={isPending}
             />
           )}
