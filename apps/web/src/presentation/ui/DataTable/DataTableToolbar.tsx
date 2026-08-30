@@ -52,7 +52,7 @@ export function DataTableToolbar<T>({
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder="Buscar…"
-            className="min-w-0 flex-1 bg-transparent py-control-y text-label text-ink placeholder:text-muted focus-visible:outline-none"
+            className="min-h-11 min-w-0 flex-1 rounded-control bg-transparent px-1 py-control-y text-label text-ink placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           />
         </label>
       )}

@@ -33,12 +33,15 @@ export function AssessmentSelectPage() {
             <ArrowRight size={18} className="flex-none text-brand md:self-end" />
           </CardButton>
 
-          <div className="flex items-center justify-between rounded-card bg-canvas-alt p-4.5 opacity-70 md:col-span-2 md:p-6">
+          {/* Recessed with muted tokens rather than opacity: opacity composites
+              the whole subtree, which drops this card's text to ~2.5:1 and is
+              invisible to any token-level contrast test. */}
+          <div className="flex items-center justify-between rounded-card bg-canvas-alt p-4.5 md:col-span-2 md:p-6">
             <div>
               <p className="text-body font-extrabold text-muted">MBI-HSS</p>
               <p className="text-caption text-muted">Burnout ocupacional</p>
             </div>
-            <span className="rounded-status bg-line px-3 py-1 font-mono text-[11px] text-muted-2">
+            <span className="rounded-status bg-line px-3 py-1 font-mono text-eyebrow text-ink-2">
               em breve
             </span>
           </div>
