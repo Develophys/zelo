@@ -85,6 +85,8 @@
   --text-label--line-height: 1.45;
   --text-body: 15px;
   --text-body--line-height: 1.55;
+  --text-card-title: 18px;
+  --text-card-title--line-height: 1.35;
   --text-h2: 24px;
   --text-h2--line-height: 1.3;
   --text-h1: 28px;
@@ -114,6 +116,9 @@
   --radius-card: 10px;
   --radius-card-lg: 14px;
   --radius-icon: 8px;
+  /* Chat bubbles are their own shape — rounder than a card by design — but they
+     still belong to the corner scale, so the preference below moves them. */
+  --radius-bubble: 20px;
   --radius-pill: 999px;
 
   /* Density is a runtime choice, so these resolve through custom properties the
@@ -278,6 +283,7 @@ html[data-corners='rounded'] {
   --radius-card: 18px;
   --radius-card-lg: 22px;
   --radius-icon: 12px;
+  --radius-bubble: 28px;
 }
 
 /* Tablet/desktop type scale (design-tokens.md §2) — overrides the same custom

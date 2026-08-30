@@ -79,7 +79,7 @@ describe("ManagerDashboardPage", () => {
     for (const name of ["Tendência geral", "Sinais por setor", "Análise com IA", "Insumo para o PGR"]) {
       const heading = screen.getByRole("heading", { level: 2, name });
       expect(heading.className).toContain("font-serif");
-      expect(heading.className).toContain("text-lg");
+      expect(heading.className).toContain("text-card-title");
       expect(heading.className).toContain("text-ink");
     }
   });
