@@ -5,13 +5,22 @@ interface BackButtonProps {
   onClick: () => void;
   disabled?: boolean;
   className?: string;
+  // Screens that carry both the header's escape hatch and their own step-back
+  // control name the second one, so neither queries nor tests can conflate them.
+  testId?: string;
 }
 
-export function BackButton({ label, onClick, disabled = false, className = '' }: BackButtonProps) {
+export function BackButton({
+  label,
+  onClick,
+  disabled = false,
+  className = '',
+  testId = 'back-button',
+}: BackButtonProps) {
   return (
     <button
       type="button"
-      data-testid="back-button"
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       aria-label={label ? undefined : 'Voltar'}
