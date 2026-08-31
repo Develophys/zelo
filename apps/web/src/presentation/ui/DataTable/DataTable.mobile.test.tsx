@@ -85,4 +85,5 @@ describe('DataTable mobile fallback', () => {
     expect(shell.className).toContain('rounded-card');
     expect(shell.className).toContain('border-line');
   });
+
 });

@@ -165,13 +165,17 @@ describe('DataTable', () => {
   // pixels; it verifies the structural invariants that guarantee them: a
   // fixed (not floored) height on an unconditional wrapper, and a
   // non-wrapping actions row so overflow scrolls instead of growing the row.
-  it('keeps the toolbar row at the same fixed height when a selection appears', async () => {
+  it('keeps the toolbar row at the same capped height from md up when a selection appears', async () => {
     const user = userEvent.setup();
     render(<Harness />);
     const toolbar = screen.getByTestId('data-table-toolbar');
     const classNameBeforeSelection = toolbar.className;
     expect(classNameBeforeSelection).toContain('h-14');
-    expect(classNameBeforeSelection).not.toContain('min-h-14');
+    // The height is still capped, not floored — see d6d8015. That decision is
+    // now scoped to md and up: below it the row is allowed to grow so the bulk
+    // actions can take their own line rather than hide behind a scroll.
+    expect(classNameBeforeSelection).not.toMatch(/(^|\s)min-h-14/);
+    expect(classNameBeforeSelection).toContain('max-md:min-h-14');
 
     await user.click(screen.getByRole('checkbox', { name: 'Selecionar Ana' }));
 
