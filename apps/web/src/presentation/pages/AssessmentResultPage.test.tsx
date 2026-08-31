@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { AssessmentResultPage } from "./AssessmentResultPage";
@@ -66,5 +66,41 @@ describe("AssessmentResultPage", () => {
     await user.click(screen.getByRole("button", { name: "Fechar" }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("says what the band means instead of leaving the label to be recalled", () => {
+    renderResult({ scaleType: "PHQ-9", totalScore: 12, max: 27, riskSignal: false });
+    expect(screen.getByTestId("band-meaning")).toHaveTextContent(/sinais moderados/i);
+  });
+
+  it("offers support on a severe score even when item 9 was not ticked", () => {
+    // riskSignal is PHQ-9 item 9 only, by design. Without this, 24/27 and 3/27
+    // render the same screen: a number and a link to the AI chat.
+    renderResult({ scaleType: "PHQ-9", totalScore: 24, max: 27, riskSignal: false });
+
+    const support = screen.getByTestId("band-support");
+    expect(support).toBeInTheDocument();
+    expect(within(support).getByRole("link", { name: /Ligar para o CVV/ })).toHaveAttribute(
+      "href",
+      "tel:188",
+    );
+  });
+
+  it("does not dress a severe score as an acute-risk alert", () => {
+    renderResult({ scaleType: "PHQ-9", totalScore: 24, max: 27, riskSignal: false });
+    // Nothing here indicates acute risk; over-alarming someone would be its own
+    // harm. The danger-toned callout stays reserved for the item-9 signal.
+    expect(screen.queryByText("Notamos um sinal importante.")).not.toBeInTheDocument();
+  });
+
+  it("keeps the acute-risk callout for the item-9 signal", () => {
+    renderResult({ scaleType: "PHQ-9", totalScore: 8, max: 27, riskSignal: true });
+    expect(screen.getByText("Notamos um sinal importante.")).toBeInTheDocument();
+  });
+
+  it("leaves a low score uncluttered", () => {
+    renderResult({ scaleType: "PHQ-9", totalScore: 3, max: 27, riskSignal: false });
+    expect(screen.queryByTestId("band-support")).not.toBeInTheDocument();
+    expect(screen.queryByText("Notamos um sinal importante.")).not.toBeInTheDocument();
   });
 });

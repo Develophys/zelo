@@ -343,7 +343,7 @@ present all along.
 
 | Sev | Finding |
 |---|---|
-| P0 | `riskSignal` derives from PHQ-9 item 9 alone (`score-assessment.usecase.ts:25`), so 24/27 with item 9 = 0 renders identically to 3/27. `is-concerning-score.ts:7` meanwhile applies a stricter threshold (>9) to the manager aggregate than the individual ever sees. |
+| ✅ P0 | **Fixed.** `riskSignal` semantics were left alone — item 9 only, never crosses the network, per PRODUCT.md — and the gap closed on the result screen instead. A high or severe band with no item-9 signal now gets `BandSupportCard`: deliberately calm, not the danger-toned callout, because nothing there indicates acute risk and dressing a severe score as an emergency would be its own harm. Every band also gained a meaning sentence (`meaningFor`), so "Grave" is no longer a word the reader must interpret unaided. Note on the second half of this finding: `is-concerning-score.ts:1-6` already documents that its threshold is *deliberately not* `riskSignal` — one is the aggregable institution signal, the other crisis escalation. That part was an intentional, spec-referenced decision, not a defect. |
 | P1 | The page `<h1>` is 15/16px sans (`AppHeader.tsx:66`) while `CardTitle` is 18px serif — a card title outranks the page title, and six screens have no body heading at all. The unpriced cost of the shared-header change. |
 | P1 | "Não estou bem" (`FollowUpCard.tsx:43`) records the answer and unmounts the card. Nothing else happens. |
 | P1 | `Button` `md` ships `px-2` — 8px horizontal padding, wrong on every `full={false}` button. |
