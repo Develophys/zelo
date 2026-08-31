@@ -548,4 +548,27 @@ describe("ManagerDashboardPage", () => {
 
     expect(screen.queryByTestId('dashboard-filter-row')).not.toBeInTheDocument();
   });
+
+  it("says the trend has no data instead of drawing an empty card", async () => {
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
+      ...SIGNALS_RESPONSE,
+      weeklyTrend: [],
+    });
+    renderManager();
+
+    expect(await screen.findByTestId("trend-empty")).toHaveTextContent(/sem dados/i);
+    expect(screen.queryAllByTestId("trend-bar")).toHaveLength(0);
+  });
+
+  it("explains an empty sector list by the rule that empties it", async () => {
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
+      ...SIGNALS_RESPONSE,
+      segments: [],
+    });
+    renderManager();
+
+    // Empty here usually means k-anonymity suppressed every segment, not that
+    // nothing happened. Saying so is the difference between "broken" and "working".
+    expect(await screen.findByTestId("segments-empty")).toHaveTextContent(/5 respostas/i);
+  });
 });

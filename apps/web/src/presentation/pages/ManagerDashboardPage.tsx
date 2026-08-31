@@ -28,6 +28,15 @@ const SEGMENTS_SKELETON_ROW_COUNT = 3;
 const DASHBOARD_DISCLOSURE =
   "Nenhum dado individual é exibido; segmentos com menos de 5 respostas ficam ocultos.";
 
+const TREND_EMPTY =
+  "Sem dados nas últimas 6 semanas. O gráfico aparece assim que houver check-ins.";
+
+// An empty segment list usually means k-anonymity suppressed every one of them,
+// not that nothing happened. Saying so is the difference between a dashboard
+// that looks broken and one that is visibly working as designed.
+const SEGMENTS_EMPTY =
+  "Nenhum setor com 5 respostas ou mais ainda. Setores abaixo desse limite ficam ocultos.";
+
 const INSIGHT_EMPTY_EXPLANATION =
   "Interpreta os indicadores agregados e anônimos desta página e sugere ações para a liderança, sem acesso a dados individuais de nenhum profissional.";
 
@@ -194,26 +203,41 @@ export function ManagerDashboardPage() {
                   <li key={index}>{describeTrendWeek(point, index, weeklyTrend.length - 1)}</li>
                 ))}
               </ul>
-              <div className="mt-auto flex h-14 items-end gap-2" aria-hidden="true">
-                {bars.map((bar, index) => (
-                  <div
-                    key={index}
-                    data-testid="trend-bar"
-                    className={`w-full rounded-md ${bar.isZero ? "bg-track" : "bg-brand"}`}
-                    style={{ height: `${bar.height}%` }}
-                  />
-                ))}
-              </div>
-              <div className="mt-1.5 flex gap-2" aria-hidden="true">
-                {weeklyTrend.map((point, index) => (
-                  <span
-                    key={index}
-                    className="w-full truncate text-center font-mono text-[12px] text-muted-2"
-                  >
-                    {weekLabel(point.weekStart)}
-                  </span>
-                ))}
-              </div>
+              {weeklyTrend.length === 0 ? (
+                <div className="mt-auto flex h-14 items-end gap-2" aria-hidden="true">
+                  {Array.from({ length: TREND_SKELETON_BAR_COUNT }, (_, index) => (
+                    <div key={index} className="h-1 w-full rounded-md bg-line" />
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <div className="mt-auto flex h-14 items-end gap-2" aria-hidden="true">
+                    {bars.map((bar, index) => (
+                      <div
+                        key={index}
+                        data-testid="trend-bar"
+                        className={`w-full rounded-md ${bar.isZero ? "bg-track" : "bg-brand"}`}
+                        style={{ height: `${bar.height}%` }}
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-1.5 flex gap-2" aria-hidden="true">
+                    {weeklyTrend.map((point, index) => (
+                      <span
+                        key={index}
+                        className="w-full truncate text-center font-mono text-[12px] text-muted-2"
+                      >
+                        {weekLabel(point.weekStart)}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
+              {weeklyTrend.length === 0 && (
+                <p data-testid="trend-empty" className="mt-3 text-pretty text-label text-muted">
+                  {TREND_EMPTY}
+                </p>
+              )}
             </Card>
           )}
         </div>
@@ -228,6 +252,11 @@ export function ManagerDashboardPage() {
                   <li key={segment.label}>{describeSegment(segment)}</li>
                 ))}
               </ul>
+              {segments.length === 0 && (
+                <p data-testid="segments-empty" className="mt-3 text-pretty text-label text-muted">
+                  {SEGMENTS_EMPTY}
+                </p>
+              )}
               <div className="mt-3 flex flex-col gap-3" aria-hidden="true">
                 {segments.map((segment) => (
                   <div key={segment.label}>

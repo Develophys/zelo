@@ -21,14 +21,18 @@ export function DataTableShell({
   return (
     <div
       data-testid="data-table-shell"
-      className={`overflow-hidden rounded-card border border-line bg-surface ${
+      // Below md the body is a list of cards that already carry their own
+      // rounding and border, so the shell keeps only its role as a container and
+      // drops its chrome — otherwise it draws a box around a box. From md up the
+      // table fills it and the box is the table's own frame.
+      className={`overflow-hidden rounded-card border border-line bg-surface max-md:rounded-none max-md:border-0 max-md:bg-transparent ${
         fill ? 'md:flex md:min-h-0 md:flex-1 md:flex-col' : ''
       } ${className}`}
     >
       {toolbar}
       <div
         data-testid="data-table-shell-body"
-        className={fill ? 'md:min-h-0 md:flex-1 md:overflow-y-auto' : ''}
+        className={`max-md:mt-3 ${fill ? 'md:min-h-0 md:flex-1 md:overflow-y-auto' : ''}`}
       >
         {children}
       </div>

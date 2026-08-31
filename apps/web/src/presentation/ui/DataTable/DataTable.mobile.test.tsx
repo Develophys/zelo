@@ -67,4 +67,22 @@ describe('DataTable mobile fallback', () => {
     expect(screen.getAllByText('Nada aqui')).toHaveLength(1);
     expect(screen.queryByTestId('mobile-list')).not.toBeInTheDocument();
   });
+
+  it('sheds its own box on phones, where the cards already have one', () => {
+    renderTable(ROWS);
+
+    // The card list carries rounded-card + border per item. Keeping the shell's
+    // border, rounding and surface below md nests a box inside a box.
+    const shell = screen.getByTestId('data-table-shell');
+    expect(shell.className).toContain('max-md:border-0');
+    expect(shell.className).toContain('max-md:rounded-none');
+    expect(shell.className).toContain('max-md:bg-transparent');
+  });
+
+  it('keeps its box from the breakpoint where the table fills it', () => {
+    renderTable(ROWS);
+    const shell = screen.getByTestId('data-table-shell');
+    expect(shell.className).toContain('rounded-card');
+    expect(shell.className).toContain('border-line');
+  });
 });

@@ -26,7 +26,10 @@ export function DataTableToolbar<T>({
   return (
     <div
       data-testid="data-table-toolbar"
-      className="flex h-14 flex-none items-center gap-3 border-b border-line px-cell-x"
+      // The bottom rule and the inset only make sense inside the shell's box.
+      // On phones the toolbar sits above a free-standing card list, so it aligns
+      // with the card edges instead.
+      className="flex h-14 flex-none items-center gap-3 border-b border-line px-cell-x max-md:border-b-0 max-md:px-0"
     >
       {selection && (
         <Checkbox
