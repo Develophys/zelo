@@ -1,7 +1,7 @@
 import type { InputHTMLAttributes, Ref, SelectHTMLAttributes } from 'react';
 
 export const FIELD_SURFACE =
-  'w-full rounded-control border border-line bg-surface p-[13px_18px] text-[16px] text-ink placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand';
+  'w-full rounded-control border border-control-edge bg-surface p-[13px_18px] text-[16px] text-ink placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand';
 
 interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   ref?: Ref<HTMLInputElement>;

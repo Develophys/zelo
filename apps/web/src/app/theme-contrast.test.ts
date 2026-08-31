@@ -177,6 +177,15 @@ const GRAPHIC_PAIRS: readonly [string, string, number, string][] = [
   ['on-fill', 'brand-fill', 3, 'focus ring on a brand-filled control'],
   ['warn', 'surface', 3, 'chart legend dot and the manager percentage'],
   ['warn', 'warn-bg', 3, 'warn mark on the warn tint'],
+  // WCAG 1.4.11 covers visual information required to identify a component and
+  // its state. For an input and an unchecked box the border IS the control —
+  // there is nothing else marking where it begins — so these must reach 3:1 on
+  // every surface they sit on. Purely structural hairlines (card edges, section
+  // rules, dividers) are decoration and deliberately absent from this list.
+  ['control-edge', 'surface', 3, 'input and unchecked box on a card'],
+  ['control-edge', 'canvas', 3, 'input and unchecked box on the page'],
+  ['control-edge', 'canvas-alt', 3, 'input and unchecked box on the alt canvas'],
+  ['control-edge', 'surface-brand', 3, 'input and unchecked box on the brand tint'],
 ];
 
 /**

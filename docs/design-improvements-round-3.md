@@ -162,7 +162,7 @@ counts as bad, so PRODUCT.md's open metric question stays open.
 
 ## P2
 
-### 8. Every border hairline fails WCAG 1.4.11
+### 8. Every border hairline fails WCAG 1.4.11 — ✅ FIXED (scoped to controls)
 
 Independently computed, light / dark:
 
@@ -176,6 +176,25 @@ Independently computed, light / dark:
 | `faint` on `surface` | 2.50 | 3:1 | `QuestionCard.tsx:58` hover |
 
 Most consequential on `TextField`, where the border is the *only* boundary cue — the fill is 1.11:1 from the page.
+
+**Shipped — deliberately narrower than "every hairline".** WCAG 1.4.11 covers visual information
+required to *identify a component or its state*. For an input or an unchecked box the border is
+the only thing marking where the control begins, so it is in scope. A card edge, a section rule
+or a sidebar divider is structural decoration and is not — and darkening those would have made a
+deliberately calm surface heavy for no conformance gain.
+
+A new `--color-control-edge` token carries the boundary: `#6b8579` light, `#6a8477` dark. Both
+are the **lightest** values clearing 3:1 on every surface a control sits on — surface, canvas,
+canvas-alt and surface-brand — so the design stays as quiet as conformance allows. Minimum
+margins are 3.31 and 3.32.
+
+Applied to `TextField`, `ChatComposer`, `Checkbox` and `Radio`. Four new pairs in
+`theme-contrast.test.ts` hold it across all eight theme×accent combinations, in the graphic list
+at 3:1 — the file previously tested no border pair at all.
+
+**Still on `line` by design:** card edges, dividers, the sidebar rule, `Button`'s outline variant
+and the unselected sector pill. Each of those has a label, a fill or a position that identifies
+it without the border. The measurements above are recorded, not conformance failures.
 
 ### 9. Two alpha-composited text failures the token tests cannot see — ✅ FIXED
 
