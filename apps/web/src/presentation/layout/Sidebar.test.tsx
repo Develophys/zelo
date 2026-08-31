@@ -128,7 +128,9 @@ describe('Sidebar', () => {
       'false',
     );
     expect(screen.getByText('Zelo')).toHaveClass('lg:block');
-    expect(screen.getByText('Início')).toHaveClass('lg:block');
+    // Nav labels are visible from md up now, so "expanded" is expressed as the
+    // absence of the collapsed-only hide rather than an lg:block toggle.
+    expect(screen.getByText('Início')).not.toHaveClass('lg:sr-only');
   });
 
   it('restores a collapsed state saved from a previous visit', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { PeerPartnerInboxPage } from "./PeerPartnerInboxPage";
@@ -39,8 +39,11 @@ describe("PeerPartnerInboxPage", () => {
     usePeerPartnerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString());
   });
 
-  it("shows the idle connected state", () => {
+  it("shows the idle connected state once the socket reports it is connected", async () => {
     renderPage();
+    await act(async () => {
+      handlers["connect"]?.();
+    });
     expect(screen.getByText("Conectado, aguardando solicitações.")).toBeInTheDocument();
   });
 
@@ -75,5 +78,46 @@ describe("PeerPartnerInboxPage", () => {
 
     expect(emitSpy).toHaveBeenCalledWith("decline_request", { requestId: "request-1" });
     await waitFor(() => expect(screen.getByText("Conectado, aguardando solicitações.")).toBeInTheDocument());
+  });
+
+  it("does not claim the volunteer is on duty before the socket actually connects", async () => {
+    renderPage();
+
+    // A volunteer told "Conectado" while the socket is dead believes they are
+    // available to take requests. A doctor's request then goes unanswered.
+    expect(screen.queryByText(/aguardando solicitações/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Conectando/i)).toBeInTheDocument();
+
+    await act(async () => {
+      handlers["connect"]?.();
+    });
+    expect(await screen.findByText(/aguardando solicitações/i)).toBeInTheDocument();
+  });
+
+  it("surfaces a failed connection with a way to retry", async () => {
+    renderPage();
+
+    await act(async () => {
+      handlers["connect_error"]?.();
+    });
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/não foi possível conectar/i);
+    expect(screen.getByRole("button", { name: "Tentar novamente" })).toBeInTheDocument();
+  });
+
+  it("surfaces a dropped connection rather than silently looking available", async () => {
+    renderPage();
+    await act(async () => {
+      handlers["connect"]?.();
+    });
+    await screen.findByText(/aguardando solicitações/i);
+
+    await act(async () => {
+      handlers["disconnect"]?.();
+    });
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.queryByText(/aguardando solicitações/i)).not.toBeInTheDocument();
   });
 });

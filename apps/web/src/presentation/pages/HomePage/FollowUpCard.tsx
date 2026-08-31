@@ -32,15 +32,10 @@ export function FollowUpCard({ className = '' }: FollowUpCardProps) {
       <Card>
         <p className="text-body font-extrabold text-ink">Como você está, um tempo depois?</p>
         <div className="mt-3 flex gap-3">
-          <Button
-            className="p-2!"
-            variant="outline"
-            full={false}
-            onClick={() => recordAnswer('yes')}
-          >
+          <Button variant="outline" full={false} onClick={() => recordAnswer('yes')}>
             Estou bem
           </Button>
-          <Button className="p-2!" variant="outline" full={false} onClick={() => recordAnswer('no')}>
+          <Button variant="outline" full={false} onClick={() => recordAnswer('no')}>
             Não estou bem
           </Button>
         </div>
