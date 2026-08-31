@@ -32,7 +32,9 @@ Hospital wifi. A basement UTI. A lift. A doctor completes a nine-item instrument
 
 The `submitError` branch at `ScaleAssessmentPage.tsx:134-145` — *"Não foi possível enviar suas respostas. Elas continuam salvas aqui."* — is effectively dead for the failure it was written for.
 
-**Fix.** Thread `submissionSucceeded` into the result navigation state, widen `ResultLocationState` (`is-result-state.ts:56-61`), and render one honest line on the result screen. The record is already durably in IndexedDB (`submit-assessment.usecase.ts:113`), so *"Salvo neste aparelho. Vai sincronizar quando a conexão voltar."* is true — only the UI is currently silent.
+**Fix.** Thread `submissionSucceeded` into the result navigation state, widen `ResultLocationState`, and render one honest line on the result screen. The record is already durably in IndexedDB (`submit-assessment.usecase.ts:113`), so the *saved locally* half is true — only the UI is silent.
+
+*(The original wording of this fix proposed "Vai sincronizar quando a conexão voltar." That was checked before implementing and is false: nothing retries. See below.)*
 
 **Noted in rounds 1 and 2 and not acted on both times, including by me.** It was filed as a minor observation twice; it is a P0.
 
