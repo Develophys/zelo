@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -300,3 +300,41 @@ describe("HomePage header", () => {
     }
   });
 });
+describe("HomePage follow-up", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useFollowUpStore.setState({ answer: null, answeredAt: null });
+  });
+
+  it("answers 'Não estou bem' with a way through instead of deleting the question", async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
+      { weekStart: OLD_ENOUGH_WEEK_START, severityFraction: 0.4 },
+    ]);
+    const user = userEvent.setup();
+    renderHome();
+    await screen.findByText("Como você está, um tempo depois?");
+
+    await user.click(screen.getByRole("button", { name: "Não estou bem" }));
+
+    // A doctor said they are not okay. Unmounting the card teaches them the app
+    // does not listen.
+    const ack = await screen.findByTestId("followup-ack");
+    expect(ack).toHaveTextContent(/obrigado por dizer/i);
+    expect(within(ack).getByRole("button", { name: /Conversar agora/i })).toBeInTheDocument();
+    expect(within(ack).getByRole("button", { name: /Falar com um par/i })).toBeInTheDocument();
+  });
+
+  it("acknowledges 'Estou bem' briefly rather than vanishing", async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
+      { weekStart: OLD_ENOUGH_WEEK_START, severityFraction: 0.4 },
+    ]);
+    const user = userEvent.setup();
+    renderHome();
+    await screen.findByText("Como você está, um tempo depois?");
+
+    await user.click(screen.getByRole("button", { name: "Estou bem" }));
+
+    expect(await screen.findByTestId("followup-ack")).toHaveTextContent(/que bom/i);
+  });
+});
+
