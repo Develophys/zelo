@@ -1,0 +1,153 @@
+# Zelo — Design Improvements, Round 3
+
+Third Impeccable `/critique` of `apps/web`, run against `main` at `9f87e15` (PR #20 + #21 merged). Two isolated agents: a design-director review and a deterministic evidence pass, neither told what had changed.
+
+Rounds 1 and 2 and their remediation are in [design-improvements.md](./design-improvements.md).
+
+**Design health: 26/40 (65% — Acceptable). Trend: 25 → 27 → 26.**
+
+**The score fell while the surface improved.** Every item from rounds 1 and 2 that was fixed stayed fixed. This round simply looked harder at error paths than either previous round, and found defects that were present in all three. That is the trend line working as intended: it tracks what has been *found*, not how much work has been done.
+
+---
+
+## Method note — what "detector clean" is actually worth here
+
+The HTML engine now runs at full strength; the parser modules installed after round 2 work, verified with a control file where `low-contrast`, `dark-glow`, `overused-font` and `bounce-easing` all fired.
+
+But `.tsx` routes to a **regex engine whose CSS patterns are kebab-case only**. It cannot see JSX style objects or Tailwind arbitrary values — which is how 100% of this codebase is written. The entire computed-style rule family (`low-contrast`, `tiny-text`, `text-overflow`, `cramped-padding`, `line-length`, `design-system-*`) is structurally unreachable for all 182 `.tsx` files.
+
+**So a clean detector run over `src/presentation` means very little.** This is the second correction to this claim: round 2 walked back an over-broad alarm by saying the undercount applied to `index.html` alone, and that was also wrong. The contrast and text-size findings below were reproduced by hand precisely because the tool could not reach them.
+
+The executable guards in the repo — `theme-contrast.test.ts`, `token-pairing.test.ts`, `focus-visible.test.ts`, `a11y.test.tsx` — are doing far more real work than the detector is.
+
+---
+
+## P0
+
+### 1. A failed assessment upload reports itself as a success
+
+`use-cases/submit-assessment.usecase.ts:43-57` returns `submissionSucceeded: false` when the upload fails. **No production code reads it** — `grep` finds the field only in tests. `ScaleAssessmentPage.tsx:54-62` reads `totalScore` and `riskSignal` and navigates to the result screen either way.
+
+Hospital wifi. A basement UTI. A lift. A doctor completes a nine-item instrument *including the self-harm question*, sees an ordinary result screen, and reasonably believes the check-in counted. It never reached the server, so it never reached the institution's aggregate — which therefore under-counts precisely the shifts with the worst connectivity.
+
+The `submitError` branch at `ScaleAssessmentPage.tsx:134-145` — *"Não foi possível enviar suas respostas. Elas continuam salvas aqui."* — is effectively dead for the failure it was written for.
+
+**Fix.** Thread `submissionSucceeded` into the result navigation state, widen `ResultLocationState` (`is-result-state.ts:56-61`), and render one honest line on the result screen. The record is already durably in IndexedDB (`submit-assessment.usecase.ts:113`), so *"Salvo neste aparelho. Vai sincronizar quando a conexão voltar."* is true — only the UI is currently silent.
+
+**Noted in rounds 1 and 2 and not acted on both times, including by me.** It was filed as a minor observation twice; it is a P0.
+
+### 2. `usePeerRequest` cannot express a failure
+
+`presentation/hooks/usePeerRequest.ts:6` declares `"idle" | "searching" | "matched" | "no_peer_available"` — no error member — and registers no `connect_error` or `disconnect` listener. A dropped socket leaves a doctor on *"Procurando um colega disponível…"* indefinitely.
+
+**This is the doctor-side twin of a bug fixed on the volunteer side one round ago.** `usePeerPartnerConnection.ts` gained an `error` member last round, with a comment reading *"error is load-bearing"* — and the same fix was never carried across to the person in distress. Same pattern as the `ManagerSidebar` / `Sidebar` miss: half a defect fixed, the mirrored half left standing.
+
+Partially mitigated: `PeersPage.tsx:94-99` shows a 15s slow-search notice offering the CVV number, so there is an exit. But the state itself never resolves.
+
+**Fix.** Mirror `usePeerPartnerConnection.ts:45-46` exactly.
+
+---
+
+## P1
+
+### 3. No root error boundary, no 404
+
+`ErrorBoundary` exists and is used in **exactly one place** — `ChatPage.tsx:103`. `router.tsx` declares no `errorElement` and no `path: "*"`.
+
+A render error on any of the other 28 pages, or a mistyped URL, or a stale bookmark, yields React Router's unstyled English default: no Zelo branding, no Portuguese, and **no CVV number** — in a product whose non-negotiable property is that the crisis line is always reachable. The chat already models the correct behaviour; it just was never applied at the root.
+
+**Fix.** An `errorElement` and a catch-all route, both rendering one `PhoneShell` screen with a serif headline, a way home, and `CrisisCallLink`.
+
+### 4. The dashboard renders a failed fetch as data
+
+`ManagerDashboardPage.tsx:150-152` — a non-401 failure falls through `?? 0`, so a coordinator sees **0%** and **0 questionários respondidos** as if measured. Three other pages render a failed load as an empty state: `AdminInstitutionsPage.tsx:138`, `ManagerInsightHistoryPage.tsx:188-193`, `LinkInstitutionSectorStep.tsx:26-30`.
+
+"Nothing happened" and "we could not find out" are different facts, and only one of them is safe to act on.
+
+### 5. Sector managers navigate to three destinations that bounce them back
+
+`MANAGER_ADMIN_NAV` renders unconditionally (`ManagerSidebar.tsx:124`, `ManagerBottomNav.tsx:122`), while `router.tsx:50-52` redirects any non-`HOSPITAL_ADMIN` away. The sidebar already reads `role` (`ManagerSidebar.tsx:74`) — for a tooltip label.
+
+A `SECTOR_MANAGER` sees Gestores, Setores and Pares anônimos permanently, taps one, and lands back on Tendências with no message. On mobile the sheet just closes. The likeliest reading is that the app is broken — and on an iPad in a meeting, in front of their director.
+
+**Fix.** Filter at the source with a `managerNavFor(role)` in `manager-nav.ts`, consumed by both navs, suppressing the group label when empty.
+
+### 6. The result screen leads with the alarm and reassures afterwards
+
+`AssessmentResultPage.tsx:30-63` has **no heading in its body** — the only heading on the route is `AppHeader`'s 15px sans "Resultado". On a 375×667 phone the first viewport after item 9 is: a 13px caption, a 64px band-toned number, and a red pill. *"Isto é um sinal, não um diagnóstico"* sits below it.
+
+The reassurance arrives after the alarm. Then two full-width, same-weight buttons ask a person in distress to choose between "Falar com alguém agora" and "Conversar com o acolhimento".
+
+**Fix.** A serif `h2` above the dial keyed to the band; move the reframing line above the number; demote the secondary CTA to `ghost` when `riskSignal || bandNeedsSupport(band)` so exactly one primary action exists.
+
+### 7. Manager severity is painted in the brand's affirmative colour
+
+`ManagerDashboardPage.tsx:220,271` — every trend and segment bar is `bg-brand` sage. A sector at 90% concerning draws a long, healthy-looking **green** bar. A coordinator scanning for the worst sector scans for the longest green bar.
+
+The doctor's own chart already gets this right: `HistoryChartCard.tsx:68-76` paints the peak `bg-warn` and only the latest reading `bg-brand`.
+
+**This does not require resolving the open burnout-metric question.** Round 2 deferred band-colouring on those grounds, but "peak vs latest" needs no thresholds at all — it is the same relative treatment the doctor's chart already uses.
+
+---
+
+## P2
+
+### 8. Every border hairline fails WCAG 1.4.11
+
+Independently computed, light / dark:
+
+| Pair | Ratio | Needs | Where |
+|---|---|---|---|
+| `line` on `surface` | 1.29 / 1.33 | 3:1 | `TextField.tsx:4` — every input |
+| `line` on `canvas` | 1.17 / 1.47 | 3:1 | `ChatComposer.tsx:161` |
+| `track` on `surface` | 1.43 / 1.74 | 3:1 | unchecked `Checkbox`, `Radio` |
+| `surface-brand` as border on `canvas` | 1.10 / 1.34 | 3:1 | `ManagerSidebar.tsx:82` |
+| `danger-border` on `danger-bg` | 1.34 / 1.36 | 3:1 | error states |
+| `faint` on `surface` | 2.50 | 3:1 | `QuestionCard.tsx:58` hover |
+
+Most consequential on `TextField`, where the border is the *only* boundary cue — the fill is 1.11:1 from the page.
+
+### 9. Two alpha-composited text failures the token tests cannot see
+
+- `text-muted-2` on `bg-warn-bg/40` over canvas: **4.47:1** (`ManagerNotificationsPage.tsx:64`). The untinted pair is 4.57 and passes; the `/40` tint alone pushes it under.
+- `text-brand` on `bg-track` (soft button hover): **4.29–4.36:1** across all four accents (`Button.tsx:22`). `theme-contrast.test.ts:174` does test this pair — but at the 3:1 *graphic* threshold, while it is used as a text pair.
+
+`theme-contrast.test.ts` parses literal hex from `index.css`, so every `/5`, `/10`, `/40`, `/75` in TSX is unchecked, as is every `opacity-*` group composite. That is the gap to close, not the individual pairs.
+
+### 10. A result cannot be reopened
+
+`AssessmentResultPage.tsx:15-25` is `location.state`-only. Refresh, share, or return later and it redirects to the scale picker — while the encrypted record sits in IndexedDB on the same device.
+
+### 11. Other
+
+- **No skip link anywhere.** A keyboard user on a manager admin page tabs through 8 sidebar destinations before reaching the table.
+- **All 14 `--text-*` tokens are `px`**, so the app answers page zoom but not the browser's font-size preference. Four sub-12px sites (`Sidebar.tsx:37`, `ManagerSidebar.tsx:52` at 10px; `BottomNav.tsx:63`, `ManagerBottomNav.tsx:16` at 11px); 28 bracketed `text-[Npx]` bypass the scale.
+- **The accent picker ships four brand colours to the doctor.** `index.css:225` states outright that changing the brand colour "is not what this preference is for", then ships exactly that to the audience for whom sage green *is* the promise. Same for the corners toggle against the stated corner scale.
+- **`/peers` is consent-gated but not authenticated** — it opens a live peer-to-peer chat rendering another person's messages. The API accepts a token-less socket as an anonymous connection by design; worth confirming that is intended.
+
+---
+
+## P3
+
+Dead `useApiHealth` (zero references, plus a six-symbol chain behind it that ships nothing) and `QuestionCardSkeleton`. `"Voltar ao início"` navigating to `/assessment`. Three `className="p-2 cursor-pointer"` overrides on `ManagerDashboardPage` fighting their own Button variant. `no-scrollbar` at all breakpoints in `DataTableToolbar` and `TranscriptScroller`, hiding the desktop scroll cue. Two greetings stacked in the Home header. `/peer` missing from `APP_HEADER_META`. `ManagerNotificationsPage` and `ManagerInsightHistoryPage` rendering nothing at all while loading. `ChatDisclaimerBanner` at `text-[12.5px]`, the only fractional size in the codebase, on the one non-dismissable legal notice.
+
+---
+
+## What is genuinely strong
+
+Verified independently this round rather than taken on trust:
+
+- **Token discipline is total** — 0 hardcoded colours and 0 arbitrary colour values across 182 `.tsx` files.
+- **Hit targets are solved structurally.** All four bleed users compute to exactly 44px at both breakpoints, and compact density provably cannot breach it — every `py-control-y` consumer also carries `min-h-11`.
+- **Icon-only buttons cannot ship unlabelled.** `IconButton` omits `aria-label` from its props type and applies it *after* the spread, with a comment explaining that TS cannot excess-check hyphenated JSX attributes.
+- **Reduced motion is complete and reasoned** — a global kill with a `motion-essential` opt-back-in, correctly applied to the three indefinite indicators and correctly withheld from `WaveText`, whose text stays legible at rest.
+- **`focus-visible.test.ts`'s allowlist was independently re-derived and found accurate**, including its second test that fails if an allowlisted file stops suppressing.
+- **1682 tests, `tsc`, `eslint`, `depcruise` all clean**, with `a11y.test.tsx` running axe across ~21 screens.
+
+---
+
+## Two recurring patterns worth naming
+
+**Mirrored fixes get applied to one side.** Twice now: `ManagerSidebar` fixed while `Sidebar` kept the identical 768px defect; `usePeerPartnerConnection` given an error state while `usePeerRequest` — the side used by the person in distress — kept none. When a fix lands on one of a pair, the other half needs checking in the same pass.
+
+**The doctor surface gets less than the manager surface.** The manager's chart has week labels; the doctor's has six bare bars. The manager's tables have loading, error and empty states; `AdminInstitutionsPage` has none. The person whose data it is consistently gets the less finished view of it.

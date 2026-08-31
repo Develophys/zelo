@@ -358,6 +358,23 @@ present all along.
 
 ---
 
+## Round 3 — 2026-08-31 (26/40)
+
+A third critique ran against `main` at `9f87e15`, after both PRs merged. Its findings live in
+**[design-improvements-round-3.md](./design-improvements-round-3.md)** rather than being appended
+here, since this file already covers two rounds.
+
+Trend: **25 → 27 → 26**. The score fell while the surface improved — round 3 looked harder at
+error paths than either earlier round and found defects present in all three. Two P0s:
+`submissionSucceeded` is read by no production code, so a failed upload reports success; and
+`usePeerRequest` has no error state, so a dropped socket hangs a doctor on "Procurando…" forever.
+
+That second one is the doctor-side twin of a bug fixed on the volunteer side in this very file —
+the second time a mirrored defect has been fixed on one side only. See the closing section of the
+round-3 doc.
+
+---
+
 ## Untested contrast pairs
 
 `theme-contrast.test.ts` is unusually rigorous — 46 text pairs at 4.5:1 and 14 non-text pairs at 3:1, across 8 theme×accent combinations, plus theme completeness, scrim luminance, elevation inversion, and a filled-control rim matrix. These pairs fall outside it and fail:
