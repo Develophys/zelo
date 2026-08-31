@@ -22,8 +22,16 @@ export function CrisisOfferPage() {
         </p>
 
         <div className="mt-6 flex flex-col gap-3">
-          <Button variant="primary" onClick={() => navigate(routes.crisisConnect)}>
-            Sim, quero falar com um psicólogo
+          {/* Names what the next screen actually delivers. RequestHumanHandoffUseCase
+              returns the external crisis line and nothing else — psychologist
+              matching is unbuilt — so a CTA offering one is false at the moment
+              the user is least able to absorb the disappointment. */}
+          <Button
+            variant="primary"
+            data-testid="crisis-accept-cta"
+            onClick={() => navigate(routes.crisisConnect)}
+          >
+            Falar com alguém agora
           </Button>
           <Button variant="outline" onClick={() => navigate(routes.crisisLine)}>
             Agora não

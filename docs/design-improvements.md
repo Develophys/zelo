@@ -309,6 +309,52 @@ Worked in small validatable groups. ✅ marks an item that is done and covered.
 
 ---
 
+## Second critique — 2026-08-31 (27/40, was 25/40)
+
+A re-run with two fresh isolated agents against the remediated code. The full
+report is in `apps/web/.impeccable/critique/2026-08-31T01-00-43Z__apps-web.md`.
+
+**The score moved 25 → 27 for sixteen commits, and that is the finding.** Every
+item the first critique raised was fixed and verified. Fixing what an audit
+found does not fix what it missed, and this run surfaced P0/P1 issues that were
+present all along.
+
+### Closed immediately
+
+- ✅ **The crisis offer promised a psychologist it cannot deliver.**
+  `CrisisOfferPage` read "Sim, quero falar com um psicólogo" while
+  `RequestHumanHandoffUseCase` returns an external line and nothing else. The
+  accept screen had been redesigned earlier in the cycle; the button leading to
+  it was never touched — the room was fixed and the sign left on the door. Now
+  "Falar com alguém agora", with a test asserting no crisis CTA promises a
+  professional the handoff cannot provide.
+
+- ✅ **The Impeccable detector was running degraded.** `htmlparser2`,
+  `css-select`, `css-tree` and `domutils` were absent, so its computed-contrast,
+  palette, font and glow rules never loaded. Installed under the skill directory
+  and verified with a control file: the HTML engine now catches low-contrast,
+  dark-glow and overused-font, and `index.html` no longer emits the DEGRADED
+  warning. **Scope correction:** those rules are HTML-only by design, so the
+  `.tsx` scans reported during remediation were not undercounts — a control file
+  with the modules installed still (correctly) does not flag inline JSX styles
+  for them. The undercount applied to `index.html` alone.
+
+### Open — verified, not yet fixed
+
+| Sev | Finding |
+|---|---|
+| P0 | `riskSignal` derives from PHQ-9 item 9 alone (`score-assessment.usecase.ts:25`), so 24/27 with item 9 = 0 renders identically to 3/27. `is-concerning-score.ts:7` meanwhile applies a stricter threshold (>9) to the manager aggregate than the individual ever sees. |
+| P1 | The page `<h1>` is 15/16px sans (`AppHeader.tsx:66`) while `CardTitle` is 18px serif — a card title outranks the page title, and six screens have no body heading at all. The unpriced cost of the shared-header change. |
+| P1 | "Não estou bem" (`FollowUpCard.tsx:43`) records the answer and unmounts the card. Nothing else happens. |
+| P1 | `Button` `md` ships `px-2` — 8px horizontal padding, wrong on every `full={false}` button. |
+| P1 | `PeerPartnerInboxPage` has no error state; the state union cannot express one, so a dropped socket strands a volunteer on "Conectando..." forever. |
+| P2 | **The doctor `Sidebar` is still unusable at 768px** — the identical defect fixed on `ManagerSidebar` during remediation, never carried across. |
+| P2 | The accent preference ships teal/indigo/clay on the doctor's settings page, able to repaint the app brown. |
+| P2 | Border tokens at 1.17–1.74:1 where WCAG 1.4.11 asks 3:1, most consequentially on `TextField`. |
+| P2 | No resume: nine answers live in component state. |
+
+---
+
 ## Untested contrast pairs
 
 `theme-contrast.test.ts` is unusually rigorous — 46 text pairs at 4.5:1 and 14 non-text pairs at 3:1, across 8 theme×accent combinations, plus theme completeness, scrim luminance, elevation inversion, and a filled-control rim matrix. These pairs fall outside it and fail:

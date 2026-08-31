@@ -43,7 +43,7 @@ describe("CrisisOfferPage", () => {
   it("navigates to /crisis/connect when accepting", async () => {
     const user = userEvent.setup();
     renderOffer();
-    await user.click(screen.getByRole("button", { name: "Sim, quero falar com um psicólogo" }));
+    await user.click(screen.getByRole("button", { name: "Falar com alguém agora" }));
     expect(screen.getByText("Crisis accept screen")).toBeInTheDocument();
   });
 
@@ -68,5 +68,23 @@ describe("CrisisOfferPage", () => {
     expect(decline.compareDocumentPosition(call) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(spacer).not.toBeNull();
     expect(call.compareDocumentPosition(spacer!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("does not promise a professional the handoff cannot deliver", () => {
+    renderOffer();
+
+    // RequestHumanHandoffUseCase returns an external crisis line and nothing
+    // else — psychologist matching is unbuilt. A CTA offering one is false at
+    // the exact moment the user is least able to absorb the disappointment.
+    const cta = screen.getByTestId("crisis-accept-cta");
+    expect(cta.textContent ?? "").not.toMatch(/psic[óo]logo/i);
+    expect(cta).toHaveTextContent("Falar com alguém agora");
+  });
+
+  it("sends the accept CTA to the screen that carries the live human channel", async () => {
+    const user = userEvent.setup();
+    renderOffer();
+    await user.click(screen.getByTestId("crisis-accept-cta"));
+    expect(screen.getByText("Crisis accept screen")).toBeInTheDocument();
   });
 });
