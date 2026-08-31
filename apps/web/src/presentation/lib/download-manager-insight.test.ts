@@ -17,6 +17,7 @@ vi.mock("jspdf", () => ({
 }));
 
 import { downloadInsightAsPdf, downloadInsightAsText } from "./download-manager-insight";
+import { MANAGER_INSIGHT_DISCLAIMER } from "./manager-insight-disclaimer";
 import type { StoredManagerInsight } from "@/ports/manager-insight-history.port";
 
 const ENTRY: StoredManagerInsight = {
@@ -44,6 +45,7 @@ describe("downloadInsightAsPdf", () => {
     expect(textMock).toHaveBeenCalledWith(["texto de interpretação"], 14, 40);
     expect(textMock).toHaveBeenCalledWith(["- ação 1"], 14, 64);
     expect(textMock).toHaveBeenCalledWith(["- ação 2"], 14, 72);
+    expect(splitTextToSizeMock).toHaveBeenCalledWith(MANAGER_INSIGHT_DISCLAIMER, 180);
     expect(saveMock).toHaveBeenCalledWith("analise-zelo-abc123.pdf");
   });
 });
@@ -75,6 +77,36 @@ describe("downloadInsightAsText", () => {
     expect(blobArg.type).toBe("text/plain;charset=utf-8");
     expect(clickSpy).toHaveBeenCalledOnce();
     expect(revokeObjectURLMock).toHaveBeenCalledWith("blob:mock-url");
+
+    vi.restoreAllMocks();
+  });
+
+  it("carries the AI disclaimer into the text export, which leaves the app", () => {
+    if (!URL.createObjectURL) URL.createObjectURL = vi.fn();
+    if (!URL.revokeObjectURL) URL.revokeObjectURL = vi.fn();
+    const createObjectURLMock = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:mock-url");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    const originalCreateElement = document.createElement.bind(document);
+    vi.spyOn(document, "createElement").mockImplementation((tag: string) => {
+      const element = originalCreateElement(tag);
+      if (tag === "a") element.click = vi.fn();
+      return element;
+    });
+
+    // jsdom's Blob has no .text(), so capture what it was built from.
+    const parts: string[] = [];
+    const RealBlob = globalThis.Blob;
+    vi.spyOn(globalThis, "Blob").mockImplementation((blobParts?: BlobPart[], options?: BlobPropertyBag) => {
+      parts.push(String(blobParts?.[0] ?? ""));
+      return new RealBlob(blobParts, options);
+    });
+
+    downloadInsightAsText(ENTRY);
+
+    // The doctor's chat carries a permanent AI banner. This output is the one
+    // that leaves the app and gets quoted to leadership, and it carried none.
+    expect(createObjectURLMock).toHaveBeenCalled();
+    expect(parts.join("")).toContain(MANAGER_INSIGHT_DISCLAIMER);
 
     vi.restoreAllMocks();
   });

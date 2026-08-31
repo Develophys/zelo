@@ -1,4 +1,5 @@
 import type { StoredManagerInsight } from "@/ports/manager-insight-history.port";
+import { MANAGER_INSIGHT_DISCLAIMER } from "./manager-insight-disclaimer";
 
 function formatDate(generatedAt: string): string {
   return new Date(generatedAt).toLocaleDateString("pt-BR", { year: "numeric", month: "long", day: "numeric" });
@@ -24,6 +25,8 @@ export function downloadInsightAsText(entry: StoredManagerInsight): void {
     "",
     "Ações sugeridas:",
     ...entry.suggestedActions.map((action) => `- ${action}`),
+    "",
+    MANAGER_INSIGHT_DISCLAIMER,
   ];
   const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
   triggerDownload(blob, `analise-zelo-${entry.id}.txt`);
@@ -55,6 +58,12 @@ export async function downloadInsightAsPdf(entry: StoredManagerInsight): Promise
     doc.text(actionLines, 14, y);
     y += actionLines.length * LINE_HEIGHT + 2;
   });
+
+  // Travels with the document. Once this is a PDF in a meeting deck, nothing
+  // around it says how the text was produced.
+  y += 8;
+  doc.setFontSize(9);
+  doc.text(doc.splitTextToSize(MANAGER_INSIGHT_DISCLAIMER, 180), 14, y);
 
   doc.save(`analise-zelo-${entry.id}.pdf`);
 }

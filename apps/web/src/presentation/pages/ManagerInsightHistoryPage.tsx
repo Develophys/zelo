@@ -13,6 +13,7 @@ import { useManagerInsight } from "@/presentation/hooks/useManagerInsight";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 import { downloadInsightAsPdf, downloadInsightAsText } from "@/presentation/lib/download-manager-insight";
+import { MANAGER_INSIGHT_DISCLAIMER } from "@/presentation/lib/manager-insight-disclaimer";
 import type { StoredManagerInsight } from "@/ports/manager-insight-history.port";
 
 function formatDate(generatedAt: string): string {
@@ -51,6 +52,14 @@ function InsightDetail({
           </li>
         ))}
       </ul>
+      {/* Sits immediately above the download buttons on purpose: the reader sees
+          how this was produced before choosing to take it out of the app. */}
+      <p
+        data-testid="insight-disclaimer"
+        className="mt-4 border-t border-line pt-3 text-pretty text-caption text-muted"
+      >
+        {MANAGER_INSIGHT_DISCLAIMER}
+      </p>
       <div className="mt-3 flex gap-2">
         {downloads === "icons" ? (
           <>

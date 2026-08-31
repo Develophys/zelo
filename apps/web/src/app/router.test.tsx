@@ -230,12 +230,14 @@ describe("onboarding router flow", () => {
   });
 
   it("wires /assessment/phq9 to the PHQ-9 scale", async () => {
+    useConsentStore.setState({ hasConsented: true, consentedAt: "2026-01-01T00:00:00.000Z" });
     buildTestRouter(routes.phq9);
     expect(await screen.findByText(PHQ9_QUESTIONS[0])).toBeInTheDocument();
     expect(screen.getByText(`1/${PHQ9_QUESTIONS.length}`)).toBeInTheDocument();
   });
 
   it("wires /assessment/gad7 to the GAD-7 scale", async () => {
+    useConsentStore.setState({ hasConsented: true, consentedAt: "2026-01-01T00:00:00.000Z" });
     buildTestRouter(routes.gad7);
     expect(await screen.findByText(GAD7_QUESTIONS[0])).toBeInTheDocument();
     expect(screen.getByText(`1/${GAD7_QUESTIONS.length}`)).toBeInTheDocument();
@@ -254,3 +256,29 @@ describe("onboarding router flow", () => {
     expect(await screen.findByText("Como o Zelo protege você")).toBeInTheDocument();
   });
 });
+describe("consent gate", () => {
+  beforeEach(() => {
+    useConsentStore.setState({ hasConsented: false, consentedAt: null });
+  });
+
+  it.each(["/chat", "/assessment", "/assessment/phq9", "/assessment/gad7", "/peers"])(
+    "sends an unconsented visitor from %s to the privacy screen",
+    async (path) => {
+      buildTestRouter(path);
+      // These routes collect mental-health answers or send text to an AI
+      // provider. The consent screen is where that is disclosed.
+      expect(await screen.findByText(/Privacidade/i)).toBeInTheDocument();
+    },
+  );
+
+  it.each(["/crisis", "/crisis/line"])(
+    "lets an unconsented visitor reach %s, deliberately",
+    async (path) => {
+      buildTestRouter(path);
+      // Someone in crisis must reach the CVV number without being sent through
+      // a consent form first. This is the one place the gate must not apply.
+      expect(await screen.findByRole("link", { name: /Ligar para o CVV/ })).toBeInTheDocument();
+    },
+  );
+});
+
