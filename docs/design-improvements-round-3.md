@@ -199,7 +199,7 @@ Most consequential on `TextField`, where the border is the *only* boundary cue �
 
 ## P3
 
-Dead `useApiHealth` (zero references, plus a six-symbol chain behind it that ships nothing) and `QuestionCardSkeleton`. `"Voltar ao início"` navigating to `/assessment`. Three `className="p-2 cursor-pointer"` overrides on `ManagerDashboardPage` fighting their own Button variant. `no-scrollbar` at all breakpoints in `DataTableToolbar` and `TranscriptScroller`, hiding the desktop scroll cue. Two greetings stacked in the Home header. `/peer` missing from `APP_HEADER_META`. `ManagerNotificationsPage` and `ManagerInsightHistoryPage` rendering nothing at all while loading. `ChatDisclaimerBanner` at `text-[12.5px]`, the only fractional size in the codebase, on the one non-dismissable legal notice.
+Dead `useApiHealth` (zero references, plus a six-symbol chain behind it that ships nothing) and `QuestionCardSkeleton`. ✅ `"Voltar ao início"` navigating to `/assessment` — **fixed**: the destination was the bug, not the label. `CrisisDeclinePage` and `FallbackPage` both use that exact label for `routes.home`, so the app had already answered which half was wrong. Three `className="p-2 cursor-pointer"` overrides on `ManagerDashboardPage` fighting their own Button variant. `no-scrollbar` at all breakpoints in `DataTableToolbar` and `TranscriptScroller`, hiding the desktop scroll cue. Two greetings stacked in the Home header. `/peer` missing from `APP_HEADER_META`. `ManagerNotificationsPage` and `ManagerInsightHistoryPage` rendering nothing at all while loading. `ChatDisclaimerBanner` at `text-[12.5px]`, the only fractional size in the codebase, on the one non-dismissable legal notice.
 
 ---
 

@@ -88,7 +88,7 @@ export function AssessmentResultPage() {
           Conversar com o acolhimento
         </Button>
         <div className="mt-3">
-          <Button variant="ghost" onClick={() => navigate(routes.assessment)}>
+          <Button variant="ghost" onClick={() => navigate(routes.home)}>
             Voltar ao início
           </Button>
         </div>

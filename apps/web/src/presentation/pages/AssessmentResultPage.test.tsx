@@ -168,4 +168,17 @@ describe("AssessmentResultPage", () => {
       screen.getByRole("button", { name: "Conversar com o acolhimento" }).className,
     ).toContain("bg-brand-fill");
   });
+
+  it("sends 'Voltar ao início' to início, as the same label does everywhere else", async () => {
+    const user = userEvent.setup();
+    renderResult({ scaleType: "PHQ-9", totalScore: 3, max: 27, riskSignal: false });
+
+    await user.click(screen.getByRole("button", { name: "Voltar ao início" }));
+
+    // CrisisDeclinePage and FallbackPage both use this label for routes.home.
+    // This screen sent the user to the scale picker instead, so either the
+    // label or the destination was wrong — and two other screens already say
+    // which.
+    expect(screen.getByText("Home screen")).toBeInTheDocument();
+  });
 });
