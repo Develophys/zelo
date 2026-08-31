@@ -24,13 +24,30 @@ export function AssessmentResultPage() {
     return null;
   }
 
-  const { scaleType, totalScore, max, riskSignal } = state;
+  const { scaleType, totalScore, max, riskSignal, pendingSync } = state;
   const band = bandFor(scaleType, totalScore);
 
   return (
     <PhoneShell bottomNav centered>
       <div>
         <ResultBandCard scaleType={scaleType} score={totalScore} max={max} band={band} />
+
+        {/* Deliberately makes no promise of a later sync: nothing in the app
+            retries the upload, so "vai sincronizar" would be false. It says
+            what is true — the record is on the device and in their own
+            history — and what is not: the anonymous hospital aggregate. */}
+        {pendingSync && (
+          <div
+            data-testid="pending-sync-notice"
+            className="mt-4.5 rounded-card border border-line bg-canvas-alt p-4.5"
+          >
+            <p className="text-body font-extrabold text-ink">Salvo só neste aparelho.</p>
+            <p className="mt-1 text-pretty text-caption text-muted">
+              A conexão falhou, então este check-in não entrou nos números anônimos do hospital.
+              Ele continua no seu histórico, aqui.
+            </p>
+          </div>
+        )}
 
         <p className="my-4.5 text-body text-muted">
           Isto é um sinal, não um diagnóstico. Ele ajuda a decidir o próximo passo — no seu tempo.

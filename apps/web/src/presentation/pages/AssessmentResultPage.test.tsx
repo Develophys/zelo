@@ -103,4 +103,29 @@ describe("AssessmentResultPage", () => {
     expect(screen.queryByTestId("band-support")).not.toBeInTheDocument();
     expect(screen.queryByText("Notamos um sinal importante.")).not.toBeInTheDocument();
   });
+
+  it("says plainly when the check-in never reached the hospital's aggregate", () => {
+    renderResult({
+      scaleType: "PHQ-9", totalScore: 12, max: 27, riskSignal: false, pendingSync: true,
+    });
+
+    const notice = screen.getByTestId("pending-sync-notice");
+    // No promise of a later sync: nothing in the app retries the upload, so
+    // saying it will sync would be false.
+    expect(notice.textContent ?? "").not.toMatch(/sincroniza|assim que|quando a conex/i);
+    expect(notice).toHaveTextContent(/neste aparelho/i);
+    expect(notice).toHaveTextContent(/hist[óo]rico/i);
+  });
+
+  it("stays quiet when the check-in was uploaded", () => {
+    renderResult({
+      scaleType: "PHQ-9", totalScore: 12, max: 27, riskSignal: false, pendingSync: false,
+    });
+    expect(screen.queryByTestId("pending-sync-notice")).not.toBeInTheDocument();
+  });
+
+  it("treats a result with no pendingSync flag as uploaded", () => {
+    renderResult({ scaleType: "PHQ-9", totalScore: 12, max: 27, riskSignal: false });
+    expect(screen.queryByTestId("pending-sync-notice")).not.toBeInTheDocument();
+  });
 });

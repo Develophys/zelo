@@ -24,7 +24,7 @@ The executable guards in the repo — `theme-contrast.test.ts`, `token-pairing.t
 
 ## P0
 
-### 1. A failed assessment upload reports itself as a success
+### 1. A failed assessment upload reports itself as a success — ✅ FIXED
 
 `use-cases/submit-assessment.usecase.ts:43-57` returns `submissionSucceeded: false` when the upload fails. **No production code reads it** — `grep` finds the field only in tests. `ScaleAssessmentPage.tsx:54-62` reads `totalScore` and `riskSignal` and navigates to the result screen either way.
 
@@ -36,7 +36,22 @@ The `submitError` branch at `ScaleAssessmentPage.tsx:134-145` — *"Não foi pos
 
 **Noted in rounds 1 and 2 and not acted on both times, including by me.** It was filed as a minor observation twice; it is a P0.
 
-### 2. `usePeerRequest` cannot express a failure
+**Shipped.** `pendingSync: !result.submissionSucceeded` is threaded into the result navigation
+state, `ResultLocationState` gained an optional `pendingSync` (absent is treated as uploaded, so
+an older navigation state degrades safely), and the result screen states it plainly.
+
+**The copy makes no promise of a later sync, deliberately.** Verified first: the local store
+exposes only `save` and `listAll`, nothing retries the upload, and no service worker or queue
+exists — so "vai sincronizar quando a conexão voltar" would have been false. It says what is
+true instead: *"Salvo só neste aparelho. A conexão falhou, então este check-in não entrou nos
+números anônimos do hospital. Ele continua no seu histórico, aqui."* A test asserts the notice
+does **not** match /sincroniza|assim que|quando a conex/, so a future edit cannot quietly add the
+promise back.
+
+**Still open:** there is no retry. Re-submitting needs the raw answers, which the result state
+does not carry, so a manual retry is a separate change — and a background queue is a feature.
+
+### 2. `usePeerRequest` cannot express a failure — ✅ FIXED
 
 `presentation/hooks/usePeerRequest.ts:6` declares `"idle" | "searching" | "matched" | "no_peer_available"` — no error member — and registers no `connect_error` or `disconnect` listener. A dropped socket leaves a doctor on *"Procurando um colega disponível…"* indefinitely.
 
@@ -44,7 +59,12 @@ The `submitError` branch at `ScaleAssessmentPage.tsx:134-145` — *"Não foi pos
 
 Partially mitigated: `PeersPage.tsx:94-99` shows a 15s slow-search notice offering the CVV number, so there is an exit. But the state itself never resolves.
 
-**Fix.** Mirror `usePeerPartnerConnection.ts:45-46` exactly.
+**Shipped.** Mirrored from `usePeerPartnerConnection` exactly: an `error` member on the union,
+`connect_error` and `disconnect` listeners, and a failure state on `PeersPage` that says *"Não
+foi possível conectar agora. Você não está na fila de espera."* — naming the consequence, not
+just the fault — with a retry and the crisis line promoted into the actions rather than left in
+the footer alone. `disconnect` does not clobber `matched`, so ending a real conversation is not
+reported as a failure.
 
 ---
 

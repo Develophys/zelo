@@ -158,4 +158,55 @@ describe("PeersPage", () => {
     renderPeers();
     expect(screen.getAllByText("conexão sem troca de identidade")).toHaveLength(1);
   });
+
+  it("surfaces a failed connection instead of searching forever", async () => {
+    useInstitutionLinkStore.setState({ institutionId: "institution-1", institutionName: "Hospital Teste", sectorId: "sector-1", sectorName: "UTI", deviceSignalId: "device-1" });
+    const user = userEvent.setup();
+    renderPeers();
+    await user.click(screen.getByRole("button", { name: "Falar com um colega" }));
+
+    await act(async () => {
+      handlers["connect_error"]!();
+    });
+
+    // Without an error state the doctor sits on "Procurando um colega
+    // disponível..." indefinitely. usePeerPartnerConnection already handles
+    // exactly this on the volunteer side.
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/não foi possível conectar/i);
+    expect(screen.getByRole("button", { name: "Tentar novamente" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Procurando um colega/ })).not.toBeInTheDocument();
+  });
+
+  it("surfaces a dropped connection during an active search", async () => {
+    useInstitutionLinkStore.setState({ institutionId: "institution-1", institutionName: "Hospital Teste", sectorId: "sector-1", sectorName: "UTI", deviceSignalId: "device-1" });
+    const user = userEvent.setup();
+    renderPeers();
+    await user.click(screen.getByRole("button", { name: "Falar com um colega" }));
+
+    await act(async () => {
+      handlers["disconnect"]!();
+    });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/não foi possível conectar/i);
+  });
+
+  it("keeps the crisis line reachable from the failed-connection state", async () => {
+    useInstitutionLinkStore.setState({ institutionId: "institution-1", institutionName: "Hospital Teste", sectorId: "sector-1", sectorName: "UTI", deviceSignalId: "device-1" });
+    const user = userEvent.setup();
+    renderPeers();
+    await user.click(screen.getByRole("button", { name: "Falar com um colega" }));
+    await act(async () => {
+      handlers["connect_error"]!();
+    });
+
+    await screen.findByRole("alert");
+    // Promoted into the failure state itself, not only present in the footer:
+    // this is the moment the fallback human channel matters most.
+    const actions = screen.getByTestId("peer-error-actions");
+    expect(within(actions).getByRole("link", { name: /Ligar para o CVV/ })).toHaveAttribute(
+      "href",
+      "tel:188",
+    );
+  });
 });

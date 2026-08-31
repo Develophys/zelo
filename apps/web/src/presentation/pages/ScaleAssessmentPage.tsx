@@ -58,6 +58,9 @@ export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
           totalScore: result.totalScore,
           max: scale.maxScore,
           riskSignal: result.riskSignal,
+          // The use case has always reported this; nothing ever read it, so an
+          // upload that failed looked exactly like one that worked.
+          pendingSync: !result.submissionSucceeded,
         },
       });
     } catch {
