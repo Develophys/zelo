@@ -134,7 +134,7 @@ export function ManagerDashboardPage() {
   const clearSession = useManagerSessionStore((state) => state.clearSession);
   const sectorsQuery = useManagerSectors();
   const [selectedSectorIds, setSelectedSectorIds] = useState<string[] | undefined>(undefined);
-  const { data, error, isError, isLoading } = useManagerSignals(selectedSectorIds);
+  const { data, error, isError, isLoading, refetch } = useManagerSignals(selectedSectorIds);
   const insight = useManagerInsight();
 
   useEffect(() => {
@@ -143,6 +143,11 @@ export function ManagerDashboardPage() {
       navigate(routes.managerLogin, { replace: true });
     }
   }, [isError, error, clearSession, navigate]);
+
+  // A non-401 failure used to fall through these `?? 0` defaults, so a
+  // coordinator read 0% and 0 questionários as if they had been measured. The
+  // screen refuses to render numbers it does not have.
+  const loadFailed = isError && !(error instanceof UnauthorizedManagerError);
 
   const weeklyTrend = data?.weeklyTrend ?? [];
   const bars = toTrendBars(weeklyTrend);
@@ -161,122 +166,144 @@ export function ManagerDashboardPage() {
 
       <p className="mt-3 max-w-[62ch] text-label text-muted">{DASHBOARD_DISCLOSURE}</p>
 
-      <div data-testid="kpi-grid" className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {isLoading ? (
-          <>
-            <KpiCardSkeleton />
-            <KpiCardSkeleton />
-            <KpiCardSkeleton />
-          </>
-        ) : (
-          <>
-            <Card className="h-full text-center" data-testid="kpi-card">
-              {/* Deliberately not tone-coded. What counts as a concerning rate is
-                  an open product question (PRODUCT.md), and an unconditional
-                  amber reads as a warning even at 0%. */}
-              <p className="font-serif text-[30px] text-ink">{Math.round(overallConcerningRate * 100)}%</p>
-              <p className="text-caption text-muted">sinais de burnout na equipe</p>
-            </Card>
-            <Card className="h-full text-center" data-testid="kpi-card">
-              <p className="font-serif text-[30px] text-brand">{checkInsLast4Weeks}</p>
-              <p className="text-caption text-muted">questionários respondidos (4 semanas)</p>
-            </Card>
-            <Card className="h-full text-center" data-testid="kpi-card">
-              <p className="font-serif text-[30px] text-brand">{Math.round(followUpResponseRate * 100)}%</p>
-              <p className="text-caption text-muted">taxa de resposta do follow-up</p>
-            </Card>
-          </>
-        )}
-      </div>
+      {loadFailed && (
+        <div className="mt-5 rounded-card border border-danger-border bg-danger-bg p-4.5">
+          <p role="alert" className="text-body font-extrabold text-danger">
+            Não foi possível carregar os indicadores.
+          </p>
+          <p className="mt-1 text-pretty text-caption text-danger-ink">
+            Nada aqui foi medido — estes números não existem até a próxima tentativa.
+          </p>
+          <div className="mt-4">
+            <Button variant="outline" full={false} onClick={() => refetch()}>
+              Tentar novamente
+            </Button>
+          </div>
+        </div>
+      )}
 
-      <div data-testid="trend-segments-grid" className="mt-3.5 grid gap-3.5 lg:grid-cols-[2fr_1fr]">
-        <div>
+      {/* Numbers are withheld entirely on a failed load rather than
+          defaulting to zero, which reads as a measurement. */}
+      {!loadFailed && (
+        <>
+        <div data-testid="kpi-grid" className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {isLoading ? (
-            <TrendCardSkeleton />
+            <>
+              <KpiCardSkeleton />
+              <KpiCardSkeleton />
+              <KpiCardSkeleton />
+            </>
           ) : (
-            <Card className="flex h-full flex-col" data-testid="manager-card">
-              <div className="flex items-center justify-between">
-                <CardTitle>Tendência geral</CardTitle>
-                <p className="font-mono text-[12px] text-muted-2">últimas 6 semanas</p>
-              </div>
-              <ul data-testid="trend-description" className="sr-only">
-                {weeklyTrend.map((point, index) => (
-                  <li key={index}>{describeTrendWeek(point, index, weeklyTrend.length - 1)}</li>
-                ))}
-              </ul>
-              {weeklyTrend.length === 0 ? (
-                <div className="mt-auto flex h-14 items-end gap-2" aria-hidden="true">
-                  {Array.from({ length: TREND_SKELETON_BAR_COUNT }, (_, index) => (
-                    <div key={index} className="h-1 w-full rounded-md bg-line" />
+            <>
+              <Card className="h-full text-center" data-testid="kpi-card">
+                {/* Deliberately not tone-coded. What counts as a concerning rate is
+                    an open product question (PRODUCT.md), and an unconditional
+                    amber reads as a warning even at 0%. */}
+                <p className="font-serif text-[30px] text-ink">{Math.round(overallConcerningRate * 100)}%</p>
+                <p className="text-caption text-muted">sinais de burnout na equipe</p>
+              </Card>
+              <Card className="h-full text-center" data-testid="kpi-card">
+                <p className="font-serif text-[30px] text-brand">{checkInsLast4Weeks}</p>
+                <p className="text-caption text-muted">questionários respondidos (4 semanas)</p>
+              </Card>
+              <Card className="h-full text-center" data-testid="kpi-card">
+                <p className="font-serif text-[30px] text-brand">{Math.round(followUpResponseRate * 100)}%</p>
+                <p className="text-caption text-muted">taxa de resposta do follow-up</p>
+              </Card>
+            </>
+          )}
+        </div>
+
+        <div data-testid="trend-segments-grid" className="mt-3.5 grid gap-3.5 lg:grid-cols-[2fr_1fr]">
+          <div>
+            {isLoading ? (
+              <TrendCardSkeleton />
+            ) : (
+              <Card className="flex h-full flex-col" data-testid="manager-card">
+                <div className="flex items-center justify-between">
+                  <CardTitle>Tendência geral</CardTitle>
+                  <p className="font-mono text-[12px] text-muted-2">últimas 6 semanas</p>
+                </div>
+                <ul data-testid="trend-description" className="sr-only">
+                  {weeklyTrend.map((point, index) => (
+                    <li key={index}>{describeTrendWeek(point, index, weeklyTrend.length - 1)}</li>
+                  ))}
+                </ul>
+                {weeklyTrend.length === 0 ? (
+                  <div className="mt-auto flex h-14 items-end gap-2" aria-hidden="true">
+                    {Array.from({ length: TREND_SKELETON_BAR_COUNT }, (_, index) => (
+                      <div key={index} className="h-1 w-full rounded-md bg-line" />
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    <div className="mt-auto flex h-14 items-end gap-2" aria-hidden="true">
+                      {bars.map((bar, index) => (
+                        <div
+                          key={index}
+                          data-testid="trend-bar"
+                          className={`w-full rounded-md ${bar.isZero ? "bg-track" : "bg-brand"}`}
+                          style={{ height: `${bar.height}%` }}
+                        />
+                      ))}
+                    </div>
+                    <div className="mt-1.5 flex gap-2" aria-hidden="true">
+                      {weeklyTrend.map((point, index) => (
+                        <span
+                          key={index}
+                          className="w-full truncate text-center font-mono text-[12px] text-muted-2"
+                        >
+                          {weekLabel(point.weekStart)}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {weeklyTrend.length === 0 && (
+                  <p data-testid="trend-empty" className="mt-3 text-pretty text-label text-muted">
+                    {TREND_EMPTY}
+                  </p>
+                )}
+              </Card>
+            )}
+          </div>
+          <div>
+            {isLoading ? (
+              <SegmentsCardSkeleton />
+            ) : (
+              <Card className="h-full" data-testid="manager-card">
+                <CardTitle>Sinais por setor</CardTitle>
+                <ul data-testid="segments-description" className="sr-only">
+                  {segments.map((segment) => (
+                    <li key={segment.label}>{describeSegment(segment)}</li>
+                  ))}
+                </ul>
+                {segments.length === 0 && (
+                  <p data-testid="segments-empty" className="mt-3 text-pretty text-label text-muted">
+                    {SEGMENTS_EMPTY}
+                  </p>
+                )}
+                <div className="mt-3 flex flex-col gap-3" aria-hidden="true">
+                  {segments.map((segment) => (
+                    <div key={segment.label}>
+                      <div className="flex items-center justify-between text-label text-ink-2">
+                        <span>{segment.label}</span>
+                        <span className="font-mono text-[12px] text-muted-2">
+                          {segment.value}% · {segment.n} {segment.n === 1 ? "resposta" : "respostas"}
+                        </span>
+                      </div>
+                      <div className="mt-1 h-2 overflow-hidden rounded-pill bg-canvas-alt">
+                        <div className="h-full rounded-pill bg-brand" style={{ width: `${segment.value}%` }} />
+                      </div>
+                    </div>
                   ))}
                 </div>
-              ) : (
-                <>
-                  <div className="mt-auto flex h-14 items-end gap-2" aria-hidden="true">
-                    {bars.map((bar, index) => (
-                      <div
-                        key={index}
-                        data-testid="trend-bar"
-                        className={`w-full rounded-md ${bar.isZero ? "bg-track" : "bg-brand"}`}
-                        style={{ height: `${bar.height}%` }}
-                      />
-                    ))}
-                  </div>
-                  <div className="mt-1.5 flex gap-2" aria-hidden="true">
-                    {weeklyTrend.map((point, index) => (
-                      <span
-                        key={index}
-                        className="w-full truncate text-center font-mono text-[12px] text-muted-2"
-                      >
-                        {weekLabel(point.weekStart)}
-                      </span>
-                    ))}
-                  </div>
-                </>
-              )}
-              {weeklyTrend.length === 0 && (
-                <p data-testid="trend-empty" className="mt-3 text-pretty text-label text-muted">
-                  {TREND_EMPTY}
-                </p>
-              )}
-            </Card>
-          )}
+              </Card>
+            )}
+          </div>
         </div>
-        <div>
-          {isLoading ? (
-            <SegmentsCardSkeleton />
-          ) : (
-            <Card className="h-full" data-testid="manager-card">
-              <CardTitle>Sinais por setor</CardTitle>
-              <ul data-testid="segments-description" className="sr-only">
-                {segments.map((segment) => (
-                  <li key={segment.label}>{describeSegment(segment)}</li>
-                ))}
-              </ul>
-              {segments.length === 0 && (
-                <p data-testid="segments-empty" className="mt-3 text-pretty text-label text-muted">
-                  {SEGMENTS_EMPTY}
-                </p>
-              )}
-              <div className="mt-3 flex flex-col gap-3" aria-hidden="true">
-                {segments.map((segment) => (
-                  <div key={segment.label}>
-                    <div className="flex items-center justify-between text-label text-ink-2">
-                      <span>{segment.label}</span>
-                      <span className="font-mono text-[12px] text-muted-2">
-                        {segment.value}% · {segment.n} {segment.n === 1 ? "resposta" : "respostas"}
-                      </span>
-                    </div>
-                    <div className="mt-1 h-2 overflow-hidden rounded-pill bg-canvas-alt">
-                      <div className="h-full rounded-pill bg-brand" style={{ width: `${segment.value}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
-        </div>
-      </div>
+        </>
+      )}
 
       <hr data-testid="insight-pgr-divider" className="mt-3 border-t border-line" />
 

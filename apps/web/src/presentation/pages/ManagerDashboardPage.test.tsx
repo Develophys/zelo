@@ -586,4 +586,17 @@ describe("ManagerDashboardPage", () => {
       /não um laudo/i,
     );
   });
+
+  it("says it could not load rather than reporting zero as a measurement", async () => {
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockRejectedValue(new Error("offline"));
+    renderManager();
+
+    // "Nothing happened" and "we could not find out" are different facts, and
+    // only one of them is safe for a coordinator to act on.
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/não foi possível carregar/i);
+    expect(screen.getByRole("button", { name: "Tentar novamente" })).toBeInTheDocument();
+    expect(screen.queryByTestId("kpi-card")).not.toBeInTheDocument();
+    expect(screen.queryByText("0%")).not.toBeInTheDocument();
+  });
 });

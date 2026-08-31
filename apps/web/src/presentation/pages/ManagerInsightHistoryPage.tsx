@@ -7,6 +7,7 @@ import { IconButton } from "@/presentation/ui/IconButton";
 import { DataTableShell } from "@/presentation/ui/DataTable/DataTableShell";
 import { DataTableToolbar } from "@/presentation/ui/DataTable/DataTableToolbar";
 import { DataTableEmpty } from "@/presentation/ui/DataTable/DataTableEmpty";
+import { DataTableError } from "@/presentation/ui/DataTable/DataTableError";
 import { routes } from "@/presentation/lib/routes";
 import { useManagerInsightHistory } from "@/presentation/hooks/useManagerInsightHistory";
 import { useManagerInsight } from "@/presentation/hooks/useManagerInsight";
@@ -181,7 +182,7 @@ function InsightCard({ entry, isDefaultOpen }: { entry: StoredManagerInsight; is
 export function ManagerInsightHistoryPage() {
   const navigate = useNavigate();
   const clearSession = useManagerSessionStore((state) => state.clearSession);
-  const { data, error, isError } = useManagerInsightHistory();
+  const { data, error, isError, refetch } = useManagerInsightHistory();
   const insight = useManagerInsight();
   const [search, setSearch] = useState("");
 
@@ -192,6 +193,7 @@ export function ManagerInsightHistoryPage() {
     }
   }, [isError, error, clearSession, navigate]);
 
+  const loadFailed = isError && !(error instanceof UnauthorizedManagerError);
   const entries = data ?? [];
   const term = search.trim().toLowerCase();
   const filtered = useMemo(
@@ -217,7 +219,14 @@ export function ManagerInsightHistoryPage() {
         fill
         toolbar={<DataTableToolbar search={search} onSearchChange={setSearch} action={generate} />}
       >
-        {filtered.length === 0 ? (
+        {loadFailed ? (
+          /* Not "nenhuma análise gerada ainda" — that would tell a coordinator
+             the opposite of the truth about their own history. */
+          <DataTableError
+            message="Não foi possível carregar o histórico de análises."
+            onRetry={() => refetch()}
+          />
+        ) : filtered.length === 0 ? (
           term.length > 0 ? (
             <DataTableEmpty
               title="Nenhuma análise corresponde à busca."

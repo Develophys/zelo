@@ -84,11 +84,22 @@ the link may be stale, a crash says the fault is ours — and both carry a serif
 home, and `CrisisCallLink`. The thrown value is read only in `RouteErrorFallback`, logged to the
 console in dev and never shown to a doctor, so `FallbackPage` stays renderable anywhere.
 
-### 4. The dashboard renders a failed fetch as data
+### 4. The dashboard renders a failed fetch as data — ✅ FIXED
 
 `ManagerDashboardPage.tsx:150-152` — a non-401 failure falls through `?? 0`, so a coordinator sees **0%** and **0 questionários respondidos** as if measured. Three other pages render a failed load as an empty state: `AdminInstitutionsPage.tsx:138`, `ManagerInsightHistoryPage.tsx:188-193`, `LinkInstitutionSectorStep.tsx:26-30`.
 
 "Nothing happened" and "we could not find out" are different facts, and only one of them is safe to act on.
+
+**Shipped, on all four surfaces.** The dashboard now withholds the KPI cards and both charts
+entirely on a non-401 failure and says so — *"Nada aqui foi medido — estes números não existem
+até a próxima tentativa."* — with a retry. Rendering `0%` was worse than rendering nothing,
+because a coordinator can act on it.
+
+`AdminInstitutionsPage` gained all three states where it previously had none, so a failed load no
+longer reads as an empty register. `ManagerInsightHistoryPage` shows `DataTableError` instead of
+"Nenhuma análise gerada ainda". `useLinkInstitutionFlow` now exposes `isError` separately from
+`hasSectors`, so "your hospital has not registered its sectors" is no longer shown for a network
+failure — only one of those is the hospital's fault.
 
 ### 5. Sector managers navigate to three destinations that bounce them back — ✅ FIXED
 

@@ -134,6 +134,19 @@ export function AdminInstitutionsPage() {
 
         <div className="mt-6">
           <p className="text-body font-extrabold text-ink">Instituições cadastradas</p>
+          {/* A failed load is not an empty register. Rendering both as "no
+              institutions" tells a platform admin the opposite of the truth. */}
+          {institutions.isError && (
+            <p role="alert" className="mt-3 text-pretty text-label text-danger">
+              Não foi possível carregar as instituições. Isto não quer dizer que não existam.
+            </p>
+          )}
+          {institutions.isLoading && (
+            <p className="mt-3 text-label text-muted">Carregando instituições…</p>
+          )}
+          {!institutions.isLoading && !institutions.isError && institutions.data?.length === 0 && (
+            <p className="mt-3 text-label text-muted">Nenhuma instituição cadastrada ainda.</p>
+          )}
           <div className="mt-3 flex flex-col gap-3">
             {(institutions.data ?? []).map((institution) => (
               <Card key={institution.id}>
