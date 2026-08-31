@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ManagerSidebar } from './ManagerSidebar';
 import { ManagerBottomNav } from './ManagerBottomNav';
+import { managerNavFor } from './manager-nav';
 import { MANAGER_ADMIN_NAV, MANAGER_PRIMARY_NAV, MANAGER_SETTINGS_NAV } from './manager-nav';
 import { useManagerPrefsStore } from '@/stores/manager-prefs.store';
 import { useManagerSessionStore } from '@/stores/manager-session.store';
@@ -271,3 +272,22 @@ describe('manager sidebar caption', () => {
     expect(screen.getByTestId('manager-sidebar-caption').className).toContain('lg:not-sr-only');
   });
 });
+describe('manager nav by role', () => {
+  it('hides the admin group from a SECTOR_MANAGER, who cannot reach any of it', () => {
+    // router.tsx redirects a non-HOSPITAL_ADMIN away from all three routes, so
+    // advertising them means three taps that silently bounce back to Tendências.
+    expect(managerNavFor('SECTOR_MANAGER').admin).toEqual([]);
+    expect(managerNavFor('SECTOR_MANAGER').showAdminGroup).toBe(false);
+  });
+
+  it('offers the admin group to a HOSPITAL_ADMIN', () => {
+    const nav = managerNavFor('HOSPITAL_ADMIN');
+    expect(nav.admin.map((item) => item.id)).toEqual(['managers', 'sectors', 'peers']);
+    expect(nav.showAdminGroup).toBe(true);
+  });
+
+  it('withholds the admin group when the role is not yet known', () => {
+    expect(managerNavFor(null).admin).toEqual([]);
+  });
+});
+

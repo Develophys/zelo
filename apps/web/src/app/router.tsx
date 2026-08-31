@@ -36,6 +36,7 @@ import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { useAdminSessionStore } from "@/stores/admin-session.store";
 import { usePeerPartnerSessionStore } from "@/stores/peer-partner-session.store";
 import { routes } from "@/presentation/lib/routes";
+import { FallbackPage, RouteErrorFallback } from "@/presentation/pages/FallbackPage";
 
 // Single source of truth for the app's route tree. router.test.tsx imports
 // this directly (rather than hand-duplicating it) so the test router can
@@ -160,6 +161,10 @@ export const routeChildren: RouteObject[] = [
     Component: PeerPartnerInboxPage,
     loader: () => (usePeerPartnerSessionStore.getState().isValid() ? null : redirect(routes.peerPartnerLogin)),
   },
+  // Last, so it only catches what nothing above matched. Without it a stale
+  // bookmark or a basename mismatch lands on React Router's default page:
+  // unstyled, in English, and with no crisis line.
+  { path: "*", Component: FallbackPage },
 ];
 
 export const router = createBrowserRouter(
@@ -168,6 +173,10 @@ export const router = createBrowserRouter(
       id: "root",
       path: "/",
       Component: () => <Outlet />,
+      // Covers every route below. ErrorBoundary already guards the chat
+      // transcript from inside; this is the same idea at the root, so a render
+      // error anywhere still leaves a way home and a number to call.
+      errorElement: <RouteErrorFallback />,
       children: routeChildren,
     },
   ],

@@ -72,13 +72,17 @@ reported as a failure.
 
 ## P1
 
-### 3. No root error boundary, no 404
+### 3. No root error boundary, no 404 — ✅ FIXED
 
 `ErrorBoundary` exists and is used in **exactly one place** — `ChatPage.tsx:103`. `router.tsx` declares no `errorElement` and no `path: "*"`.
 
 A render error on any of the other 28 pages, or a mistyped URL, or a stale bookmark, yields React Router's unstyled English default: no Zelo branding, no Portuguese, and **no CVV number** — in a product whose non-negotiable property is that the crisis line is always reachable. The chat already models the correct behaviour; it just was never applied at the root.
 
-**Fix.** An `errorElement` and a catch-all route, both rendering one `PhoneShell` screen with a serif headline, a way home, and `CrisisCallLink`.
+**Shipped.** `FallbackPage` serves both: a `{ path: "*" }` catch-all placed last, and an
+`errorElement` on the root route covering every child. Two copy variants — an unknown URL says
+the link may be stale, a crash says the fault is ours — and both carry a serif heading, a way
+home, and `CrisisCallLink`. The thrown value is read only in `RouteErrorFallback`, logged to the
+console in dev and never shown to a doctor, so `FallbackPage` stays renderable anywhere.
 
 ### 4. The dashboard renders a failed fetch as data
 
@@ -86,13 +90,18 @@ A render error on any of the other 28 pages, or a mistyped URL, or a stale bookm
 
 "Nothing happened" and "we could not find out" are different facts, and only one of them is safe to act on.
 
-### 5. Sector managers navigate to three destinations that bounce them back
+### 5. Sector managers navigate to three destinations that bounce them back — ✅ FIXED
 
 `MANAGER_ADMIN_NAV` renders unconditionally (`ManagerSidebar.tsx:124`, `ManagerBottomNav.tsx:122`), while `router.tsx:50-52` redirects any non-`HOSPITAL_ADMIN` away. The sidebar already reads `role` (`ManagerSidebar.tsx:74`) — for a tooltip label.
 
 A `SECTOR_MANAGER` sees Gestores, Setores and Pares anônimos permanently, taps one, and lands back on Tendências with no message. On mobile the sheet just closes. The likeliest reading is that the app is broken — and on an iPad in a meeting, in front of their director.
 
-**Fix.** Filter at the source with a `managerNavFor(role)` in `manager-nav.ts`, consumed by both navs, suppressing the group label when empty.
+**Shipped.** `managerNavFor(role)` in `manager-nav.ts` returns the admin group only for
+`HOSPITAL_ADMIN` — and for an unknown role too, since a null role is not yet an entitlement.
+Both navs consume it, and each suppresses the "Administração" heading when the group is empty
+rather than leaving a label over nothing. `ManagerRole` had to be exported from the session
+store; it was previously module-private, which vitest would never have caught since it does not
+typecheck.
 
 ### 6. The result screen leads with the alarm and reassures afterwards
 

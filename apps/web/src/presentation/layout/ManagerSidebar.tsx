@@ -9,7 +9,7 @@ import { useManagerUnreadCount } from '@/presentation/hooks/useManagerNotificati
 import { ManagerUnreadBadge } from './ManagerUnreadBadge';
 import {
   MANAGER_ADMIN_GROUP_LABEL,
-  MANAGER_ADMIN_NAV,
+  managerNavFor,
   MANAGER_PRIMARY_NAV,
   MANAGER_SETTINGS_NAV,
   type ManagerNavItem,
@@ -72,6 +72,7 @@ export function ManagerSidebar({ className = '' }: ManagerSidebarProps) {
   const collapsed = useManagerPrefsStore((state) => state.sidebarCollapsed);
   const toggleSidebar = useManagerPrefsStore((state) => state.toggleSidebar);
   const role = useManagerSessionStore((state) => state.role);
+  const nav = managerNavFor(role);
   const clearSession = useManagerSessionStore((state) => state.clearSession);
   const unread = useManagerUnreadCount();
 
@@ -114,16 +115,20 @@ export function ManagerSidebar({ className = '' }: ManagerSidebarProps) {
           />
         ))}
 
-        <h2
-          className={`mt-4 px-3 pb-1 font-mono text-eyebrow text-muted uppercase ${
-            collapsed ? 'sr-only' : 'sr-only lg:not-sr-only'
-          }`}
-        >
-          {MANAGER_ADMIN_GROUP_LABEL}
-        </h2>
-        {MANAGER_ADMIN_NAV.map((item) => (
-          <Item key={item.id} item={item} collapsed={collapsed} />
-        ))}
+        {nav.showAdminGroup && (
+          <>
+            <h2
+              className={`mt-4 px-3 pb-1 font-mono text-eyebrow text-muted uppercase ${
+                collapsed ? 'sr-only' : 'sr-only lg:not-sr-only'
+              }`}
+            >
+              {MANAGER_ADMIN_GROUP_LABEL}
+            </h2>
+            {nav.admin.map((item) => (
+              <Item key={item.id} item={item} collapsed={collapsed} />
+            ))}
+          </>
+        )}
       </nav>
 
       <div className="flex flex-none flex-col gap-1 border-t border-surface-brand px-2 py-3">

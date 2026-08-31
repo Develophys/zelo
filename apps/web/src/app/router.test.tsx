@@ -281,4 +281,20 @@ describe("consent gate", () => {
     },
   );
 });
+describe("last-resort screens", () => {
+  it("answers an unknown URL in Portuguese, with the crisis line still reachable", async () => {
+    useConsentStore.setState({ hasConsented: true, consentedAt: "2026-01-01T00:00:00.000Z" });
+    buildTestRouter("/rota-que-nao-existe");
+
+    // The default React Router 404 is unstyled English with no CVV number, on a
+    // product whose non-negotiable property is that the line is always reachable.
+    expect(await screen.findByRole("heading", { level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Ligar para o CVV/ })).toHaveAttribute(
+      "href",
+      "tel:188",
+    );
+    expect(screen.getByRole("button", { name: "Voltar ao início" })).toBeInTheDocument();
+  });
+});
+
 
