@@ -177,12 +177,27 @@ Independently computed, light / dark:
 
 Most consequential on `TextField`, where the border is the *only* boundary cue — the fill is 1.11:1 from the page.
 
-### 9. Two alpha-composited text failures the token tests cannot see
+### 9. Two alpha-composited text failures the token tests cannot see — ✅ FIXED
 
 - `text-muted-2` on `bg-warn-bg/40` over canvas: **4.47:1** (`ManagerNotificationsPage.tsx:64`). The untinted pair is 4.57 and passes; the `/40` tint alone pushes it under.
 - `text-brand` on `bg-track` (soft button hover): **4.29–4.36:1** across all four accents (`Button.tsx:22`). `theme-contrast.test.ts:174` does test this pair — but at the 3:1 *graphic* threshold, while it is used as a text pair.
 
 `theme-contrast.test.ts` parses literal hex from `index.css`, so every `/5`, `/10`, `/40`, `/75` in TSX is unchecked, as is every `opacity-*` group composite. That is the gap to close, not the individual pairs.
+
+**Shipped — the gap first, then the pairs.** `theme-contrast.test.ts` gained a
+`TINTED_TEXT_PAIRS` list and a runner that composites a token onto a base at an alpha before
+measuring, reusing the `over()` helper the file already had for the dark-mode rim. Seeded with the
+tokens the components *actually used*, it reproduced both failures to the cent — 4.34 and 4.47,
+matching the independent hand-computation — and only then were the components changed.
+
+- The soft `Button` now darkens its **label** on hover, not only its background:
+  `enabled:hover:text-brand-hover`. That is what the token is for, and it measures 5.56–5.59 light
+  and 6.99–7.04 dark across all four accents.
+- The unread notification date moved `text-muted-2` → `text-muted`, taking the composite from
+  4.47 to 5.00.
+
+Sixteen new assertions, two pairs across eight theme×accent combinations. The remaining `/5` and
+`/10` tints are graphic, not text, and measure above their own threshold.
 
 ### 10. A result cannot be reopened
 

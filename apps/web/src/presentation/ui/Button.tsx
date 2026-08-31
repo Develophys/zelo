@@ -18,7 +18,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const VARIANT_CLASS: Record<'primary' | 'soft' | 'ghost' | 'outline' | 'danger', string> = {
   primary: 'bg-brand-fill text-on-fill border border-fill-edge enabled:hover:bg-brand-fill-hover',
-  soft: 'bg-surface-brand text-brand enabled:hover:bg-track',
+  // The label darkens with the background on hover. Keeping `text-brand`
+  // against `track` measured 4.29-4.36:1 across the four accents — under the
+  // 4.5 floor, and invisible to a token test that only reads literal hex.
+  soft: 'bg-surface-brand text-brand enabled:hover:bg-track enabled:hover:text-brand-hover',
   ghost: 'bg-transparent text-muted',
   outline: 'bg-surface text-ink border border-line',
   danger: 'bg-danger-fill text-on-fill border border-fill-edge',
