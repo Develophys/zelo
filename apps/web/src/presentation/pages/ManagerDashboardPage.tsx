@@ -14,6 +14,7 @@ import { useManagerInsight } from "@/presentation/hooks/useManagerInsight";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 import { downloadPgrReportAsCsv, downloadPgrReportAsPdf } from "@/presentation/lib/download-manager-pgr-report";
+import { MANAGER_INSIGHT_DISCLAIMER } from "@/presentation/lib/manager-insight-disclaimer";
 import { ArrowRight } from "lucide-react";
 import {
   describeSegment,
@@ -315,6 +316,14 @@ export function ManagerDashboardPage() {
                   </li>
                 ))}
               </ul>
+              {/* Same string the exports carry, so what a manager reads here and
+                  what lands in a meeting deck cannot say different things. */}
+              <p
+                data-testid="insight-disclaimer"
+                className="mt-4 border-t border-line pt-3 text-pretty text-caption text-muted"
+              >
+                {MANAGER_INSIGHT_DISCLAIMER}
+              </p>
             </div>
           )}
         </Card>

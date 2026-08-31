@@ -571,4 +571,19 @@ describe("ManagerDashboardPage", () => {
     // nothing happened. Saying so is the difference between "broken" and "working".
     expect(await screen.findByTestId("segments-empty")).toHaveTextContent(/5 respostas/i);
   });
+
+  it("labels the AI interpretation as AI-generated, on screen as well as in exports", async () => {
+    vi.spyOn(container.generateManagerInsightUseCase, "execute").mockResolvedValue({
+      interpretation: "A UTI concentra os sinais.",
+      suggestedActions: ["Revisar escalas"],
+    });
+    renderManager();
+    await waitFor(() => expect(screen.getByText("Plantão noturno")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: "Gerar análise" }));
+
+    expect(await screen.findByTestId("insight-disclaimer")).toHaveTextContent(
+      /não um laudo/i,
+    );
+  });
 });

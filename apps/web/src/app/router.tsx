@@ -71,30 +71,46 @@ export const routeChildren: RouteObject[] = [
     Component: HomePage,
     loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
   },
+  // Everything that collects a mental-health answer or sends text to the AI
+  // provider sits behind consent, because the consent screen is where that is
+  // disclosed. Reaching them by deep link, bookmark or history would otherwise
+  // start collecting before the promise was made.
   {
     path: "chat",
     Component: ChatPage,
+    loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
   },
   {
     path: "assessment",
     Component: AssessmentSelectPage,
+    loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
   },
   {
     path: "assessment/phq9",
     element: <ScaleAssessmentPage scale={PHQ9_SCALE} />,
+    loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
   },
   {
     path: "assessment/gad7",
     element: <ScaleAssessmentPage scale={GAD7_SCALE} />,
+    loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
   },
   {
     path: "assessment/result",
     Component: AssessmentResultPage,
+    loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
   },
+  // The crisis routes are deliberately NOT gated. Someone reaching for the CVV
+  // number must not be sent through a consent form first, and these screens
+  // collect nothing — RequestHumanHandoffUseCase is synchronous and I/O-free.
   { path: "crisis", Component: CrisisOfferPage },
   { path: "crisis/connect", Component: CrisisAcceptPage },
   { path: "crisis/line", Component: CrisisDeclinePage },
-  { path: "peers", Component: PeersPage },
+  {
+    path: "peers",
+    Component: PeersPage,
+    loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
+  },
   { path: "manager/login", Component: ManagerLoginPage },
   { path: "manager/finish-setup", Component: ManagerFinishSetupPage },
   {
