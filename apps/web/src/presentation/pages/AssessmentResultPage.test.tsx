@@ -128,4 +128,44 @@ describe("AssessmentResultPage", () => {
     renderResult({ scaleType: "PHQ-9", totalScore: 12, max: 27, riskSignal: false });
     expect(screen.queryByTestId("pending-sync-notice")).not.toBeInTheDocument();
   });
+
+  it("gives the screen an entry point, in the same words at every severity", () => {
+    renderResult({ scaleType: "PHQ-9", totalScore: 24, max: 27, riskSignal: false });
+    const heading = screen.getByRole("heading", { level: 2 });
+    expect(heading).toHaveTextContent("Obrigado por responder até o fim.");
+    expect(heading.className).toContain("font-serif");
+  });
+
+  it("keeps the heading identical on a low score, so it cannot be read as a tell", () => {
+    renderResult({ scaleType: "PHQ-9", totalScore: 2, max: 27, riskSignal: false });
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(
+      "Obrigado por responder até o fim.",
+    );
+  });
+
+  it("frames the number before showing it", () => {
+    renderResult({ scaleType: "PHQ-9", totalScore: 24, max: 27, riskSignal: false });
+
+    const reframe = screen.getByText(/sinal, não um diagnóstico/);
+    const score = screen.getByTestId("score-value");
+    // Reassurance that arrives after a 64px red number has already been read is
+    // not reassurance.
+    expect(reframe.compareDocumentPosition(score) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("leaves exactly one primary action when support is offered", () => {
+    renderResult({ scaleType: "PHQ-9", totalScore: 24, max: 27, riskSignal: false });
+
+    // The support card already carries a primary. A second full-weight button
+    // asks someone in distress to choose between two equal-looking options.
+    const chat = screen.getByRole("button", { name: "Conversar com o acolhimento" });
+    expect(chat.className).not.toContain("bg-brand-fill");
+  });
+
+  it("keeps the chat CTA primary when no support card is shown", () => {
+    renderResult({ scaleType: "PHQ-9", totalScore: 2, max: 27, riskSignal: false });
+    expect(
+      screen.getByRole("button", { name: "Conversar com o acolhimento" }).className,
+    ).toContain("bg-brand-fill");
+  });
 });

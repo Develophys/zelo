@@ -6,8 +6,7 @@ Rounds 1 and 2 and their remediation are in [design-improvements.md](./design-im
 
 **Design health: 26/40 (65% — Acceptable). Trend: 25 → 27 → 26.**
 
-**Status:** both P0s and four of five P1s are closed (1, 2, 3, 4, 5, 7). **Open: P1 item 6**
-(needs new normative copy), and all of P2 and P3. Re-run `/impeccable critique apps/web` to
+**Status:** **all P0s and all P1s are closed** (items 1–7). **Open: P2 (8–11) and P3.** Re-run `/impeccable critique apps/web` to
 score the current code — the 26 above measures the surface before this remediation.
 
 **The score fell while the surface improved.** Every item from rounds 1 and 2 that was fixed stayed fixed. This round simply looked harder at error paths than either previous round, and found defects that were present in all three. That is the trend line working as intended: it tracks what has been *found*, not how much work has been done.
@@ -118,13 +117,29 @@ rather than leaving a label over nothing. `ManagerRole` had to be exported from 
 store; it was previously module-private, which vitest would never have caught since it does not
 typecheck.
 
-### 6. The result screen leads with the alarm and reassures afterwards
+### 6. The result screen leads with the alarm and reassures afterwards — ✅ FIXED
 
 `AssessmentResultPage.tsx:30-63` has **no heading in its body** — the only heading on the route is `AppHeader`'s 15px sans "Resultado". On a 375×667 phone the first viewport after item 9 is: a 13px caption, a 64px band-toned number, and a red pill. *"Isto é um sinal, não um diagnóstico"* sits below it.
 
 The reassurance arrives after the alarm. Then two full-width, same-weight buttons ask a person in distress to choose between "Falar com alguém agora" and "Conversar com o acolhimento".
 
-**Fix.** A serif `h2` above the dial keyed to the band; move the reframing line above the number; demote the secondary CTA to `ghost` when `riskSignal || bandNeedsSupport(band)` so exactly one primary action exists.
+**Shipped, with the heading *not* keyed to the band.** The original proposal was two variants —
+calm for minimal/mild, warm for high/severe. That was rejected on review: a doctor who checks in
+weekly would decode it, so "Obrigado por responder até o fim" would become a tell that the number
+is bad *before they had read the number*. The severity-specific warmth already lives in
+`BandSupportCard` and `RiskSignalCallout`, which appear after the frame and exist for exactly
+that. The heading is the same at every severity.
+
+- `<h2 className="font-serif text-h2">Obrigado por responder até o fim.</h2>` — the screen's first
+  entry point, and the first serif headline in the doctor's core loop since the shared-header
+  change.
+- The reframing line moved **above** the score, unchanged in wording. Reassurance that arrives
+  after a 64px band-toned number has already been read is not reassurance.
+- The chat CTA drops to `outline` when `riskSignal || bandNeedsSupport(band)`, so the support
+  card's own primary is the only full-weight action on the screen.
+
+Tests assert the heading is byte-identical at 24/27 and at 2/27, so the tell cannot be
+reintroduced.
 
 ### 7. Manager severity is painted in the brand's affirmative colour — ✅ FIXED
 
