@@ -73,7 +73,7 @@ export function SplashPage() {
             Começar
           </Button>
           <div className="mt-4.5">
-            <SectionLabel tone="muted-strong">anônimo · criptografado · no seu controle</SectionLabel>
+            <SectionLabel>anônimo · criptografado · no seu controle</SectionLabel>
           </div>
         </div>
       </div>

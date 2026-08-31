@@ -43,11 +43,11 @@ describe("CrisisAcceptPage", () => {
   it("always shows the CVV 188 line, before and after choosing a bond", async () => {
     const user = userEvent.setup();
     renderAccept();
-    expect(screen.getByText(/188/)).toBeInTheDocument();
-    expect(screen.getByText(/CVV\s*·\s*188/)).toBeInTheDocument();
+    expect(screen.getByText(/CVV\s+188/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /CVV\s*·\s*188/ })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "SUS" }));
-    expect(screen.getByText(/188/)).toBeInTheDocument();
-    expect(screen.getByText(/CVV\s*·\s*188/)).toBeInTheDocument();
+    expect(screen.getByText(/CVV\s+188/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /CVV\s*·\s*188/ })).toBeInTheDocument();
   });
 
   it("never implies a live connection (no session/token/'available now' language)", async () => {
@@ -75,5 +75,38 @@ describe("CrisisAcceptPage", () => {
     await user.click(screen.getByRole("button", { name: "SUS" }));
     await user.click(screen.getByRole("button", { name: "Entendi" }));
     expect(screen.getByText("Home screen")).toBeInTheDocument();
+  });
+
+  it("offers the CVV line as a real tel: link, not text to memorise", () => {
+    renderAccept();
+    const call = screen.getByRole("link", { name: /Ligar para o CVV/ });
+    expect(call).toHaveAttribute("href", "tel:188");
+  });
+
+  it("leads with the call action, ahead of the insurance question", () => {
+    renderAccept();
+    const call = screen.getByRole("link", { name: /Ligar para o CVV/ });
+    const bond = screen.getByRole("button", { name: "SUS" });
+    expect(call.compareDocumentPosition(bond) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("frames the bond question as optional rather than a gate", () => {
+    renderAccept();
+    expect(screen.getByText(/quer que eu te indique onde procurar/i)).toBeInTheDocument();
+  });
+
+  it("gives the page a real heading instead of leading on body copy", () => {
+    renderAccept();
+    expect(screen.getByRole("heading", { level: 2 })).toBeInTheDocument();
+  });
+
+  it("keeps the call action reachable after a bond is chosen", async () => {
+    const user = userEvent.setup();
+    renderAccept();
+    await user.click(screen.getByRole("button", { name: "SUS" }));
+    expect(screen.getByRole("link", { name: /Ligar para o CVV/ })).toHaveAttribute(
+      "href",
+      "tel:188",
+    );
   });
 });

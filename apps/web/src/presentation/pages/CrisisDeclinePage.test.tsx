@@ -19,7 +19,9 @@ function renderDecline() {
 describe("CrisisDeclinePage", () => {
   it("renders no-penalty copy and a real tel: link sourced from the handoff use-case", () => {
     renderDecline();
-    expect(screen.getByText("Tudo bem. A escolha é sua.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(
+      "Tudo bem. A escolha é sua.",
+    );
     expect(screen.getByText(/sem pressa e sem penalidade/)).toBeInTheDocument();
     const callLink = screen.getByRole("link", { name: "Ligar para o CVV" });
     expect(callLink).toHaveAttribute("href", "tel:188");

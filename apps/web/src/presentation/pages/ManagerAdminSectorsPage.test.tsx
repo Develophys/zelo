@@ -396,8 +396,8 @@ describe("ManagerAdminSectorsPage", () => {
     await screen.findByRole('table');
     await user.type(screen.getByRole('searchbox'), 'zzz-no-match');
 
-    expect(await screen.findByText('Nenhum resultado nos itens carregados')).toBeInTheDocument();
-    expect(screen.getByText('A busca ainda percorre apenas a lista já carregada.')).toBeInTheDocument();
+    expect(await screen.findByText('Nada encontrado para esta busca')).toBeInTheDocument();
+    expect(screen.getByText('Tente outro termo ou revise a ortografia.')).toBeInTheDocument();
   });
 
   it('shows a loading state while the sectors are still fetching, instead of claiming none exist', async () => {

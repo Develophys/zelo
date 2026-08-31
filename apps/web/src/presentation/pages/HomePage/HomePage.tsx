@@ -20,11 +20,16 @@ export function HomePage() {
       centered
       headerOverride={{ title: getGreeting(new Date().getHours()) }}
     >
+      {/* Ordered so a tired doctor can act before deciding. The check-in leads;
+          a pending follow-up sits with it because it is the same question asked
+          later. Then the two ways to reach a person — nobody in distress should
+          have to scroll past a chart to find them. The chart only reports, so it
+          drops below the actions, and the hospital-link prompt is last: it is
+          housekeeping that serves the institution's aggregate, not the reason
+          this person opened the app. */}
       <div className="flex flex-col">
-        <FollowUpCard />
-        <InstitutionLinkCard className="mt-4" />
         <CheckInHeroCard />
-        <HistoryChartCard />
+        <FollowUpCard className="mt-3.5" />
 
         <div className="mt-3.5 flex gap-3">
           <CardButton onClick={() => navigate(routes.chat)} className="flex-1">
@@ -36,6 +41,9 @@ export function HomePage() {
             <p className="mt-2 text-body font-extrabold text-ink">Falar com um par</p>
           </CardButton>
         </div>
+
+        <HistoryChartCard />
+        <InstitutionLinkCard className="mt-3.5" />
       </div>
     </PhoneShell>
   );

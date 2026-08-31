@@ -1022,7 +1022,7 @@ describe('ChatPage', () => {
     await user.click(screen.getByRole('button', { name: 'Enviar' }));
 
     expect(await screen.findByTestId('assistant-typing')).toHaveClass(
-      'rounded-[20px]',
+      'rounded-bubble',
       'rounded-bl-md',
       'bg-surface',
       'shadow-card',

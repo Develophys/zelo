@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -78,7 +78,7 @@ describe("HomePage", () => {
   });
 
   it.each([
-    [3, "Boa noite."], // plantão noturno — the greeting should meet a 3am check-in too
+    [3, "Boa madrugada."], // plantão noturno — 3am is mid-shift, not a late night
     [9, "Bom dia."],
     [15, "Boa tarde."],
     [21, "Boa noite."],
@@ -114,8 +114,8 @@ describe("HomePage", () => {
     renderHome();
     // The 6 history-bar elements exist from the very first render (via the EMPTY_POINTS
     // fallback), so findAllByTestId's existence check alone would race the async query
-    // resolution — wait for the resolved (non-neutral) class instead, as HealthBanner.test.tsx
-    // does for the same useQuery-resolution race.
+    // resolution — wait for the resolved (non-neutral) class instead, to avoid the
+    // same useQuery-resolution race.
     await waitFor(() => {
       expect(screen.getAllByTestId("history-bar").filter((bar) => bar.className.includes("bg-warn"))).toHaveLength(
         1,
@@ -198,6 +198,73 @@ describe("HomePage", () => {
   });
 });
 
+describe("HomePage hierarchy", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useFollowUpStore.setState({ answer: null, answeredAt: null });
+    useInstitutionLinkStore.setState({
+      institutionId: null,
+      institutionName: null,
+      sectorId: null,
+      sectorName: null,
+      deviceSignalId: null,
+    });
+  });
+
+  function follows(earlier: HTMLElement, later: HTMLElement) {
+    return Boolean(
+      earlier.compareDocumentPosition(later) & Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  }
+
+  it("leads with the check-in, so a tired doctor acts before deciding", async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue(SIX_NULL_POINTS);
+    renderHome();
+
+    const checkIn = screen.getByRole("button", { name: "Fazer check-in" });
+    const chat = screen.getByRole("button", { name: /conversar agora/i });
+    const linkNag = screen.getByRole("button", { name: "Vincular agora" });
+
+    expect(follows(checkIn, chat)).toBe(true);
+    expect(follows(checkIn, linkNag)).toBe(true);
+  });
+
+  it("places a pending follow-up directly after the check-in", async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
+      { weekStart: OLD_ENOUGH_WEEK_START, severityFraction: 0.4 },
+    ]);
+    renderHome();
+
+    await screen.findByText("Como você está, um tempo depois?");
+    const checkIn = screen.getByRole("button", { name: "Fazer check-in" });
+    const followUp = screen.getByRole("button", { name: "Estou bem" });
+    const chat = screen.getByRole("button", { name: /conversar agora/i });
+
+    expect(follows(checkIn, followUp)).toBe(true);
+    expect(follows(followUp, chat)).toBe(true);
+  });
+
+  it("puts the ways to reach someone above the chart that merely reports", async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue(SIX_NULL_POINTS);
+    renderHome();
+
+    const peers = screen.getByRole("button", { name: /falar com um par/i });
+    const chart = await screen.findByText("Seu histórico");
+
+    expect(follows(peers, chart)).toBe(true);
+  });
+
+  it("demotes the hospital-link prompt below everything the doctor came for", async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue(SIX_NULL_POINTS);
+    renderHome();
+
+    const chart = await screen.findByText("Seu histórico");
+    const linkNag = screen.getByRole("button", { name: "Vincular agora" });
+
+    expect(follows(chart, linkNag)).toBe(true);
+  });
+});
+
 describe("HomePage manager entry point", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -233,3 +300,41 @@ describe("HomePage header", () => {
     }
   });
 });
+describe("HomePage follow-up", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useFollowUpStore.setState({ answer: null, answeredAt: null });
+  });
+
+  it("answers 'Não estou bem' with a way through instead of deleting the question", async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
+      { weekStart: OLD_ENOUGH_WEEK_START, severityFraction: 0.4 },
+    ]);
+    const user = userEvent.setup();
+    renderHome();
+    await screen.findByText("Como você está, um tempo depois?");
+
+    await user.click(screen.getByRole("button", { name: "Não estou bem" }));
+
+    // A doctor said they are not okay. Unmounting the card teaches them the app
+    // does not listen.
+    const ack = await screen.findByTestId("followup-ack");
+    expect(ack).toHaveTextContent(/obrigado por dizer/i);
+    expect(within(ack).getByRole("button", { name: /Conversar agora/i })).toBeInTheDocument();
+    expect(within(ack).getByRole("button", { name: /Falar com um par/i })).toBeInTheDocument();
+  });
+
+  it("acknowledges 'Estou bem' briefly rather than vanishing", async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
+      { weekStart: OLD_ENOUGH_WEEK_START, severityFraction: 0.4 },
+    ]);
+    const user = userEvent.setup();
+    renderHome();
+    await screen.findByText("Como você está, um tempo depois?");
+
+    await user.click(screen.getByRole("button", { name: "Estou bem" }));
+
+    expect(await screen.findByTestId("followup-ack")).toHaveTextContent(/que bom/i);
+  });
+});
+

@@ -7,7 +7,7 @@ export function CheckInHeroCard() {
   const navigate = useNavigate();
 
   return (
-    <div className="mt-5">
+    <div>
       <Card size="lg" tone="brand" className="flex flex-col">
         <h2 className="text-h2">Como você está hoje?</h2>
         <p className="mt-1 text-label text-on-fill-2">Um check-in de 5 minutos, só para você.</p>

@@ -332,11 +332,11 @@ describe("ManagerAdminManagersPage", () => {
     ]);
     renderPage();
 
-    const cards = screen.getByTestId('manager-card-list');
+    const cards = await screen.findByTestId('manager-card-list');
     expect(cards.className).toContain('md:hidden');
-    // The whole card selects — there is no checkbox inside it. The list
-    // itself is always in the DOM (only CSS hides it above md), so wait on
-    // its content rather than the container. Queried by its full accessible
+    // The whole card selects — there is no checkbox inside it. The list now
+    // lives inside DataTable, which renders it with the rows, so await the
+    // container rather than assuming it is present before the query resolves. Queried by its full accessible
     // name (not a loose /Ana/ regex) because the card also carries row-action
     // buttons named "... de Ana", which a loose match would multi-hit.
     const card = await within(cards).findByRole('button', { name: 'Ana, Ativa' });
@@ -351,7 +351,7 @@ describe("ManagerAdminManagersPage", () => {
     ]);
     renderPage();
 
-    const cards = screen.getByTestId('manager-card-list');
+    const cards = await screen.findByTestId('manager-card-list');
     await within(cards).findByRole('button', { name: 'Ana, Ativa' });
 
     // A card is a <button> nowhere nested inside another <button> — the
@@ -570,8 +570,8 @@ describe("ManagerAdminManagersPage", () => {
     await screen.findByRole('table');
     await user.type(screen.getByRole('searchbox'), 'zzz-no-match');
 
-    expect(await screen.findByText('Nenhum resultado nos itens carregados')).toBeInTheDocument();
-    expect(screen.getByText('A busca ainda percorre apenas a lista já carregada.')).toBeInTheDocument();
+    expect(await screen.findByText('Nada encontrado para esta busca')).toBeInTheDocument();
+    expect(screen.getByText('Tente outro termo ou revise a ortografia.')).toBeInTheDocument();
   });
 
   it('shows a loading state while the managers are still fetching, instead of claiming none exist', async () => {
@@ -601,5 +601,21 @@ describe("ManagerAdminManagersPage", () => {
 
     await waitFor(() => expect(listSpy).toHaveBeenCalledTimes(2));
     expect(within(await screen.findByRole('table')).getByText('Ana')).toBeInTheDocument();
+  });
+
+  it('collapses the add button to "+" on phones while selecting, without losing its name', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    renderPage();
+
+    const add = await screen.findByRole('button', { name: '+ Adicionar gestor' });
+    const label = within(add).getByText('Adicionar gestor');
+
+    // sr-only, never hidden: the button still has to announce what it adds when
+    // only the "+" is drawn.
+    expect(label.className).toContain('max-md:group-data-[selecting=true]/action:sr-only');
+    expect(label.className).not.toContain('hidden');
   });
 });

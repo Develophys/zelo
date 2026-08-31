@@ -12,7 +12,7 @@ export function PrivacyPage() {
   return (
     <PhoneShell centered>
       <div className="pt-7.5">
-        <SectionLabel tone="muted-strong">Privacidade primeiro</SectionLabel>
+        <SectionLabel>Privacidade primeiro</SectionLabel>
         <h1 className="mb-5.5 mt-2.5 text-h1 text-ink">Como o Zelo protege você</h1>
         <ol className="flex flex-col gap-3.5">
           {PRIVACY_CLAIMS.map((claim, index) => (

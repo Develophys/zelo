@@ -20,7 +20,7 @@ export function ManagerShell() {
           width overflows this flex child and brings back the horizontal
           scrollbar the redesign exists to remove. */}
       <div className="flex min-w-0 min-h-0 flex-1 flex-col">
-        <AppHeader className="sticky top-0 z-30" />
+        <AppHeader className="sticky top-0 z-30" chrome="manager" />
         <main className="flex min-h-0 min-w-0 flex-1 flex-col px-6 pt-6 pb-20 md:overflow-y-auto md:pb-8">
           <Outlet />
         </main>

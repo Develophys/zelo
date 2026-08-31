@@ -65,6 +65,20 @@ describe("AssessmentSelectPage", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  it("recesses the em-breve card with tokens, not opacity that composites the whole subtree", () => {
+    renderSelect();
+    const card = screen.getByText("MBI-HSS").closest("div.rounded-card")!;
+    expect(card.className).not.toMatch(/\bopacity-\d/);
+  });
+
+  it("keeps the em-breve pill on the type scale and above the contrast floor", () => {
+    renderSelect();
+    const pill = screen.getByText("em breve");
+    expect(pill.className).toContain("text-eyebrow");
+    expect(pill.className).toContain("text-ink-2");
+    expect(pill.className).not.toMatch(/text-\[\d+px\]/);
+  });
+
   it("reflows the scales into two columns from the tablet breakpoint up", () => {
     renderSelect();
     const grid = screen.getByRole("button", { name: /PHQ-9/i }).parentElement;

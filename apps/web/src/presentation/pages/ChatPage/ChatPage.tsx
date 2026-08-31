@@ -1,6 +1,7 @@
 import { ArrowDown } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { PhoneShell } from '@/presentation/layout/PhoneShell';
+import { TranscriptScroller } from '@/presentation/ui/TranscriptScroller';
 import { Button } from '@/presentation/ui/Button';
 import { ErrorBoundary } from '@/presentation/ui/ErrorBoundary';
 import { useChatConversation } from '@/presentation/hooks/useChatConversation';
@@ -91,14 +92,13 @@ export function ChatPage() {
             {isStreaming ? 'Escrevendo…' : settledReply}
           </p>
 
-          <div
-            ref={scrollerRef}
+          <TranscriptScroller
+            scrollerRef={scrollerRef}
             onScroll={handleScroll}
             role="region"
-            aria-label="Conversa"
-            aria-busy={isStreaming}
-            tabIndex={0}
-            className="no-scrollbar flex-1 overflow-y-auto p-[18px_16px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset short:p-[12px_16px]"
+            label="Conversa"
+            busy={isStreaming}
+            className="p-[18px_16px] short:p-[12px_16px]"
           >
             <ErrorBoundary
               onRecover={handleTranscriptRecovered}
@@ -142,7 +142,7 @@ export function ChatPage() {
                 />
               </div>
             </ErrorBoundary>
-          </div>
+          </TranscriptScroller>
 
           {hasUnseenContent && (
             <Button

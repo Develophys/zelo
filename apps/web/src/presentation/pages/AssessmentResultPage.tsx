@@ -4,7 +4,8 @@ import { PhoneShell } from '@/presentation/layout/PhoneShell';
 import { Button } from '@/presentation/ui/Button';
 import { ResultBandCard } from '@/presentation/components/ResultBandCard';
 import { RiskSignalCallout } from '@/presentation/components/RiskSignalCallout';
-import { bandFor } from '@/presentation/lib/band-for';
+import { BandSupportCard } from '@/presentation/components/BandSupportCard';
+import { bandFor, bandNeedsSupport } from '@/presentation/lib/band-for';
 import { isResultState } from '@/presentation/lib/is-result-state';
 import { routes } from '@/presentation/lib/routes';
 
@@ -35,10 +36,21 @@ export function AssessmentResultPage() {
           Isto é um sinal, não um diagnóstico. Ele ajuda a decidir o próximo passo — no seu tempo.
         </p>
 
-        {riskSignal && (
+        {/* Two distinct treatments on purpose. The danger-toned callout answers
+            the item-9 acute-risk signal; the calmer card answers a high or
+            severe band with no such signal. Collapsing them would either
+            under-serve a severe score or over-alarm someone who is not in
+            acute risk. */}
+        {riskSignal ? (
           <div className="mb-4.5">
             <RiskSignalCallout onConnect={() => navigate(routes.crisis)} />
           </div>
+        ) : (
+          bandNeedsSupport(band) && (
+            <div className="mb-4.5">
+              <BandSupportCard onTalk={() => navigate(routes.crisis)} />
+            </div>
+          )
         )}
 
         <Button variant="primary" onClick={() => navigate(routes.chat)}>

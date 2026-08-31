@@ -56,6 +56,7 @@ function Harness({ rows = ROWS }: { rows?: Row[] }) {
         />
       }
       emptyState={<p>Nenhum gestor por aqui.</p>}
+      mobileList={<ul data-testid="mobile-list" />}
     />
   );
 }
@@ -120,6 +121,7 @@ describe('DataTable', () => {
           rowActions={() => null}
           toolbar={<DataTableToolbar selection={selection} search="" onSearchChange={() => {}} actions={null} />}
           emptyState={<p>Nenhum gestor por aqui.</p>}
+          mobileList={<ul data-testid="mobile-list" />}
         />
       );
     }
@@ -217,6 +219,7 @@ describe('DataTable fill mode', () => {
         rowActions={() => null}
         toolbar={<DataTableToolbar selection={selection} search="" onSearchChange={() => {}} actions={BULK_ACTIONS} />}
         emptyState={<p>Nenhum gestor por aqui.</p>}
+        mobileList={<ul data-testid="mobile-list" />}
       />
     );
   }

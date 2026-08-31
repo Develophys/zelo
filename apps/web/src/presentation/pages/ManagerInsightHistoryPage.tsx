@@ -234,6 +234,11 @@ export function ManagerInsightHistoryPage() {
 
       {filtered.length > 0 && (
         <ul data-testid="insight-card-list" className="flex flex-col gap-3 md:hidden">
+          {/* Deliberately expanded on the phone only. The desktop table shows
+              date, summary and actions per row at a glance; a phone card shows
+              date and summary, so opening the newest analysis is what makes the
+              two carry comparable information on arrival. Collapsing it for
+              consistency would cost a tap for the entry most people came for. */}
           {filtered.map((entry, index) => (
             <li key={entry.id}>
               <InsightCard entry={entry} isDefaultOpen={index === 0} />

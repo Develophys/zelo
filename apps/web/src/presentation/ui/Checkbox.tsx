@@ -20,22 +20,33 @@ export function Checkbox({ indeterminate = false, className = '', ...rest }: Che
     if (inputRef.current) inputRef.current.indeterminate = indeterminate;
   }, [indeterminate]);
 
+  // 20px is a comfortable target but a small thing to see. On a phone the drawn
+  // box grows to 24px and the input's bleed shrinks to match, so the touch
+  // target stays 44px at either size.
   return (
-    <span className={['relative inline-flex h-5 w-5 flex-none', className].filter(Boolean).join(' ')}>
+    <span
+      className={['relative inline-flex h-5 w-5 max-md:h-6 max-md:w-6 flex-none', className]
+        .filter(Boolean)
+        .join(' ')}
+    >
       <input
         ref={inputRef}
         type="checkbox"
-        className="peer absolute -inset-3 z-10 cursor-pointer appearance-none disabled:cursor-not-allowed"
+        className="peer absolute -inset-3 max-md:-inset-2.5 z-10 cursor-pointer appearance-none disabled:cursor-not-allowed"
         {...rest}
       />
       <span
         aria-hidden="true"
-        className="pointer-events-none inline-flex h-5 w-5 items-center justify-center rounded-status border border-track bg-surface text-transparent transition-colors duration-150 peer-checked:border-brand-fill peer-checked:bg-brand-fill peer-checked:text-on-fill peer-indeterminate:border-brand-fill peer-indeterminate:bg-brand-fill peer-indeterminate:text-on-fill peer-focus-visible:ring-2 peer-focus-visible:ring-brand peer-focus-visible:ring-offset-2 peer-disabled:opacity-50"
+        className="pointer-events-none inline-flex h-5 w-5 max-md:h-6 max-md:w-6 items-center justify-center rounded-status border border-track bg-surface text-transparent transition-colors duration-150 peer-checked:border-brand-fill peer-checked:bg-brand-fill peer-checked:text-on-fill peer-indeterminate:border-brand-fill peer-indeterminate:bg-brand-fill peer-indeterminate:text-on-fill peer-focus-visible:ring-2 peer-focus-visible:ring-brand peer-focus-visible:ring-offset-2 peer-disabled:opacity-50"
       >
         {/* The mark is always in the DOM and hidden by colour, not by a `peer-*`
             class of its own: `peer-*` compiles to a sibling selector, and this
             icon is a descendant of the sibling, not a sibling itself. */}
-        {indeterminate ? <Minus size={14} strokeWidth={3} /> : <Check size={14} strokeWidth={3} />}
+        {indeterminate ? (
+          <Minus size={14} strokeWidth={3} className="size-3.5 max-md:size-4" />
+        ) : (
+          <Check size={14} strokeWidth={3} className="size-3.5 max-md:size-4" />
+        )}
       </span>
     </span>
   );

@@ -1,6 +1,10 @@
 import { memo } from 'react';
-import { ASSISTANT_BUBBLE, BUBBLE_BODY, USER_BUBBLE } from './chat-bubble';
+import { MessageBubble } from '@/presentation/ui/MessageBubble';
 
+/**
+ * The AI transcript's bubble: shared presentation from MessageBubble, plus the
+ * one thing only this surface has — a note when a streamed reply was cut off.
+ */
 export const ChatMessageBubble = memo(function ChatMessageBubble({
   role,
   content,
@@ -12,19 +16,14 @@ export const ChatMessageBubble = memo(function ChatMessageBubble({
   startsExchange?: boolean;
   interrupted?: boolean;
 }) {
-  const rhythm = startsExchange ? 'mt-3 short:mt-1.5' : '';
-
-  return role === 'user' ? (
-    <div data-testid="chat-bubble-user" className={`${BUBBLE_BODY} ${rhythm} ${USER_BUBBLE}`}>
-      {content}
-    </div>
-  ) : (
-    <div
-      data-testid="chat-bubble-assistant"
-      className={`${BUBBLE_BODY} ${rhythm} ${ASSISTANT_BUBBLE} text-ink`}
+  return (
+    <MessageBubble
+      side={role === 'user' ? 'own' : 'other'}
+      content={content}
+      testId={role === 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant'}
+      startsExchange={startsExchange}
     >
-      {content}
-      {interrupted && (
+      {role === 'assistant' && interrupted && (
         <span
           data-testid="chat-reply-interrupted"
           className="mt-2.5 block border-t border-line pt-2 text-caption text-muted"
@@ -32,6 +31,6 @@ export const ChatMessageBubble = memo(function ChatMessageBubble({
           Resposta interrompida antes do fim.
         </span>
       )}
-    </div>
+    </MessageBubble>
   );
 });

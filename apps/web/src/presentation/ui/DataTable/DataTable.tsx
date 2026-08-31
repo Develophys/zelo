@@ -20,6 +20,13 @@ interface DataTableProps<T> {
   toolbar: ReactNode;
   emptyState: ReactNode;
   caption: string;
+  /**
+   * The phone rendering of the same rows. Required, not optional: the table is
+   * hidden below md, so a consumer that omitted this would render nothing at
+   * all there. It lives inside the shell so the toolbar that filters it and the
+   * bulk actions that act on it stay attached to the list they belong to.
+   */
+  mobileList: ReactNode;
   /** Fill the column and scroll the rows instead of the page. See DataTableShell. */
   fill?: boolean;
 }
@@ -36,6 +43,7 @@ export function DataTable<T extends { id: string; isActive: boolean; name?: stri
   toolbar,
   emptyState,
   caption,
+  mobileList,
   fill = false,
 }: DataTableProps<T>): JSX.Element {
   return (
@@ -43,7 +51,11 @@ export function DataTable<T extends { id: string; isActive: boolean; name?: stri
       {rows.length === 0 ? (
         emptyState
       ) : (
-        <table className="hidden w-full table-fixed md:table">
+        <>
+          <div data-testid="data-table-mobile" className="md:hidden">
+            {mobileList}
+          </div>
+          <table className="hidden w-full table-fixed md:table">
           <caption className="sr-only">{caption}</caption>
           <thead className="sticky top-0 z-10 bg-surface">
             <tr className="border-b border-line">
@@ -111,8 +123,9 @@ export function DataTable<T extends { id: string; isActive: boolean; name?: stri
                 </td>
               </tr>
             ))}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </>
       )}
     </DataTableShell>
   );

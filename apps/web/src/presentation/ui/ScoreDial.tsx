@@ -38,16 +38,24 @@ export function ScoreDial({ score, max, band }: ScoreDialProps) {
   const tone = TONE_CLASS[band.tone];
   return (
     <div className="text-center">
-      <span data-testid="score-value" className={`font-serif text-score ${tone.score}`}>
-        {score}
+      {/* The most important output in the product announced as four disconnected
+          fragments — "19", "/27", "Moderadamente grave" — with the slash read
+          aloud. The visual split stays; assistive tech gets one sentence. */}
+      <span data-testid="score-sentence" className="sr-only">
+        {score} de {max}. Faixa: {band.label}.
       </span>
-      <span className={`text-[24px] ${tone.max}`}>/{max}</span>
-      <div className="mt-3">
-        <span
-          className={`inline-block rounded-status px-4 py-1.75 font-sans text-label font-extrabold ${tone.pill}`}
-        >
-          {band.label}
+      <div aria-hidden="true">
+        <span data-testid="score-value" className={`font-serif text-score ${tone.score}`}>
+          {score}
         </span>
+        <span className={`text-[24px] ${tone.max}`}>/{max}</span>
+        <div className="mt-3">
+          <span
+            className={`inline-block rounded-status px-4 py-1.75 font-sans text-label font-extrabold ${tone.pill}`}
+          >
+            {band.label}
+          </span>
+        </div>
       </div>
     </div>
   );

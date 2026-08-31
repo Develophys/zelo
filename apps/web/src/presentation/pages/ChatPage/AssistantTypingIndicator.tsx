@@ -1,11 +1,11 @@
-import { ASSISTANT_BUBBLE } from './chat-bubble';
+import { OTHER_BUBBLE } from '@/presentation/ui/message-bubble';
 
 export function AssistantTypingIndicator() {
   return (
     <div
       aria-hidden="true"
       data-testid="assistant-typing"
-      className={`flex items-center gap-1.5 ${ASSISTANT_BUBBLE} p-[15px_17px] text-brand`}
+      className={`flex items-center gap-1.5 ${OTHER_BUBBLE} p-[15px_17px] text-brand`}
     >
       {[0, 1, 2].map((dot) => (
         <span

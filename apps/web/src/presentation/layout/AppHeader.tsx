@@ -24,9 +24,19 @@ interface AppHeaderProps {
   column?: string;
   className?: string;
   back?: AppHeaderBack;
+  // The anonymity badge is a promise to the médico. A manager is authenticated
+  // by name and role, so showing it on the panel is untrue for that session and
+  // dilutes the badge for the audience it was built for.
+  chrome?: 'doctor' | 'manager';
 }
 
-export function AppHeader({ override, column = '', className = '', back }: AppHeaderProps) {
+export function AppHeader({
+  override,
+  column = '',
+  className = '',
+  back,
+  chrome = 'doctor',
+}: AppHeaderProps) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [isEncryptionInfoOpen, setIsEncryptionInfoOpen] = useState(false);
@@ -54,17 +64,22 @@ export function AppHeader({ override, column = '', className = '', back }: AppHe
         )}
         <div className="min-w-0">
           <h1 className="font-sans text-body-strong text-ink">{title}</h1>
-          <p
-            data-testid="app-header-subtitle"
-            className="min-w-0 truncate font-mono text-mono-data text-brand"
-            title={subtitle}
-          >
-            {subtitle}
-          </p>
+          {/* Rendered only when there is something to say: an empty paragraph
+              still occupies its line box and pushes the title off optical
+              centre on every route without a subtitle. */}
+          {subtitle && (
+            <p
+              data-testid="app-header-subtitle"
+              className="min-w-0 truncate font-mono text-mono-data text-brand"
+              title={subtitle}
+            >
+              {subtitle}
+            </p>
+          )}
         </div>
         <div className="ml-auto flex flex-none items-center gap-1">
           <ThemeSwitchButton />
-          <PrivacyBadge onClick={() => setIsEncryptionInfoOpen(true)} />
+          {chrome === 'doctor' && <PrivacyBadge onClick={() => setIsEncryptionInfoOpen(true)} />}
         </div>
       </div>
       <EncryptionInfoModal

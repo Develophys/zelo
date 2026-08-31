@@ -21,13 +21,23 @@ function Destination({
       aria-label={label}
       title={label}
       className={({ isActive }) =>
-        `flex min-h-11 items-center justify-center gap-3 rounded-control px-3 py-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+        `flex min-h-11 flex-col items-center justify-center gap-1 rounded-control px-2 py-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand lg:flex-row lg:gap-3 lg:px-3 ${
           collapsed ? '' : 'lg:justify-start'
         } ${isActive ? 'bg-surface-brand text-brand' : 'text-muted hover:bg-canvas hover:text-brand'}`
       }
     >
       <Icon size={22} />
-      <span className={`hidden font-sans text-[14px] font-semibold ${collapsed ? '' : 'lg:block'}`}>
+      {/* Visible from md up, as on ManagerSidebar. Tablet portrait is exactly
+          768px, where this rail is icons-only and the collapse toggle that
+          would reveal labels is itself lg-only — leaving a slow native title=
+          tooltip as the only way to learn what anything is. `collapsed` is an
+          lg-and-up preference, so it must not hide the label at the one width
+          that cannot toggle it. */}
+      <span
+        className={`text-center font-sans text-[10px] leading-tight font-semibold lg:text-[14px] ${
+          collapsed ? 'lg:sr-only' : ''
+        }`}
+      >
         {label}
       </span>
     </NavLink>

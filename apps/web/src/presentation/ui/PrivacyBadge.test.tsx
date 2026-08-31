@@ -56,10 +56,18 @@ describe("PrivacyBadge as a control", () => {
 });
 
 describe("SectionLabel", () => {
-  it("renders uppercase mono eyebrow text, muted by default", () => {
+  it("defaults to the tone that clears AA on every surface, not the lighter one", () => {
     render(<SectionLabel>Privacidade primeiro</SectionLabel>);
     const label = screen.getByText("Privacidade primeiro");
-    expect(label).toHaveClass("font-mono", "uppercase", "text-muted-2");
+    // text-muted-2 measures 4.41:1 on canvas-alt and 4.16:1 on surface-brand in
+    // light mode, below the 4.5:1 floor for 12px text, so it cannot be default.
+    expect(label).toHaveClass("font-mono", "uppercase", "text-muted");
+    expect(label).not.toHaveClass("text-muted-2");
+  });
+
+  it("still offers the lighter tone as an explicit opt-in", () => {
+    render(<SectionLabel tone="subtle">Opcional</SectionLabel>);
+    expect(screen.getByText("Opcional")).toHaveClass("text-muted-2");
   });
 
   it("renders the brand tone", () => {

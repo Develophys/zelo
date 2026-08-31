@@ -27,4 +27,11 @@ describe('ScoreDial', () => {
     render(<ScoreDial score={12} max={27} band={{ label: tone, tone }} />);
     expect(screen.getByTestId('score-value')).toHaveClass(expected);
   });
+
+  it('reads as one sentence, not four disconnected fragments', () => {
+    render(<ScoreDial score={19} max={27} band={{ label: 'Moderadamente grave', tone: 'high' }} />);
+    expect(screen.getByTestId('score-sentence')).toHaveTextContent(
+      '19 de 27. Faixa: Moderadamente grave.',
+    );
+  });
 });

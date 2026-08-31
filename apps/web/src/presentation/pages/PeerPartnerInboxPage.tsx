@@ -11,7 +11,7 @@ export function PeerPartnerInboxPage() {
   const navigate = useNavigate();
   const token = usePeerPartnerSessionStore((state) => state.token);
   const clearSession = usePeerPartnerSessionStore((state) => state.clearSession);
-  const { state, incomingRequest, secondsRemaining, messages, peerLeft, accept, decline, sendMessage, leave } = usePeerPartnerConnection(token);
+  const { state, incomingRequest, secondsRemaining, messages, peerLeft, accept, decline, sendMessage, leave, reconnect } = usePeerPartnerConnection(token);
 
   const handleLogout = () => {
     clearSession();
@@ -30,6 +30,19 @@ export function PeerPartnerInboxPage() {
 
         {state === "connecting" && <p className="mt-4 text-label text-muted">Conectando...</p>}
         {state === "idle" && <p className="mt-4 text-label text-muted">Conectado, aguardando solicitações.</p>}
+
+        {state === "error" && (
+          <div className="mt-4">
+            <p role="alert" className="text-label text-danger">
+              Não foi possível conectar. Você não está recebendo pedidos agora.
+            </p>
+            <div className="mt-3">
+              <Button variant="outline" full={false} onClick={reconnect}>
+                Tentar novamente
+              </Button>
+            </div>
+          </div>
+        )}
 
         {state === "incoming_request" && incomingRequest && (
           <Card className="mt-4">

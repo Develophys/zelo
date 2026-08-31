@@ -79,7 +79,7 @@ describe("ManagerDashboardPage", () => {
     for (const name of ["Tendência geral", "Sinais por setor", "Análise com IA", "Insumo para o PGR"]) {
       const heading = screen.getByRole("heading", { level: 2, name });
       expect(heading.className).toContain("font-serif");
-      expect(heading.className).toContain("text-lg");
+      expect(heading.className).toContain("text-card-title");
       expect(heading.className).toContain("text-ink");
     }
   });
@@ -202,12 +202,83 @@ describe("ManagerDashboardPage", () => {
     });
   });
 
+  it("gives the trend chart an accessible description, as the médico's chart has", async () => {
+    renderManager();
+    await waitFor(() => {
+      expect(screen.getByTestId("trend-description")).toBeInTheDocument();
+    });
+    const items = within(screen.getByTestId("trend-description")).getAllByRole("listitem");
+    expect(items.map((item) => item.textContent)).toEqual([
+      "Semana de 1 de jun.: 30%",
+      "Semana de 8 de jun.: 50% (mais recente)",
+    ]);
+  });
+
+  it("gives the segments card an accessible description too", async () => {
+    renderManager();
+    await waitFor(() => {
+      expect(screen.getByTestId("segments-description")).toBeInTheDocument();
+    });
+    const items = within(screen.getByTestId("segments-description")).getAllByRole("listitem");
+    expect(items.map((item) => item.textContent)).toEqual([
+      "Plantão noturno: 52%, 18 respostas",
+      "Pronto-socorro: 38%, 24 respostas",
+      "UTI: 44%, 9 respostas",
+    ]);
+  });
+
+  it("labels each trend bar with its week", async () => {
+    renderManager();
+    await waitFor(() => {
+      expect(screen.getAllByTestId("trend-bar")).toHaveLength(2);
+    });
+    expect(screen.getByText("1 de jun.")).toBeInTheDocument();
+    expect(screen.getByText("8 de jun.")).toBeInTheDocument();
+  });
+
+  it("draws a zero week shorter than a real low week rather than at the same height", async () => {
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
+      ...SIGNALS_RESPONSE,
+      weeklyTrend: [
+        { weekStart: "2026-06-01T00:00:00.000Z", concerningRate: 0 },
+        { weekStart: "2026-06-08T00:00:00.000Z", concerningRate: 0.08 },
+      ],
+    });
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("trend-bar")).toHaveLength(2);
+    });
+    const [zero, low] = screen.getAllByTestId("trend-bar");
+    expect(parseFloat(zero!.style.height)).toBeLessThan(parseFloat(low!.style.height));
+  });
+
+  it("spells out the sample size instead of showing n= notation", async () => {
+    renderManager();
+    await waitFor(() => {
+      expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/n=/)).not.toBeInTheDocument();
+    expect(screen.getByText("52% · 18 respostas")).toBeInTheDocument();
+  });
+
+  it("does not colour the burnout stat as a warning regardless of its value", async () => {
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
+      ...SIGNALS_RESPONSE,
+      overallConcerningRate: 0,
+    });
+    renderManager();
+
+    const zero = await screen.findByText("0%");
+    expect(zero.className).not.toContain("text-warn");
+  });
+
   it("lays out the three KPI cards in a responsive grid", async () => {
     renderManager();
     await waitFor(() => {
       expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
     });
-    expect(screen.getByTestId("kpi-grid")).toHaveClass("grid-cols-1", "md:grid-cols-2", "lg:grid-cols-4");
+    expect(screen.getByTestId("kpi-grid")).toHaveClass("grid-cols-1", "md:grid-cols-2", "lg:grid-cols-3");
   });
 
   it("lays out trend and segments in a responsive grid", async () => {
@@ -389,12 +460,13 @@ describe("ManagerDashboardPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it('grows the stat grid one, two, four across, with equal-height cards', async () => {
+  it('grows the stat grid one, two, three across — never leaving an empty column', async () => {
     renderManager();
     const grid = await screen.findByTestId('kpi-grid');
     expect(grid.className).toContain('grid-cols-1');
     expect(grid.className).toContain('md:grid-cols-2');
-    expect(grid.className).toContain('lg:grid-cols-4');
+    expect(grid.className).toContain('lg:grid-cols-3');
+    expect(grid.className).not.toContain('lg:grid-cols-4');
     for (const card of within(grid).getAllByTestId('kpi-card')) {
       expect(card.className).toContain('h-full');
     }
@@ -475,5 +547,28 @@ describe("ManagerDashboardPage", () => {
     await waitFor(() => expect(screen.getByText('Plantão noturno')).toBeInTheDocument());
 
     expect(screen.queryByTestId('dashboard-filter-row')).not.toBeInTheDocument();
+  });
+
+  it("says the trend has no data instead of drawing an empty card", async () => {
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
+      ...SIGNALS_RESPONSE,
+      weeklyTrend: [],
+    });
+    renderManager();
+
+    expect(await screen.findByTestId("trend-empty")).toHaveTextContent(/sem dados/i);
+    expect(screen.queryAllByTestId("trend-bar")).toHaveLength(0);
+  });
+
+  it("explains an empty sector list by the rule that empties it", async () => {
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
+      ...SIGNALS_RESPONSE,
+      segments: [],
+    });
+    renderManager();
+
+    // Empty here usually means k-anonymity suppressed every segment, not that
+    // nothing happened. Saying so is the difference between "broken" and "working".
+    expect(await screen.findByTestId("segments-empty")).toHaveTextContent(/5 respostas/i);
   });
 });

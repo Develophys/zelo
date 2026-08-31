@@ -188,7 +188,13 @@ export function ManagerAdminPeersPage() {
             onSearchChange={setSearch}
             action={
               <Button variant="primary" size="sm" full={false} onClick={openCreate}>
-                + Adicionar par
+                +{' '}
+                {/* Collapses to the bare "+" on a phone while rows are selected,
+                    so the bulk actions keep the row. sr-only rather than hidden:
+                    the button must still announce what it adds. */}
+                <span className="max-md:group-data-[selecting=true]/action:sr-only">
+                  Adicionar par
+                </span>
               </Button>
             }
             actions={
@@ -216,8 +222,8 @@ export function ManagerAdminPeersPage() {
             <DataTableError message="Não foi possível carregar os pares." onRetry={() => peerPartners.refetch()} />
           ) : debouncedSearch.trim().length > 0 ? (
             <DataTableEmpty
-              title="Nenhum resultado nos itens carregados"
-              hint="A busca ainda percorre apenas a lista já carregada."
+              title="Nada encontrado para esta busca"
+              hint="Tente outro termo ou revise a ortografia."
             />
           ) : (
             <DataTableEmpty
@@ -226,49 +232,50 @@ export function ManagerAdminPeersPage() {
             />
           )
         }
+        mobileList={
+          <ul data-testid="peer-partner-card-list" className="flex flex-col gap-2 md:hidden">
+            {filteredPeerPartners.map((peerPartner) => {
+              const status = accountStatusPill(peerPartner);
+              const selected = selection.isSelected(peerPartner.id);
+              return (
+                <li
+                  key={peerPartner.id}
+                  className={`overflow-hidden rounded-card border ${
+                    selected ? "border-brand bg-brand/5" : "border-line bg-surface"
+                  }`}
+                >
+                  <button
+                    type="button"
+                    aria-label={`${peerPartner.name}, ${status.text}`}
+                    onClick={() => selection.toggle(peerPartner.id)}
+                    className="flex w-full flex-col gap-2 p-4 text-left"
+                  >
+                    <div className="flex justify-between gap-3">
+                      <span className="text-caption text-muted">Nome</span>
+                      <span className="text-label font-semibold text-ink">{peerPartner.name}</span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span className="text-caption text-muted">Email</span>
+                      <span className="text-label text-ink break-all">{peerPartner.email}</span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span className="text-caption text-muted">Especialidade</span>
+                      <span className="text-label text-ink">{peerPartner.specialty}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-caption text-muted">Status</span>
+                      <Pill tone={status.tone}>{status.text}</Pill>
+                    </div>
+                  </button>
+                  <div className="flex items-center justify-end gap-1 border-t border-line px-4 py-2">
+                    {renderRowActions(peerPartner)}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        }
       />
-
-      <ul data-testid="peer-partner-card-list" className="flex flex-col gap-2 md:hidden">
-        {filteredPeerPartners.map((peerPartner) => {
-          const status = accountStatusPill(peerPartner);
-          const selected = selection.isSelected(peerPartner.id);
-          return (
-            <li
-              key={peerPartner.id}
-              className={`overflow-hidden rounded-card border ${
-                selected ? "border-brand bg-brand/5" : "border-line bg-surface"
-              }`}
-            >
-              <button
-                type="button"
-                aria-label={`${peerPartner.name}, ${status.text}`}
-                onClick={() => selection.toggle(peerPartner.id)}
-                className="flex w-full flex-col gap-2 p-4 text-left"
-              >
-                <div className="flex justify-between gap-3">
-                  <span className="text-caption text-muted">Nome</span>
-                  <span className="text-label font-semibold text-ink">{peerPartner.name}</span>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <span className="text-caption text-muted">Email</span>
-                  <span className="text-label text-ink break-all">{peerPartner.email}</span>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <span className="text-caption text-muted">Especialidade</span>
-                  <span className="text-label text-ink">{peerPartner.specialty}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-caption text-muted">Status</span>
-                  <Pill tone={status.tone}>{status.text}</Pill>
-                </div>
-              </button>
-              <div className="flex items-center justify-end gap-1 border-t border-line px-4 py-2">
-                {renderRowActions(peerPartner)}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
 
       <Modal
         isOpen={formMode !== null}

@@ -28,7 +28,7 @@ const SHAPE_BASE =
   'inline-flex items-center justify-center rounded-control font-sans font-semibold';
 
 const SIZE_CLASS: Record<'md' | 'sm', string> = {
-  md: 'gap-2 py-4 px-2 text-[16px] min-h-13',
+  md: 'gap-2 py-4 px-5 text-[16px] min-h-13',
   sm: 'gap-1.5 py-2.5 px-4 text-label min-h-11',
 };
 

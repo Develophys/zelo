@@ -3,11 +3,19 @@ import type { Socket } from "socket.io-client";
 import { PeerChatSocketClient } from "@/infrastructure/websocket/peer-chat-socket.client";
 import type { PeerChatMessage } from "@/presentation/components/PeerChatRoom";
 
-export type PeerPartnerConnectionState = "connecting" | "idle" | "incoming_request" | "matched";
+// "error" is load-bearing: without a member for it the union could not express
+// a failed or dropped socket, so the UI had no state to render one from.
+export type PeerPartnerConnectionState =
+  | "connecting"
+  | "idle"
+  | "incoming_request"
+  | "matched"
+  | "error";
 const ACCEPT_TIMEOUT_SECONDS = 30;
 
 export function usePeerPartnerConnection(token: string | null) {
   const [state, setState] = useState<PeerPartnerConnectionState>("connecting");
+  const [reconnectNonce, setReconnectNonce] = useState(0);
   const [incomingRequest, setIncomingRequest] = useState<{ requestId: string; sectorName?: string } | null>(null);
   const [secondsRemaining, setSecondsRemaining] = useState(ACCEPT_TIMEOUT_SECONDS);
   const [messages, setMessages] = useState<PeerChatMessage[]>([]);
@@ -28,7 +36,14 @@ export function usePeerPartnerConnection(token: string | null) {
     const client = new PeerChatSocketClient();
     const socket = client.connect(token);
     socketRef.current = socket;
-    setState("idle");
+    setState("connecting");
+
+    // Availability is reported by the socket, not assumed at mount. Optimistic
+    // "idle" told a volunteer they were on duty while the connection was dead,
+    // so a doctor's request would go unanswered with nobody aware of it.
+    socket.on("connect", () => setState("idle"));
+    socket.on("connect_error", () => setState("error"));
+    socket.on("disconnect", () => setState("error"));
 
     socket.on("incoming_request", (payload: { requestId: string; sectorName?: string }) => {
       setIncomingRequest(payload);
@@ -59,7 +74,12 @@ export function usePeerPartnerConnection(token: string | null) {
       clearCountdown();
       client.disconnect();
     };
-  }, [token, clearCountdown]);
+  }, [token, clearCountdown, reconnectNonce]);
+
+  const reconnect = useCallback(() => {
+    setState("connecting");
+    setReconnectNonce((nonce) => nonce + 1);
+  }, []);
 
   const accept = useCallback(() => {
     if (!incomingRequest) return;
@@ -90,5 +110,5 @@ export function usePeerPartnerConnection(token: string | null) {
     setState("idle");
   }, []);
 
-  return { state, incomingRequest, secondsRemaining, messages, peerLeft, accept, decline, sendMessage, leave };
+  return { state, incomingRequest, secondsRemaining, messages, peerLeft, accept, decline, sendMessage, leave, reconnect };
 }
