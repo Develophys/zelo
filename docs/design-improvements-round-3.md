@@ -6,6 +6,10 @@ Rounds 1 and 2 and their remediation are in [design-improvements.md](./design-im
 
 **Design health: 26/40 (65% — Acceptable). Trend: 25 → 27 → 26.**
 
+**Status:** both P0s and four of five P1s are closed (1, 2, 3, 4, 5, 7). **Open: P1 item 6**
+(needs new normative copy), and all of P2 and P3. Re-run `/impeccable critique apps/web` to
+score the current code — the 26 above measures the surface before this remediation.
+
 **The score fell while the surface improved.** Every item from rounds 1 and 2 that was fixed stayed fixed. This round simply looked harder at error paths than either previous round, and found defects that were present in all three. That is the trend line working as intended: it tracks what has been *found*, not how much work has been done.
 
 ---
@@ -122,13 +126,22 @@ The reassurance arrives after the alarm. Then two full-width, same-weight button
 
 **Fix.** A serif `h2` above the dial keyed to the band; move the reframing line above the number; demote the secondary CTA to `ghost` when `riskSignal || bandNeedsSupport(band)` so exactly one primary action exists.
 
-### 7. Manager severity is painted in the brand's affirmative colour
+### 7. Manager severity is painted in the brand's affirmative colour — ✅ FIXED
 
 `ManagerDashboardPage.tsx:220,271` — every trend and segment bar is `bg-brand` sage. A sector at 90% concerning draws a long, healthy-looking **green** bar. A coordinator scanning for the worst sector scans for the longest green bar.
 
 The doctor's own chart already gets this right: `HistoryChartCard.tsx:68-76` paints the peak `bg-warn` and only the latest reading `bg-brand`.
 
 **This does not require resolving the open burnout-metric question.** Round 2 deferred band-colouring on those grounds, but "peak vs latest" needs no thresholds at all — it is the same relative treatment the doctor's chart already uses.
+
+**Shipped.** `peakTrendIndex` and `peakSegmentLabel` mark the highest week and the highest sector
+in `bg-warn`; everything else is `bg-track`, and only the most recent week keeps `bg-brand`. Both
+return "no peak" when nothing has been measured, so an all-zero period is not given a false
+worst. The trend card gained the same **Pico / Mais recente** legend the médico's chart carries —
+without it the colours are a guess.
+
+Still relative, not threshold-based: it says "this is the highest here" without claiming what
+counts as bad, so PRODUCT.md's open metric question stays open.
 
 ---
 

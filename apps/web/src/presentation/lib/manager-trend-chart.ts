@@ -45,3 +45,40 @@ export function describeSegment(segment: { label: string; value: number; n: numb
     segment.n === 1 ? 'resposta' : 'respostas'
   }`;
 }
+
+/**
+ * Which week carries the most signals, or -1 if none does.
+ *
+ * Relative, not threshold-based. Painting every bar `bg-brand` made a sector at
+ * 90% draw a long, healthy-looking sage bar, so a coordinator scanning for the
+ * worst one was scanning for the longest *green* bar. Marking the highest says
+ * "this is the peak here" without claiming what counts as bad — which PRODUCT.md
+ * lists as an open question. It is the same relative treatment the médico's own
+ * chart already uses.
+ */
+export function peakTrendIndex(trend: TrendPoint[]): number {
+  let peak = -1;
+  let highest = 0;
+  trend.forEach((point, index) => {
+    if (point.concerningRate > highest) {
+      highest = point.concerningRate;
+      peak = index;
+    }
+  });
+  return peak;
+}
+
+/** The sector carrying the most signals, or null if none does. */
+export function peakSegmentLabel(
+  segments: readonly { label: string; value: number; n: number }[],
+): string | null {
+  let peak: string | null = null;
+  let highest = 0;
+  for (const segment of segments) {
+    if (segment.value > highest) {
+      highest = segment.value;
+      peak = segment.label;
+    }
+  }
+  return peak;
+}

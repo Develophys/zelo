@@ -17,6 +17,8 @@ import { downloadPgrReportAsCsv, downloadPgrReportAsPdf } from "@/presentation/l
 import { MANAGER_INSIGHT_DISCLAIMER } from "@/presentation/lib/manager-insight-disclaimer";
 import { ArrowRight } from "lucide-react";
 import {
+  peakSegmentLabel,
+  peakTrendIndex,
   describeSegment,
   describeTrendWeek,
   toTrendBars,
@@ -152,6 +154,8 @@ export function ManagerDashboardPage() {
   const weeklyTrend = data?.weeklyTrend ?? [];
   const bars = toTrendBars(weeklyTrend);
   const segments = data?.segments ?? [];
+  const peakWeek = peakTrendIndex(weeklyTrend);
+  const peakSector = peakSegmentLabel(segments);
   const overallConcerningRate = data?.overallConcerningRate ?? 0;
   const checkInsLast4Weeks = data?.checkInsLast4Weeks ?? 0;
   const followUpResponseRate = data?.followUpResponseRate ?? 0;
@@ -242,7 +246,15 @@ export function ManagerDashboardPage() {
                         <div
                           key={index}
                           data-testid="trend-bar"
-                          className={`w-full rounded-md ${bar.isZero ? "bg-track" : "bg-brand"}`}
+                          className={`w-full rounded-md ${
+                            bar.isZero
+                              ? "bg-track"
+                              : index === peakWeek
+                                ? "bg-warn"
+                                : index === weeklyTrend.length - 1
+                                  ? "bg-brand"
+                                  : "bg-track"
+                          }`}
                           style={{ height: `${bar.height}%` }}
                         />
                       ))}
@@ -256,6 +268,18 @@ export function ManagerDashboardPage() {
                           {weekLabel(point.weekStart)}
                         </span>
                       ))}
+                    </div>
+                    {/* Without this the colours are a guess. Same legend the
+                        médico's own chart already carries. */}
+                    <div className="mt-2 flex gap-3" aria-hidden="true">
+                      <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
+                        <span className="h-2 w-2 rounded-full bg-warn" />
+                        Pico
+                      </span>
+                      <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
+                        <span className="h-2 w-2 rounded-full bg-brand" />
+                        Mais recente
+                      </span>
                     </div>
                   </>
                 )}
@@ -293,7 +317,12 @@ export function ManagerDashboardPage() {
                         </span>
                       </div>
                       <div className="mt-1 h-2 overflow-hidden rounded-pill bg-canvas-alt">
-                        <div className="h-full rounded-pill bg-brand" style={{ width: `${segment.value}%` }} />
+                        <div
+                          className={`h-full rounded-pill ${
+                            segment.label === peakSector ? "bg-warn" : "bg-track"
+                          }`}
+                          style={{ width: `${segment.value}%` }}
+                        />
                       </div>
                     </div>
                   ))}
