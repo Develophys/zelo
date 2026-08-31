@@ -37,14 +37,21 @@ function Item({
       end={route === routes.manager}
       aria-label={label}
       className={({ isActive }) =>
-        `relative flex min-h-11 w-full items-center justify-center gap-3 rounded-control px-3 py-nav-y motion-safe:transition-[background-color,color] motion-safe:duration-150 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none ${
+        `relative flex min-h-11 w-full flex-col items-center justify-center gap-1 rounded-control px-2 py-nav-y motion-safe:transition-[background-color,color] motion-safe:duration-150 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none lg:flex-row lg:gap-3 lg:px-3 ${
           collapsed ? '' : 'lg:justify-start'
         } ${isActive ? 'bg-brand/10 text-brand' : 'text-muted hover:bg-canvas hover:text-brand'}`
       }
     >
       <Icon size={22} />
+      {/* Visible from md up. Tablet portrait is exactly 768px, where the rail is
+          icons-only and the collapse toggle that would reveal labels is itself
+          lg-only — leaving a 450ms long-press per icon as the only way to learn
+          what anything is. `collapsed` is an lg-and-up preference, so it does
+          not hide the label at the width that cannot toggle it. */}
       <span
-        className={`font-sans text-[14px] font-semibold ${collapsed ? 'sr-only' : 'sr-only lg:not-sr-only'}`}
+        className={`text-center font-sans text-[10px] leading-tight font-semibold lg:text-[14px] ${
+          collapsed ? 'lg:sr-only' : ''
+        }`}
       >
         {label}
       </span>

@@ -309,45 +309,46 @@ export function ManagerAdminSectorsPage() {
             <DataTableEmpty title="Nenhum setor cadastrado." hint="Adicione o primeiro para começar a acompanhar." />
           )
         }
+        mobileList={
+          <ul data-testid="sector-card-list" className="flex flex-col gap-2 md:hidden">
+            {filteredSectors.map((sector) => {
+              const status = STATUS_PILL[sectorStatus(sector)];
+              const selected = selection.isSelected(sector.id);
+              return (
+                <li
+                  key={sector.id}
+                  className={`overflow-hidden rounded-card border ${
+                    selected ? "border-brand bg-brand/5" : "border-line bg-surface"
+                  }`}
+                >
+                  <button
+                    type="button"
+                    aria-label={`${sector.name}, ${status.text}`}
+                    onClick={() => selection.toggle(sector.id)}
+                    className="flex w-full flex-col gap-2 p-4 text-left"
+                  >
+                    <div className="flex justify-between gap-3">
+                      <span className="text-caption text-muted">Nome</span>
+                      <span className="text-label font-semibold text-ink">{sector.name}</span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span className="text-caption text-muted">Gestor responsável</span>
+                      <span className="text-label text-ink">{sector.managerName ?? "—"}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-caption text-muted">Status</span>
+                      <Pill tone={status.tone}>{status.text}</Pill>
+                    </div>
+                  </button>
+                  <div className="flex items-center justify-end gap-1 border-t border-line px-4 py-2">
+                    {renderRowActions(sector)}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        }
       />
-
-      <ul data-testid="sector-card-list" className="flex flex-col gap-2 md:hidden">
-        {filteredSectors.map((sector) => {
-          const status = STATUS_PILL[sectorStatus(sector)];
-          const selected = selection.isSelected(sector.id);
-          return (
-            <li
-              key={sector.id}
-              className={`overflow-hidden rounded-card border ${
-                selected ? "border-brand bg-brand/5" : "border-line bg-surface"
-              }`}
-            >
-              <button
-                type="button"
-                aria-label={`${sector.name}, ${status.text}`}
-                onClick={() => selection.toggle(sector.id)}
-                className="flex w-full flex-col gap-2 p-4 text-left"
-              >
-                <div className="flex justify-between gap-3">
-                  <span className="text-caption text-muted">Nome</span>
-                  <span className="text-label font-semibold text-ink">{sector.name}</span>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <span className="text-caption text-muted">Gestor responsável</span>
-                  <span className="text-label text-ink">{sector.managerName ?? "—"}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-caption text-muted">Status</span>
-                  <Pill tone={status.tone}>{status.text}</Pill>
-                </div>
-              </button>
-              <div className="flex items-center justify-end gap-1 border-t border-line px-4 py-2">
-                {renderRowActions(sector)}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
 
       <Modal
         isOpen={formMode !== null}

@@ -226,49 +226,50 @@ export function ManagerAdminPeersPage() {
             />
           )
         }
+        mobileList={
+          <ul data-testid="peer-partner-card-list" className="flex flex-col gap-2 md:hidden">
+            {filteredPeerPartners.map((peerPartner) => {
+              const status = accountStatusPill(peerPartner);
+              const selected = selection.isSelected(peerPartner.id);
+              return (
+                <li
+                  key={peerPartner.id}
+                  className={`overflow-hidden rounded-card border ${
+                    selected ? "border-brand bg-brand/5" : "border-line bg-surface"
+                  }`}
+                >
+                  <button
+                    type="button"
+                    aria-label={`${peerPartner.name}, ${status.text}`}
+                    onClick={() => selection.toggle(peerPartner.id)}
+                    className="flex w-full flex-col gap-2 p-4 text-left"
+                  >
+                    <div className="flex justify-between gap-3">
+                      <span className="text-caption text-muted">Nome</span>
+                      <span className="text-label font-semibold text-ink">{peerPartner.name}</span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span className="text-caption text-muted">Email</span>
+                      <span className="text-label text-ink break-all">{peerPartner.email}</span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span className="text-caption text-muted">Especialidade</span>
+                      <span className="text-label text-ink">{peerPartner.specialty}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-caption text-muted">Status</span>
+                      <Pill tone={status.tone}>{status.text}</Pill>
+                    </div>
+                  </button>
+                  <div className="flex items-center justify-end gap-1 border-t border-line px-4 py-2">
+                    {renderRowActions(peerPartner)}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        }
       />
-
-      <ul data-testid="peer-partner-card-list" className="flex flex-col gap-2 md:hidden">
-        {filteredPeerPartners.map((peerPartner) => {
-          const status = accountStatusPill(peerPartner);
-          const selected = selection.isSelected(peerPartner.id);
-          return (
-            <li
-              key={peerPartner.id}
-              className={`overflow-hidden rounded-card border ${
-                selected ? "border-brand bg-brand/5" : "border-line bg-surface"
-              }`}
-            >
-              <button
-                type="button"
-                aria-label={`${peerPartner.name}, ${status.text}`}
-                onClick={() => selection.toggle(peerPartner.id)}
-                className="flex w-full flex-col gap-2 p-4 text-left"
-              >
-                <div className="flex justify-between gap-3">
-                  <span className="text-caption text-muted">Nome</span>
-                  <span className="text-label font-semibold text-ink">{peerPartner.name}</span>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <span className="text-caption text-muted">Email</span>
-                  <span className="text-label text-ink break-all">{peerPartner.email}</span>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <span className="text-caption text-muted">Especialidade</span>
-                  <span className="text-label text-ink">{peerPartner.specialty}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-caption text-muted">Status</span>
-                  <Pill tone={status.tone}>{status.text}</Pill>
-                </div>
-              </button>
-              <div className="flex items-center justify-end gap-1 border-t border-line px-4 py-2">
-                {renderRowActions(peerPartner)}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
 
       <Modal
         isOpen={formMode !== null}

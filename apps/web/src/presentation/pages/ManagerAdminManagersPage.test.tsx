@@ -332,11 +332,11 @@ describe("ManagerAdminManagersPage", () => {
     ]);
     renderPage();
 
-    const cards = screen.getByTestId('manager-card-list');
+    const cards = await screen.findByTestId('manager-card-list');
     expect(cards.className).toContain('md:hidden');
-    // The whole card selects — there is no checkbox inside it. The list
-    // itself is always in the DOM (only CSS hides it above md), so wait on
-    // its content rather than the container. Queried by its full accessible
+    // The whole card selects — there is no checkbox inside it. The list now
+    // lives inside DataTable, which renders it with the rows, so await the
+    // container rather than assuming it is present before the query resolves. Queried by its full accessible
     // name (not a loose /Ana/ regex) because the card also carries row-action
     // buttons named "... de Ana", which a loose match would multi-hit.
     const card = await within(cards).findByRole('button', { name: 'Ana, Ativa' });
@@ -351,7 +351,7 @@ describe("ManagerAdminManagersPage", () => {
     ]);
     renderPage();
 
-    const cards = screen.getByTestId('manager-card-list');
+    const cards = await screen.findByTestId('manager-card-list');
     await within(cards).findByRole('button', { name: 'Ana, Ativa' });
 
     // A card is a <button> nowhere nested inside another <button> — the
