@@ -132,7 +132,7 @@ describe('DataTableToolbar', () => {
     expect(input.className).toContain('max-md:bg-surface');
   });
 
-  it('gives the bulk actions their own line on phones instead of a scroller', async () => {
+  it('keeps everything on one row, including on phones', async () => {
     const user = userEvent.setup();
     render(
       <Selectable
@@ -142,12 +142,24 @@ describe('DataTableToolbar', () => {
     );
     await user.click(screen.getByRole('checkbox', { name: 'Selecionar todos' }));
 
-    // Destructive actions hidden behind a horizontal scroll are worse than
-    // actions that wrap. There is no room for a count, four icon buttons and a
-    // page action on one 360px row.
-    const actions = screen.getByTestId('data-table-toolbar-actions');
-    expect(actions.className).toContain('max-md:w-full');
-    expect(actions.className).toContain('max-md:order-last');
-    expect(screen.getByTestId('data-table-toolbar').className).toContain('max-md:flex-wrap');
+    const toolbar = screen.getByTestId('data-table-toolbar');
+    expect(toolbar.className).not.toContain('flex-wrap');
+    expect(screen.getByTestId('data-table-toolbar-actions').className).not.toContain('w-full');
+  });
+
+  it('tells the page action that a selection is in progress, so it can make room', async () => {
+    const user = userEvent.setup();
+    render(
+      <Selectable
+        actions={<button type="button">Excluir</button>}
+        action={<button type="button">+ Adicionar</button>}
+      />,
+    );
+
+    const slot = screen.getByTestId('data-table-toolbar-action');
+    expect(slot).toHaveAttribute('data-selecting', 'false');
+
+    await user.click(screen.getByRole('checkbox', { name: 'Selecionar todos' }));
+    expect(screen.getByTestId('data-table-toolbar-action')).toHaveAttribute('data-selecting', 'true');
   });
 });

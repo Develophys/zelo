@@ -26,6 +26,9 @@ const VARIANT_CLASS: Record<IconButtonVariant, string> = {
  * 32px of visual box, 44px of tap target: the `before` pseudo-element expands
  * the hit area past the border without pushing the row taller, which is how a
  * dense table row still satisfies the touch minimum.
+ *
+ * On a phone the box grows to 40px and the bleed shrinks to 2px. The target is
+ * 44px either way; what changes is how big the control is to see and aim at.
  */
 export function IconButton({
   label,
@@ -40,8 +43,9 @@ export function IconButton({
       <button
         type="button"
         className={[
-          'relative inline-flex h-8 w-8 flex-none cursor-pointer items-center justify-center rounded-control',
-          'before:absolute before:-inset-1.5 before:content-[""]',
+          'relative inline-flex h-8 w-8 max-md:h-10 max-md:w-10 flex-none cursor-pointer items-center justify-center rounded-control',
+          'before:absolute before:-inset-1.5 max-md:before:-inset-0.5 before:content-[""]',
+          '[&_svg]:size-4 max-md:[&_svg]:size-5',
           'transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand',
           VARIANT_CLASS[variant],

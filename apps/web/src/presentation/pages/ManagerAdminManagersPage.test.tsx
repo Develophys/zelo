@@ -602,4 +602,20 @@ describe("ManagerAdminManagersPage", () => {
     await waitFor(() => expect(listSpy).toHaveBeenCalledTimes(2));
     expect(within(await screen.findByRole('table')).getByText('Ana')).toBeInTheDocument();
   });
+
+  it('collapses the add button to "+" on phones while selecting, without losing its name', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    renderPage();
+
+    const add = await screen.findByRole('button', { name: '+ Adicionar gestor' });
+    const label = within(add).getByText('Adicionar gestor');
+
+    // sr-only, never hidden: the button still has to announce what it adds when
+    // only the "+" is drawn.
+    expect(label.className).toContain('max-md:group-data-[selecting=true]/action:sr-only');
+    expect(label.className).not.toContain('hidden');
+  });
 });

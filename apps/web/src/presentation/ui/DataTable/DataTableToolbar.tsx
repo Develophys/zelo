@@ -30,7 +30,7 @@ export function DataTableToolbar<T>({
       // The bottom rule and the inset only make sense inside the shell's box.
       // On phones the toolbar sits above a free-standing card list, so it aligns
       // with the card edges instead.
-      className="flex h-14 flex-none items-center gap-3 border-b border-line px-cell-x max-md:h-auto max-md:min-h-14 max-md:flex-wrap max-md:border-b-0 max-md:px-0 max-md:py-2"
+      className="flex h-14 flex-none items-center gap-3 border-b border-line px-cell-x max-md:border-b-0 max-md:px-0 max-md:py-2"
     >
       {selection && (
         <Checkbox
@@ -55,11 +55,7 @@ export function DataTableToolbar<T>({
           </span>
           <div
             data-testid="data-table-toolbar-actions"
-            // Wraps to its own full-width line on phones. A destructive action
-            // hidden behind a horizontal scroll is worse than one that wraps,
-            // and a count plus four icon buttons plus the page action does not
-            // fit a 360px row.
-            className="no-scrollbar flex flex-nowrap items-center gap-2 overflow-x-auto max-md:order-last max-md:w-full"
+            className="no-scrollbar flex flex-nowrap items-center gap-2 overflow-x-auto"
           >
             {actions}
           </div>
@@ -87,7 +83,11 @@ export function DataTableToolbar<T>({
       {action && (
         <div
           data-testid="data-table-toolbar-action"
-          className="ml-auto flex flex-none items-center gap-2"
+          // The page action collapses to its icon on a phone while a selection
+          // is live, so the bulk actions keep the row instead of being pushed
+          // into a scroller. The label stays in the accessibility tree.
+          data-selecting={hasSelection}
+          className="group/action ml-auto flex flex-none items-center gap-2"
         >
           {action}
         </div>
