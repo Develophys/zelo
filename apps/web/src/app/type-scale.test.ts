@@ -45,4 +45,20 @@ describe('type scale', () => {
 
     expect(offenders).toEqual([]);
   });
+  /**
+   * The smallest type in the app is the nav labels, read one-handed in a
+   * corridor at 04:00 by someone on their third night shift. 11px is the floor
+   * this codebase holds itself to; below it the label stops being readable and
+   * starts being decoration beside the icon.
+   */
+  it('sets no font size token below 0.6875rem, the nav-label floor', () => {
+    const css = readFileSync(join(__dirname, 'index.css'), 'utf8');
+    const tooSmall = [...css.matchAll(SIZE_TOKEN)]
+      .filter(([, name]) => !MODIFIER.test(name!))
+      .map(([, name, value]) => [name!, value!.replace(/\/\*.*?\*\//g, '').trim()] as const)
+      .filter(([, value]) => value.endsWith('rem') && Number.parseFloat(value) < 0.6875)
+      .map(([name, value]) => `${name}: ${value}`);
+
+    expect(tooSmall).toEqual([]);
+  });
 });
