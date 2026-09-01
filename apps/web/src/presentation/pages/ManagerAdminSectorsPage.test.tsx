@@ -48,7 +48,7 @@ describe("ManagerAdminSectorsPage", () => {
       { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
     ]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
-      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     vi.spyOn(container.updateSectorUseCase, "execute").mockResolvedValue(undefined);
     const user = userEvent.setup();
@@ -69,7 +69,7 @@ describe("ManagerAdminSectorsPage", () => {
       { id: "sector-1", name: "UTI", isActive: true, managerId: "manager-5", managerName: "Paulo" },
     ]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
-      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorIds: [], sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     vi.spyOn(container.updateSectorUseCase, "execute").mockResolvedValue(undefined);
     const user = userEvent.setup();
@@ -100,7 +100,7 @@ describe("ManagerAdminSectorsPage", () => {
   it('creates a sector with its responsible manager in one modal, not two steps', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
-      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     const createSector = vi
       .spyOn(container.createSectorUseCase, 'execute')
@@ -162,7 +162,7 @@ describe("ManagerAdminSectorsPage", () => {
   it('leaves the sector created and shows a notice, without retrying creation, when assigning the manager fails', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
-      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     const createSector = vi
       .spyOn(container.createSectorUseCase, 'execute')

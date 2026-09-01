@@ -89,7 +89,7 @@ describe("ManagerAdminManagersPage", () => {
   it("shows account status as a pill and lets an admin resend a set-password email for an active manager", async () => {
     vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
-      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorIds: ["sector-1"], sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     vi.spyOn(container.sendManagerSetPasswordEmailUseCase, "execute").mockResolvedValue(undefined);
     const user = userEvent.setup();
@@ -113,7 +113,7 @@ describe("ManagerAdminManagersPage", () => {
   it("shows a pending-invite status and a reenviar-convite button for a manager with no password yet", async () => {
     vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
-      { id: "manager-6", name: "Renata", email: "renata@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorNames: [], hasPassword: false, setPasswordTokenExpiresAt: new Date(Date.now() + 60_000).toISOString() },
+      { id: "manager-6", name: "Renata", email: "renata@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorIds: [], sectorNames: [], hasPassword: false, setPasswordTokenExpiresAt: new Date(Date.now() + 60_000).toISOString() },
     ]);
     vi.spyOn(container.sendManagerSetPasswordEmailUseCase, "execute").mockResolvedValue(undefined);
     const user = userEvent.setup();
@@ -132,7 +132,7 @@ describe("ManagerAdminManagersPage", () => {
       { id: "sector-2", name: "Pronto-Socorro", isActive: true, managerId: null, managerName: null },
     ]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
-      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorIds: ["sector-1"], sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     vi.spyOn(container.updateManagerAdminUseCase, "execute").mockResolvedValue(undefined);
     const user = userEvent.setup();
@@ -162,7 +162,7 @@ describe("ManagerAdminManagersPage", () => {
       { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
     ]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
-      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorIds: ["sector-1"], sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     vi.spyOn(container.updateManagerAdminUseCase, "execute").mockResolvedValue(undefined);
     const user = userEvent.setup();
@@ -187,7 +187,7 @@ describe("ManagerAdminManagersPage", () => {
       { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null },
     ]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
-      { id: 'manager-5', name: 'Paulo', email: 'paulo@zelo-demo.local', role: 'SECTOR_MANAGER', isActive: true, sectorNames: ['UTI'], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'manager-5', name: 'Paulo', email: 'paulo@zelo-demo.local', role: 'SECTOR_MANAGER', isActive: true, sectorIds: ['sector-1'], sectorNames: ['UTI'], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     const updateSpy = vi.spyOn(container.updateManagerAdminUseCase, 'execute').mockResolvedValue(undefined);
     const user = userEvent.setup();
@@ -210,7 +210,7 @@ describe("ManagerAdminManagersPage", () => {
       { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
     ]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
-      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorIds: ["sector-1"], sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     const updateSpy = vi.spyOn(container.updateManagerAdminUseCase, "execute").mockResolvedValue(undefined);
     const user = userEvent.setup();
@@ -238,7 +238,7 @@ describe("ManagerAdminManagersPage", () => {
   it('shows status as a pill in the panel vocabulary, not "Senha definida"', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
-      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     renderPage();
 
@@ -249,8 +249,8 @@ describe("ManagerAdminManagersPage", () => {
   it('offers Reenviar convite only for an invite that has not been accepted', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
-      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
-      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: false, setPasswordTokenExpiresAt: new Date(Date.now() + 60_000).toISOString() },
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: false, setPasswordTokenExpiresAt: new Date(Date.now() + 60_000).toISOString() },
     ]);
     renderPage();
 
@@ -264,7 +264,7 @@ describe("ManagerAdminManagersPage", () => {
   it('does not shift the table when a row is selected', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
-      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     const user = userEvent.setup();
     renderPage();
@@ -283,8 +283,8 @@ describe("ManagerAdminManagersPage", () => {
   it('keeps a disabled bulk action focusable so its tooltip is reachable by keyboard', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
-      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
-      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     const user = userEvent.setup();
     renderPage();
@@ -328,7 +328,7 @@ describe("ManagerAdminManagersPage", () => {
   it('renders cards instead of a table below md, with the card itself as the selection target', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
-      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     renderPage();
 
@@ -346,8 +346,8 @@ describe("ManagerAdminManagersPage", () => {
   it('exposes row actions as siblings of the selection button in the mobile card list, gated the same way as the table', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
-      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
-      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: false, setPasswordTokenExpiresAt: new Date(Date.now() + 60_000).toISOString() },
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: false, setPasswordTokenExpiresAt: new Date(Date.now() + 60_000).toISOString() },
     ]);
     renderPage();
 
@@ -368,8 +368,8 @@ describe("ManagerAdminManagersPage", () => {
   it('deletes the selected managers and closes the dialog on the happy path', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
-      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
-      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     const deleteSpy = vi.spyOn(container.deleteManagerAdminUseCase, 'execute').mockResolvedValue(undefined);
     const user = userEvent.setup();
@@ -391,7 +391,7 @@ describe("ManagerAdminManagersPage", () => {
   it('keeps the delete dialog open and renders the refusal sentence when the API refuses', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
-      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     vi.spyOn(container.deleteManagerAdminUseCase, 'execute').mockRejectedValue(
       new AdminDeleteConflictError('MANAGER_OWNS_SECTORS'),
@@ -415,8 +415,8 @@ describe("ManagerAdminManagersPage", () => {
   it('reports a partial bulk delete and retries only the still-failing id', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
-      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
-      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     const deleteSpy = vi
       .spyOn(container.deleteManagerAdminUseCase, 'execute')
@@ -450,8 +450,8 @@ describe("ManagerAdminManagersPage", () => {
   it('pauses the selected managers and clears the selection on the happy path', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
-      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
-      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     const updateSpy = vi.spyOn(container.updateManagerAdminUseCase, 'execute').mockResolvedValue(undefined);
     const user = userEvent.setup();
@@ -471,8 +471,8 @@ describe("ManagerAdminManagersPage", () => {
   it('raises a success toast naming the count and noun when a bulk pause succeeds', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
-      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
-      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     vi.spyOn(container.updateManagerAdminUseCase, 'execute').mockResolvedValue(undefined);
     const user = userEvent.setup();
@@ -492,7 +492,7 @@ describe("ManagerAdminManagersPage", () => {
   it('raises a success toast when a bulk delete succeeds', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
-      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     vi.spyOn(container.deleteManagerAdminUseCase, 'execute').mockResolvedValue(undefined);
     const user = userEvent.setup();
@@ -513,8 +513,8 @@ describe("ManagerAdminManagersPage", () => {
   it('reports a partial bulk pause and keeps the selection so the still-active row can be retried', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
-      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
-      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     vi.spyOn(container.updateManagerAdminUseCase, 'execute').mockImplementation(async (_token: string, id: string) => {
       if (id === 'm2') throw new LastActiveHospitalAdminError();
@@ -544,8 +544,8 @@ describe("ManagerAdminManagersPage", () => {
   it('filters the table by name, accent-insensitively', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
-      { id: 'm1', name: 'João', email: 'joao@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
-      { id: 'm2', name: 'Beatriz', email: 'beatriz@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm1', name: 'João', email: 'joao@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm2', name: 'Beatriz', email: 'beatriz@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     const user = userEvent.setup();
     renderPage();
@@ -562,7 +562,7 @@ describe("ManagerAdminManagersPage", () => {
   it('admits the search only covers loaded items when nothing matches', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
-      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     const user = userEvent.setup();
     renderPage();
@@ -589,7 +589,7 @@ describe("ManagerAdminManagersPage", () => {
       .spyOn(container.listManagersUseCase, 'execute')
       .mockRejectedValueOnce(new Error('network down'))
       .mockResolvedValueOnce([
-        { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+        { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
       ]);
     const user = userEvent.setup();
     renderPage();
@@ -606,7 +606,7 @@ describe("ManagerAdminManagersPage", () => {
   it('collapses the add button to "+" on phones while selecting, without losing its name', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
-      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
     renderPage();
 
@@ -617,5 +617,56 @@ describe("ManagerAdminManagersPage", () => {
     // only the "+" is drawn.
     expect(label.className).toContain('max-md:group-data-[selecting=true]/action:sr-only');
     expect(label.className).not.toContain('hidden');
+  });
+  it("does not open the sector picker before the sector list has arrived, so a slow fetch cannot look like no assignment", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockReturnValue(new Promise(() => {}));
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
+      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorIds: ["sector-1"], sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(within(await screen.findByRole("table")).getByRole("button", { name: "Editar Paulo" }));
+
+    const editForm = within(screen.getByRole("dialog"));
+    // Saving here would PATCH sectorIds as a full replacement and revoke every
+    // sector the manager already held.
+    expect(editForm.getByTestId("sector-picker-loading")).toBeInTheDocument();
+    expect(editForm.getByRole("button", { name: "Salvar" })).toBeDisabled();
+  });
+
+  it("says the sector list failed rather than claiming the hospital has none", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockRejectedValue(new Error("network"));
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
+      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorIds: ["sector-1"], sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(within(await screen.findByRole("table")).getByRole("button", { name: "Editar Paulo" }));
+
+    const editForm = within(screen.getByRole("dialog"));
+    expect(await editForm.findByTestId("sector-picker-error")).toBeInTheDocument();
+    expect(editForm.queryByRole("link", { name: "Cadastrar um setor" })).not.toBeInTheDocument();
+    expect(editForm.getByRole("button", { name: "Salvar" })).toBeDisabled();
+  });
+
+  it("pre-fills the edit picker from the manager's own sector ids, not by matching display names", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
+      { id: "sector-2", name: "UTI", isActive: true, managerId: null, managerName: null },
+    ]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
+      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorIds: ["sector-2"], sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(within(await screen.findByRole("table")).getByRole("button", { name: "Editar Paulo" }));
+
+    // Two sectors share a display name. Name-matching selected both; the id
+    // selects the one the manager actually holds.
+    const pills = within(screen.getByRole("dialog")).getAllByRole("button", { name: "UTI" });
+    expect(pills.map((pill) => pill.getAttribute("aria-pressed"))).toEqual(["false", "true"]);
   });
 });

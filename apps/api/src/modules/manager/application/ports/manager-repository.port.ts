@@ -17,6 +17,10 @@ export interface ManagerSummaryRow {
   email: string;
   role: ManagerRole;
   isActive: boolean;
+  // Ids as well as names: the admin UI needs to know *which* sectors a manager
+  // holds without matching display labels, which is ambiguous and silently
+  // wrong when the label list has not loaded.
+  sectorIds: string[];
   sectorNames: string[];
   hasPassword: boolean;
   setPasswordTokenExpiresAt: string | null;

@@ -15,6 +15,7 @@ export const ManagerSummarySchema = z.object({
   email: z.string(),
   role: z.enum(["HOSPITAL_ADMIN", "SECTOR_MANAGER"]),
   isActive: z.boolean(),
+  sectorIds: z.array(z.string()),
   sectorNames: z.array(z.string()),
   hasPassword: z.boolean(),
   setPasswordTokenExpiresAt: z.string().nullable(),

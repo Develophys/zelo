@@ -40,6 +40,8 @@ function RoleAndSectorFields({
   sectors,
   selectedSectorIds,
   onToggleSector,
+  sectorsPending,
+  sectorsFailed,
 }: {
   idPrefix: string;
   role: ManagerRole;
@@ -47,6 +49,8 @@ function RoleAndSectorFields({
   sectors: AdminSector[];
   selectedSectorIds: string[];
   onToggleSector: (id: string) => void;
+  sectorsPending: boolean;
+  sectorsFailed: boolean;
 }) {
   return (
     <>
@@ -84,13 +88,28 @@ function RoleAndSectorFields({
         <div className="mt-3">
           <p className="text-label font-semibold text-ink-2">Setores</p>
           <div className="mt-2">
-            <SectorPillPicker
-              sectors={sectors}
-              selectedIds={selectedSectorIds}
-              onToggle={onToggleSector}
-              emptyHref="/manager/admin/sectors"
-              emptyLabel="Cadastrar um setor"
-            />
+            {/* "This hospital has registered no sectors" and "we could not
+                reach the server" are different facts. Falling through to the
+                empty state on either states the first while meaning the
+                second — and saving from there replaces the manager's whole
+                assignment with nothing. */}
+            {sectorsPending ? (
+              <p data-testid="sector-picker-loading" className="text-label text-muted">
+                Carregando os setores…
+              </p>
+            ) : sectorsFailed ? (
+              <p data-testid="sector-picker-error" role="alert" className="text-label text-danger">
+                Não foi possível carregar os setores. Sem eles, salvar removeria os que já estão atribuídos.
+              </p>
+            ) : (
+              <SectorPillPicker
+                sectors={sectors}
+                selectedIds={selectedSectorIds}
+                onToggle={onToggleSector}
+                emptyHref="/manager/admin/sectors"
+                emptyLabel="Cadastrar um setor"
+              />
+            )}
           </div>
         </div>
       )}
@@ -197,7 +216,7 @@ export function ManagerAdminManagersPage() {
   const openEdit = (manager: ManagerSummary) => {
     setEditingManager(manager);
     setEditRole(manager.role);
-    setEditSectorIds(sectorList.filter((sector) => manager.sectorNames.includes(sector.name)).map((sector) => sector.id));
+    setEditSectorIds(manager.sectorIds);
     setFormMode("edit");
   };
 
@@ -244,7 +263,11 @@ export function ManagerAdminManagersPage() {
 
   const isSubmitDisabled =
     name.trim().length === 0 || email.trim().length === 0 || (role === "SECTOR_MANAGER" && selectedSectorIds.length === 0);
-  const isEditSubmitDisabled = editRole === "SECTOR_MANAGER" && editSectorIds.length === 0;
+  // Saving a SECTOR_MANAGER replaces their whole sector set, so it must not be
+  // possible while the list those sectors come from is unknown.
+  const sectorsUnknown = sectors.isPending || sectors.isError;
+  const isEditSubmitDisabled =
+    editRole === "SECTOR_MANAGER" && (editSectorIds.length === 0 || sectorsUnknown);
 
   const renderRowActions = (manager: ManagerSummary) => {
     const status = accountStatusPill(manager);
@@ -443,6 +466,8 @@ export function ManagerAdminManagersPage() {
               sectors={sectorList}
               selectedSectorIds={selectedSectorIds}
               onToggleSector={toggleSector}
+              sectorsPending={sectors.isPending}
+              sectorsFailed={sectors.isError}
             />
           </>
         ) : (
@@ -454,6 +479,8 @@ export function ManagerAdminManagersPage() {
               sectors={sectorList}
               selectedSectorIds={editSectorIds}
               onToggleSector={toggleEditSector}
+              sectorsPending={sectors.isPending}
+              sectorsFailed={sectors.isError}
             />
           )
         )}

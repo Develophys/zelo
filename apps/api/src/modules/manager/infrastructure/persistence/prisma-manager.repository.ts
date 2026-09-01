@@ -31,7 +31,7 @@ export class PrismaManagerRepository implements ManagerRepository {
   async findAllByInstitution(institutionId: string): Promise<ManagerSummaryRow[]> {
     const rows = await this.prisma.manager.findMany({
       where: { institutionId },
-      include: { sectors: { select: { name: true } } },
+      include: { sectors: { select: { id: true, name: true } } },
     });
     return rows.map((row) => ({
       id: row.id,
@@ -39,6 +39,7 @@ export class PrismaManagerRepository implements ManagerRepository {
       email: row.email,
       role: row.role,
       isActive: row.isActive,
+      sectorIds: row.sectors.map((sector) => sector.id),
       sectorNames: row.sectors.map((sector) => sector.name),
       hasPassword: row.passwordHash !== null,
       setPasswordTokenExpiresAt: row.setPasswordTokenExpiresAt?.toISOString() ?? null,

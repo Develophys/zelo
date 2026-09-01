@@ -100,6 +100,7 @@ class FakeManagerRepository implements ManagerRepository {
   async findById(id: string): Promise<ManagerRow | null> {
     return this.rows.find((r) => r.id === id) ?? null;
   }
+  public sectorsByManager: Record<string, { id: string; name: string }[]> = {};
   async findAllByInstitution(institutionId: string): Promise<ManagerSummaryRow[]> {
     return this.rows
       .filter((r) => r.institutionId === institutionId)
@@ -109,7 +110,8 @@ class FakeManagerRepository implements ManagerRepository {
         email: r.email,
         role: r.role,
         isActive: r.isActive,
-        sectorNames: [],
+        sectorIds: (this.sectorsByManager[r.id] ?? []).map((sector) => sector.id),
+        sectorNames: (this.sectorsByManager[r.id] ?? []).map((sector) => sector.name),
         hasPassword: r.passwordHash !== null,
         setPasswordTokenExpiresAt: r.setPasswordTokenExpiresAt?.toISOString() ?? null,
       }));
@@ -428,9 +430,27 @@ describe("manager admin controller — sectors", () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual([
-      { id: "manager-1", name: "Mauricio", email: "mauricio@institution-1.local", role: "HOSPITAL_ADMIN", isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
-      { id: "manager-2", name: "Paulo", email: "paulo@institution-1.local", role: "SECTOR_MANAGER", isActive: true, sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: "manager-1", name: "Mauricio", email: "mauricio@institution-1.local", role: "HOSPITAL_ADMIN", isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+      { id: "manager-2", name: "Paulo", email: "paulo@institution-1.local", role: "SECTOR_MANAGER", isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
+  });
+
+  // The edit dialog used to rebuild a manager's sector set by matching display
+  // names against a separately-fetched list, then PATCH that reconstruction
+  // back as a full replacement. Carrying the ids means identity never has to be
+  // inferred from a label.
+  it("GET /manager/admin/managers reports each manager's sector ids alongside the names", async () => {
+    sectorRepository.rows = [
+      { id: "sector-a", name: "UTI", isActive: true, managerId: "manager-2", managerName: "Paulo", institutionId: "institution-1" },
+    ];
+    managerRepository.sectorsByManager = { "manager-2": [{ id: "sector-a", name: "UTI" }] };
+
+    const response = await request(app.getHttpServer()).get("/manager/admin/managers").set("Authorization", `Bearer ${hospitalAdminToken()}`);
+
+    expect(response.status).toBe(200);
+    const paulo = (response.body as { id: string; sectorIds: string[]; sectorNames: string[] }[]).find((row) => row.id === "manager-2");
+    expect(paulo?.sectorIds).toEqual(["sector-a"]);
+    expect(paulo?.sectorNames).toEqual(["UTI"]);
   });
 
   it("POST /manager/admin/managers creates a SECTOR_MANAGER and sends an invite email", async () => {
