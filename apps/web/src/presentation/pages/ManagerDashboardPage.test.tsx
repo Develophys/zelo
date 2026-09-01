@@ -386,7 +386,7 @@ describe("ManagerDashboardPage", () => {
     });
   });
 
-  it("deselecting every sector shows nothing selected, and never falls back to the manager's full set", async () => {
+  it("unchecking the last remaining sector returns to Todos instead of emptying the panel", async () => {
     vi.spyOn(container.listAccessibleSectorsUseCase, "execute").mockResolvedValue([
       { id: "sector-1", name: "UTI" },
       { id: "sector-2", name: "Pronto-Socorro" },
@@ -397,23 +397,33 @@ describe("ManagerDashboardPage", () => {
     await waitFor(() => {
       expect(within(screen.getByTestId("sector-filter-pills")).getByRole("button", { name: "UTI" })).toBeInTheDocument();
     });
-    expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
 
     const pills = within(screen.getByTestId("sector-filter-pills"));
     await user.click(pills.getByRole("button", { name: "UTI" }));
+    await waitFor(() =>
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", ["sector-2"]),
+    );
+
     await user.click(pills.getByRole("button", { name: "Pronto-Socorro" }));
 
-    await waitFor(() => {
-      expect(screen.getByTestId("no-sector-selected")).toBeInTheDocument();
-    });
-    // The regression this guards: "nothing selected" silently re-requesting the
-    // manager's whole accessible set, which shows more than was asked for. The
-    // last request stands at the one-sector state — emptying the selection
-    // issued none.
-    expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", ["sector-2"]);
-    // Nor may the previous, wider response stay on screen as if it still applied.
-    expect(screen.queryByText("Plantão noturno")).not.toBeInTheDocument();
-    expect(screen.queryByText("111")).not.toBeInTheDocument();
+    // A filter that selects nothing can only produce an empty screen, so the
+    // last sector cannot be switched off — turning it off clears the filter.
+    await waitFor(() =>
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", undefined),
+    );
+    expect(pills.getByRole("button", { name: "Todos" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+    expect(screen.getByTestId("location-search").textContent).toBe("");
+  });
+
+  it("shows the whole panel for a hand-typed empty sectorIds, rather than a screen with nothing on it", async () => {
+    renderManager("/manager?sectorIds=");
+
+    await waitFor(() =>
+      expect(within(screen.getByTestId("sector-filter-pills")).getByRole("button", { name: "Todos" })).toBeInTheDocument(),
+    );
+    expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", undefined);
+    expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
   });
   it("sends no sector filter at all once Todos is picked again, rather than an explicit list of every id", async () => {
     const user = userEvent.setup();

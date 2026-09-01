@@ -11,7 +11,6 @@ interface SectorMultiSelectProps {
 
 function triggerLabel(sectors: { id: string; name: string }[], effectiveSelected: string[]): string {
   if (effectiveSelected.length === sectors.length) return 'Todos os setores';
-  if (effectiveSelected.length === 0) return 'Nenhum setor selecionado';
   if (effectiveSelected.length === 1) {
     return sectors.find((sector) => sector.id === effectiveSelected[0])?.name ?? 'Todos os setores';
   }
@@ -31,7 +30,10 @@ export function SectorMultiSelect({ sectors, selected, onChange }: SectorMultiSe
     const next = effectiveSelected.includes(id)
       ? effectiveSelected.filter((sectorId) => sectorId !== id)
       : [...effectiveSelected, id];
-    onChange(next);
+    // Unchecking the last one filters everything away, which can only draw an
+    // empty screen. Falling back to all keeps the control from having a dead
+    // end the manager has to guess their way out of.
+    onChange(next.length === 0 ? sectors.map((sector) => sector.id) : next);
   };
 
   const selectAll = () => onChange(sectors.map((sector) => sector.id));

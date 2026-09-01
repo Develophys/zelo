@@ -94,7 +94,7 @@ describe("SectorMultiSelect", () => {
     expect(panel).toHaveClass("max-h-72", "overflow-y-auto");
   });
 
-  it("calls onChange with an explicit empty array, not undefined, when deselecting the last remaining sector", async () => {
+  it("falls back to every sector when unchecking the last remaining one, since an empty filter shows nothing at all", async () => {
     const onChange = vi.fn();
     const user = userEvent.setup();
     render(<SectorMultiSelect sectors={SECTORS} selected={["a"]} onChange={onChange} />);
@@ -102,7 +102,7 @@ describe("SectorMultiSelect", () => {
     await openPanel(user);
     await user.click(screen.getByLabelText("UTI"));
 
-    expect(onChange).toHaveBeenCalledWith([]);
+    expect(onChange).toHaveBeenCalledWith(["a", "b"]);
   });
 
   it("closes the panel when clicking outside of it", async () => {

@@ -38,14 +38,14 @@ const SECTOR_PARAM = "sectorIds";
  * list of every id would be the same set but is *not* the same request: it
  * pins the query to ids the server would otherwise have chosen itself.
  *
- * The three URL states are total: absent = all, present-and-empty = nothing
- * selected, present = that subset.
+ * A selection of nothing is never one of the states. It can only draw an empty
+ * screen, so every way of reaching it resolves to "no filter" instead.
  */
 function parseSectorParam(raw: string | null, sectors: { id: string }[] | undefined): string[] | undefined {
   if (raw === null) return undefined;
-  if (raw === "") return [];
 
   const requested = raw.split(",").filter((id) => id.length > 0);
+  if (requested.length === 0) return undefined;
   // Validation waits for the sector list; until it lands the URL is taken at
   // face value, so a shared link fetches its own data on the first try rather
   // than fetching everything and correcting itself.
@@ -71,9 +71,6 @@ const TREND_EMPTY =
 // that looks broken and one that is visibly working as designed.
 const SEGMENTS_EMPTY =
   "Nenhum setor com 5 respostas ou mais ainda. Setores abaixo desse limite ficam ocultos.";
-
-const NO_SECTOR_SELECTED =
-  "Nenhum setor selecionado. Escolha ao menos um setor — ou Todos — para ver os indicadores.";
 
 const INSIGHT_EMPTY_EXPLANATION =
   "Interpreta os indicadores agregados e anônimos desta página e sugere ações para a liderança, sem acesso a dados individuais de nenhum profissional.";
@@ -133,7 +130,9 @@ function SectorFilter({ sectors, selectedSectorIds, onChange }: SectorFilterProp
     const next = effectiveSelected.includes(id)
       ? effectiveSelected.filter((sectorId) => sectorId !== id)
       : [...effectiveSelected, id];
-    onChange(next);
+    // Switching off the last one would filter every sector away and leave the
+    // panel blank, so it clears the filter instead.
+    onChange(next.length === 0 ? sectors.map((sector) => sector.id) : next);
   };
 
   const todosButton = (
@@ -173,7 +172,6 @@ export function ManagerDashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const sectors = sectorsQuery.data;
   const selectedSectorIds = parseSectorParam(searchParams.get(SECTOR_PARAM), sectors);
-  const nothingSelected = selectedSectorIds?.length === 0;
   const { data, error, isError, isLoading, refetch } = useManagerSignals(selectedSectorIds);
 
   // The URL is the filter's only state, so a reload, the back button and a
@@ -240,15 +238,9 @@ export function ManagerDashboardPage() {
         </div>
       )}
 
-      {nothingSelected && !loadFailed && (
-        <p data-testid="no-sector-selected" className="mt-5 text-pretty text-body text-muted">
-          {NO_SECTOR_SELECTED}
-        </p>
-      )}
-
       {/* Numbers are withheld entirely on a failed load rather than
           defaulting to zero, which reads as a measurement. */}
-      {!loadFailed && !nothingSelected && (
+      {!loadFailed && (
         <>
         <div data-testid="kpi-grid" className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {isLoading ? (
