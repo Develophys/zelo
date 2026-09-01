@@ -8,7 +8,11 @@ Round 3: [design-improvements-round-3.md](./design-improvements-round-3.md).
 
 **Design health: 24/40 (60% — Acceptable). Trend: 25 → 27 → 26 → 24.**
 
-**Status:** nothing here is started. All round-3 items verified still fixed; no regressions found.
+**Status:** **all three P0s and both structural P1s are closed** (items 1–5), along with the
+dependency cleanup and the sub-12px nav labels. **Open: P1 item 6, all of P2 and P3**, and the
+product/legal decisions.
+
+Legend: ✅ fixed · ⬜ open · ❌ won't fix.
 
 ---
 
@@ -54,7 +58,7 @@ which audits those guards.
 
 ## P0 — Safety-critical
 
-### 1. The crisis line is unreachable from the doctor's ordinary app, including item 9
+### 1. The crisis line is unreachable from the doctor's ordinary app, including item 9 — ✅ FIXED
 
 `NAV_TABS` (`nav-tabs.ts:20`) is Início / Check-in / Conversar / Você. There is **no** path to
 `routes.crisis` or a `tel:188` from `HomePage`, `BottomNav`, `Sidebar`, `YouPage`, `SettingsPage`,
@@ -81,7 +85,7 @@ where they explicitly declare suicidal ideation is the screen with the fewest ex
 **Note:** `crisis-call-reachability.test.tsx` guards that four named screens each render
 `href="tel:188"`. It cannot catch this, because the defect is the screens that are *not* in its array.
 
-### 2. A dropped peer socket is completely silent on the doctor's side
+### 2. A dropped peer socket is completely silent on the doctor's side — ✅ FIXED
 
 `usePeerRequest.ts:49`:
 
@@ -107,7 +111,7 @@ side left broken is the person in distress.
 while `matched`, enter a `connection_lost` state that disables the composer and says so, with a retry.
 Consider socket.io ack callbacks so `sendMessage` only appends on confirmation.
 
-### 3. The manager edit dialog rebuilds sector access from names and can silently erase it
+### 3. The manager edit dialog rebuilds sector access from names and can silently erase it — ✅ FIXED
 
 `ManagerAdminManagersPage.tsx:200`:
 
@@ -136,7 +140,7 @@ name. Gate the modal body on `sectors.isSuccess`. Give `SectorPillPicker` a dist
 
 ## P1 — Serious
 
-### 4. Every admin write can fail with no feedback whatsoever
+### 4. Every admin write can fail with no feedback whatsoever — ✅ FIXED
 
 `App.tsx:10` is a bare `new QueryClient()` — no `MutationCache`, no default `onError`. Across
 `src/presentation`, **2 of 18 `.mutate()` call sites** handle errors: the optimistic rollback in
@@ -150,7 +154,7 @@ with the fields filled. Nothing else happens. The rational response is to press 
 per-mutation overrides where specific copy already exists (`updateConflictMessage` is already used by
 `useBulkStatusUpdate`).
 
-### 5. Session expiry is unhandled on the admin pages and unexplained everywhere
+### 5. Session expiry is unhandled on the admin pages and unexplained everywhere — ✅ FIXED
 
 `ManagerDashboardPage:195`, `ManagerInsightHistoryPage:191` and `ManagerNotificationsPage:23` each
 independently handle `UnauthorizedManagerError`. `ManagerAdminManagersPage`, `ManagerAdminSectorsPage`
@@ -165,7 +169,7 @@ next morning gets a bare login form and no indication that the fix is "email you
 guard is declared once instead of drifting three ways. Pass `{ state: { reason: 'expired' } }` and say
 so on the login screen. Add a "Esqueci minha senha" affordance even if it only explains who to contact.
 
-### 6. Per-screen explanatory copy is truncated out of existence on a phone
+### 6. Per-screen explanatory copy is truncated out of existence on a phone — ⬜ OPEN
 
 `AppHeader.tsx:73` renders the subtitle as a single `truncate`d line of
 `font-mono text-mono-data text-brand`, with `title={subtitle}` as the only overflow escape — a hover
@@ -299,7 +303,9 @@ Validation is enforced only by disabling submit.
   meta tag at runtime, but the installed PWA's system chrome stays light in dark mode.
 - **`public/` carries roughly 2.8MB of GIFs**, some apparently unused duplicates (`zelo_ani_*_1.gif`).
   Not precached, but shipped in the deploy.
-- **The doctor's `Sidebar` at 768–1023px** shows 10px (`--text-nav-rail`) labels under 22px icons.
+- ✅ **The doctor's `Sidebar` at 768–1023px** showed 10px (`--text-nav-rail`) labels under 22px
+  icons — **fixed**: the rail is now 11px and the bottom nav 12px, with an 11px floor guarded in
+  `type-scale.test.ts`.
 - **Peer volunteer notification.** `PeerPartnerInboxPage` gives a 30-second accept window with no
   sound, no Notification API, no title flash and no vibration. The whole "reach a human" promise rests
   on the volunteer staring at a foreground browser tab.
@@ -329,16 +335,28 @@ These need a human decision and are recorded, not scheduled.
 
 ---
 
-## Dependencies
+## Dependencies — ✅ FIXED
 
-34 advisories reach `apps/web` — **2 critical, 21 high, 11 moderate**.
+Was: 34 advisories reaching `apps/web`, 2 critical / 21 high. **Now 14, none critical.** Monorepo
+total 55 → 35, criticals 2 → 0.
 
-- **Runtime graph (only two):** `react-router@^8.2` (HIGH, RSC-mode CSRF, fix ≥8.3.0) and `dompurify`.
-- **Direct dev:** `vitest@2.1.9` (CRITICAL, fix ≥3.2.6), `vite@^5.4` (HIGH plus 2 moderate, fix ≥6.4.3).
-- **All nine `tar` advisories** trace to `@capacitor/assets@3.0.5` pinning `@capacitor/cli@5.7.8`
-  beside the app's own `@capacitor/cli@8.5.0`. Removing or updating that one dev dependency clears them.
+- `react-router` 8.2.0 → 8.3.1, closing the HIGH RSC-mode CSRF advisory. It was the only flagged
+  package in the runtime dependency graph.
+- A pnpm override pins `@capacitor/cli` to the 8.5.0 the app already runs. `@capacitor/assets@3.0.5`
+  is the latest release and *still* pins 5.7.8, so a stale duplicate sat beside it carrying all nine
+  `tar` advisories. The package itself is kept — `docs/android-apk.md` documents generating launcher
+  icons with it.
+- `vitest` 2.1.9 → 3.2.7 in all three packages that declared it; `packages/domain` was the last one
+  holding the CRITICAL. A `vite: ^6.4.3` override covers the whole workspace, because vitest pulls
+  its own vite transitively and that copy stayed on 5.4.21 regardless of what `apps/web` declared.
+  `apps/web` also moves to vite 6 with matching `plugin-react` and `vite-plugin-pwa`.
 
----
+Verified locally: 1786 web + 404 api + 9 domain tests pass, `tsc` clean in both apps, web build
+succeeds on vite 6. **CI has not run this yet** — per this project's standing rule, a toolchain
+change is only really verified by a real Actions run.
+
+What remains is dev/build-only except `dompurify` (moderate): `lodash`, `sharp`, `fast-uri`,
+`brace-expansion` (the `@capacitor/assets` chain), plus `postcss`, `nanoid`, `esbuild`, `uuid`.
 
 ## What is genuinely strong
 
@@ -367,6 +385,16 @@ Round 3 named it: **a fix gets applied to one side of a mirrored pair.**
 3. The 401 guard on 3 of 6 manager pages.
 4. `onError` on 2 of 18 mutation call sites.
 
-Naming it in a retrospective has not stopped it. Each of the last two has a structural fix available —
-a layout route (`ManagerShell`) and a client-level default (`MutationCache`) — that makes the
-guarantee once instead of per call site. That is the shape the remaining ones should take too.
+Naming it in a retrospective did not stop it, so instances 2–4 were closed structurally rather than
+by another round of copies:
+
+- `usePeerRequest` now has the `connection_lost` state its counterpart's `error` state implied.
+- `useManagerSessionExpiry` lives on `ManagerShell`, the layout route wrapping all six manager
+  pages, and a router test asserts every manager route is a child of it. Three duplicated per-page
+  tests were deleted in favour of that one assertion — a stronger guarantee than the copies were.
+- `createQueryClient` installs a `MutationCache` `onError` as a floor, with a guard asserting the
+  app constructs no other `QueryClient`, so no future call site can opt out by forgetting.
+
+The remaining shape to watch: `Sidebar`/`ManagerSidebar` are still two components rendering one
+`NAV_TABS`, which is why adding "Apoio" reached both from a single edit — that part is already
+right.
