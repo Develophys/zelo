@@ -16,9 +16,11 @@ interface PeerChatRoomProps {
   onSend: (text: string) => void;
   onLeave: () => void;
   peerLeft: boolean;
+  connectionLost?: boolean;
+  onRetry?: () => void;
 }
 
-export function PeerChatRoom({ messages, onSend, onLeave, peerLeft }: PeerChatRoomProps) {
+export function PeerChatRoom({ messages, onSend, onLeave, peerLeft, connectionLost = false, onRetry }: PeerChatRoomProps) {
   const [text, setText] = useState('');
   // Messages arrive from another person, so the transcript follows new content
   // the way the AI chat does rather than leaving the reader to scroll for it.
@@ -72,6 +74,21 @@ export function PeerChatRoom({ messages, onSend, onLeave, peerLeft }: PeerChatRo
         </p>
       )}
 
+      {connectionLost && (
+        <div className="mt-3 rounded-card border border-danger-border bg-danger-bg p-3">
+          <p role="alert" className="text-label font-semibold text-danger">
+            A conexão caiu. Suas últimas mensagens podem não ter chegado.
+          </p>
+          {onRetry && (
+            <div className="mt-3">
+              <Button variant="outline" size="sm" full={false} onClick={onRetry}>
+                Procurar outro colega
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="mt-3 flex gap-2">
         <label htmlFor="peer-chat-message" className="sr-only">
           Mensagem
@@ -81,9 +98,10 @@ export function PeerChatRoom({ messages, onSend, onLeave, peerLeft }: PeerChatRo
           value={text}
           onChange={(event) => setText(event.target.value)}
           className="flex-1"
+          disabled={connectionLost}
           {...PRIVATE_TEXT_FIELD}
         />
-        <Button type="submit" full={false}>
+        <Button type="submit" full={false} disabled={connectionLost}>
           Enviar
         </Button>
       </form>

@@ -11,6 +11,7 @@ export type PeerRequestState =
   | "searching"
   | "matched"
   | "no_peer_available"
+  | "connection_lost"
   | "error";
 
 export function usePeerRequest() {
@@ -22,6 +23,9 @@ export function usePeerRequest() {
   const clientRef = useRef<PeerChatSocketClient | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const requestIdRef = useRef<string | null>(null);
+  // socket.io fires `disconnect` for a deliberate teardown too, so leaving has
+  // to be distinguishable from losing the transport.
+  const leavingRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -35,6 +39,7 @@ export function usePeerRequest() {
     setState("searching");
     setMessages([]);
     setPeerLeft(false);
+    leavingRef.current = false;
 
     const client = new PeerChatSocketClient();
     clientRef.current = client;
@@ -47,7 +52,14 @@ export function usePeerRequest() {
     // here has to say so rather than leaving "Procurando…" on screen.
     socket.on("connect_error", () => setState("error"));
     socket.on("disconnect", () => {
-      setState((current) => (current === "matched" ? current : "error"));
+      if (leavingRef.current) return;
+      // A conversation the doctor ended is `idle`, and `peer_left` already
+      // carries "the other person ended it". What is left is the transport
+      // failing underneath a live conversation, which used to be represented
+      // as nothing at all: the composer stayed enabled and every message was
+      // appended locally, so the doctor watched their own words arrive
+      // nowhere.
+      setState((current) => (current === "matched" ? "connection_lost" : "error"));
     });
     socket.on("matched", (payload: { requestId: string; specialty: string }) => {
       requestIdRef.current = payload.requestId;
@@ -63,12 +75,13 @@ export function usePeerRequest() {
   }, []);
 
   const sendMessage = useCallback((text: string) => {
-    if (!requestIdRef.current) return;
+    if (!requestIdRef.current || !socketRef.current?.connected) return;
     socketRef.current?.emit("message", { requestId: requestIdRef.current, text });
     setMessages((prev) => [...prev, { from: "me", text }]);
   }, []);
 
   const leave = useCallback(() => {
+    leavingRef.current = true;
     if (requestIdRef.current) {
       socketRef.current?.emit("leave_conversation", { requestId: requestIdRef.current });
     }

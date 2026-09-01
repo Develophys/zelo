@@ -140,14 +140,18 @@ export function PeersPage() {
           </div>
         )}
 
-        {state === 'matched' && (
+        {(state === 'matched' || state === 'connection_lost') && (
           <div className="mt-5">
             <p className="mb-3 text-label text-muted">Conectado com um colega de {specialty}.</p>
+            {/* The transcript stays on screen after a drop. Clearing it would
+                take away the one record of what was said. */}
             <PeerChatRoom
               messages={messages}
               onSend={sendMessage}
               onLeave={leave}
               peerLeft={peerLeft}
+              connectionLost={state === 'connection_lost'}
+              onRetry={() => institutionId && requestPeer(institutionId, sectorName ?? undefined)}
             />
           </div>
         )}

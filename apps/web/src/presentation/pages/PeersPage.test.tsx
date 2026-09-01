@@ -209,4 +209,38 @@ describe("PeersPage", () => {
       "tel:188",
     );
   });
+  it("says the connection dropped and stops accepting messages, instead of leaving the composer live", async () => {
+    useInstitutionLinkStore.setState({ institutionId: "institution-1", institutionName: "Hospital Teste", sectorId: "sector-1", sectorName: "UTI", deviceSignalId: "device-1" });
+    const user = userEvent.setup();
+    renderPeers();
+
+    await user.click(screen.getByRole("button", { name: "Falar com um colega" }));
+    act(() => handlers["matched"]!({ requestId: "req-1", specialty: "clínica médica" }));
+    const composer = screen.getByRole("textbox");
+
+    act(() => handlers["disconnect"]!());
+
+    // The regression this guards: a dropped transport left the composer live
+    // and appended the doctor's own words to the transcript, so they watched
+    // the hardest thing they had said all week arrive nowhere.
+    expect(await screen.findByRole("alert")).toHaveTextContent(/conexão/i);
+    expect(composer).toBeDisabled();
+
+    emitSpy.mockClear();
+    await user.type(composer, "oi");
+    expect(emitSpy).not.toHaveBeenCalledWith("message", expect.anything());
+  });
+
+  it("does not treat a deliberate exit as a dropped connection", async () => {
+    useInstitutionLinkStore.setState({ institutionId: "institution-1", institutionName: "Hospital Teste", sectorId: "sector-1", sectorName: "UTI", deviceSignalId: "device-1" });
+    const user = userEvent.setup();
+    renderPeers();
+
+    await user.click(screen.getByRole("button", { name: "Falar com um colega" }));
+    act(() => handlers["matched"]!({ requestId: "req-1", specialty: "clínica médica" }));
+    await user.click(screen.getByRole("button", { name: "Sair da conversa" }));
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Falar com um colega" })).toBeInTheDocument();
+  });
 });
