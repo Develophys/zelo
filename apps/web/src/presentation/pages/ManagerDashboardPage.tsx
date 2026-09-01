@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router";
+import { useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { SectionLabel } from "@/presentation/ui/SectionLabel";
 import { Card } from "@/presentation/ui/Card";
 import { Button } from "@/presentation/ui/Button";
@@ -27,6 +27,38 @@ import {
 
 const TREND_SKELETON_BAR_COUNT = 6;
 const SEGMENTS_SKELETON_ROW_COUNT = 3;
+
+const SECTOR_PARAM = "sectorIds";
+
+/**
+ * Reads the sector filter out of the URL.
+ *
+ * `undefined` means "no filter" — the request goes out without the parameter at
+ * all, and the API answers with every sector the manager can see. An explicit
+ * list of every id would be the same set but is *not* the same request: it
+ * pins the query to ids the server would otherwise have chosen itself.
+ *
+ * A selection of nothing is never one of the states. It can only draw an empty
+ * screen, so every way of reaching it resolves to "no filter" instead.
+ */
+function parseSectorParam(raw: string | null, sectors: { id: string }[] | undefined): string[] | undefined {
+  if (raw === null) return undefined;
+
+  const requested = raw.split(",").filter((id) => id.length > 0);
+  if (requested.length === 0) return undefined;
+  // Validation waits for the sector list; until it lands the URL is taken at
+  // face value, so a shared link fetches its own data on the first try rather
+  // than fetching everything and correcting itself.
+  if (!sectors) return requested;
+
+  const valid = requested.filter((id) => sectors.some((sector) => sector.id === id));
+  // A link naming only sectors that were deleted, or that belong to another
+  // institution, is meaningless. Showing the whole panel beats an empty
+  // dashboard that reads as "your institution has no data".
+  if (valid.length === 0) return undefined;
+  if (valid.length === sectors.length) return undefined;
+  return valid;
+}
 
 const DASHBOARD_DISCLOSURE =
   "Nenhum dado individual é exibido; segmentos com menos de 5 respostas ficam ocultos.";
@@ -98,7 +130,9 @@ function SectorFilter({ sectors, selectedSectorIds, onChange }: SectorFilterProp
     const next = effectiveSelected.includes(id)
       ? effectiveSelected.filter((sectorId) => sectorId !== id)
       : [...effectiveSelected, id];
-    onChange(next);
+    // Switching off the last one would filter every sector away and leave the
+    // panel blank, so it clears the filter instead.
+    onChange(next.length === 0 ? sectors.map((sector) => sector.id) : next);
   };
 
   const todosButton = (
@@ -135,8 +169,26 @@ export function ManagerDashboardPage() {
   const navigate = useNavigate();
   const clearSession = useManagerSessionStore((state) => state.clearSession);
   const sectorsQuery = useManagerSectors();
-  const [selectedSectorIds, setSelectedSectorIds] = useState<string[] | undefined>(undefined);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sectors = sectorsQuery.data;
+  const selectedSectorIds = parseSectorParam(searchParams.get(SECTOR_PARAM), sectors);
   const { data, error, isError, isLoading, refetch } = useManagerSignals(selectedSectorIds);
+
+  // The URL is the filter's only state, so a reload, the back button and a
+  // link pasted into a message all land on the same view.
+  const handleSectorChange = (next: string[]) => {
+    setSearchParams(
+      (current) => {
+        const params = new URLSearchParams(current);
+        if (sectors && next.length === sectors.length) params.delete(SECTOR_PARAM);
+        else params.set(SECTOR_PARAM, next.join(","));
+        return params;
+      },
+      // Toggling pills would otherwise stack one history entry per click,
+      // turning the back button into a rewind of the manager's own filtering.
+      { replace: true },
+    );
+  };
   const insight = useManagerInsight();
 
   useEffect(() => {
@@ -164,7 +216,7 @@ export function ManagerDashboardPage() {
     <div>
       {sectorsQuery.data && sectorsQuery.data.length > 1 && (
         <div data-testid="dashboard-filter-row" className="flex flex-wrap items-center gap-2">
-          <SectorFilter sectors={sectorsQuery.data} selectedSectorIds={selectedSectorIds} onChange={setSelectedSectorIds} />
+          <SectorFilter sectors={sectorsQuery.data} selectedSectorIds={selectedSectorIds} onChange={handleSectorChange} />
         </div>
       )}
 

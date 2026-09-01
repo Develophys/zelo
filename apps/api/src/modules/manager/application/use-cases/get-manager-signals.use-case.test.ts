@@ -168,4 +168,50 @@ describe("GetManagerSignalsUseCase - followUpResponseRate", () => {
 
     expect(result.followUpResponseRate).toBe(0.75);
   });
+
+  it("does not blank the whole dashboard because one sector has a fresh under-k week", async () => {
+    // A real check-in writes a Signal row for the CURRENT ISO week with a
+    // handful of check-ins. That row is newer than every other sector's latest
+    // week, so it becomes `mostRecentWeek` — and because no sector reaches k in
+    // it, every sector is suppressed and the response collapses to zeros.
+    //
+    // Observed in the demo institution: filtering to two sectors returned
+    // 50% / 72, while a strict superset of those two returned 0% / 0.
+    const WEEK_3 = new Date("2026-06-29T00:00:00.000Z"); // newer than WEEK_2
+    const repository = new FakeSignalRepository([
+      { sectorId: "busy", sectorName: "Plantão noturno", weekStart: WEEK_1, checkIns: 18, concerning: 9 },
+      { sectorId: "busy", sectorName: "Plantão noturno", weekStart: WEEK_2, checkIns: 18, concerning: 9 },
+      // One doctor checked in this week in a different sector.
+      { sectorId: "fresh", sectorName: "UTI", weekStart: WEEK_3, checkIns: 1, concerning: 1 },
+    ]);
+    const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
+
+    const result = await useCase.execute("institution-1", ["busy", "fresh"]);
+
+    // The busy sector still has 18 check-ins in its own most recent week; a
+    // single under-k row elsewhere must not erase it.
+    expect(result.segments).toEqual([{ label: "Plantão noturno", value: 50, n: 18 }]);
+    expect(result.checkInsLast4Weeks).toBeGreaterThan(0);
+  });
+
+  it("stays monotonic: adding a sector never returns less than the subset did", async () => {
+    const WEEK_3 = new Date("2026-06-29T00:00:00.000Z");
+    const rows: SignalRow[] = [
+      { sectorId: "busy", sectorName: "Plantão noturno", weekStart: WEEK_2, checkIns: 18, concerning: 9 },
+      { sectorId: "fresh", sectorName: "UTI", weekStart: WEEK_3, checkIns: 1, concerning: 1 },
+    ];
+    const useCase = new GetManagerSignalsUseCase(
+      new FakeSignalRepository(rows.filter((r) => r.sectorId === "busy")),
+      new FakeSimulatedFollowUpRepository([]),
+    );
+    const subset = await useCase.execute("institution-1", ["busy"]);
+
+    const allUseCase = new GetManagerSignalsUseCase(
+      new FakeSignalRepository(rows),
+      new FakeSimulatedFollowUpRepository([]),
+    );
+    const all = await allUseCase.execute("institution-1", ["busy", "fresh"]);
+
+    expect(all.checkInsLast4Weeks).toBeGreaterThanOrEqual(subset.checkInsLast4Weeks);
+  });
 });

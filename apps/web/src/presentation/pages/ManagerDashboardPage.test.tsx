@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Routes, Route } from "react-router";
+import { MemoryRouter, Routes, Route, useLocation } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ManagerDashboardPage } from "./ManagerDashboardPage";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
@@ -9,11 +9,18 @@ import * as container from "@/app/container";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 import * as pgrExport from "@/presentation/lib/download-manager-pgr-report";
 
-function renderManager() {
+/** Surfaces the router's current query string so the tests can assert on it. */
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="location-search">{location.search}</div>;
+}
+
+function renderManager(initialEntry = "/manager") {
   const queryClient = new QueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={["/manager"]}>
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <LocationProbe />
         <Routes>
           <Route path="/manager" element={<ManagerDashboardPage />} />
           <Route path="/manager/login" element={<div>Login screen</div>} />
@@ -379,42 +386,143 @@ describe("ManagerDashboardPage", () => {
     });
   });
 
-  it("deselecting every sector calls the signals fetch with an explicit empty array, and the KPIs reflect the resulting all-zero response, not stale full data", async () => {
+  it("unchecking the last remaining sector returns to Todos instead of emptying the panel", async () => {
     vi.spyOn(container.listAccessibleSectorsUseCase, "execute").mockResolvedValue([
       { id: "sector-1", name: "UTI" },
       { id: "sector-2", name: "Pronto-Socorro" },
     ]);
-    const ALL_ZERO_RESPONSE = {
-      overallConcerningRate: 0,
-      checkInsLast4Weeks: 0,
-      weeklyTrend: [],
-      segments: [],
-      followUpResponseRate: 0,
-    };
-    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockImplementation(async (_token, sectorIds) =>
-      sectorIds && sectorIds.length === 0 ? ALL_ZERO_RESPONSE : SIGNALS_RESPONSE,
-    );
     const user = userEvent.setup();
     renderManager();
 
     await waitFor(() => {
       expect(within(screen.getByTestId("sector-filter-pills")).getByRole("button", { name: "UTI" })).toBeInTheDocument();
     });
-    expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
 
     const pills = within(screen.getByTestId("sector-filter-pills"));
     await user.click(pills.getByRole("button", { name: "UTI" }));
+    await waitFor(() =>
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", ["sector-2"]),
+    );
+
     await user.click(pills.getByRole("button", { name: "Pronto-Socorro" }));
 
-    await waitFor(() => {
-      // Must be an explicit [] — NOT undefined, which would silently re-request
-      // the manager's full accessible set instead of "nothing selected".
-      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", []);
-    });
-    await waitFor(() => {
-      expect(screen.queryByText("Plantão noturno")).not.toBeInTheDocument();
-    });
-    expect(screen.queryByText("111")).not.toBeInTheDocument();
+    // A filter that selects nothing can only produce an empty screen, so the
+    // last sector cannot be switched off — turning it off clears the filter.
+    await waitFor(() =>
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", undefined),
+    );
+    expect(pills.getByRole("button", { name: "Todos" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+    expect(screen.getByTestId("location-search").textContent).toBe("");
+  });
+
+  it("shows the whole panel for a hand-typed empty sectorIds, rather than a screen with nothing on it", async () => {
+    renderManager("/manager?sectorIds=");
+
+    await waitFor(() =>
+      expect(within(screen.getByTestId("sector-filter-pills")).getByRole("button", { name: "Todos" })).toBeInTheDocument(),
+    );
+    expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", undefined);
+    expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+  });
+  it("sends no sector filter at all once Todos is picked again, rather than an explicit list of every id", async () => {
+    const user = userEvent.setup();
+    renderManager();
+
+    await waitFor(() =>
+      expect(within(screen.getByTestId("sector-filter-pills")).getByRole("button", { name: "Enfermagem" })).toBeInTheDocument(),
+    );
+    const pills = within(screen.getByTestId("sector-filter-pills"));
+
+    await user.click(pills.getByRole("button", { name: "Enfermagem" }));
+    await waitFor(() =>
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", ["sector-b"]),
+    );
+
+    await user.click(pills.getByRole("button", { name: "Todos" }));
+
+    // "Every sector" and "no filter" must be the same request. Spelling out all
+    // four ids is what dragged an unrelated partial week into the query and
+    // blanked the whole panel.
+    await waitFor(() =>
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", undefined),
+    );
+  });
+
+  it("re-selecting the last missing sector collapses back to no filter, not a spelled-out full list", async () => {
+    const user = userEvent.setup();
+    renderManager();
+
+    await waitFor(() =>
+      expect(within(screen.getByTestId("sector-filter-pills")).getByRole("button", { name: "Enfermagem" })).toBeInTheDocument(),
+    );
+    const pills = within(screen.getByTestId("sector-filter-pills"));
+
+    await user.click(pills.getByRole("button", { name: "Enfermagem" }));
+    await user.click(pills.getByRole("button", { name: "Enfermagem" }));
+
+    await waitFor(() =>
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", undefined),
+    );
+    expect(screen.getByTestId("location-search")).toHaveTextContent("");
+  });
+
+  it("puts the narrowed selection in the URL, and takes it back out for Todos", async () => {
+    const user = userEvent.setup();
+    renderManager();
+
+    await waitFor(() =>
+      expect(within(screen.getByTestId("sector-filter-pills")).getByRole("button", { name: "Enfermagem" })).toBeInTheDocument(),
+    );
+    const pills = within(screen.getByTestId("sector-filter-pills"));
+
+    await user.click(pills.getByRole("button", { name: "Enfermagem" }));
+    await waitFor(() =>
+      expect(screen.getByTestId("location-search")).toHaveTextContent("?sectorIds=sector-b"),
+    );
+
+    await user.click(pills.getByRole("button", { name: "Todos" }));
+    await waitFor(() => expect(screen.getByTestId("location-search").textContent).toBe(""));
+  });
+
+  it("restores the selection from the URL on load, so a reload or a shared link keeps the filter", async () => {
+    renderManager("/manager?sectorIds=sector-b");
+
+    await waitFor(() =>
+      expect(within(screen.getByTestId("sector-filter-pills")).getByRole("button", { name: "Fisioterapia" })).toBeInTheDocument(),
+    );
+    expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", ["sector-b"]);
+    const pills = within(screen.getByTestId("sector-filter-pills"));
+    expect(pills.getByRole("button", { name: "Fisioterapia" })).toHaveAttribute("aria-pressed", "true");
+    expect(pills.getByRole("button", { name: "Enfermagem" })).toHaveAttribute("aria-pressed", "false");
+    expect(pills.getByRole("button", { name: "Todos" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("ignores ids in the URL the manager cannot see, keeping the ones that remain", async () => {
+    renderManager("/manager?sectorIds=sector-b,sector-from-another-hospital");
+
+    await waitFor(() =>
+      expect(within(screen.getByTestId("sector-filter-pills")).getByRole("button", { name: "Fisioterapia" })).toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", ["sector-b"]),
+    );
+  });
+
+  it("falls back to Todos when no id in the URL is one this manager can see", async () => {
+    renderManager("/manager?sectorIds=deleted-sector");
+
+    await waitFor(() =>
+      expect(within(screen.getByTestId("sector-filter-pills")).getByRole("button", { name: "Todos" })).toBeInTheDocument(),
+    );
+    // A dead link should show the panel, not an empty dashboard that reads as
+    // "your institution has no data".
+    await waitFor(() =>
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", undefined),
+    );
+    expect(
+      within(screen.getByTestId("sector-filter-pills")).getByRole("button", { name: "Todos" }),
+    ).toHaveAttribute("aria-pressed", "true");
   });
 
   it("does not show the sector filter when only one sector is accessible", async () => {
