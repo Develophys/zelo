@@ -241,15 +241,31 @@ rather than a fix — the records are in IndexedDB and nothing reads them except
   both shells, hidden until focused, targeting an `id` on each `<main>`. It is hoisted ahead of
   the sidebar in `PhoneShell`, since the sidebar otherwise renders first and would have kept the
   first tab stop.
-- **All 14 `--text-*` tokens are `px`**, so the app answers page zoom but not the browser's font-size preference. Four sub-12px sites (`Sidebar.tsx:37`, `ManagerSidebar.tsx:52` at 10px; `BottomNav.tsx:63`, `ManagerBottomNav.tsx:16` at 11px); 28 bracketed `text-[Npx]` bypass the scale.
-- **The accent picker ships four brand colours to the doctor.** `index.css:225` states outright that changing the brand colour "is not what this preference is for", then ships exactly that to the audience for whom sage green *is* the promise. Same for the corners toggle against the stated corner scale.
-- **`/peers` is consent-gated but not authenticated** — it opens a live peer-to-peer chat rendering another person's messages. The API accepts a token-less socket as an anonymous connection by design; worth confirming that is intended.
+- ✅ **All 14 `--text-*` tokens are `px`** — **fixed**. Every size token is now `rem`, and so is
+  every call site: 30 bracketed `text-[Npx]` were the real problem, since tokens alone would have
+  left the smallest type in the app pinned. Sizes with an existing token use it; four roles that
+  had none got one (`--text-control`, `--text-nav`, `--text-nav-rail`, `--text-stat`); genuine
+  one-offs keep a bracket but in `rem`. `--text-control` names the 16px floor below which iOS
+  Safari zooms the page on input focus. `src/app/type-scale.test.ts` guards both ends.
+  **Still open:** the four sub-12px sites are now in `rem` but unchanged in size — raising 10px/11px
+  nav labels is a visible change, held for validation.
+- ⬜ **The accent picker ships four brand colours to the doctor.** `index.css:225` states outright that changing the brand colour "is not what this preference is for", then ships exactly that to the audience for whom sage green *is* the promise. Same for the corners toggle against the stated corner scale.
+- ⬜ **`/peers` is consent-gated but not authenticated** — it opens a live peer-to-peer chat rendering another person's messages. The API accepts a token-less socket as an anonymous connection by design; worth confirming that is intended.
 
 ---
 
 ## P3
 
-Dead `useApiHealth` (zero references, plus a six-symbol chain behind it that ships nothing) and `QuestionCardSkeleton`. ✅ `"Voltar ao início"` navigating to `/assessment` — **fixed**: the destination was the bug, not the label. `CrisisDeclinePage` and `FallbackPage` both use that exact label for `routes.home`, so the app had already answered which half was wrong. Three `className="p-2 cursor-pointer"` overrides on `ManagerDashboardPage` fighting their own Button variant. `no-scrollbar` at all breakpoints in `DataTableToolbar` and `TranscriptScroller`, hiding the desktop scroll cue. Two greetings stacked in the Home header. `/peer` missing from `APP_HEADER_META`. `ManagerNotificationsPage` and `ManagerInsightHistoryPage` rendering nothing at all while loading. `ChatDisclaimerBanner` at `text-[12.5px]`, the only fractional size in the codebase, on the one non-dismissable legal notice.
+All fixed except one, which was checked and rejected.
+
+- ✅ **Dead `useApiHealth`** (zero references, plus a six-symbol chain behind it that ships nothing) and `QuestionCardSkeleton` — deleted, along with a vestigial mock in `router.test.tsx`.
+- ✅ **`"Voltar ao início"` navigating to `/assessment`** — the destination was the bug, not the label. `CrisisDeclinePage` and `FallbackPage` both use that exact label for `routes.home`, so the app had already answered which half was wrong.
+- ✅ **Three `className="p-2 cursor-pointer"` overrides on `ManagerDashboardPage`** — now `size="sm"`. `cursor-pointer` was already in Button's base, and `p-*` alongside `size`'s own padding is a same-property fight Tailwind settles by CSS source order rather than class order — while `min-h-13` kept the button its full height regardless, so the override never even achieved what it was for. Guarded at every Button call site in `Button.test.tsx`, with `unstyled` exempt.
+- ✅ **`no-scrollbar` at all breakpoints** in `DataTableToolbar` and `TranscriptScroller` — now `max-md:no-scrollbar`, matching `PhoneShell`. On a pointer device the scrollbar was the only sign there was more to the right.
+- ✅ **Two greetings stacked in the Home header** — the meta subtitle is gone; the title is already a time-aware greeting.
+- ❌ **`/peer` missing from `APP_HEADER_META`** — **won't fix, checked and rejected.** `app-header-meta.test.ts` lists `peerPartnerInbox` in `OUT_OF_SCOPE` alongside `peerPartnerLogin`, `peerPartnerFinishSetup` and the admin routes. The peer partner is a separate persona that deliberately does not wear the doctor's app chrome, and the exclusion is already asserted. Adding the entry broke that test — which is the guard working.
+- ✅ **`ManagerNotificationsPage` and `ManagerInsightHistoryPage` rendering nothing at all while loading** — both now show skeletons. The history's was the worse of the two: mid-load it rendered "Nenhuma análise gerada ainda", the opposite of the truth about a coordinator's own history, and the exact mistake its error branch already refused to make.
+- ✅ **`ChatDisclaimerBanner` at `text-[12.5px]`**, the only fractional size in the codebase, on the one non-dismissable legal notice — now `text-caption`.
 
 ---
 
