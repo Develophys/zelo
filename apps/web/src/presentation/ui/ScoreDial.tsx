@@ -48,7 +48,7 @@ export function ScoreDial({ score, max, band }: ScoreDialProps) {
         <span data-testid="score-value" className={`font-serif text-score ${tone.score}`}>
           {score}
         </span>
-        <span className={`text-[24px] ${tone.max}`}>/{max}</span>
+        <span className={`text-[1.5rem] ${tone.max}`}>/{max}</span>
         <div className="mt-3">
           <span
             className={`inline-block rounded-status px-4 py-1.75 font-sans text-label font-extrabold ${tone.pill}`}

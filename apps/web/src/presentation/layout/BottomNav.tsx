@@ -60,7 +60,7 @@ export function BottomNav() {
             }`}
           >
             <Icon size={22} />
-            <span className="font-sans text-[11px] font-semibold">{label}</span>
+            <span className="font-sans text-nav font-semibold">{label}</span>
           </Link>
         );
       })}
@@ -97,7 +97,7 @@ export function BottomNav() {
                 className="flex min-h-11 items-center gap-3 rounded-control px-3 py-2 text-muted transition-colors duration-150 hover:bg-canvas hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
               >
                 <Icon size={20} />
-                <span className="font-sans text-[14px] font-semibold">{label}</span>
+                <span className="font-sans text-label font-semibold">{label}</span>
               </Link>
             ))}
           </div>

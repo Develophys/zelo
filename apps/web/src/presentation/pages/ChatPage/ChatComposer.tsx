@@ -158,7 +158,7 @@ export const ChatComposer = memo(function ChatComposer({
               enterKeyHint="send"
               {...PRIVATE_TEXT_FIELD}
               aria-describedby={describedBy}
-              className={`inset-scrollbar block max-h-38.25 w-full resize-none overflow-y-auto rounded-card-lg border border-control-edge bg-canvas pt-3.25 pr-4.5 pb-8.5 pl-4.5 text-[16px] leading-normal text-ink placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+              className={`inset-scrollbar block max-h-38.25 w-full resize-none overflow-y-auto rounded-card-lg border border-control-edge bg-canvas pt-3.25 pr-4.5 pb-8.5 pl-4.5 text-control leading-normal text-ink placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
                 overScrollbar ? 'cursor-default' : ''
               }`}
             />

@@ -22,7 +22,7 @@ describe('Button', () => {
   it('soft variant differs from primary only in color, keeping the shared shape and typography', () => {
     render(<Button variant="soft">Label</Button>);
     const button = screen.getByRole('button', { name: 'Label' });
-    expect(button).toHaveClass('rounded-control', 'py-4', 'min-h-13', 'font-sans', 'text-[16px]');
+    expect(button).toHaveClass('rounded-control', 'py-4', 'min-h-13', 'font-sans', 'text-control');
     expect(button).toHaveClass('bg-surface-brand', 'text-brand', 'enabled:hover:bg-track');
   });
 
@@ -91,7 +91,7 @@ describe('Button', () => {
   it('keeps the full-size geometry when no size is given, so existing callers are untouched', () => {
     render(<Button>Label</Button>);
     const button = screen.getByRole('button', { name: 'Label' });
-    expect(button).toHaveClass('min-h-13', 'py-4', 'text-[16px]', 'rounded-control');
+    expect(button).toHaveClass('min-h-13', 'py-4', 'text-control', 'rounded-control');
     expect(button).not.toHaveClass('min-h-11', 'text-label');
   });
 
@@ -110,7 +110,7 @@ describe('Button', () => {
       'text-label',
       'rounded-control',
     );
-    expect(button).not.toHaveClass('min-h-13', 'text-[16px]');
+    expect(button).not.toHaveClass('min-h-13', 'text-control');
     expect(button).toHaveClass('bg-surface-brand', 'text-brand');
   });
 

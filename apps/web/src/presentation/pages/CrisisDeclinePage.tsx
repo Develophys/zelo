@@ -20,7 +20,7 @@ export function CrisisDeclinePage() {
         <div className="mt-6">
           <Card size="lg" tone="brand">
             <p className="font-mono text-eyebrow uppercase text-on-fill-2">linha de crise · 24h</p>
-            <p className="mt-2 font-serif text-[40px]">
+            <p className="mt-2 font-serif text-display">
               {line.label} {line.phone}
             </p>
             <p className="mt-2 text-label text-on-fill-2">
@@ -28,7 +28,7 @@ export function CrisisDeclinePage() {
             </p>
             <a
               href={line.telHref}
-              className="mt-4 flex min-h-13 w-full items-center justify-center rounded-control bg-on-fill px-4 font-sans text-[16px] font-bold text-brand-fill focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-on-fill focus-visible:ring-offset-2 focus-visible:ring-offset-brand-fill"
+              className="mt-4 flex min-h-13 w-full items-center justify-center rounded-control bg-on-fill px-4 font-sans text-control font-bold text-brand-fill focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-on-fill focus-visible:ring-offset-2 focus-visible:ring-offset-brand-fill"
             >
               Ligar para o {line.label}
             </a>

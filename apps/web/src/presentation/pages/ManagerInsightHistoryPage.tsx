@@ -125,7 +125,7 @@ function InsightRow({ entry }: { entry: StoredManagerInsight }) {
               className={`flex-none text-muted transition-transform duration-150 ${expanded ? "rotate-180" : ""}`}
             />
             <span className="min-w-0 flex-1">
-              <span className="block font-mono text-[12px] text-muted-2">{dateLabel}</span>
+              <span className="block font-mono text-mono-data text-muted-2">{dateLabel}</span>
               <span className={`mt-1 block text-label text-ink-2 ${expanded ? "" : "truncate"}`}>
                 {entry.summary}
               </span>
@@ -161,7 +161,7 @@ function InsightCard({ entry, isDefaultOpen }: { entry: StoredManagerInsight; is
         className="flex w-full items-center justify-between gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
         <span className="min-w-0">
-          <span className="block font-mono text-[12px] text-muted-2">{dateLabel}</span>
+          <span className="block font-mono text-mono-data text-muted-2">{dateLabel}</span>
           <span className="mt-1 block truncate text-label text-ink-2">{entry.summary}</span>
         </span>
         <ChevronDown

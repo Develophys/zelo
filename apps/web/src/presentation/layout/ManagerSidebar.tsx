@@ -49,7 +49,7 @@ function Item({
           what anything is. `collapsed` is an lg-and-up preference, so it does
           not hide the label at the width that cannot toggle it. */}
       <span
-        className={`text-center font-sans text-[10px] leading-tight font-semibold lg:text-[14px] ${
+        className={`text-center font-sans text-nav-rail leading-tight font-semibold lg:text-label ${
           collapsed ? 'lg:sr-only' : ''
         }`}
       >
@@ -179,7 +179,7 @@ function SignOut({ collapsed, onSignOut }: { collapsed: boolean; onSignOut: () =
     >
       <LogOut size={22} />
       <span
-        className={`font-sans text-[14px] font-semibold ${collapsed ? 'sr-only' : 'sr-only lg:not-sr-only'}`}
+        className={`font-sans text-label font-semibold ${collapsed ? 'sr-only' : 'sr-only lg:not-sr-only'}`}
       >
         Sair
       </span>

@@ -7,7 +7,7 @@ interface PrivacyBadgeProps {
 }
 
 const CHIP_CLASS =
-  'inline-flex items-center gap-1 rounded-status bg-surface-brand px-3 py-1.75 font-mono text-[12px] text-brand';
+  'inline-flex items-center gap-1 rounded-status bg-surface-brand px-3 py-1.75 font-mono text-mono-data text-brand';
 
 export function PrivacyBadge({ label = 'anônimo', variant = 'chip', onClick }: PrivacyBadgeProps) {
   if (variant === 'inline') {

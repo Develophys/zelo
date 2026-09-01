@@ -13,7 +13,7 @@ import {
 } from './manager-nav';
 
 const SLOT_CLASS =
-  'relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 border-t-2 px-1 py-nav-y font-sans text-[11px] font-semibold motion-safe:transition-colors motion-safe:duration-150 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none';
+  'relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 border-t-2 px-1 py-nav-y font-sans text-nav font-semibold motion-safe:transition-colors motion-safe:duration-150 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none';
 
 interface ManagerBottomNavProps {
   className?: string;

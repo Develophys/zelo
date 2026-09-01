@@ -30,7 +30,7 @@ export function CrisisAcceptPage() {
         <div className="mt-5">
           <Card size="lg" tone="brand">
             <p className="font-mono text-eyebrow uppercase text-on-fill-2">linha de crise · 24h</p>
-            <p className="mt-2 font-serif text-[40px]">
+            <p className="mt-2 font-serif text-display">
               {line.label} {line.phone}
             </p>
             <CrisisCallLink

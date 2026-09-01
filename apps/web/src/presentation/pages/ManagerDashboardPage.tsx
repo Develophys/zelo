@@ -255,15 +255,15 @@ export function ManagerDashboardPage() {
                 {/* Deliberately not tone-coded. What counts as a concerning rate is
                     an open product question (PRODUCT.md), and an unconditional
                     amber reads as a warning even at 0%. */}
-                <p className="font-serif text-[30px] text-ink">{Math.round(overallConcerningRate * 100)}%</p>
+                <p className="font-serif text-stat text-ink">{Math.round(overallConcerningRate * 100)}%</p>
                 <p className="text-caption text-muted">sinais de burnout na equipe</p>
               </Card>
               <Card className="h-full text-center" data-testid="kpi-card">
-                <p className="font-serif text-[30px] text-brand">{checkInsLast4Weeks}</p>
+                <p className="font-serif text-stat text-brand">{checkInsLast4Weeks}</p>
                 <p className="text-caption text-muted">questionários respondidos (4 semanas)</p>
               </Card>
               <Card className="h-full text-center" data-testid="kpi-card">
-                <p className="font-serif text-[30px] text-brand">{Math.round(followUpResponseRate * 100)}%</p>
+                <p className="font-serif text-stat text-brand">{Math.round(followUpResponseRate * 100)}%</p>
                 <p className="text-caption text-muted">taxa de resposta do follow-up</p>
               </Card>
             </>
@@ -278,7 +278,7 @@ export function ManagerDashboardPage() {
               <Card className="flex h-full flex-col" data-testid="manager-card">
                 <div className="flex items-center justify-between">
                   <CardTitle>Tendência geral</CardTitle>
-                  <p className="font-mono text-[12px] text-muted-2">últimas 6 semanas</p>
+                  <p className="font-mono text-mono-data text-muted-2">últimas 6 semanas</p>
                 </div>
                 <ul data-testid="trend-description" className="sr-only">
                   {weeklyTrend.map((point, index) => (
@@ -315,7 +315,7 @@ export function ManagerDashboardPage() {
                       {weeklyTrend.map((point, index) => (
                         <span
                           key={index}
-                          className="w-full truncate text-center font-mono text-[12px] text-muted-2"
+                          className="w-full truncate text-center font-mono text-mono-data text-muted-2"
                         >
                           {weekLabel(point.weekStart)}
                         </span>
@@ -364,7 +364,7 @@ export function ManagerDashboardPage() {
                     <div key={segment.label}>
                       <div className="flex items-center justify-between text-label text-ink-2">
                         <span>{segment.label}</span>
-                        <span className="font-mono text-[12px] text-muted-2">
+                        <span className="font-mono text-mono-data text-muted-2">
                           {segment.value}% · {segment.n} {segment.n === 1 ? "resposta" : "respostas"}
                         </span>
                       </div>

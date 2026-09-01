@@ -83,32 +83,41 @@
   --font-sans: 'Nunito Sans', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
-  --text-eyebrow: 12px;
+  --text-eyebrow: 0.75rem /* 12px */;
   --text-eyebrow--line-height: 1;
   --text-eyebrow--letter-spacing: 0.1em;
   --text-eyebrow--font-weight: 600;
-  --text-caption: 13px;
+  --text-caption: 0.8125rem /* 13px */;
   --text-caption--line-height: 1.5;
-  --text-label: 14px;
+  --text-label: 0.875rem /* 14px */;
   --text-label--line-height: 1.45;
-  --text-body: 15px;
+  --text-body: 0.9375rem /* 15px */;
   --text-body--line-height: 1.55;
-  --text-card-title: 18px;
+  --text-card-title: 1.125rem /* 18px */;
   --text-card-title--line-height: 1.35;
-  --text-h2: 24px;
+  --text-h2: 1.5rem /* 24px */;
   --text-h2--line-height: 1.3;
-  --text-h1: 28px;
+  --text-h1: 1.75rem /* 28px */;
   --text-h1--line-height: 1.2;
-  --text-display: 40px;
+  --text-display: 2.5rem /* 40px */;
   --text-display--line-height: 1.1;
-  --text-score: 64px;
+  --text-score: 4rem /* 64px */;
   --text-score--line-height: 1;
-  --text-body-strong: 15px;
+  --text-body-strong: 0.9375rem /* 15px */;
   --text-body-strong--line-height: 1.5;
   --text-body-strong--font-weight: 800;
   /* design-tokens.md specifies mono-data as a 12-13px range; 12px is the
      concrete value every mono-data usage in the screen specs actually needs. */
-  --text-mono-data: 12px;
+  /* Form and button text. 16px is the floor below which iOS Safari zooms the
+     page on focus, so this one is a size the layout depends on, not a taste. */
+  --text-control: 1rem /* 16px */;
+  /* Bottom-nav labels, and the same labels again on the collapsed rail where
+     they sit under an icon in a much narrower column. */
+  --text-nav: 0.6875rem /* 11px */;
+  --text-nav-rail: 0.625rem /* 10px */;
+  /* The single large number on a manager KPI card. */
+  --text-stat: 1.875rem /* 30px */;
+  --text-mono-data: 0.75rem /* 12px */;
   --text-mono-data--line-height: 1.5;
   --text-mono-data--font-weight: 500;
 
@@ -302,11 +311,11 @@ html[data-corners='rounded'] {
    is deliberately not bumped — see the design spec, §4. */
 @media (width >= 768px) {
   :root {
-    --text-h1: 32px;
-    --text-h2: 26px;
-    --text-body: 16px;
-    --text-body-strong: 16px;
-    --text-label: 15px;
+    --text-h1: 2rem /* 32px */;
+    --text-h2: 1.625rem /* 26px */;
+    --text-body: 1rem /* 16px */;
+    --text-body-strong: 1rem /* 16px */;
+    --text-label: 0.9375rem /* 15px */;
   }
 }
 

@@ -48,7 +48,7 @@ export function PeerPartnerInboxPage() {
           <Card className="mt-4">
             <p className="text-body font-extrabold text-ink">Novo pedido de conversa</p>
             {incomingRequest.sectorName && <p className="mt-1 text-caption text-muted">Setor: {incomingRequest.sectorName}</p>}
-            <p className="mt-1 font-mono text-[12px] text-muted-2">{secondsRemaining}s para responder</p>
+            <p className="mt-1 font-mono text-mono-data text-muted-2">{secondsRemaining}s para responder</p>
             <div className="mt-3 flex gap-2">
               <Button variant="primary" full={false} onClick={accept}>
                 Aceitar

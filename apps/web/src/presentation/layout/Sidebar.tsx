@@ -34,7 +34,7 @@ function Destination({
           lg-and-up preference, so it must not hide the label at the one width
           that cannot toggle it. */}
       <span
-        className={`text-center font-sans text-[10px] leading-tight font-semibold lg:text-[14px] ${
+        className={`text-center font-sans text-nav-rail leading-tight font-semibold lg:text-label ${
           collapsed ? 'lg:sr-only' : ''
         }`}
       >

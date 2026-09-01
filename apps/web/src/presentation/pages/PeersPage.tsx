@@ -27,7 +27,7 @@ function PeerFooter() {
     <div className="mt-6">
       <div className="flex items-center justify-center gap-1 rounded-card bg-surface-brand p-3.25">
         <Lock size={14} className="text-brand" />
-        <span className="font-mono text-[12.5px] text-brand">conexão sem troca de identidade</span>
+        <span className="font-mono text-mono-data text-brand">conexão sem troca de identidade</span>
       </div>
       <div className="mt-3 flex justify-center">
         <CrisisCallLink line={line} className="text-brand" />
