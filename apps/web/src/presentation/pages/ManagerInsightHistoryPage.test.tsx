@@ -321,4 +321,14 @@ describe("ManagerInsightHistoryPage", () => {
       expect(within(rows).getByText("resumo novo")).toBeInTheDocument();
     });
   });
+  it("says nothing about the history while it is still loading, rather than reporting it as empty", () => {
+    // "Nenhuma análise gerada ainda" during a load tells a coordinator the
+    // opposite of the truth about their own history — the same mistake the
+    // error branch above already refuses to make.
+    vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockReturnValue(new Promise(() => {}));
+    renderHistory();
+
+    expect(screen.getByTestId("insight-history-loading")).toBeInTheDocument();
+    expect(screen.queryByText("Nenhuma análise gerada ainda.")).not.toBeInTheDocument();
+  });
 });

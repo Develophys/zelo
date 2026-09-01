@@ -45,9 +45,11 @@ describe('AppHeader', () => {
   });
 
   it('lets the override replace the title while the table keeps the subtitle', () => {
-    mount(routes.home, { title: 'Boa tarde' });
+    mount(routes.chat, { title: 'Boa tarde' });
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Boa tarde');
-    expect(screen.getByTestId('app-header-subtitle')).toHaveTextContent('Bom te ver por aqui');
+    expect(screen.getByTestId('app-header-subtitle')).toHaveTextContent(
+      'anonimizado antes do envio',
+    );
   });
 
   it('shows an override title on a route the table does not cover', () => {

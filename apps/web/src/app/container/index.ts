@@ -1,4 +1,3 @@
-export * from "./health";
 export * from "./chat";
 export * from "./assessment";
 export * from "./manager-auth";

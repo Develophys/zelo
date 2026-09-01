@@ -10,8 +10,7 @@ export function useManagerSignals(sectorIds?: string[]) {
     queryFn: () => getManagerSignalsUseCase.execute(token!, sectorIds),
     enabled: token !== null,
     // Retrying is pointless (and slows the 401 -> logout redirect) when the
-    // token itself is what's rejected; see useApiHealth's precedent of
-    // bounding retries for the same reason.
+    // token itself is what's rejected.
     retry: false,
   });
 }

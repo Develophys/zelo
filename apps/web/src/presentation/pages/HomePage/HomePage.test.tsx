@@ -293,7 +293,9 @@ describe("HomePage header", () => {
       renderHome();
 
       expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(getGreeting(9));
-      expect(screen.getByTestId("app-header-subtitle")).toHaveTextContent("Bom te ver por aqui");
+      // The title is already the greeting; a second one under it was the same
+      // thing said twice.
+      expect(screen.queryByTestId("app-header-subtitle")).not.toBeInTheDocument();
       expect(screen.queryByTestId("back-button")).not.toBeInTheDocument();
     } finally {
       vi.useRealTimers();

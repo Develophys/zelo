@@ -403,7 +403,7 @@ export function ManagerDashboardPage() {
           {!insight.data && (
             <div className="mt-3">
               <p className="text-label text-muted">{INSIGHT_EMPTY_EXPLANATION}</p>
-              <Button className="mt-3 p-2 cursor-pointer" variant="outline" full={false} isLoading={insight.isPending} onClick={() => insight.mutate()}>
+              <Button className="mt-3" variant="outline" size="sm" full={false} isLoading={insight.isPending} onClick={() => insight.mutate()}>
                 Gerar análise
               </Button>
               {insight.isError && (
@@ -448,19 +448,19 @@ export function ManagerDashboardPage() {
             <div className="mt-3 flex gap-2">
               <Button
                 variant="outline"
+                size="sm"
                 full={false}
                 disabled={segments.length === 0}
                 onClick={() => downloadPgrReportAsCsv(data)}
-                className="p-2 cursor-pointer"
               >
                 Exportar CSV
               </Button>
               <Button
                 variant="outline"
+                size="sm"
                 full={false}
                 disabled={segments.length === 0}
                 onClick={() => downloadPgrReportAsPdf(data)}
-                className="p-2 cursor-pointer"
               >
                 Exportar PDF
               </Button>

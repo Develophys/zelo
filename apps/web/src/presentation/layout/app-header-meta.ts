@@ -8,7 +8,9 @@ export interface AppHeaderMeta {
 export type AppHeaderOverride = Partial<AppHeaderMeta>;
 
 export const APP_HEADER_META: Record<string, AppHeaderMeta> = {
-  [routes.home]: { title: 'Início', subtitle: 'Bom te ver por aqui' },
+  // No subtitle: HomePage overrides the title with a time-aware greeting, and
+  // a second greeting under it just says the same thing twice.
+  [routes.home]: { title: 'Início' },
   [routes.chat]: { title: 'Acolhimento', subtitle: 'anonimizado antes do envio' },
   [routes.assessment]: {
     title: 'Autoavaliação',

@@ -1,3 +1,5 @@
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -141,5 +143,38 @@ describe('Button', () => {
     expect(button).toHaveClass('enabled:hover:bg-brand-fill-hover');
     expect(button).toHaveClass('enabled:hover:shadow-lift');
     expect(button).not.toHaveClass('hover:bg-brand-fill-hover');
+  });
+  /**
+   * `size` already carries padding, and a `p-*` on the same element is a
+   * same-property fight the class order does not settle — Tailwind resolves it
+   * by CSS source order, so which one wins is a property of the build. It also
+   * cannot shrink the button below `min-h-*`, so the usual intent behind it
+   * (a smaller button) is better served by `size="sm"`, which stays above the
+   * 44px target.
+   */
+  it('is never given a padding override at a call site, which would fight its own size', () => {
+    function sourceFiles(dir: string): string[] {
+      return readdirSync(dir).flatMap((entry) => {
+        const full = join(dir, entry);
+        if (statSync(full).isDirectory()) return sourceFiles(full);
+        if (!/\.tsx$/.test(entry) || /\.test\.tsx$/.test(entry)) return [];
+        return [full];
+      });
+    }
+
+    const offenders = sourceFiles(join(__dirname, '..')).flatMap((file) => {
+      // An arrow function in the props ends the tag match early, and the
+      // className often sits after one.
+      const source = readFileSync(file, 'utf8').replace(/=>/g, '=»');
+      return [...source.matchAll(/<Button\b[^>]*>/g)]
+        .map((match) => match[0])
+        // `unstyled` with no size opts out of SHAPE_BASE and SIZE_CLASS, so it
+        // has no padding of its own to fight.
+        .filter((tag) => !/variant="unstyled"/.test(tag) || /size=/.test(tag))
+        .filter((tag) => /className="(?:[^"]*\s)?(?:p|px|py)-/.test(tag))
+        .map((tag) => `${file.replace(/.*[\\\/]src[\\\/]/, '')}: ${tag.slice(0, 100)}`);
+    });
+
+    expect(offenders).toEqual([]);
   });
 });

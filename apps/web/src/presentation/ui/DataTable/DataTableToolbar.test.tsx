@@ -162,4 +162,14 @@ describe('DataTableToolbar', () => {
     await user.click(screen.getByRole('checkbox', { name: 'Selecionar todos' }));
     expect(screen.getByTestId('data-table-toolbar-action')).toHaveAttribute('data-selecting', 'true');
   });
+  it('hides the overflowing actions scrollbar only below md, keeping the desktop scroll cue', async () => {
+    render(<Selectable actions={<button type="button">Excluir</button>} />);
+    await userEvent.click(screen.getByLabelText('Selecionar todos'));
+
+    // A hidden scrollbar on a pointer device removes the only signal that
+    // there are more actions to the right.
+    const scroller = screen.getByTestId('data-table-toolbar-actions');
+    expect(scroller.className).toContain('max-md:no-scrollbar');
+    expect(scroller.className).not.toMatch(/(?:^|\s)no-scrollbar/);
+  });
 });

@@ -55,7 +55,7 @@ export function DataTableToolbar<T>({
           </span>
           <div
             data-testid="data-table-toolbar-actions"
-            className="no-scrollbar flex flex-nowrap items-center gap-2 overflow-x-auto"
+            className="max-md:no-scrollbar flex flex-nowrap items-center gap-2 overflow-x-auto"
           >
             {actions}
           </div>

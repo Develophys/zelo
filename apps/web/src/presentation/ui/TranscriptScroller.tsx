@@ -38,7 +38,7 @@ export function TranscriptScroller({
       aria-live={live}
       aria-busy={busy}
       tabIndex={0}
-      className={`no-scrollbar flex-1 overflow-y-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset ${className}`}
+      className={`max-md:no-scrollbar flex-1 overflow-y-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset ${className}`}
     >
       {children}
     </div>

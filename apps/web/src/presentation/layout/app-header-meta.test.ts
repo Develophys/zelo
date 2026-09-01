@@ -82,5 +82,4 @@ describe('resolveAppHeaderMeta', () => {
   it('returns null for a pathname with no header', () => {
     expect(resolveAppHeaderMeta(routes.splash)).toBeNull();
     expect(resolveAppHeaderMeta('/nope')).toBeNull();
-  });
-});
+  });});

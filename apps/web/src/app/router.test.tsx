@@ -39,7 +39,6 @@ describe("onboarding router flow", () => {
     sessionStorage.clear();
     useConsentStore.setState({ hasConsented: false, consentedAt: null });
     useManagerSessionStore.setState({ token: null, expiresAt: null });
-    vi.spyOn(container.checkApiHealthUseCase, "execute").mockResolvedValue({ status: "ok", database: true });
   });
 
   it("cold start walks Splash -> Privacy -> Consent -> Home", async () => {

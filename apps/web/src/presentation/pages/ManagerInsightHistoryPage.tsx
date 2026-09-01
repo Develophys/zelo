@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { ChevronDown, FileDown, FileText } from "lucide-react";
 import { Card } from "@/presentation/ui/Card";
 import { Button } from "@/presentation/ui/Button";
+import { Skeleton } from "@/presentation/ui/Skeleton";
 import { IconButton } from "@/presentation/ui/IconButton";
 import { DataTableShell } from "@/presentation/ui/DataTable/DataTableShell";
 import { DataTableToolbar } from "@/presentation/ui/DataTable/DataTableToolbar";
@@ -194,6 +195,7 @@ export function ManagerInsightHistoryPage() {
   }, [isError, error, clearSession, navigate]);
 
   const loadFailed = isError && !(error instanceof UnauthorizedManagerError);
+  const isLoading = !data && !isError;
   const entries = data ?? [];
   const term = search.trim().toLowerCase();
   const filtered = useMemo(
@@ -226,6 +228,12 @@ export function ManagerInsightHistoryPage() {
             message="Não foi possível carregar o histórico de análises."
             onRetry={() => refetch()}
           />
+        ) : isLoading ? (
+          <div data-testid="insight-history-loading" aria-hidden="true" className="flex flex-col gap-2 p-4">
+            {Array.from({ length: 3 }, (_, index) => (
+              <Skeleton key={index} className="h-11 w-full rounded-card" />
+            ))}
+          </div>
         ) : filtered.length === 0 ? (
           term.length > 0 ? (
             <DataTableEmpty

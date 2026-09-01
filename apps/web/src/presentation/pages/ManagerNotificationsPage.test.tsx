@@ -246,4 +246,11 @@ describe("ManagerNotificationsPage", () => {
 
     expect(document.querySelectorAll("li button")).toHaveLength(1);
   });
+  it("shows placeholder rows while loading instead of an empty screen", () => {
+    vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockReturnValue(new Promise(() => {}));
+    renderPage();
+
+    expect(screen.getByTestId("notifications-loading")).toBeInTheDocument();
+    expect(screen.queryByText("Nenhuma notificação por aqui.")).not.toBeInTheDocument();
+  });
 });

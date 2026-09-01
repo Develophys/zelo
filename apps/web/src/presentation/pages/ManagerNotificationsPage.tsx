@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import { CheckCheck, RefreshCw } from "lucide-react";
 import { Button } from "@/presentation/ui/Button";
+import { Skeleton } from "@/presentation/ui/Skeleton";
 import { Pill } from "@/presentation/ui/Pill";
 import { useManagerNotifications, useManagerUnreadCount } from "@/presentation/hooks/useManagerNotifications";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
@@ -44,6 +45,17 @@ export function ManagerNotificationsPage() {
         <p role="alert" className="text-label text-danger">
           Não foi possível carregar as notificações.
         </p>
+      )}
+
+      {isLoading && !error && (
+        <ul data-testid="notifications-loading" aria-hidden="true" className="flex flex-col gap-2">
+          {Array.from({ length: 3 }, (_, index) => (
+            <li key={index} className="rounded-card border border-line bg-surface px-cell-x py-cell-y">
+              <Skeleton className="h-3.5 w-48 rounded-md" />
+              <Skeleton className="mt-2 h-3 w-64 rounded-md" />
+            </li>
+          ))}
+        </ul>
       )}
 
       {!isLoading && !error && notifications.length === 0 && (
