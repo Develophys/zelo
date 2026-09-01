@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { PhoneShell } from '@/presentation/layout/PhoneShell';
+import { CrisisCallLink } from '@/presentation/components/CrisisCallLink';
+import { getCrisisLine } from '@/presentation/lib/crisis-line';
+import { PHQ9_RISK_ITEM_INDEX } from '@/domain/assessment-scales/phq9';
 import { BackButton } from '@/presentation/ui/BackButton';
 import { Button } from '@/presentation/ui/Button';
 import { ProgressBar } from '@/presentation/ui/ProgressBar';
@@ -68,6 +71,12 @@ export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
     }
   };
 
+  // Shown on the self-harm item regardless of the answer. Gating it on a
+  // non-zero response would turn the line's arrival into a verdict on what was
+  // just selected, on the one screen where honesty matters most.
+  const isRiskItem = !isReview && scale.type === 'PHQ-9' && questionIndex === PHQ9_RISK_ITEM_INDEX;
+  const crisisLine = getCrisisLine();
+
   return (
     <PhoneShell bottomNav centered>
       <div className="md:pt-4">
@@ -126,6 +135,15 @@ export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
               advanceLabel={questionIndex === total - 1 ? 'Revisar respostas' : 'Próxima'}
               disabled={isPending}
             />
+          )}
+          {isRiskItem && (
+            <div className="mt-5 rounded-card border border-line bg-surface p-4">
+              <p className="text-pretty text-label text-ink-2">
+                Se precisar falar com alguém agora, a linha está aqui — a qualquer hora,
+                em qualquer resposta.
+              </p>
+              <CrisisCallLink line={crisisLine} className="mt-2 text-brand" />
+            </div>
           )}
           {isPending && (
             <p className="mt-4 text-center text-caption text-muted">

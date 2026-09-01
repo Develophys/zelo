@@ -5,6 +5,7 @@ import { MemoryRouter, Routes, Route, useLocation } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ScaleAssessmentPage } from './ScaleAssessmentPage';
 import { PHQ9_SCALE, GAD7_SCALE, type AssessmentScale } from '@/domain/assessment-scales/scales';
+import { PHQ9_RISK_ITEM_INDEX } from '@/domain/assessment-scales/phq9';
 import * as container from '@/app/container';
 import { routes } from '@/presentation/lib/routes';
 import { useInstitutionLinkStore } from '@/stores/institution-link.store';
@@ -314,5 +315,35 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     await waitFor(() => {
       expect(screen.getByText(/pendingSync=true/)).toBeInTheDocument();
     });
+  });
+});
+
+describe('ScaleAssessmentPage — the self-harm item', () => {
+  it("puts the crisis line on the self-harm item itself, before any answer is given", async () => {
+    const user = userEvent.setup();
+    renderScale(PHQ9_SCALE, routes.phq9);
+
+    for (let index = 0; index < PHQ9_RISK_ITEM_INDEX; index += 1) {
+      expect(screen.queryByRole("link", { name: /188/ })).not.toBeInTheDocument();
+      await user.click(screen.getAllByRole("radio")[0]!);
+    }
+
+    // Ungated on purpose: appearing only once a non-zero answer is picked would
+    // make the line's arrival a verdict on the answer.
+    const link = screen.getByRole("link", { name: /188/ });
+    expect(link).toHaveAttribute("href", "tel:188");
+  });
+
+  it("keeps the crisis line on the self-harm item after a zero answer, and drops it on later items", async () => {
+    const user = userEvent.setup();
+    renderScale(PHQ9_SCALE, routes.phq9);
+
+    for (let index = 0; index < PHQ9_RISK_ITEM_INDEX; index += 1) {
+      await user.click(screen.getAllByRole("radio")[0]!);
+    }
+    expect(screen.getByRole("link", { name: /188/ })).toBeInTheDocument();
+
+    await user.click(screen.getAllByRole("radio")[0]!);
+    expect(screen.queryByRole("link", { name: /188/ })).not.toBeInTheDocument();
   });
 });
