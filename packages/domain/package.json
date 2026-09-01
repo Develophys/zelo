@@ -21,6 +21,6 @@
     "@zelo/config": "workspace:*",
     "dependency-cruiser": "^16.4.0",
     "typescript": "^5.6.0",
-    "vitest": "^2.1.0"
+    "vitest": "^3.2.7"
   }
 }
