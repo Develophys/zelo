@@ -22,6 +22,25 @@ const EMPTY_RESPONSE: Omit<ManagerSignalsResponse, "followUpResponseRate"> = {
   segments: [],
 };
 
+/**
+ * The newest week where some sector clears the k-anonymity threshold, or null
+ * when no week does. Walking back from the newest is what stops a partial
+ * current week from deciding visibility for every sector.
+ */
+function referenceWeek(bySector: Map<string, SignalRow[]>): number | null {
+  const weeks = [...new Set([...bySector.values()].flat().map((r) => r.weekStart.getTime()))].sort(
+    (a, b) => b - a,
+  );
+
+  for (const week of weeks) {
+    for (const sectorRows of bySector.values()) {
+      const row = sectorRows.find((r) => r.weekStart.getTime() === week);
+      if (row && row.checkIns >= K_ANONYMITY_THRESHOLD) return week;
+    }
+  }
+  return null;
+}
+
 @Injectable()
 export class GetManagerSignalsUseCase {
   constructor(
@@ -41,13 +60,27 @@ export class GetManagerSignalsUseCase {
       return { ...EMPTY_RESPONSE, followUpResponseRate };
     }
 
-    const mostRecentWeek = Math.max(...rows.map((r) => r.weekStart.getTime()));
-
     const bySector = new Map<string, SignalRow[]>();
     for (const row of rows) {
       const list = bySector.get(row.sectorId) ?? [];
       list.push(row);
       bySector.set(row.sectorId, list);
+    }
+
+    // The newest week is not automatically the reference week. A week in
+    // progress is partial by definition — on a Monday every sector has almost
+    // no check-ins, and a single doctor checking in creates a 1-check-in row
+    // that is newer than everything else. Anchoring to it would suppress every
+    // sector at once and blank the whole dashboard: observed as a filter
+    // returning less than a strict subset of itself, and it would recur at the
+    // start of every week.
+    //
+    // So: the most recent week in which at least one sector actually reaches k.
+    // That keeps the single shared reference week the segments depend on, and
+    // keeps a suppressed sector out of every aggregate.
+    const mostRecentWeek = referenceWeek(bySector);
+    if (mostRecentWeek === null) {
+      return { ...EMPTY_RESPONSE, followUpResponseRate };
     }
 
     // A sector is either fully visible or fully suppressed, decided solely by
