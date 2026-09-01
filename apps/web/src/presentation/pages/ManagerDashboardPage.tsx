@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router";
+import { useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { SectionLabel } from "@/presentation/ui/SectionLabel";
 import { Card } from "@/presentation/ui/Card";
 import { Button } from "@/presentation/ui/Button";
@@ -28,6 +28,38 @@ import {
 const TREND_SKELETON_BAR_COUNT = 6;
 const SEGMENTS_SKELETON_ROW_COUNT = 3;
 
+const SECTOR_PARAM = "sectorIds";
+
+/**
+ * Reads the sector filter out of the URL.
+ *
+ * `undefined` means "no filter" — the request goes out without the parameter at
+ * all, and the API answers with every sector the manager can see. An explicit
+ * list of every id would be the same set but is *not* the same request: it
+ * pins the query to ids the server would otherwise have chosen itself.
+ *
+ * The three URL states are total: absent = all, present-and-empty = nothing
+ * selected, present = that subset.
+ */
+function parseSectorParam(raw: string | null, sectors: { id: string }[] | undefined): string[] | undefined {
+  if (raw === null) return undefined;
+  if (raw === "") return [];
+
+  const requested = raw.split(",").filter((id) => id.length > 0);
+  // Validation waits for the sector list; until it lands the URL is taken at
+  // face value, so a shared link fetches its own data on the first try rather
+  // than fetching everything and correcting itself.
+  if (!sectors) return requested;
+
+  const valid = requested.filter((id) => sectors.some((sector) => sector.id === id));
+  // A link naming only sectors that were deleted, or that belong to another
+  // institution, is meaningless. Showing the whole panel beats an empty
+  // dashboard that reads as "your institution has no data".
+  if (valid.length === 0) return undefined;
+  if (valid.length === sectors.length) return undefined;
+  return valid;
+}
+
 const DASHBOARD_DISCLOSURE =
   "Nenhum dado individual é exibido; segmentos com menos de 5 respostas ficam ocultos.";
 
@@ -39,6 +71,9 @@ const TREND_EMPTY =
 // that looks broken and one that is visibly working as designed.
 const SEGMENTS_EMPTY =
   "Nenhum setor com 5 respostas ou mais ainda. Setores abaixo desse limite ficam ocultos.";
+
+const NO_SECTOR_SELECTED =
+  "Nenhum setor selecionado. Escolha ao menos um setor — ou Todos — para ver os indicadores.";
 
 const INSIGHT_EMPTY_EXPLANATION =
   "Interpreta os indicadores agregados e anônimos desta página e sugere ações para a liderança, sem acesso a dados individuais de nenhum profissional.";
@@ -135,8 +170,27 @@ export function ManagerDashboardPage() {
   const navigate = useNavigate();
   const clearSession = useManagerSessionStore((state) => state.clearSession);
   const sectorsQuery = useManagerSectors();
-  const [selectedSectorIds, setSelectedSectorIds] = useState<string[] | undefined>(undefined);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sectors = sectorsQuery.data;
+  const selectedSectorIds = parseSectorParam(searchParams.get(SECTOR_PARAM), sectors);
+  const nothingSelected = selectedSectorIds?.length === 0;
   const { data, error, isError, isLoading, refetch } = useManagerSignals(selectedSectorIds);
+
+  // The URL is the filter's only state, so a reload, the back button and a
+  // link pasted into a message all land on the same view.
+  const handleSectorChange = (next: string[]) => {
+    setSearchParams(
+      (current) => {
+        const params = new URLSearchParams(current);
+        if (sectors && next.length === sectors.length) params.delete(SECTOR_PARAM);
+        else params.set(SECTOR_PARAM, next.join(","));
+        return params;
+      },
+      // Toggling pills would otherwise stack one history entry per click,
+      // turning the back button into a rewind of the manager's own filtering.
+      { replace: true },
+    );
+  };
   const insight = useManagerInsight();
 
   useEffect(() => {
@@ -164,7 +218,7 @@ export function ManagerDashboardPage() {
     <div>
       {sectorsQuery.data && sectorsQuery.data.length > 1 && (
         <div data-testid="dashboard-filter-row" className="flex flex-wrap items-center gap-2">
-          <SectorFilter sectors={sectorsQuery.data} selectedSectorIds={selectedSectorIds} onChange={setSelectedSectorIds} />
+          <SectorFilter sectors={sectorsQuery.data} selectedSectorIds={selectedSectorIds} onChange={handleSectorChange} />
         </div>
       )}
 
@@ -186,9 +240,15 @@ export function ManagerDashboardPage() {
         </div>
       )}
 
+      {nothingSelected && !loadFailed && (
+        <p data-testid="no-sector-selected" className="mt-5 text-pretty text-body text-muted">
+          {NO_SECTOR_SELECTED}
+        </p>
+      )}
+
       {/* Numbers are withheld entirely on a failed load rather than
           defaulting to zero, which reads as a measurement. */}
-      {!loadFailed && (
+      {!loadFailed && !nothingSelected && (
         <>
         <div data-testid="kpi-grid" className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {isLoading ? (
