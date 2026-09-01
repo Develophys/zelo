@@ -7,12 +7,23 @@ import { RiskSignalCallout } from '@/presentation/components/RiskSignalCallout';
 import { BandSupportCard } from '@/presentation/components/BandSupportCard';
 import { bandFor, bandNeedsSupport } from '@/presentation/lib/band-for';
 import { isResultState } from '@/presentation/lib/is-result-state';
+import { recallResult, rememberResult } from '@/presentation/lib/last-result';
 import { routes } from '@/presentation/lib/routes';
 
 export function AssessmentResultPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const state = isResultState(location.state) ? location.state : null;
+  // Arriving with navigation state is the normal path; falling back to the
+  // remembered one is what survives a refresh or a backgrounded PWA. Without
+  // it a doctor loses the result of nine questions to a phone call.
+  const navigated = isResultState(location.state) ? location.state : null;
+  const state = navigated ?? recallResult();
+
+  useEffect(() => {
+    if (navigated) {
+      rememberResult(navigated);
+    }
+  }, [navigated]);
 
   useEffect(() => {
     if (!state) {

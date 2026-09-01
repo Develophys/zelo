@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { AssessmentResultPage } from "./AssessmentResultPage";
@@ -19,6 +19,10 @@ function renderResult(state: unknown) {
 }
 
 describe("AssessmentResultPage", () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+
   it("renders the score, band, and 'sinal, não diagnóstico' reframe copy", () => {
     renderResult({ scaleType: "PHQ-9", totalScore: 12, max: 27, riskSignal: false });
     expect(screen.getByText("Sua pontuação PHQ-9")).toBeInTheDocument();
@@ -180,5 +184,36 @@ describe("AssessmentResultPage", () => {
     // label or the destination was wrong — and two other screens already say
     // which.
     expect(screen.getByText("Home screen")).toBeInTheDocument();
+  });
+
+  it("restores the result on a refresh instead of dropping it", async () => {
+    // Renata backgrounds the app mid-shift and reopens it. Losing the result
+    // she just answered nine questions for is the wrong answer.
+    renderResult({ scaleType: "PHQ-9", totalScore: 19, max: 27, riskSignal: false });
+    cleanup();
+
+    renderResult(null);
+
+    expect(await screen.findByTestId("score-value")).toHaveTextContent("19");
+    expect(screen.queryByText("Assessment select screen")).not.toBeInTheDocument();
+  });
+
+  it("still redirects when there is nothing remembered", async () => {
+    sessionStorage.clear();
+    renderResult(null);
+    expect(await screen.findByText("Assessment select screen")).toBeInTheDocument();
+  });
+
+  it("falls back to the redirect when storage is unavailable", async () => {
+    renderResult({ scaleType: "PHQ-9", totalScore: 19, max: 27, riskSignal: false });
+    cleanup();
+
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    renderResult(null);
+
+    expect(await screen.findByText("Assessment select screen")).toBeInTheDocument();
+    vi.restoreAllMocks();
   });
 });

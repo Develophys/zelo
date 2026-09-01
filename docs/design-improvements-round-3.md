@@ -218,13 +218,29 @@ matching the independent hand-computation — and only then were the components 
 Sixteen new assertions, two pairs across eight theme×accent combinations. The remaining `/5` and
 `/10` tints are graphic, not text, and measure above their own threshold.
 
-### 10. A result cannot be reopened
+### 10. A result cannot be reopened — ✅ FIXED (within the session)
 
 `AssessmentResultPage.tsx:15-25` is `location.state`-only. Refresh, share, or return later and it redirects to the scale picker — while the encrypted record sits in IndexedDB on the same device.
 
+**Shipped, scoped to the session.** `lib/last-result.ts` remembers the result in `sessionStorage`
+and the page falls back to it when there is no navigation state, so a refresh or a backgrounded
+PWA no longer costs a doctor the result of nine questions.
+
+**Not `localStorage`, deliberately.** Restoring a days-old result onto a screen that presents it
+as *the* result would be its own small dishonesty. A session is roughly the sitting, which is the
+window where "take me back to what I just saw" is the right answer; outside it, the redirect to
+the scale picker is still correct. Both read and write are wrapped, so a blocked or full store
+falls back to the redirect rather than throwing — covered by a test.
+
+**Still open:** browsing *past* results. That needs a history detail view, which is a feature
+rather than a fix — the records are in IndexedDB and nothing reads them except the weekly chart.
+
 ### 11. Other
 
-- **No skip link anywhere.** A keyboard user on a manager admin page tabs through 8 sidebar destinations before reaching the table.
+- ✅ **No skip link anywhere** — **fixed**. `SkipToContentLink` is the first focusable element in
+  both shells, hidden until focused, targeting an `id` on each `<main>`. It is hoisted ahead of
+  the sidebar in `PhoneShell`, since the sidebar otherwise renders first and would have kept the
+  first tab stop.
 - **All 14 `--text-*` tokens are `px`**, so the app answers page zoom but not the browser's font-size preference. Four sub-12px sites (`Sidebar.tsx:37`, `ManagerSidebar.tsx:52` at 10px; `BottomNav.tsx:63`, `ManagerBottomNav.tsx:16` at 11px); 28 bracketed `text-[Npx]` bypass the scale.
 - **The accent picker ships four brand colours to the doctor.** `index.css:225` states outright that changing the brand colour "is not what this preference is for", then ships exactly that to the audience for whom sage green *is* the promise. Same for the corners toggle against the stated corner scale.
 - **`/peers` is consent-gated but not authenticated** — it opens a live peer-to-peer chat rendering another person's messages. The API accepts a token-less socket as an anonymous connection by design; worth confirming that is intended.

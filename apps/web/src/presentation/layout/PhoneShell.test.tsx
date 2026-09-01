@@ -244,4 +244,22 @@ describe("PhoneShell escape hatch", () => {
     expect(body.className).toContain('max-md:no-scrollbar');
     expect(body.className).not.toMatch(/(^|\s)no-scrollbar(\s|$)/);
   });
+
+  it('offers a skip link as the first focusable thing, hidden until focused', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/home']}>
+        <PhoneShell sidebar>content</PhoneShell>
+      </MemoryRouter>,
+    );
+
+    await user.tab();
+    const skip = screen.getByRole('link', { name: 'Pular para o conteúdo' });
+    expect(skip).toHaveFocus();
+    // Visually hidden until it has focus, so it costs sighted users nothing.
+    expect(skip.className).toContain('sr-only');
+    expect(skip.className).toContain('focus:not-sr-only');
+    expect(skip).toHaveAttribute('href', '#conteudo');
+    expect(screen.getByRole('main')).toHaveAttribute('id', 'conteudo');
+  });
 });
