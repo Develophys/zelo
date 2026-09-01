@@ -100,6 +100,26 @@ export function PeersPage() {
           </div>
         )}
 
+        {state === 'error' && (
+          <div className="mt-5">
+            <p role="alert" className="mb-2 text-pretty text-label text-danger">
+              Não foi possível conectar agora. Você não está na fila de espera.
+            </p>
+            <div data-testid="peer-error-actions" className="flex flex-col gap-3">
+              <Button
+                variant="outline"
+                onClick={() => requestPeer(institutionId, sectorName ?? undefined)}
+              >
+                Tentar novamente
+              </Button>
+              <CrisisCallLink
+                line={line}
+                className="w-full justify-center border border-fill-edge bg-brand-fill text-on-fill"
+              />
+            </div>
+          </div>
+        )}
+
         {state === 'no_peer_available' && (
           <div className="mt-5">
             <p role="alert" className="mb-2 text-label text-danger">

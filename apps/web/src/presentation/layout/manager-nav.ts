@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import { BarChart3, Bell, Brain, Building2, Settings, User, Users } from 'lucide-react';
+import type { ManagerRole } from '@/stores/manager-session.store';
 import { routes } from '@/presentation/lib/routes';
 
 export interface ManagerNavItem {
@@ -35,3 +36,22 @@ export const MANAGER_SETTINGS_NAV: ManagerNavItem = {
   icon: Settings,
   route: routes.managerSettings,
 };
+
+/**
+ * The admin routes are guarded by role in `router.tsx`, so advertising them to
+ * a SECTOR_MANAGER produces three destinations that silently bounce back to
+ * Tendências — on mobile the sheet simply closes and nothing appears to happen.
+ * Both navs filter here rather than each deciding for itself.
+ */
+export function managerNavFor(role: ManagerRole | null): {
+  primary: readonly ManagerNavItem[];
+  admin: readonly ManagerNavItem[];
+  showAdminGroup: boolean;
+} {
+  const isHospitalAdmin = role === 'HOSPITAL_ADMIN';
+  return {
+    primary: MANAGER_PRIMARY_NAV,
+    admin: isHospitalAdmin ? MANAGER_ADMIN_NAV : [],
+    showAdminGroup: isHospitalAdmin,
+  };
+}

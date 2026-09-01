@@ -44,6 +44,14 @@
   --color-muted-2: #66726c;
   --color-faint: #9aa7a1;
   --color-line: #dfe4e1;
+  /* The boundary of a control, as distinct from a decorative hairline. WCAG
+     1.4.11 asks 3:1 of anything required to identify a component — for an input
+     or an unchecked box the border is the only thing marking where the control
+     begins, so it cannot be `line` (1.17-1.29:1). Card edges and section rules
+     are structural and stay on `line`. Chosen as the lightest value clearing
+     3:1 on surface, canvas, canvas-alt and surface-brand, so the surface stays
+     as quiet as conformance allows. */
+  --color-control-edge: #6b8579;
   --color-track: #cddbd4;
   --color-warn: #a9711a;
   --color-warn-bg: #f6edda;
@@ -175,6 +183,7 @@
   --color-muted-2: #93a7a0;
   --color-faint: #6f8078;
   --color-line: #2b3831;
+  --color-control-edge: #6a8477;
   --color-track: #3a4a42;
 
   --color-warn: #e0ae63;

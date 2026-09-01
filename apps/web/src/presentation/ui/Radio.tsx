@@ -23,7 +23,7 @@ export function Radio({ className = '', ...rest }: RadioProps) {
       />
       <span
         aria-hidden="true"
-        className="pointer-events-none inline-flex h-5 w-5 items-center justify-center rounded-pill border border-track bg-surface text-transparent transition-colors duration-150 peer-checked:border-brand-fill peer-checked:text-brand-fill peer-focus-visible:ring-2 peer-focus-visible:ring-brand peer-focus-visible:ring-offset-2 peer-disabled:opacity-50"
+        className="pointer-events-none inline-flex h-5 w-5 items-center justify-center rounded-pill border border-control-edge bg-surface text-transparent transition-colors duration-150 peer-checked:border-brand-fill peer-checked:text-brand-fill peer-focus-visible:ring-2 peer-focus-visible:ring-brand peer-focus-visible:ring-offset-2 peer-disabled:opacity-50"
       >
         {/* Hidden by colour rather than by a `peer-*` class of its own: `peer-*`
             compiles to a sibling selector, and this dot is a descendant of the

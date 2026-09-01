@@ -60,4 +60,21 @@ describe("AdminInstitutionsPage", () => {
     expect(await screen.findByRole("button", { name: "Criar instituição" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Criar instituição" }).parentElement).toHaveClass("px-4.5");
   });
+
+  it("distinguishes a failed load from an empty register", async () => {
+    vi.spyOn(container.listInstitutionsUseCase, "execute").mockRejectedValue(new Error("offline"));
+    renderPage();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/não foi possível carregar/i);
+    expect(screen.queryByText(/Nenhuma instituição/i)).not.toBeInTheDocument();
+  });
+
+  it("says the register is empty when it genuinely is", async () => {
+    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([]);
+    renderPage();
+
+    expect(await screen.findByText(/Nenhuma instituição cadastrada/i)).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
 });

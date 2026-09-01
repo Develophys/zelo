@@ -72,7 +72,7 @@ export function ManagerNotificationsPage() {
                 <span className="block text-label text-muted">{detalhe}</span>
               </span>
               <span className="flex flex-none items-center gap-3">
-                <span className="font-mono text-mono-data text-muted-2">
+                <span className="font-mono text-mono-data text-muted">
                   {new Date(notification.createdAt).toLocaleDateString("pt-BR", DATE_FORMAT)}
                 </span>
                 {unread ? <Pill tone="warning">Não lida</Pill> : <Pill tone="neutral">Lida</Pill>}

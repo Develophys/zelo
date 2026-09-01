@@ -23,7 +23,12 @@ export function LinkInstitutionSectorStep({
       submitDisabled={!sectors.hasSectors || sectorId === null}
     >
       {sectors.isLoading && <p className="text-label text-muted">Carregando setores...</p>}
-      {!sectors.isLoading && !sectors.hasSectors && (
+      {!sectors.isLoading && sectors.isError && (
+        <p role="alert" className="text-pretty text-label text-danger">
+          Não foi possível carregar os setores. Tente de novo em instantes.
+        </p>
+      )}
+      {!sectors.isLoading && !sectors.isError && !sectors.hasSectors && (
         <p role="alert" className="text-label text-danger">
           Seu hospital ainda não cadastrou os setores.
         </p>

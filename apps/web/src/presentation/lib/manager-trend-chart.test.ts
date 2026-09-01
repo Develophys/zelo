@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  peakSegmentLabel,
+  peakTrendIndex,
   describeSegment,
   describeTrendWeek,
   toTrendBars,
@@ -60,3 +62,42 @@ describe('describeSegment', () => {
     expect(describeSegment({ label: 'UTI', value: 44, n: 1 })).toBe('UTI: 44%, 1 resposta');
   });
 });
+describe('peakTrendIndex', () => {
+  it('marks the worst week, so severity is not drawn in the brand colour', () => {
+    // Relative, not threshold-based: it says "this is the highest here" without
+    // claiming what counts as bad, which PRODUCT.md lists as an open question.
+    expect(
+      peakTrendIndex([
+        { weekStart: '', concerningRate: 0.2 },
+        { weekStart: '', concerningRate: 0.7 },
+        { weekStart: '', concerningRate: 0.3 },
+      ]),
+    ).toBe(1);
+  });
+
+  it('has no peak when nothing has been measured', () => {
+    expect(peakTrendIndex([])).toBe(-1);
+    expect(
+      peakTrendIndex([
+        { weekStart: '', concerningRate: 0 },
+        { weekStart: '', concerningRate: 0 },
+      ]),
+    ).toBe(-1);
+  });
+});
+
+describe('peakSegmentLabel', () => {
+  it('names the sector carrying the most signals', () => {
+    expect(
+      peakSegmentLabel([
+        { label: 'UTI', value: 44, n: 9 },
+        { label: 'PS', value: 61, n: 12 },
+      ]),
+    ).toBe('PS');
+  });
+
+  it('names nothing when every sector is at zero', () => {
+    expect(peakSegmentLabel([{ label: 'UTI', value: 0, n: 9 }])).toBeNull();
+  });
+});
+

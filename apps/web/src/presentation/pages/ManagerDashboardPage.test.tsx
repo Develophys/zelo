@@ -586,4 +586,31 @@ describe("ManagerDashboardPage", () => {
       /não um laudo/i,
     );
   });
+
+  it("says it could not load rather than reporting zero as a measurement", async () => {
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockRejectedValue(new Error("offline"));
+    renderManager();
+
+    // "Nothing happened" and "we could not find out" are different facts, and
+    // only one of them is safe for a coordinator to act on.
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/não foi possível carregar/i);
+    expect(screen.getByRole("button", { name: "Tentar novamente" })).toBeInTheDocument();
+    expect(screen.queryByTestId("kpi-card")).not.toBeInTheDocument();
+    expect(screen.queryByText("0%")).not.toBeInTheDocument();
+  });
+
+  it("marks the worst week and sector instead of painting severity brand-green", async () => {
+    renderManager();
+    await waitFor(() => expect(screen.getAllByTestId("trend-bar")).toHaveLength(2));
+
+    // SIGNALS_RESPONSE trends 0.3 then 0.5, so the peak is also the latest week.
+    const bars = screen.getAllByTestId("trend-bar");
+    expect(bars[1]!.className).toContain("bg-warn");
+    expect(bars[0]!.className).not.toContain("bg-brand");
+
+    // A coordinator scanning for the worst sector should not be scanning for
+    // the longest bar in the brand's affirmative colour.
+    expect(screen.getByText("Pico")).toBeInTheDocument();
+  });
 });

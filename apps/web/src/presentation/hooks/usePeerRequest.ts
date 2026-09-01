@@ -3,7 +3,15 @@ import type { Socket } from "socket.io-client";
 import { PeerChatSocketClient } from "@/infrastructure/websocket/peer-chat-socket.client";
 import type { PeerChatMessage } from "@/presentation/components/PeerChatRoom";
 
-export type PeerRequestState = "idle" | "searching" | "matched" | "no_peer_available";
+// "error" is load-bearing, as it is in usePeerPartnerConnection: without a
+// member for it the union cannot express a dropped socket, so the UI has no
+// state to render one from and a searching doctor waits forever.
+export type PeerRequestState =
+  | "idle"
+  | "searching"
+  | "matched"
+  | "no_peer_available"
+  | "error";
 
 export function usePeerRequest() {
   const [state, setState] = useState<PeerRequestState>("idle");
@@ -34,6 +42,13 @@ export function usePeerRequest() {
     socketRef.current = socket;
 
     socket.on("no_peer_available", () => setState("no_peer_available"));
+
+    // The person on this side of the socket is the one in distress. A failure
+    // here has to say so rather than leaving "Procurando…" on screen.
+    socket.on("connect_error", () => setState("error"));
+    socket.on("disconnect", () => {
+      setState((current) => (current === "matched" ? current : "error"));
+    });
     socket.on("matched", (payload: { requestId: string; specialty: string }) => {
       requestIdRef.current = payload.requestId;
       setSpecialty(payload.specialty);

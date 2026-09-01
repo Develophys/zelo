@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { AssessmentResultPage } from "./AssessmentResultPage";
@@ -19,6 +19,10 @@ function renderResult(state: unknown) {
 }
 
 describe("AssessmentResultPage", () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+
   it("renders the score, band, and 'sinal, não diagnóstico' reframe copy", () => {
     renderResult({ scaleType: "PHQ-9", totalScore: 12, max: 27, riskSignal: false });
     expect(screen.getByText("Sua pontuação PHQ-9")).toBeInTheDocument();
@@ -102,5 +106,114 @@ describe("AssessmentResultPage", () => {
     renderResult({ scaleType: "PHQ-9", totalScore: 3, max: 27, riskSignal: false });
     expect(screen.queryByTestId("band-support")).not.toBeInTheDocument();
     expect(screen.queryByText("Notamos um sinal importante.")).not.toBeInTheDocument();
+  });
+
+  it("says plainly when the check-in never reached the hospital's aggregate", () => {
+    renderResult({
+      scaleType: "PHQ-9", totalScore: 12, max: 27, riskSignal: false, pendingSync: true,
+    });
+
+    const notice = screen.getByTestId("pending-sync-notice");
+    // No promise of a later sync: nothing in the app retries the upload, so
+    // saying it will sync would be false.
+    expect(notice.textContent ?? "").not.toMatch(/sincroniza|assim que|quando a conex/i);
+    expect(notice).toHaveTextContent(/neste aparelho/i);
+    expect(notice).toHaveTextContent(/hist[óo]rico/i);
+  });
+
+  it("stays quiet when the check-in was uploaded", () => {
+    renderResult({
+      scaleType: "PHQ-9", totalScore: 12, max: 27, riskSignal: false, pendingSync: false,
+    });
+    expect(screen.queryByTestId("pending-sync-notice")).not.toBeInTheDocument();
+  });
+
+  it("treats a result with no pendingSync flag as uploaded", () => {
+    renderResult({ scaleType: "PHQ-9", totalScore: 12, max: 27, riskSignal: false });
+    expect(screen.queryByTestId("pending-sync-notice")).not.toBeInTheDocument();
+  });
+
+  it("gives the screen an entry point, in the same words at every severity", () => {
+    renderResult({ scaleType: "PHQ-9", totalScore: 24, max: 27, riskSignal: false });
+    const heading = screen.getByRole("heading", { level: 2 });
+    expect(heading).toHaveTextContent("Obrigado por responder até o fim.");
+    expect(heading.className).toContain("font-serif");
+  });
+
+  it("keeps the heading identical on a low score, so it cannot be read as a tell", () => {
+    renderResult({ scaleType: "PHQ-9", totalScore: 2, max: 27, riskSignal: false });
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(
+      "Obrigado por responder até o fim.",
+    );
+  });
+
+  it("frames the number before showing it", () => {
+    renderResult({ scaleType: "PHQ-9", totalScore: 24, max: 27, riskSignal: false });
+
+    const reframe = screen.getByText(/sinal, não um diagnóstico/);
+    const score = screen.getByTestId("score-value");
+    // Reassurance that arrives after a 64px red number has already been read is
+    // not reassurance.
+    expect(reframe.compareDocumentPosition(score) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("leaves exactly one primary action when support is offered", () => {
+    renderResult({ scaleType: "PHQ-9", totalScore: 24, max: 27, riskSignal: false });
+
+    // The support card already carries a primary. A second full-weight button
+    // asks someone in distress to choose between two equal-looking options.
+    const chat = screen.getByRole("button", { name: "Conversar com o acolhimento" });
+    expect(chat.className).not.toContain("bg-brand-fill");
+  });
+
+  it("keeps the chat CTA primary when no support card is shown", () => {
+    renderResult({ scaleType: "PHQ-9", totalScore: 2, max: 27, riskSignal: false });
+    expect(
+      screen.getByRole("button", { name: "Conversar com o acolhimento" }).className,
+    ).toContain("bg-brand-fill");
+  });
+
+  it("sends 'Voltar ao início' to início, as the same label does everywhere else", async () => {
+    const user = userEvent.setup();
+    renderResult({ scaleType: "PHQ-9", totalScore: 3, max: 27, riskSignal: false });
+
+    await user.click(screen.getByRole("button", { name: "Voltar ao início" }));
+
+    // CrisisDeclinePage and FallbackPage both use this label for routes.home.
+    // This screen sent the user to the scale picker instead, so either the
+    // label or the destination was wrong — and two other screens already say
+    // which.
+    expect(screen.getByText("Home screen")).toBeInTheDocument();
+  });
+
+  it("restores the result on a refresh instead of dropping it", async () => {
+    // Renata backgrounds the app mid-shift and reopens it. Losing the result
+    // she just answered nine questions for is the wrong answer.
+    renderResult({ scaleType: "PHQ-9", totalScore: 19, max: 27, riskSignal: false });
+    cleanup();
+
+    renderResult(null);
+
+    expect(await screen.findByTestId("score-value")).toHaveTextContent("19");
+    expect(screen.queryByText("Assessment select screen")).not.toBeInTheDocument();
+  });
+
+  it("still redirects when there is nothing remembered", async () => {
+    sessionStorage.clear();
+    renderResult(null);
+    expect(await screen.findByText("Assessment select screen")).toBeInTheDocument();
+  });
+
+  it("falls back to the redirect when storage is unavailable", async () => {
+    renderResult({ scaleType: "PHQ-9", totalScore: 19, max: 27, riskSignal: false });
+    cleanup();
+
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    renderResult(null);
+
+    expect(await screen.findByText("Assessment select screen")).toBeInTheDocument();
+    vi.restoreAllMocks();
   });
 });

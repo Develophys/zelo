@@ -7,7 +7,7 @@ import { useManagerUnreadCount } from '@/presentation/hooks/useManagerNotificati
 import { ManagerUnreadBadge } from './ManagerUnreadBadge';
 import {
   MANAGER_ADMIN_GROUP_LABEL,
-  MANAGER_ADMIN_NAV,
+  managerNavFor,
   MANAGER_PRIMARY_NAV,
   MANAGER_SETTINGS_NAV,
 } from './manager-nav';
@@ -32,6 +32,8 @@ export function ManagerBottomNav({ className = '' }: ManagerBottomNavProps) {
   const moreRef = useRef<HTMLButtonElement>(null);
   const unread = useManagerUnreadCount();
   const clearSession = useManagerSessionStore((state) => state.clearSession);
+  const role = useManagerSessionStore((state) => state.role);
+  const nav = managerNavFor(role);
 
   // showModal() puts the sheet in the top layer, which is what traps focus and
   // restores it to the "Mais" button on close — all of it native, no ad-hoc
@@ -116,10 +118,12 @@ export function ManagerBottomNav({ className = '' }: ManagerBottomNavProps) {
         <div className="rounded-t-card border-t border-surface-brand bg-surface p-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
           <span aria-hidden="true" className="mx-auto mt-1 mb-3 block h-1 w-10 rounded-pill bg-track" />
 
-          <h2 className="px-3 pb-1 font-mono text-eyebrow text-muted uppercase">
-            {MANAGER_ADMIN_GROUP_LABEL}
-          </h2>
-          {MANAGER_ADMIN_NAV.map(({ id, label, icon: Icon, route }) => (
+          {nav.showAdminGroup && (
+            <h2 className="px-3 pb-1 font-mono text-eyebrow text-muted uppercase">
+              {MANAGER_ADMIN_GROUP_LABEL}
+            </h2>
+          )}
+          {nav.admin.map(({ id, label, icon: Icon, route }) => (
             <NavLink
               key={id}
               to={route}

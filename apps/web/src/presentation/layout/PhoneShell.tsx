@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
 import { AppHeader, type AppHeaderBack } from './AppHeader';
+import { CONTENT_ID, SkipToContentLink } from '@/presentation/ui/SkipToContentLink';
 import type { AppHeaderOverride } from './app-header-meta';
 
 interface PhoneShellProps {
@@ -68,6 +69,7 @@ export function PhoneShell({
         back={backFor(sidebar, bottomNav)}
       />
       <main
+        id={CONTENT_ID}
         data-testid="phone-shell-body"
         className={`max-md:no-scrollbar ${
           fill ? 'flex min-h-0 flex-1 flex-col overflow-hidden' : 'flex-1 overflow-y-auto pt-6'
@@ -79,12 +81,20 @@ export function PhoneShell({
     </div>
   );
 
+  // First in the DOM in both branches, so it is the first tab stop even when a
+  // sidebar renders ahead of the column.
   if (!sidebar) {
-    return column;
+    return (
+      <>
+        <SkipToContentLink />
+        {column}
+      </>
+    );
   }
 
   return (
     <div className={`flex ${fill ? 'h-dvh overflow-hidden' : 'min-h-dvh'}`}>
+      <SkipToContentLink />
       <Sidebar />
       {column}
     </div>

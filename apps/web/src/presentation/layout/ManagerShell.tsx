@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router';
 import { AppHeader } from './AppHeader';
 import { ManagerSidebar } from './ManagerSidebar';
+import { CONTENT_ID, SkipToContentLink } from '@/presentation/ui/SkipToContentLink';
 import { ManagerBottomNav } from './ManagerBottomNav';
 
 /**
@@ -15,13 +16,17 @@ import { ManagerBottomNav } from './ManagerBottomNav';
 export function ManagerShell() {
   return (
     <div className="flex min-h-dvh bg-surface md:h-dvh md:overflow-hidden">
+      <SkipToContentLink />
       <ManagerSidebar />
       {/* min-w-0 is load-bearing: without it a fixed-layout table's intrinsic
           width overflows this flex child and brings back the horizontal
           scrollbar the redesign exists to remove. */}
       <div className="flex min-w-0 min-h-0 flex-1 flex-col">
         <AppHeader className="sticky top-0 z-30" chrome="manager" />
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col px-6 pt-6 pb-20 md:overflow-y-auto md:pb-8">
+        <main
+          id={CONTENT_ID}
+          className="flex min-h-0 min-w-0 flex-1 flex-col px-6 pt-6 pb-20 md:overflow-y-auto md:pb-8"
+        >
           <Outlet />
         </main>
       </div>

@@ -23,7 +23,7 @@ describe('TextField', () => {
   it('keeps the caller layout classes alongside the shared surface', () => {
     render(<TextField aria-label="Nome" className="mt-2" />);
 
-    expect(screen.getByLabelText('Nome')).toHaveClass('mt-2', 'rounded-control', 'border-line');
+    expect(screen.getByLabelText('Nome')).toHaveClass('mt-2', 'rounded-control', 'border-control-edge');
   });
 
   it('forwards arbitrary input attributes rather than swallowing them', () => {
@@ -44,7 +44,7 @@ describe('TextField', () => {
 
     expect(screen.getByLabelText('Setor')).toHaveClass(
       'rounded-control',
-      'border-line',
+      'border-control-edge',
       'focus-visible:ring-brand',
     );
   });

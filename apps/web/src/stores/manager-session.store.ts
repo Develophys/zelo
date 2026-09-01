@@ -4,7 +4,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 // sessionStorage + Bearer token, not an HttpOnly cookie — deliberate,
 // see docs/superpowers/specs/technical-debt.md#td-001.
 
-type ManagerRole = "HOSPITAL_ADMIN" | "SECTOR_MANAGER";
+export type ManagerRole = "HOSPITAL_ADMIN" | "SECTOR_MANAGER";
 
 interface ManagerSessionState {
   token: string | null;

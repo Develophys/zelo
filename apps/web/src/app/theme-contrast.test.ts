@@ -125,6 +125,7 @@ const TEXT_PAIRS: readonly [string, string, number, string][] = [
   ['brand', 'canvas-alt', 4.5, 'brand text on the alt canvas'],
   ['brand', 'surface-brand', 4.5, 'soft-button and active-nav label on the tint'],
   ['brand-hover', 'canvas', 4.5, 'brand hover text on canvas'],
+  ['brand-hover', 'track', 4.5, 'soft-button label on hover'],
   ['brand-hover', 'surface', 4.5, 'brand hover text on a card'],
   ['brand-ink', 'surface-brand', 4.5, 'offline-alert text and text selection'],
   ['on-fill', 'brand-fill', 4.5, 'primary button and user chat bubble'],
@@ -176,6 +177,27 @@ const GRAPHIC_PAIRS: readonly [string, string, number, string][] = [
   ['on-fill', 'brand-fill', 3, 'focus ring on a brand-filled control'],
   ['warn', 'surface', 3, 'chart legend dot and the manager percentage'],
   ['warn', 'warn-bg', 3, 'warn mark on the warn tint'],
+  // WCAG 1.4.11 covers visual information required to identify a component and
+  // its state. For an input and an unchecked box the border IS the control —
+  // there is nothing else marking where it begins — so these must reach 3:1 on
+  // every surface they sit on. Purely structural hairlines (card edges, section
+  // rules, dividers) are decoration and deliberately absent from this list.
+  ['control-edge', 'surface', 3, 'input and unchecked box on a card'],
+  ['control-edge', 'canvas', 3, 'input and unchecked box on the page'],
+  ['control-edge', 'canvas-alt', 3, 'input and unchecked box on the alt canvas'],
+  ['control-edge', 'surface-brand', 3, 'input and unchecked box on the brand tint'],
+];
+
+/**
+ * Text drawn over a tinted surface — a token composited onto another at an
+ * alpha, which is how several rows and buttons are built. These were invisible
+ * to this file until now: it parses literal hex out of index.css, and every
+ * `/40`-style alpha lives in TSX, so a pair could fail here and pass everything.
+ *
+ * [text token, tint token, tint alpha, what the tint sits on, min ratio, where]
+ */
+const TINTED_TEXT_PAIRS: readonly [string, string, number, string, number, string][] = [
+  ['muted', 'warn-bg', 0.4, 'canvas', 4.5, 'date on an unread notification row'],
 ];
 
 const SHARED_BY_DESIGN = new Set(['on-fill-2']);
@@ -188,6 +210,19 @@ describe.each(THEMES)('%s theme', (themeName, tokens) => {
   it.each(GRAPHIC_PAIRS)('%s on %s reaches AA for non-text (>= %s:1) — %s', (fg, bg, min) => {
     expect(contrast(token(tokens, fg), token(tokens, bg))).toBeGreaterThanOrEqual(min);
   });
+
+  it.each(TINTED_TEXT_PAIRS)(
+    '%s over %s/%s on %s reaches AA for text (>= %s:1) — %s',
+    (fg, tint, tintAlpha, base, min) => {
+      const composited = over(
+        `${token(tokens, tint)}${Math.round(tintAlpha * 255)
+          .toString(16)
+          .padStart(2, '0')}`,
+        token(tokens, base),
+      );
+      expect(contrast(token(tokens, fg), composited)).toBeGreaterThanOrEqual(min);
+    },
+  );
 
   it(`resolves every ${themeName} token to a colour`, () => {
     expect(Object.keys(tokens).length).toBeGreaterThan(20);

@@ -6,6 +6,9 @@ Rounds 1 and 2 and their remediation are in [design-improvements.md](./design-im
 
 **Design health: 26/40 (65% — Acceptable). Trend: 25 → 27 → 26.**
 
+**Status:** **all P0s and all P1s are closed** (items 1–7). **Open: P2 (8–11) and P3.** Re-run `/impeccable critique apps/web` to
+score the current code — the 26 above measures the surface before this remediation.
+
 **The score fell while the surface improved.** Every item from rounds 1 and 2 that was fixed stayed fixed. This round simply looked harder at error paths than either previous round, and found defects that were present in all three. That is the trend line working as intended: it tracks what has been *found*, not how much work has been done.
 
 ---
@@ -24,7 +27,7 @@ The executable guards in the repo — `theme-contrast.test.ts`, `token-pairing.t
 
 ## P0
 
-### 1. A failed assessment upload reports itself as a success
+### 1. A failed assessment upload reports itself as a success — ✅ FIXED
 
 `use-cases/submit-assessment.usecase.ts:43-57` returns `submissionSucceeded: false` when the upload fails. **No production code reads it** — `grep` finds the field only in tests. `ScaleAssessmentPage.tsx:54-62` reads `totalScore` and `riskSignal` and navigates to the result screen either way.
 
@@ -32,11 +35,28 @@ Hospital wifi. A basement UTI. A lift. A doctor completes a nine-item instrument
 
 The `submitError` branch at `ScaleAssessmentPage.tsx:134-145` — *"Não foi possível enviar suas respostas. Elas continuam salvas aqui."* — is effectively dead for the failure it was written for.
 
-**Fix.** Thread `submissionSucceeded` into the result navigation state, widen `ResultLocationState` (`is-result-state.ts:56-61`), and render one honest line on the result screen. The record is already durably in IndexedDB (`submit-assessment.usecase.ts:113`), so *"Salvo neste aparelho. Vai sincronizar quando a conexão voltar."* is true — only the UI is currently silent.
+**Fix.** Thread `submissionSucceeded` into the result navigation state, widen `ResultLocationState`, and render one honest line on the result screen. The record is already durably in IndexedDB (`submit-assessment.usecase.ts:113`), so the *saved locally* half is true — only the UI is silent.
+
+*(The original wording of this fix proposed "Vai sincronizar quando a conexão voltar." That was checked before implementing and is false: nothing retries. See below.)*
 
 **Noted in rounds 1 and 2 and not acted on both times, including by me.** It was filed as a minor observation twice; it is a P0.
 
-### 2. `usePeerRequest` cannot express a failure
+**Shipped.** `pendingSync: !result.submissionSucceeded` is threaded into the result navigation
+state, `ResultLocationState` gained an optional `pendingSync` (absent is treated as uploaded, so
+an older navigation state degrades safely), and the result screen states it plainly.
+
+**The copy makes no promise of a later sync, deliberately.** Verified first: the local store
+exposes only `save` and `listAll`, nothing retries the upload, and no service worker or queue
+exists — so "vai sincronizar quando a conexão voltar" would have been false. It says what is
+true instead: *"Salvo só neste aparelho. A conexão falhou, então este check-in não entrou nos
+números anônimos do hospital. Ele continua no seu histórico, aqui."* A test asserts the notice
+does **not** match /sincroniza|assim que|quando a conex/, so a future edit cannot quietly add the
+promise back.
+
+**Still open:** there is no retry. Re-submitting needs the raw answers, which the result state
+does not carry, so a manual retry is a separate change — and a background queue is a feature.
+
+### 2. `usePeerRequest` cannot express a failure — ✅ FIXED
 
 `presentation/hooks/usePeerRequest.ts:6` declares `"idle" | "searching" | "matched" | "no_peer_available"` — no error member — and registers no `connect_error` or `disconnect` listener. A dropped socket leaves a doctor on *"Procurando um colega disponível…"* indefinitely.
 
@@ -44,43 +64,84 @@ The `submitError` branch at `ScaleAssessmentPage.tsx:134-145` — *"Não foi pos
 
 Partially mitigated: `PeersPage.tsx:94-99` shows a 15s slow-search notice offering the CVV number, so there is an exit. But the state itself never resolves.
 
-**Fix.** Mirror `usePeerPartnerConnection.ts:45-46` exactly.
+**Shipped.** Mirrored from `usePeerPartnerConnection` exactly: an `error` member on the union,
+`connect_error` and `disconnect` listeners, and a failure state on `PeersPage` that says *"Não
+foi possível conectar agora. Você não está na fila de espera."* — naming the consequence, not
+just the fault — with a retry and the crisis line promoted into the actions rather than left in
+the footer alone. `disconnect` does not clobber `matched`, so ending a real conversation is not
+reported as a failure.
 
 ---
 
 ## P1
 
-### 3. No root error boundary, no 404
+### 3. No root error boundary, no 404 — ✅ FIXED
 
 `ErrorBoundary` exists and is used in **exactly one place** — `ChatPage.tsx:103`. `router.tsx` declares no `errorElement` and no `path: "*"`.
 
 A render error on any of the other 28 pages, or a mistyped URL, or a stale bookmark, yields React Router's unstyled English default: no Zelo branding, no Portuguese, and **no CVV number** — in a product whose non-negotiable property is that the crisis line is always reachable. The chat already models the correct behaviour; it just was never applied at the root.
 
-**Fix.** An `errorElement` and a catch-all route, both rendering one `PhoneShell` screen with a serif headline, a way home, and `CrisisCallLink`.
+**Shipped.** `FallbackPage` serves both: a `{ path: "*" }` catch-all placed last, and an
+`errorElement` on the root route covering every child. Two copy variants — an unknown URL says
+the link may be stale, a crash says the fault is ours — and both carry a serif heading, a way
+home, and `CrisisCallLink`. The thrown value is read only in `RouteErrorFallback`, logged to the
+console in dev and never shown to a doctor, so `FallbackPage` stays renderable anywhere.
 
-### 4. The dashboard renders a failed fetch as data
+### 4. The dashboard renders a failed fetch as data — ✅ FIXED
 
 `ManagerDashboardPage.tsx:150-152` — a non-401 failure falls through `?? 0`, so a coordinator sees **0%** and **0 questionários respondidos** as if measured. Three other pages render a failed load as an empty state: `AdminInstitutionsPage.tsx:138`, `ManagerInsightHistoryPage.tsx:188-193`, `LinkInstitutionSectorStep.tsx:26-30`.
 
 "Nothing happened" and "we could not find out" are different facts, and only one of them is safe to act on.
 
-### 5. Sector managers navigate to three destinations that bounce them back
+**Shipped, on all four surfaces.** The dashboard now withholds the KPI cards and both charts
+entirely on a non-401 failure and says so — *"Nada aqui foi medido — estes números não existem
+até a próxima tentativa."* — with a retry. Rendering `0%` was worse than rendering nothing,
+because a coordinator can act on it.
+
+`AdminInstitutionsPage` gained all three states where it previously had none, so a failed load no
+longer reads as an empty register. `ManagerInsightHistoryPage` shows `DataTableError` instead of
+"Nenhuma análise gerada ainda". `useLinkInstitutionFlow` now exposes `isError` separately from
+`hasSectors`, so "your hospital has not registered its sectors" is no longer shown for a network
+failure — only one of those is the hospital's fault.
+
+### 5. Sector managers navigate to three destinations that bounce them back — ✅ FIXED
 
 `MANAGER_ADMIN_NAV` renders unconditionally (`ManagerSidebar.tsx:124`, `ManagerBottomNav.tsx:122`), while `router.tsx:50-52` redirects any non-`HOSPITAL_ADMIN` away. The sidebar already reads `role` (`ManagerSidebar.tsx:74`) — for a tooltip label.
 
 A `SECTOR_MANAGER` sees Gestores, Setores and Pares anônimos permanently, taps one, and lands back on Tendências with no message. On mobile the sheet just closes. The likeliest reading is that the app is broken — and on an iPad in a meeting, in front of their director.
 
-**Fix.** Filter at the source with a `managerNavFor(role)` in `manager-nav.ts`, consumed by both navs, suppressing the group label when empty.
+**Shipped.** `managerNavFor(role)` in `manager-nav.ts` returns the admin group only for
+`HOSPITAL_ADMIN` — and for an unknown role too, since a null role is not yet an entitlement.
+Both navs consume it, and each suppresses the "Administração" heading when the group is empty
+rather than leaving a label over nothing. `ManagerRole` had to be exported from the session
+store; it was previously module-private, which vitest would never have caught since it does not
+typecheck.
 
-### 6. The result screen leads with the alarm and reassures afterwards
+### 6. The result screen leads with the alarm and reassures afterwards — ✅ FIXED
 
 `AssessmentResultPage.tsx:30-63` has **no heading in its body** — the only heading on the route is `AppHeader`'s 15px sans "Resultado". On a 375×667 phone the first viewport after item 9 is: a 13px caption, a 64px band-toned number, and a red pill. *"Isto é um sinal, não um diagnóstico"* sits below it.
 
 The reassurance arrives after the alarm. Then two full-width, same-weight buttons ask a person in distress to choose between "Falar com alguém agora" and "Conversar com o acolhimento".
 
-**Fix.** A serif `h2` above the dial keyed to the band; move the reframing line above the number; demote the secondary CTA to `ghost` when `riskSignal || bandNeedsSupport(band)` so exactly one primary action exists.
+**Shipped, with the heading *not* keyed to the band.** The original proposal was two variants —
+calm for minimal/mild, warm for high/severe. That was rejected on review: a doctor who checks in
+weekly would decode it, so "Obrigado por responder até o fim" would become a tell that the number
+is bad *before they had read the number*. The severity-specific warmth already lives in
+`BandSupportCard` and `RiskSignalCallout`, which appear after the frame and exist for exactly
+that. The heading is the same at every severity.
 
-### 7. Manager severity is painted in the brand's affirmative colour
+- `<h2 className="font-serif text-h2">Obrigado por responder até o fim.</h2>` — the screen's first
+  entry point, and the first serif headline in the doctor's core loop since the shared-header
+  change.
+- The reframing line moved **above** the score, unchanged in wording. Reassurance that arrives
+  after a 64px band-toned number has already been read is not reassurance.
+- The chat CTA drops to `outline` when `riskSignal || bandNeedsSupport(band)`, so the support
+  card's own primary is the only full-weight action on the screen.
+
+Tests assert the heading is byte-identical at 24/27 and at 2/27, so the tell cannot be
+reintroduced.
+
+### 7. Manager severity is painted in the brand's affirmative colour — ✅ FIXED
 
 `ManagerDashboardPage.tsx:220,271` — every trend and segment bar is `bg-brand` sage. A sector at 90% concerning draws a long, healthy-looking **green** bar. A coordinator scanning for the worst sector scans for the longest green bar.
 
@@ -88,11 +149,20 @@ The doctor's own chart already gets this right: `HistoryChartCard.tsx:68-76` pai
 
 **This does not require resolving the open burnout-metric question.** Round 2 deferred band-colouring on those grounds, but "peak vs latest" needs no thresholds at all — it is the same relative treatment the doctor's chart already uses.
 
+**Shipped.** `peakTrendIndex` and `peakSegmentLabel` mark the highest week and the highest sector
+in `bg-warn`; everything else is `bg-track`, and only the most recent week keeps `bg-brand`. Both
+return "no peak" when nothing has been measured, so an all-zero period is not given a false
+worst. The trend card gained the same **Pico / Mais recente** legend the médico's chart carries —
+without it the colours are a guess.
+
+Still relative, not threshold-based: it says "this is the highest here" without claiming what
+counts as bad, so PRODUCT.md's open metric question stays open.
+
 ---
 
 ## P2
 
-### 8. Every border hairline fails WCAG 1.4.11
+### 8. Every border hairline fails WCAG 1.4.11 — ✅ FIXED (scoped to controls)
 
 Independently computed, light / dark:
 
@@ -107,20 +177,70 @@ Independently computed, light / dark:
 
 Most consequential on `TextField`, where the border is the *only* boundary cue — the fill is 1.11:1 from the page.
 
-### 9. Two alpha-composited text failures the token tests cannot see
+**Shipped — deliberately narrower than "every hairline".** WCAG 1.4.11 covers visual information
+required to *identify a component or its state*. For an input or an unchecked box the border is
+the only thing marking where the control begins, so it is in scope. A card edge, a section rule
+or a sidebar divider is structural decoration and is not — and darkening those would have made a
+deliberately calm surface heavy for no conformance gain.
+
+A new `--color-control-edge` token carries the boundary: `#6b8579` light, `#6a8477` dark. Both
+are the **lightest** values clearing 3:1 on every surface a control sits on — surface, canvas,
+canvas-alt and surface-brand — so the design stays as quiet as conformance allows. Minimum
+margins are 3.31 and 3.32.
+
+Applied to `TextField`, `ChatComposer`, `Checkbox` and `Radio`. Four new pairs in
+`theme-contrast.test.ts` hold it across all eight theme×accent combinations, in the graphic list
+at 3:1 — the file previously tested no border pair at all.
+
+**Still on `line` by design:** card edges, dividers, the sidebar rule, `Button`'s outline variant
+and the unselected sector pill. Each of those has a label, a fill or a position that identifies
+it without the border. The measurements above are recorded, not conformance failures.
+
+### 9. Two alpha-composited text failures the token tests cannot see — ✅ FIXED
 
 - `text-muted-2` on `bg-warn-bg/40` over canvas: **4.47:1** (`ManagerNotificationsPage.tsx:64`). The untinted pair is 4.57 and passes; the `/40` tint alone pushes it under.
 - `text-brand` on `bg-track` (soft button hover): **4.29–4.36:1** across all four accents (`Button.tsx:22`). `theme-contrast.test.ts:174` does test this pair — but at the 3:1 *graphic* threshold, while it is used as a text pair.
 
 `theme-contrast.test.ts` parses literal hex from `index.css`, so every `/5`, `/10`, `/40`, `/75` in TSX is unchecked, as is every `opacity-*` group composite. That is the gap to close, not the individual pairs.
 
-### 10. A result cannot be reopened
+**Shipped — the gap first, then the pairs.** `theme-contrast.test.ts` gained a
+`TINTED_TEXT_PAIRS` list and a runner that composites a token onto a base at an alpha before
+measuring, reusing the `over()` helper the file already had for the dark-mode rim. Seeded with the
+tokens the components *actually used*, it reproduced both failures to the cent — 4.34 and 4.47,
+matching the independent hand-computation — and only then were the components changed.
+
+- The soft `Button` now darkens its **label** on hover, not only its background:
+  `enabled:hover:text-brand-hover`. That is what the token is for, and it measures 5.56–5.59 light
+  and 6.99–7.04 dark across all four accents.
+- The unread notification date moved `text-muted-2` → `text-muted`, taking the composite from
+  4.47 to 5.00.
+
+Sixteen new assertions, two pairs across eight theme×accent combinations. The remaining `/5` and
+`/10` tints are graphic, not text, and measure above their own threshold.
+
+### 10. A result cannot be reopened — ✅ FIXED (within the session)
 
 `AssessmentResultPage.tsx:15-25` is `location.state`-only. Refresh, share, or return later and it redirects to the scale picker — while the encrypted record sits in IndexedDB on the same device.
 
+**Shipped, scoped to the session.** `lib/last-result.ts` remembers the result in `sessionStorage`
+and the page falls back to it when there is no navigation state, so a refresh or a backgrounded
+PWA no longer costs a doctor the result of nine questions.
+
+**Not `localStorage`, deliberately.** Restoring a days-old result onto a screen that presents it
+as *the* result would be its own small dishonesty. A session is roughly the sitting, which is the
+window where "take me back to what I just saw" is the right answer; outside it, the redirect to
+the scale picker is still correct. Both read and write are wrapped, so a blocked or full store
+falls back to the redirect rather than throwing — covered by a test.
+
+**Still open:** browsing *past* results. That needs a history detail view, which is a feature
+rather than a fix — the records are in IndexedDB and nothing reads them except the weekly chart.
+
 ### 11. Other
 
-- **No skip link anywhere.** A keyboard user on a manager admin page tabs through 8 sidebar destinations before reaching the table.
+- ✅ **No skip link anywhere** — **fixed**. `SkipToContentLink` is the first focusable element in
+  both shells, hidden until focused, targeting an `id` on each `<main>`. It is hoisted ahead of
+  the sidebar in `PhoneShell`, since the sidebar otherwise renders first and would have kept the
+  first tab stop.
 - **All 14 `--text-*` tokens are `px`**, so the app answers page zoom but not the browser's font-size preference. Four sub-12px sites (`Sidebar.tsx:37`, `ManagerSidebar.tsx:52` at 10px; `BottomNav.tsx:63`, `ManagerBottomNav.tsx:16` at 11px); 28 bracketed `text-[Npx]` bypass the scale.
 - **The accent picker ships four brand colours to the doctor.** `index.css:225` states outright that changing the brand colour "is not what this preference is for", then ships exactly that to the audience for whom sage green *is* the promise. Same for the corners toggle against the stated corner scale.
 - **`/peers` is consent-gated but not authenticated** — it opens a live peer-to-peer chat rendering another person's messages. The API accepts a token-less socket as an anonymous connection by design; worth confirming that is intended.
@@ -129,7 +249,7 @@ Most consequential on `TextField`, where the border is the *only* boundary cue �
 
 ## P3
 
-Dead `useApiHealth` (zero references, plus a six-symbol chain behind it that ships nothing) and `QuestionCardSkeleton`. `"Voltar ao início"` navigating to `/assessment`. Three `className="p-2 cursor-pointer"` overrides on `ManagerDashboardPage` fighting their own Button variant. `no-scrollbar` at all breakpoints in `DataTableToolbar` and `TranscriptScroller`, hiding the desktop scroll cue. Two greetings stacked in the Home header. `/peer` missing from `APP_HEADER_META`. `ManagerNotificationsPage` and `ManagerInsightHistoryPage` rendering nothing at all while loading. `ChatDisclaimerBanner` at `text-[12.5px]`, the only fractional size in the codebase, on the one non-dismissable legal notice.
+Dead `useApiHealth` (zero references, plus a six-symbol chain behind it that ships nothing) and `QuestionCardSkeleton`. ✅ `"Voltar ao início"` navigating to `/assessment` — **fixed**: the destination was the bug, not the label. `CrisisDeclinePage` and `FallbackPage` both use that exact label for `routes.home`, so the app had already answered which half was wrong. Three `className="p-2 cursor-pointer"` overrides on `ManagerDashboardPage` fighting their own Button variant. `no-scrollbar` at all breakpoints in `DataTableToolbar` and `TranscriptScroller`, hiding the desktop scroll cue. Two greetings stacked in the Home header. `/peer` missing from `APP_HEADER_META`. `ManagerNotificationsPage` and `ManagerInsightHistoryPage` rendering nothing at all while loading. `ChatDisclaimerBanner` at `text-[12.5px]`, the only fractional size in the codebase, on the one non-dismissable legal notice.
 
 ---
 

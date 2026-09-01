@@ -10,8 +10,15 @@ import { routes } from '@/presentation/lib/routes';
 import { useInstitutionLinkStore } from '@/stores/institution-link.store';
 
 function ResultProbe() {
-  const { state } = useLocation() as { state: { max: number; totalScore: number } };
-  return <div>{`Result screen max=${state.max} score=${state.totalScore}`}</div>;
+  const { state } = useLocation() as {
+    state: { max: number; totalScore: number; pendingSync?: boolean };
+  };
+  return (
+    <>
+      <div>{`Result screen max=${state.max} score=${state.totalScore}`}</div>
+      <div>{`pendingSync=${state.pendingSync === true}`}</div>
+    </>
+  );
 }
 
 function renderScale(scale: AssessmentScale, path: string) {
@@ -286,5 +293,26 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
 
     await user.click(screen.getByTestId('back-button'));
     expect(screen.getByText('Home screen')).toBeInTheDocument();
+  });
+
+  it('carries an upload failure through to the result instead of swallowing it', async () => {
+    vi.spyOn(container.submitAssessmentUseCase, 'execute').mockResolvedValue({
+      totalScore: 5,
+      riskSignal: false,
+      submissionSucceeded: false,
+    });
+    const user = userEvent.setup();
+    renderScale(scale, path);
+
+    for (let i = 0; i < total; i++) {
+      await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
+    }
+    await user.click(screen.getByRole('button', { name: 'Enviar respostas' }));
+
+    // submissionSucceeded was produced by the use case and read by nothing, so
+    // a check-in that never reached the server looked identical to one that did.
+    await waitFor(() => {
+      expect(screen.getByText(/pendingSync=true/)).toBeInTheDocument();
+    });
   });
 });

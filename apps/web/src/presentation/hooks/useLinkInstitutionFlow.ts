@@ -55,6 +55,10 @@ export function useLinkInstitutionFlow() {
     institutionName: institution?.name ?? null,
     sectors: {
       isLoading: sectors.isLoading,
+      // Distinguished from hasSectors on purpose: "your hospital has not
+      // registered its sectors" and "we could not reach the server" are
+      // different facts, and only one is the hospital's fault.
+      isError: sectors.isError,
       list: sectors.data ?? [],
       hasSectors: (sectors.data?.length ?? 0) > 0,
     },
