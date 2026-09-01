@@ -1,5 +1,6 @@
 import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
+import { useLocation } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BackButton } from "@/presentation/ui/BackButton";
 import { Button } from "@/presentation/ui/Button";
@@ -26,12 +27,20 @@ export function ManagerLoginPage() {
       : "Não foi possível entrar agora. Tente novamente."
     : null;
 
+  const { state } = useLocation() as { state?: { reason?: string } };
+
   return (
     <PhoneShell centered>
       <div className="pt-7.5">
         <BackButton label="Início" onClick={() => navigate(routes.home)} />
         <h1 className="mb-1.5 mt-4 text-h1 text-ink">Acesso do gestor</h1>
         <p className="text-caption text-muted">Entre com seu email e senha de gestor.</p>
+
+        {state?.reason === "expired" && (
+          <p role="status" className="mt-3 rounded-card border border-line bg-canvas-alt p-3 text-label text-ink-2">
+            Sua sessão expirou. Entre de novo para continuar.
+          </p>
+        )}
 
         <form onSubmit={handleSubmit}>
           <Card className="mt-5">
@@ -77,6 +86,12 @@ export function ManagerLoginPage() {
             </Button>
           </div>
         </form>
+
+        {/* There is no self-service reset: the set-password email can only be
+            sent by a hospital admin, so the honest answer is who to ask. */}
+        <p className="mt-5 text-pretty text-caption text-muted">
+          Esqueceu a senha? Peça ao administrador do Zelo no seu hospital para reenviar o acesso.
+        </p>
       </div>
     </PhoneShell>
   );

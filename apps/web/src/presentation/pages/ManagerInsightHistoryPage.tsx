@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { useMemo, useState } from "react";
 import { ChevronDown, FileDown, FileText } from "lucide-react";
 import { Card } from "@/presentation/ui/Card";
 import { Button } from "@/presentation/ui/Button";
@@ -9,10 +8,8 @@ import { DataTableShell } from "@/presentation/ui/DataTable/DataTableShell";
 import { DataTableToolbar } from "@/presentation/ui/DataTable/DataTableToolbar";
 import { DataTableEmpty } from "@/presentation/ui/DataTable/DataTableEmpty";
 import { DataTableError } from "@/presentation/ui/DataTable/DataTableError";
-import { routes } from "@/presentation/lib/routes";
 import { useManagerInsightHistory } from "@/presentation/hooks/useManagerInsightHistory";
 import { useManagerInsight } from "@/presentation/hooks/useManagerInsight";
-import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 import { downloadInsightAsPdf, downloadInsightAsText } from "@/presentation/lib/download-manager-insight";
 import { MANAGER_INSIGHT_DISCLAIMER } from "@/presentation/lib/manager-insight-disclaimer";
@@ -181,18 +178,9 @@ function InsightCard({ entry, isDefaultOpen }: { entry: StoredManagerInsight; is
 }
 
 export function ManagerInsightHistoryPage() {
-  const navigate = useNavigate();
-  const clearSession = useManagerSessionStore((state) => state.clearSession);
   const { data, error, isError, refetch } = useManagerInsightHistory();
   const insight = useManagerInsight();
   const [search, setSearch] = useState("");
-
-  useEffect(() => {
-    if (isError && error instanceof UnauthorizedManagerError) {
-      clearSession();
-      navigate(routes.managerLogin, { replace: true });
-    }
-  }, [isError, error, clearSession, navigate]);
 
   const loadFailed = isError && !(error instanceof UnauthorizedManagerError);
   const isLoading = !data && !isError;

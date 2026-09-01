@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider, Outlet } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { routeChildren } from "./router";
+import { ManagerShell } from "@/presentation/layout/ManagerShell";
 import { useConsentStore } from "@/stores/consent.store";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { routes } from "@/presentation/lib/routes";
@@ -295,5 +296,27 @@ describe("last-resort screens", () => {
     expect(screen.getByRole("button", { name: "Voltar ao início" })).toBeInTheDocument();
   });
 });
+describe("manager route tree", () => {
+  /**
+   * Session expiry is handled once, by ManagerShell. That only holds while
+   * every manager page is actually a child of it — which is exactly what
+   * drifted before, leaving three of six pages showing a table error with a
+   * retry that could never succeed.
+   */
+  it("puts every manager panel route under ManagerShell, so none can miss the session guard", () => {
+    const shellRoute = routeChildren.find((route) => route.Component === ManagerShell);
+    const nested = (shellRoute?.children ?? []).map((child) => `/${child.path}`);
 
-
+    for (const route of [
+      routes.manager,
+      routes.managerNotifications,
+      routes.managerHistory,
+      routes.managerSettings,
+      routes.managerAdminManagers,
+      routes.managerAdminSectors,
+      routes.managerAdminPeers,
+    ]) {
+      expect(nested).toContain(route);
+    }
+  });
+});

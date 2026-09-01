@@ -7,7 +7,6 @@ import { ManagerInsightHistoryPage } from "./ManagerInsightHistoryPage";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import * as container from "@/app/container";
 import * as downloadHelper from "@/presentation/lib/download-manager-insight";
-import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 
 function formatDate(generatedAt: string): string {
   return new Date(generatedAt).toLocaleDateString("pt-BR", { year: "numeric", month: "long", day: "numeric" });
@@ -101,16 +100,6 @@ describe("ManagerInsightHistoryPage", () => {
   it("offers no back button — navigation in the panel is the nav, not history", () => {
     renderHistory();
     expect(screen.queryByRole("button", { name: /voltar/i })).not.toBeInTheDocument();
-  });
-
-  it("clears the session and redirects to login on a 401", async () => {
-    vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockRejectedValue(new UnauthorizedManagerError());
-    renderHistory();
-
-    await waitFor(() => {
-      expect(screen.getByText("Login screen")).toBeInTheDocument();
-    });
-    expect(useManagerSessionStore.getState().token).toBeNull();
   });
 
   it("shows who generated each analysis when known, and omits the line when not", async () => {

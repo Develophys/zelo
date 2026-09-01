@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ManagerDashboardPage } from "./ManagerDashboardPage";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import * as container from "@/app/container";
-import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 import * as pgrExport from "@/presentation/lib/download-manager-pgr-report";
 
 /** Surfaces the router's current query string so the tests can assert on it. */
@@ -106,16 +105,6 @@ describe("ManagerDashboardPage", () => {
     await user.click(screen.getByRole("link", { name: "Ver histórico" }));
 
     expect(screen.getByText("History screen")).toBeInTheDocument();
-  });
-
-  it("clears the session and redirects to login on a 401", async () => {
-    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockRejectedValue(new UnauthorizedManagerError());
-    renderManager();
-
-    await waitFor(() => {
-      expect(screen.getByText("Login screen")).toBeInTheDocument();
-    });
-    expect(useManagerSessionStore.getState().token).toBeNull();
   });
 
   it("generates and displays the AI insight when the manager clicks the button", async () => {

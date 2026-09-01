@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router';
+import { useManagerSessionExpiry } from '@/presentation/hooks/useManagerSessionExpiry';
 import { AppHeader } from './AppHeader';
 import { ManagerSidebar } from './ManagerSidebar';
 import { CONTENT_ID, SkipToContentLink } from '@/presentation/ui/SkipToContentLink';
@@ -14,6 +15,12 @@ import { ManagerBottomNav } from './ManagerBottomNav';
  * clearance measured against it.
  */
 export function ManagerShell() {
+  // Declared here rather than per page: the same effect was copied onto three
+  // of the six manager pages and missing from the other three, where an
+  // expired session rendered a table error offering a retry that could never
+  // succeed.
+  useManagerSessionExpiry();
+
   return (
     <div className="flex min-h-dvh bg-surface md:h-dvh md:overflow-hidden">
       <SkipToContentLink />

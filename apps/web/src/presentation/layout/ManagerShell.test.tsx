@@ -4,9 +4,11 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { ManagerShell } from './ManagerShell';
 import { useManagerPrefsStore } from '@/stores/manager-prefs.store';
+import { useManagerSessionStore } from '@/stores/manager-session.store';
+import { UnauthorizedManagerError } from '@/ports/manager-signals.port';
 
 function mount(path = '/manager') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -206,5 +208,44 @@ describe('responsive strategy', () => {
       return found.map((match) => `${path.relative(SRC, file)}: ${match}`);
     });
     expect(offenders).toEqual([]);
+  });
+});
+describe('ManagerShell session expiry', () => {
+  /**
+   * The 401 effect used to be duplicated on three of the six manager pages and
+   * absent from the other three, where an expired session rendered a table
+   * error with a retry that could never succeed. Declaring it on the layout
+   * route makes the guarantee once, for every page the shell wraps.
+   */
+  function mountWithThrowingChild() {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    function ExpiredChild() {
+      useQuery({
+        queryKey: ['expired'],
+        queryFn: () => Promise.reject(new UnauthorizedManagerError()),
+        retry: false,
+      });
+      return <p>conteúdo</p>;
+    }
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/manager/admin/managers']}>
+          <Routes>
+            <Route element={<ManagerShell />}>
+              <Route path="/manager/admin/managers" element={<ExpiredChild />} />
+            </Route>
+            <Route path="/manager/login" element={<p>Login screen</p>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+
+  it('sends an expired session to the login screen from any page the shell wraps', async () => {
+    useManagerSessionStore.setState({ token: 'abc.def', expiresAt: new Date(Date.now() + 60_000).toISOString() });
+    mountWithThrowingChild();
+
+    expect(await screen.findByText('Login screen')).toBeInTheDocument();
+    expect(useManagerSessionStore.getState().token).toBeNull();
   });
 });

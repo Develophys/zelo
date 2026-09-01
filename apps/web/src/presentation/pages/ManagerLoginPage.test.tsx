@@ -7,11 +7,11 @@ import { ManagerLoginPage } from "./ManagerLoginPage";
 import * as container from "@/app/container";
 import { InvalidManagerCredentialsError } from "@/ports/manager-auth.port";
 
-function renderPage() {
+function renderPage(entry: string | { pathname: string; state: unknown } = "/manager/login") {
   const queryClient = new QueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={["/manager/login"]}>
+      <MemoryRouter initialEntries={[entry as string]}>
         <Routes>
           <Route path="/manager/login" element={<ManagerLoginPage />} />
           <Route path="/manager" element={<div>Manager dashboard</div>} />
@@ -73,5 +73,24 @@ describe("ManagerLoginPage", () => {
   it("insets the submit button by the same horizontal padding as the card so its edges line up with the fields", () => {
     renderPage();
     expect(screen.getByRole("button", { name: "Entrar" }).parentElement).toHaveClass("px-4.5");
+  });
+  it("says the session expired when that is why the login screen is showing", () => {
+    // Without it, a coordinator who left the tab open overnight gets a bare
+    // form the next morning with no account of why they are looking at it.
+    renderPage({ pathname: "/manager/login", state: { reason: "expired" } });
+
+    expect(screen.getByRole("status")).toHaveTextContent(/sessão expirou/i);
+  });
+
+  it("says nothing about expiry on an ordinary visit", () => {
+    renderPage();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("tells a manager who cannot get in what the recovery path actually is", () => {
+    // useSendManagerSetPasswordEmail exists but only an admin can fire it, so
+    // "forgot password" is a person, not a button. Saying so beats a dead end.
+    renderPage();
+    expect(screen.getByText(/administrador/i)).toBeInTheDocument();
   });
 });

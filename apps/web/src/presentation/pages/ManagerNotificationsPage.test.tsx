@@ -1,12 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Routes, Route } from "react-router";
+import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ManagerNotificationsPage } from "./ManagerNotificationsPage";
 import * as container from "@/app/container";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
-import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 
 const UNREAD = {
   id: "n-1",
@@ -32,20 +31,6 @@ function renderPage() {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>
         <ManagerNotificationsPage />
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
-}
-
-function renderPageWithRoutes() {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={["/manager/notifications"]}>
-        <Routes>
-          <Route path="/manager/notifications" element={<ManagerNotificationsPage />} />
-          <Route path="/manager/login" element={<div>Login screen</div>} />
-        </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -201,20 +186,6 @@ describe("ManagerNotificationsPage", () => {
     expect(bar.querySelector("hr")).toBeNull();
 
     expect(bar.querySelector("ul, ol, table")).toBeNull();
-  });
-
-  it("clears the session and redirects to login on a 401", async () => {
-    vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockRejectedValue(
-      new UnauthorizedManagerError(),
-    );
-    vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(0);
-
-    renderPageWithRoutes();
-
-    await waitFor(() => {
-      expect(screen.getByText("Login screen")).toBeInTheDocument();
-    });
-    expect(useManagerSessionStore.getState().token).toBeNull();
   });
 
   it('leaves a read notification out of the tab order instead of offering a dead button', async () => {

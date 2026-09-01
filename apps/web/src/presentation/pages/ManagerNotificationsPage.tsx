@@ -1,30 +1,17 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router";
 import { CheckCheck, RefreshCw } from "lucide-react";
 import { Button } from "@/presentation/ui/Button";
 import { Skeleton } from "@/presentation/ui/Skeleton";
 import { Pill } from "@/presentation/ui/Pill";
 import { useManagerNotifications, useManagerUnreadCount } from "@/presentation/hooks/useManagerNotifications";
-import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
-import { routes } from "@/presentation/lib/routes";
 import { notificationCopy } from "./manager-notification-copy";
 
 const DATE_FORMAT: Intl.DateTimeFormatOptions = { day: "2-digit", month: "2-digit", year: "numeric" };
 
 export function ManagerNotificationsPage() {
-  const navigate = useNavigate();
-  const clearSession = useManagerSessionStore((state) => state.clearSession);
   const { notifications, isLoading, error, refresh, isRefreshing, markRead, markAllRead } =
     useManagerNotifications();
   const unreadCount = useManagerUnreadCount();
-
-  useEffect(() => {
-    if (error instanceof UnauthorizedManagerError) {
-      clearSession();
-      navigate(routes.managerLogin, { replace: true });
-    }
-  }, [error, clearSession, navigate]);
 
   return (
     <div className="flex flex-col gap-5">

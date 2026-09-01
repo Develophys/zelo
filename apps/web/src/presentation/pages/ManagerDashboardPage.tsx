@@ -1,5 +1,4 @@
-import { useEffect } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { SectionLabel } from "@/presentation/ui/SectionLabel";
 import { Card } from "@/presentation/ui/Card";
 import { Button } from "@/presentation/ui/Button";
@@ -11,7 +10,6 @@ import { routes } from "@/presentation/lib/routes";
 import { useManagerSignals } from "@/presentation/hooks/useManagerSignals";
 import { useManagerSectors } from "@/presentation/hooks/useManagerSectors";
 import { useManagerInsight } from "@/presentation/hooks/useManagerInsight";
-import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 import { downloadPgrReportAsCsv, downloadPgrReportAsPdf } from "@/presentation/lib/download-manager-pgr-report";
 import { MANAGER_INSIGHT_DISCLAIMER } from "@/presentation/lib/manager-insight-disclaimer";
@@ -166,8 +164,6 @@ function SectorFilter({ sectors, selectedSectorIds, onChange }: SectorFilterProp
 }
 
 export function ManagerDashboardPage() {
-  const navigate = useNavigate();
-  const clearSession = useManagerSessionStore((state) => state.clearSession);
   const sectorsQuery = useManagerSectors();
   const [searchParams, setSearchParams] = useSearchParams();
   const sectors = sectorsQuery.data;
@@ -190,13 +186,6 @@ export function ManagerDashboardPage() {
     );
   };
   const insight = useManagerInsight();
-
-  useEffect(() => {
-    if (isError && error instanceof UnauthorizedManagerError) {
-      clearSession();
-      navigate(routes.managerLogin, { replace: true });
-    }
-  }, [isError, error, clearSession, navigate]);
 
   // A non-401 failure used to fall through these `?? 0` defaults, so a
   // coordinator read 0% and 0 questionários as if they had been measured. The
