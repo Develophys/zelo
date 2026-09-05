@@ -16,7 +16,7 @@ export function PrivacyBadge({ label = 'anônimo', variant = 'chip', onClick }: 
         data-testid="privacy-badge"
         className="inline-flex items-center gap-1 font-mono text-caption text-muted-2"
       >
-        <Lock size={14} />
+        <Lock size={14} aria-hidden="true" />
         {label}
       </span>
     );
@@ -35,7 +35,7 @@ export function PrivacyBadge({ label = 'anônimo', variant = 'chip', onClick }: 
           data-testid="privacy-badge-chip"
           className={`${CHIP_CLASS} transition-colors duration-150 group-hover:bg-brand-fill group-hover:text-on-fill`}
         >
-          <Lock size={14} />
+          <Lock size={14} aria-hidden="true" />
           {label}
         </span>
       </button>
@@ -44,7 +44,7 @@ export function PrivacyBadge({ label = 'anônimo', variant = 'chip', onClick }: 
 
   return (
     <span data-testid="privacy-badge" className={CHIP_CLASS}>
-      <Lock size={14} />
+      <Lock size={14} aria-hidden="true" />
       {label}
     </span>
   );

@@ -50,10 +50,13 @@ export function ManagerLoginPage() {
             <TextField
               id="manager-email"
               type="email"
+              required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="Digite seu email"
               className="mt-2"
+              aria-invalid={errorMessage ? true : undefined}
+              aria-describedby={errorMessage ? "manager-login-error" : undefined}
             />
 
             <label htmlFor="manager-password" className="mt-4 block text-label font-semibold text-ink-2">
@@ -62,14 +65,17 @@ export function ManagerLoginPage() {
             <TextField
               id="manager-password"
               type="password"
+              required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Digite sua senha"
               className="mt-2"
+              aria-invalid={errorMessage ? true : undefined}
+              aria-describedby={errorMessage ? "manager-login-error" : undefined}
             />
 
             {errorMessage && (
-              <p role="alert" className="mt-2 text-label text-danger">
+              <p id="manager-login-error" role="alert" className="mt-2 text-label text-danger">
                 {errorMessage}
               </p>
             )}

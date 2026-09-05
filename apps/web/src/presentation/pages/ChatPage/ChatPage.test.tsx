@@ -1301,23 +1301,23 @@ describe('ChatPage', () => {
     expect(screen.getByRole('button', { name: HANDOFF_LABEL })).toBeInTheDocument();
   });
 
-  // IBM Plex Mono's advance is a uniform 0.6em, so mono-data (12px) costs
-  // exactly 7.2px per character and the header's width budget is arithmetic:
+  // Nunito Sans at caption size (13px) averages about 0.55em per character, so
+  // the header's width budget is arithmetic:
   // 360px − 32 (px-4) − 44 (back) − 12 − 12 − 44 (theme) − 19 (lock + gap) = 197px.
-  it('keeps the header anonymity promise inside the width a 360px phone leaves once the theme switch has taken its 56px', () => {
+  it('keeps the header anonymity promise inside the two lines a 360px phone leaves once the theme switch has taken its 56px', () => {
     const NARROWEST_PHONE = 360;
     const CHROME = 32 + 44 + 12 + 12 + 44 + 19;
-    const MONO_ADVANCE = 0.6 * 12;
+    const SANS_ADVANCE = 0.55 * 13;
 
     renderChat();
     const header = screen.getByTestId('app-header');
     const promise = within(header).getByTestId('app-header-subtitle').textContent ?? '';
 
     expect(promise).toBe('anonimizado antes do envio');
-    expect(promise.length * MONO_ADVANCE).toBeLessThanOrEqual(NARROWEST_PHONE - CHROME);
+    expect(promise.length * SANS_ADVANCE).toBeLessThanOrEqual((NARROWEST_PHONE - CHROME) * 2);
   });
 
-  it('makes the anonymity promise the only part of the header that yields at 320px, so the theme switch can never squeeze itself or push the header onto a second line', () => {
+  it('makes the anonymity promise the only part of the header that yields at 320px, so the theme switch can never squeeze itself', () => {
     renderChat();
     const header = screen.getByTestId('app-header');
     const row = header.firstElementChild;
@@ -1330,14 +1330,18 @@ describe('ChatPage', () => {
     expect(theme).toHaveClass('min-w-11');
     expect(theme.parentElement).toHaveClass('flex-none');
     expect(subtitle.parentElement).toHaveClass('min-w-0');
-    expect(subtitle).toHaveClass('min-w-0', 'truncate');
+    expect(subtitle).toHaveClass('min-w-0');
   });
 
-  it('lets the header anonymity promise shrink, since truncate alone never overrides a flex item min-width and the line would push the header past its 65px', () => {
+  // A hover tooltip is not an overflow escape on a phone, so the promise wraps
+  // instead of being cut at the first line.
+  it('wraps the header anonymity promise rather than truncating it', () => {
     renderChat();
     const header = screen.getByTestId('app-header');
     const subtitle = within(header).getByTestId('app-header-subtitle');
 
-    expect(subtitle).toHaveClass('min-w-0', 'truncate');
+    expect(subtitle).toHaveClass('min-w-0', 'line-clamp-2', 'text-caption');
+    expect(subtitle.className).not.toContain('truncate');
+    expect(subtitle).not.toHaveAttribute('title');
   });
 });

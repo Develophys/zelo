@@ -26,7 +26,7 @@ function PeerFooter() {
   return (
     <div className="mt-6">
       <div className="flex items-center justify-center gap-1 rounded-card bg-surface-brand p-3.25">
-        <Lock size={14} className="text-brand" />
+        <Lock size={14} className="text-brand" aria-hidden="true" />
         <span className="font-mono text-mono-data text-brand">conexão sem troca de identidade</span>
       </div>
       <div className="mt-3 flex justify-center">
@@ -60,7 +60,7 @@ export function PeersPage() {
         sidebar
         bottomNav
         centered
-        headerOverride={{ subtitle: 'Vincule-se ao seu hospital para falar com um colega.' }}
+        headerOverride={{ subtitle: 'Vincule-se ao hospital para falar com um colega.' }}
       >
         <div>
           <Button variant="outline" onClick={() => navigate(routes.linkInstitution)}>
@@ -77,12 +77,17 @@ export function PeersPage() {
       <div>
         {state === 'idle' && (
           <div className="mt-5">
-            <Button
-              variant="primary"
-              onClick={() => requestPeer(institutionId, sectorName ?? undefined)}
-            >
-              Falar com um colega
-            </Button>
+            <p className="text-pretty text-body text-ink-2">
+              Médicos treinados para ouvir. Nem você nem seu par veem a identidade um do outro.
+            </p>
+            <div className="mt-4">
+              <Button
+                variant="primary"
+                onClick={() => requestPeer(institutionId, sectorName ?? undefined)}
+              >
+                Falar com um colega
+              </Button>
+            </div>
           </div>
         )}
 

@@ -1,30 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '@/presentation/ui/Button';
 import { Card } from '@/presentation/ui/Card';
 import { routes } from '@/presentation/lib/routes';
 import { useConsentStore } from '@/stores/consent.store';
+import { useInlineConfirm } from '@/presentation/hooks/useInlineConfirm';
 
 export function RevokeConsentSection() {
   const navigate = useNavigate();
   const revoke = useConsentStore((state) => state.revoke);
-  const [step, setStep] = useState<'idle' | 'confirming'>('idle');
-  const [pendingFocus, setPendingFocus] = useState(false);
-
-  const revokeRef = useRef<HTMLButtonElement>(null);
-  const confirmRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!pendingFocus) {
-      return;
-    }
-    const target = step === 'confirming' ? confirmRef.current : revokeRef.current;
-    target?.focus();
-    setPendingFocus(false);
-  }, [pendingFocus, step]);
+  const { isConfirming, triggerRef, confirmRef, requestConfirm, cancel } = useInlineConfirm();
 
   const handleRevoke = () => {
-    revoke();
+    try {
+      revoke();
+    } catch {
+      // no-op
+    }
     navigate(routes.splash, { replace: true });
   };
 
@@ -39,18 +30,7 @@ export function RevokeConsentSection() {
       </Card>
 
       <div className="mt-3.5">
-        {step === 'idle' ? (
-          <Button
-            ref={revokeRef}
-            variant="danger"
-            onClick={() => {
-              setStep('confirming');
-              setPendingFocus(true);
-            }}
-          >
-            Revogar consentimento
-          </Button>
-        ) : (
+        {isConfirming ? (
           <Card tone="brand-tint">
             <div ref={confirmRef} tabIndex={-1} className="outline-none">
               <p className="text-label text-ink-2">
@@ -58,15 +38,7 @@ export function RevokeConsentSection() {
                 novamente para voltar.
               </p>
               <div className="mt-3 flex gap-3">
-                <Button
-                  variant="outline"
-                  full={false}
-                  className="flex-1"
-                  onClick={() => {
-                    setStep('idle');
-                    setPendingFocus(true);
-                  }}
-                >
+                <Button variant="outline" full={false} className="flex-1" onClick={cancel}>
                   Cancelar
                 </Button>
                 <Button variant="danger" full={false} className="flex-1" onClick={handleRevoke}>
@@ -75,6 +47,10 @@ export function RevokeConsentSection() {
               </div>
             </div>
           </Card>
+        ) : (
+          <Button ref={triggerRef} variant="danger" onClick={requestConfirm}>
+            Revogar consentimento
+          </Button>
         )}
       </div>
     </>

@@ -73,6 +73,11 @@ describe("LinkInstitutionPage", () => {
       expect(screen.getByRole("alert")).toHaveTextContent("Código não encontrado.");
     });
     expect(screen.queryByText("Qual seu setor?")).not.toBeInTheDocument();
+
+    const alert = screen.getByRole("alert");
+    const field = screen.getByLabelText("Código do hospital");
+    expect(field).toHaveAttribute("aria-invalid", "true");
+    expect(field).toHaveAttribute("aria-describedby", alert.id);
   });
 
   it("disables Continuar until a code is entered", () => {

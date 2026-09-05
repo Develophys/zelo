@@ -62,7 +62,30 @@ describe("ManagerAdminManagersPage", () => {
     );
   });
 
-  it("creates a HOSPITAL_ADMIN by default, without a role change", async () => {
+  // An admin onboarding a dozen ward leads on a Friday accepts the default. It
+  // must not be the role that grants hospital-wide aggregates plus the ability
+  // to create more admins.
+  it("defaults a new manager to the narrower role, and says what each role reaches", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
+    ]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "+ Adicionar gestor" }));
+
+    expect(await screen.findByLabelText("Gestor de setor")).toBeChecked();
+    expect(screen.getByLabelText("Gestor do hospital")).not.toBeChecked();
+    expect(screen.getByLabelText("Gestor de setor")).toHaveAccessibleDescription(
+      "Vê apenas os setores atribuídos.",
+    );
+    expect(screen.getByLabelText("Gestor do hospital")).toHaveAccessibleDescription(
+      "Vê os indicadores de todos os setores e administra o acesso.",
+    );
+  });
+
+  it("creates a HOSPITAL_ADMIN only once that role has been chosen", async () => {
     vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
     vi.spyOn(container.createManagerAdminUseCase, "execute").mockResolvedValue({
@@ -74,6 +97,12 @@ describe("ManagerAdminManagersPage", () => {
     await user.click(await screen.findByRole("button", { name: "+ Adicionar gestor" }));
     await user.type(await screen.findByLabelText("Nome do gestor"), "Ana");
     await user.type(screen.getByLabelText("Email do gestor"), "ana@zelo-demo.local");
+
+    // The default cannot be submitted into a hospital with no sectors, which is
+    // the point: it fails closed rather than granting everything.
+    expect(screen.getByRole("button", { name: "Adicionar gestor" })).toBeDisabled();
+
+    await user.click(screen.getByLabelText("Gestor do hospital"));
     await user.click(screen.getByRole("button", { name: "Adicionar gestor" }));
 
     await waitFor(() =>

@@ -70,8 +70,7 @@ export function AppHeader({
           {subtitle && (
             <p
               data-testid="app-header-subtitle"
-              className="min-w-0 truncate font-mono text-mono-data text-brand"
-              title={subtitle}
+              className="min-w-0 text-pretty text-caption text-brand line-clamp-2"
             >
               {subtitle}
             </p>

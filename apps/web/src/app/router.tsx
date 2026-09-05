@@ -37,6 +37,7 @@ import { useAdminSessionStore } from "@/stores/admin-session.store";
 import { usePeerPartnerSessionStore } from "@/stores/peer-partner-session.store";
 import { routes } from "@/presentation/lib/routes";
 import { FallbackPage, RouteErrorFallback } from "@/presentation/pages/FallbackPage";
+import { useDocumentTitle } from "@/presentation/hooks/useDocumentTitle";
 
 // Single source of truth for the app's route tree. router.test.tsx imports
 // this directly (rather than hand-duplicating it) so the test router can
@@ -52,6 +53,11 @@ const ADMIN_ONLY_ROUTES: RouteObject[] = [
   loader: () =>
     useManagerSessionStore.getState().role === "HOSPITAL_ADMIN" ? null : redirect(routes.manager),
 }));
+
+function RootLayout() {
+  useDocumentTitle();
+  return <Outlet />;
+}
 
 export const routeChildren: RouteObject[] = [
   {
@@ -172,7 +178,7 @@ export const router = createBrowserRouter(
     {
       id: "root",
       path: "/",
-      Component: () => <Outlet />,
+      Component: RootLayout,
       // Covers every route below. ErrorBoundary already guards the chat
       // transcript from inside; this is the same idea at the root, so a render
       // error anywhere still leaves a way home and a number to call.

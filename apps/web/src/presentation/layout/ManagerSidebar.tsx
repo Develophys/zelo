@@ -42,7 +42,7 @@ function Item({
         } ${isActive ? 'bg-brand/10 text-brand' : 'text-muted hover:bg-canvas hover:text-brand'}`
       }
     >
-      <Icon size={22} />
+      <Icon size={22} aria-hidden="true" />
       {/* Visible from md up. Tablet portrait is exactly 768px, where the rail is
           icons-only and the collapse toggle that would reveal labels is itself
           lg-only — leaving a 450ms long-press per icon as the only way to learn
@@ -141,7 +141,7 @@ export function ManagerSidebar({ className = '' }: ManagerSidebarProps) {
               data-testid="manager-account"
               className="flex h-8 w-8 flex-none items-center justify-center rounded-pill bg-surface-brand text-brand"
             >
-              <UserRound size={18} />
+              <UserRound size={18} aria-hidden="true" />
             </span>
           </Tooltip>
           <span
@@ -177,7 +177,7 @@ function SignOut({ collapsed, onSignOut }: { collapsed: boolean; onSignOut: () =
         collapsed ? '' : 'lg:justify-start'
       }`}
     >
-      <LogOut size={22} />
+      <LogOut size={22} aria-hidden="true" />
       <span
         className={`font-sans text-label font-semibold ${collapsed ? 'sr-only' : 'sr-only lg:not-sr-only'}`}
       >

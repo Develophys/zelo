@@ -8,9 +8,12 @@ Round 3: [design-improvements-round-3.md](./design-improvements-round-3.md).
 
 **Design health: 24/40 (60% — Acceptable). Trend: 25 → 27 → 26 → 24.**
 
-**Status:** **all three P0s and both structural P1s are closed** (items 1–5), along with the
-dependency cleanup and the sub-12px nav labels. **Open: P1 item 6, all of P2 and P3**, and the
-product/legal decisions.
+**Status:** **all three P0s, both structural P1s, and P1 item 6 are closed** (items 1–6), along with
+the dependency cleanup and the sub-12px nav labels. **P2 items 7–9 are closed; items 10–11 are
+partially closed** (the concrete defects each named are fixed, some broader guard-authoring work is
+flagged as not attempted). **Of P3's 15 items, 11 are closed, 1 was deliberately left as a product
+call, 1 is a platform limitation, and 2 need dedicated feature work** (route-level code splitting,
+peer-volunteer notifications) — see each item for specifics. Open: the product/legal decisions.
 
 Legend: ✅ fixed · ⬜ open · ❌ won't fix.
 
@@ -169,7 +172,7 @@ next morning gets a bare login form and no indication that the fix is "email you
 guard is declared once instead of drifting three ways. Pass `{ state: { reason: 'expired' } }` and say
 so on the login screen. Add a "Esqueci minha senha" affordance even if it only explains who to contact.
 
-### 6. Per-screen explanatory copy is truncated out of existence on a phone — ⬜ OPEN
+### 6. Per-screen explanatory copy is truncated out of existence on a phone — ✅ FIXED
 
 `AppHeader.tsx:73` renders the subtitle as a single `truncate`d line of
 `font-mono text-mono-data text-brand`, with `title={subtitle}` as the only overflow escape — a hover
@@ -190,11 +193,17 @@ unreadable.
 the mono/brand styling reads as a system annotation, and these sentences are reassurance). Move the
 peers explanation into `PeersPage`'s idle state, where the decision is actually made.
 
+**Closed.** The subtitle wraps up to two lines (`line-clamp-2`) instead of truncating to one, keeps the
+brand-coloured signature (the header's own tests treat that as intentional, not the bug) but drops the
+`title` hover-tooltip escape hatch — a guard now enforces every subtitle fits the two lines a 360px
+header leaves. The peers explanation moved into `PeersPage`'s idle state; the five-minute expectation
+now shows on `AssessmentSelectPage` itself, ahead of the header's shortened version.
+
 ---
 
 ## P2
 
-### 7. Nine answers live only in React state, under an auto-updating service worker
+### 7. Nine answers live only in React state, under an auto-updating service worker — ✅ FIXED
 
 `ScaleAssessmentPage.tsx:21` holds `answers` and `questionIndex` in `useState`, persisted nowhere,
 while `vite.config.ts:27` sets `registerType: "autoUpdate"`. A phone call, a PWA evicted under memory
@@ -208,7 +217,12 @@ nothing.
 **Fix.** Reuse `lib/last-result.ts`'s wrapped-sessionStorage pattern: write on each answer, restore on
 mount, clear on submit. Same try/catch, same graceful degradation.
 
-### 8. New managers default to the most privileged role
+**Closed.** `lib/assessment-draft.ts` mirrors `last-result.ts` exactly — same `sessionStorage` wrapper,
+same fail-quiet try/catch. `ScaleAssessmentPage` restores the draft on mount, shows a dismissible "we
+kept your answers" notice when it does, writes on every answer, and clears the draft on successful
+submit.
+
+### 8. New managers default to the most privileged role — ✅ FIXED
 
 `openCreate` (`ManagerAdminManagersPage.tsx:189`) sets `HOSPITAL_ADMIN`. `editRole` defaults to
 `SECTOR_MANAGER` (`:142`) — the two disagree, which is its own tell that neither was chosen. The radio
@@ -220,7 +234,10 @@ hospital-wide aggregate access plus the ability to create more admins.
 **Fix.** Default to `SECTOR_MANAGER`. One line under each radio: *"Vê os indicadores de todos os
 setores e administra o acesso"* / *"Vê apenas os setores atribuídos"*.
 
-### 9. `ScoreDial`'s denominator is one browser setting away from failing contrast
+**Closed.** Both create and edit default to `SECTOR_MANAGER` now, and each radio carries the
+description line above, `aria-describedby`-linked to the input.
+
+### 9. `ScoreDial`'s denominator is one browser setting away from failing contrast — ✅ FIXED
 
 `ScoreDial.tsx:51` renders `/{max}` at `text-[1.5rem]` with `text-band-*/75`. Measured on `surface`,
 identical across all four accents:
@@ -238,7 +255,13 @@ point of the rem conversion was to honour a browser font-size preference, and **
 16px this stops being large text and four of five bands fail 4.5:1 in the light theme.** No guard
 covers it.
 
-### 10. Guard gaps found by auditing the guards themselves
+**Closed.** The alpha moved from `/75` to `/90` — measured against `surface` in both themes, every
+band's solid colour clears 4.5:1 with room to spare, and `/90` is the tightest value that keeps the
+faintest case (moderate, light theme) above that floor too, so the token no longer depends on staying
+"large" under a smaller root font-size preference. The bracketed `text-[1.5rem]` became a named
+`--text-score-max` token.
+
+### 10. Guard gaps found by auditing the guards themselves — ✅ PARTIALLY FIXED
 
 None are dead — every file walk resolves and every regex matches live code — but several are narrower
 than their names:
@@ -260,55 +283,105 @@ than their names:
 - **`Button.test.tsx`'s padding guard** covers `Button` only; nothing stops any of the 27 raw
   `<button>` elements from having arbitrary geometry.
 
-### 11. Forms carry no programmatic validation state
+**Closed:** the bracketed-rem gap (`type-scale.test.ts` now forbids `text-[N rem]` too, and walks all
+of `src`, not just `src/presentation`) — `ScoreDial.tsx`, `SidebarHeader.tsx` and `PrivacyPage.tsx` moved
+to named tokens. The four named `focus-visible.test.ts` misses got real focus rings: the three admin
+mobile-card toggle buttons and the sector-name suggestion pills.
+
+**Still open, not attempted this pass:** the 14 arbitrary-px spacing values, `theme-contrast.test.ts`
+and `token-pairing.test.ts`'s narrow coverage, the axe-under-jsdom limitation (no contrast/touch-target
+evidence without a real-browser runner), and the `Button` padding guard's scope. These are guard-gap
+findings rather than confirmed live defects; closing them properly means broader test-authoring work,
+not a quick patch.
+
+### 11. Forms carry no programmatic validation state — ✅ PARTIALLY FIXED
 
 Of 32 fields: **0 use `required`, 0 use `aria-invalid`, and exactly 1 uses `aria-describedby`**
 (`ChatComposer.tsx:146`). Errors are announced by 30 sibling `<p role="alert">` nodes but never
 associated to the field, so a screen-reader user tabbing back to an errored input hears nothing.
 Validation is enforced only by disabling submit.
 
+**Closed:** every text field across the three login pages, `FinishSetupForm`, `LinkInstitutionCodeStep`,
+`AdminInstitutionsPage`, and the manager/peer/sector admin create-and-edit forms now carries `required`;
+every field with an associable error (the three logins, `LinkInstitutionCodeStep`, `FinishSetupForm`,
+`AdminInstitutionsPage`) gets `aria-invalid` and `aria-describedby` pointed at that error's own `id`
+when it's showing. **Not attempted:** an exhaustive per-field audit of all 32 to confirm none were
+missed, and fields with no error state to associate (name/specialty inputs whose only validation is the
+disabled-submit gate) were left as `required`-only, matching what's actually there to announce.
+
 ---
 
 ## P3 — Polish
 
-- **The mobile manager card** (`ManagerAdminManagersPage.tsx:339`) is a `<button>` toggling selection
+- ✅ **The mobile manager card** (`ManagerAdminManagersPage.tsx:339`) is a `<button>` toggling selection
   with **no `aria-pressed`**, conveying state by colour alone (`border-brand bg-brand/5`). The axe
-  sweep covers the route but with zero rows, so it never scans the card.
-- **No route-level code splitting.** Zero `React.lazy`; all ~25 pages ship in one **659 kB / 190 kB
+  sweep covers the route but with zero rows, so it never scans the card. **Fixed:** `aria-pressed`
+  added to this card and its two mirrors (`ManagerAdminPeersPage`, `ManagerAdminSectorsPage`) — the
+  same standing pattern the doc's own closing section warns about, closed in all three places at once.
+- ⬜ **No route-level code splitting.** Zero `React.lazy`; all ~25 pages ship in one **659 kB / 190 kB
   gzip** chunk, over Vite's warning threshold. (jspdf/html2canvas, ~770 kB, *are* correctly
-  dynamic-imported — that part is done right.)
-- **No per-route document title.** `<title>Zelo</title>` is static and there are zero `document.title`
-  writes, so every route reads "Zelo" in tab, history and screen-reader page announcement.
-- **`BottomNav.tsx:48`** uses `pb-6` with no `env(safe-area-inset-bottom)`; `Modal.tsx:128` uses the
-  inset correctly. The nav is the one that ships on every screen.
-- **`BottomNav.tsx:86`** declares `role="menu"`/`role="menuitem"` with no roving tabindex or arrow-key
-  handling. A menu role that does not behave like one is worse than no role.
-- **50 of 66 lucide icons carry no `aria-hidden`** (16 do). lucide-react v0.460.0 emits neither
+  dynamic-imported — that part is done right.) **Not attempted this pass:** `router.test.tsx` asserts
+  `route.Component === ManagerShell` by identity to guarantee every manager route sits under the
+  session guard — a real architectural safeguard the doc itself praises. Converting to React Router's
+  `lazy` route field breaks that identity check and needs the test rewritten around resolved modules,
+  not just the router. Flagged rather than rushed.
+- ✅ **No per-route document title.** `<title>Zelo</title>` is static and there are zero
+  `document.title` writes, so every route reads "Zelo" in tab, history and screen-reader page
+  announcement. **Fixed:** `useDocumentTitle` sets `"<Page> Zelo"` from a route-title map, wired once
+  at the router root; a guard test asserts every served route (bar the splash screen, a redirect-only
+  route, and the catch-all) has an entry.
+- ✅ **`BottomNav.tsx:48`** uses `pb-6` with no `env(safe-area-inset-bottom)`; `Modal.tsx:128` uses the
+  inset correctly. The nav is the one that ships on every screen. **Fixed:** `pb-[calc(env(safe-area-inset-bottom)+1.5rem)]`,
+  matching `ManagerBottomNav`'s existing pattern.
+- ✅ **`BottomNav.tsx:86`** declares `role="menu"`/`role="menuitem"` with no roving tabindex or arrow-key
+  handling. A menu role that does not behave like one is worse than no role. **Fixed:** the panel now
+  auto-focuses its first item on open, Up/Down move focus with wraparound, Home/End jump to an end, and
+  Escape returns focus to the toggle.
+- ✅ **50 of 66 lucide icons carry no `aria-hidden`** (16 do). lucide-react v0.460.0 emits neither
   `aria-hidden` nor `role` by default. Low impact for unnamed SVGs; the inconsistency is the finding.
-- **`Modal.tsx:52`** focuses the close button on open, so a keyboard user entering "Adicionar gestor"
-  starts on the ✕ rather than the name field.
-- **`DataTableToolbar.tsx:43`** replaces the search field with bulk actions at **every** breakpoint. At
-  1440px both fit twice over; a phone constraint is being applied to a desktop tool.
-- **`PeerChatRoom.tsx:92`** — "Sair da conversa" is a one-tap unconfirmed outline button that wipes the
+  **Fixed:** all 50 named-import usages plus the 6 generic `icon: Icon`-prop renders that the same audit
+  method couldn't see — every decorative icon in the app now carries `aria-hidden="true"`.
+- ✅ **`Modal.tsx:52`** focuses the close button on open, so a keyboard user entering "Adicionar gestor"
+  starts on the X rather than the name field. **Fixed:** the modal now focuses the first focusable
+  element in its body, falling back to the close button only when the body has nothing else to focus.
+- ✅ **`DataTableToolbar.tsx:43`** replaces the search field with bulk actions at **every** breakpoint. At
+  1440px both fit twice over; a phone constraint is being applied to a desktop tool. **Fixed:** the
+  search field stays mounted and shrinks to `md:w-64` beside the bulk actions from `md` up; only a
+  phone still swaps one for the other.
+- ✅ **`PeerChatRoom.tsx:92`** — "Sair da conversa" is a one-tap unconfirmed outline button that wipes the
   transcript and makes the peer unreachable forever, in the same product where "Revogar consentimento"
-  gets a two-step confirm with managed focus. One of those is reversible; the other is not.
-- **`InstitutionLinkCard.tsx:79`** — "Desvincular", one tap, no confirm.
-- **`CrisisAcceptPage.tsx:101`** — *"Quer que **eu** te indique…"* is the only first-person voice in the
-  product, on its highest-stakes screen.
-- **`CrisisAcceptPage`** has no exit until the SUS/private question is answered; `CrisisDeclinePage`
-  has an unconditional "Voltar ao início". The higher-distress branch has fewer ways out.
-- **`ConsentPage.tsx:32`** wraps `grant()` in try/catch for blocked storage;
-  `RevokeConsentSection.tsx:27` does not wrap `revoke()`.
-- **Manifest `theme_color`** (`vite.config.ts:35`) is the light value only; `index.html` corrects the
-  meta tag at runtime, but the installed PWA's system chrome stays light in dark mode.
-- **`public/` carries roughly 2.8MB of GIFs**, some apparently unused duplicates (`zelo_ani_*_1.gif`).
-  Not precached, but shipped in the deploy.
-- ✅ **The doctor's `Sidebar` at 768–1023px** showed 10px (`--text-nav-rail`) labels under 22px
+  gets a two-step confirm with managed focus. One of those is reversible; the other is not. **Fixed:**
+  extracted the confirm/focus logic `RevokeConsentSection` already had into a shared `useInlineConfirm`
+  hook, and gave "Sair da conversa" the same two-step confirm and focus handling.
+- ⬜ **`InstitutionLinkCard.tsx:79`** — "Desvincular", one tap, no confirm. **Deliberately left as-is:**
+  an existing test (`YouPage.test.tsx`) names this "without a confirm step" as the intended design, and
+  unlike the peer chat or consent revocation, unlinking is fully recoverable — re-entering the same
+  invite code restores it in seconds. Flagging for a product call rather than overriding a named,
+  tested decision on my own judgment.
+- ✅ **`CrisisAcceptPage.tsx:101`** — *"Quer que **eu** te indique..."* is the only first-person voice in
+  the product, on its highest-stakes screen. **Fixed:** reworded to "Quer saber onde procurar...",
+  matching the app's voice everywhere else.
+- ✅ **`CrisisAcceptPage`** has no exit until the SUS/private question is answered; `CrisisDeclinePage`
+  has an unconditional "Voltar ao início". The higher-distress branch has fewer ways out. **Fixed:** an
+  outline "Voltar ao início" now shows before the bond question is answered, replaced by the primary
+  "Entendi" once it is.
+- ✅ **`ConsentPage.tsx:32`** wraps `grant()` in try/catch for blocked storage;
+  `RevokeConsentSection.tsx:27` does not wrap `revoke()`. **Fixed:** `handleRevoke` now wraps `revoke()`
+  the same way.
+- ⬜ **Manifest `theme_color`** (`vite.config.ts:35`) is the light value only; `index.html` corrects the
+  meta tag at runtime, but the installed PWA's system chrome stays light in dark mode. **Not fixed:**
+  the Web App Manifest spec has no media-query support for `theme_color` — it's a static value read
+  once at install, so this is a platform ceiling rather than a bug in the app's own code.
+- ✅ **`public/` carries roughly 2.8MB of GIFs**, some apparently unused duplicates (`zelo_ani_*_1.gif`).
+  Not precached, but shipped in the deploy. **Fixed:** confirmed zero references anywhere in the repo
+  (source, docs, README) and removed all five `zelo_ani_*.gif` files.
+- ✅ **The doctor's `Sidebar` at 768-1023px** showed 10px (`--text-nav-rail`) labels under 22px
   icons — **fixed**: the rail is now 11px and the bottom nav 12px, with an 11px floor guarded in
   `type-scale.test.ts`.
-- **Peer volunteer notification.** `PeerPartnerInboxPage` gives a 30-second accept window with no
+- ⬜ **Peer volunteer notification.** `PeerPartnerInboxPage` gives a 30-second accept window with no
   sound, no Notification API, no title flash and no vibration. The whole "reach a human" promise rests
-  on the volunteer staring at a foreground browser tab.
+  on the volunteer staring at a foreground browser tab. **Not attempted:** needs real Notification API
+  / vibration integration and a permission-prompt UX decision, beyond a polish-pass patch.
 
 ---
 

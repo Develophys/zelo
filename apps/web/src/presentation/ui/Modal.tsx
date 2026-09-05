@@ -30,6 +30,9 @@ const SIZE_CLASS: Record<'sm' | 'md' | 'lg', string> = {
   lg: 'md:max-w-[640px]',
 };
 
+const FOCUSABLE_SELECTOR =
+  'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
+
 export function Modal({
   isOpen,
   onClose,
@@ -42,6 +45,7 @@ export function Modal({
 }: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
 
   useEffect(() => {
@@ -49,7 +53,10 @@ export function Modal({
     if (!dialog) return;
     if (isOpen && !dialog.open) {
       dialog.showModal();
-      closeButtonRef.current?.focus();
+      // A keyboard user entering a form starts on its first field, not on the
+      // ✕: the close button is where the visit ends, not where it begins.
+      const firstField = bodyRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+      (firstField ?? closeButtonRef.current)?.focus();
     } else if (!isOpen && dialog.open) {
       dialog.close();
     }
@@ -114,11 +121,12 @@ export function Modal({
               aria-label="Fechar"
               className="flex h-11 w-11 flex-none items-center justify-center rounded-control text-muted focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
             >
-              <X size={20} />
+              <X size={20} aria-hidden="true" />
             </button>
           </div>
         )}
         <div
+          ref={bodyRef}
           data-testid="modal-body"
           className={`min-h-0 flex-1 overflow-y-auto px-5.5 ${title ? 'pt-3' : 'pt-5.5'} pb-5.5`}
         >

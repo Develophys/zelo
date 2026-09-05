@@ -33,6 +33,19 @@ function roleLabel(role: ManagerRole): string {
   return role === "HOSPITAL_ADMIN" ? "Gestor do hospital" : "Gestor de setor";
 }
 
+const ROLE_CHOICES: { value: ManagerRole; label: string; description: string }[] = [
+  {
+    value: "SECTOR_MANAGER",
+    label: "Gestor de setor",
+    description: "Vê apenas os setores atribuídos.",
+  },
+  {
+    value: "HOSPITAL_ADMIN",
+    label: "Gestor do hospital",
+    description: "Vê os indicadores de todos os setores e administra o acesso.",
+  },
+];
+
 function RoleAndSectorFields({
   idPrefix,
   role,
@@ -56,31 +69,30 @@ function RoleAndSectorFields({
     <>
       <fieldset className="mt-3">
         <legend className="text-label font-semibold text-ink-2">Tipo de gestor</legend>
-        <div className="mt-2 flex flex-col gap-2">
-          <label
-            htmlFor={`${idPrefix}-role-hospital-admin`}
-            className="flex min-h-11 cursor-pointer items-center gap-3 text-label text-ink-2"
-          >
-            <Radio
-              id={`${idPrefix}-role-hospital-admin`}
-              name={`${idPrefix}-manager-role`}
-              checked={role === "HOSPITAL_ADMIN"}
-              onChange={() => onRoleChange("HOSPITAL_ADMIN")}
-            />
-            Gestor do hospital
-          </label>
-          <label
-            htmlFor={`${idPrefix}-role-sector-manager`}
-            className="flex min-h-11 cursor-pointer items-center gap-3 text-label text-ink-2"
-          >
-            <Radio
-              id={`${idPrefix}-role-sector-manager`}
-              name={`${idPrefix}-manager-role`}
-              checked={role === "SECTOR_MANAGER"}
-              onChange={() => onRoleChange("SECTOR_MANAGER")}
-            />
-            Gestor de setor
-          </label>
+        <div className="mt-2 flex flex-col gap-3">
+          {ROLE_CHOICES.map(({ value, label, description }) => (
+            <div key={value}>
+              <label
+                htmlFor={`${idPrefix}-role-${value}`}
+                className="flex min-h-11 cursor-pointer items-center gap-3 text-label text-ink-2"
+              >
+                <Radio
+                  id={`${idPrefix}-role-${value}`}
+                  name={`${idPrefix}-manager-role`}
+                  aria-describedby={`${idPrefix}-role-${value}-description`}
+                  checked={role === value}
+                  onChange={() => onRoleChange(value)}
+                />
+                {label}
+              </label>
+              <p
+                id={`${idPrefix}-role-${value}-description`}
+                className="ml-8 text-pretty text-caption text-muted"
+              >
+                {description}
+              </p>
+            </div>
+          ))}
         </div>
       </fieldset>
 
@@ -153,7 +165,7 @@ export function ManagerAdminManagersPage() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<ManagerRole>("HOSPITAL_ADMIN");
+  const [role, setRole] = useState<ManagerRole>("SECTOR_MANAGER");
   const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
 
   const [formMode, setFormMode] = useState<"create" | "edit" | null>(null);
@@ -208,7 +220,7 @@ export function ManagerAdminManagersPage() {
   const openCreate = () => {
     setName("");
     setEmail("");
-    setRole("HOSPITAL_ADMIN");
+    setRole("SECTOR_MANAGER");
     setSelectedSectorIds([]);
     setFormMode("create");
   };
@@ -276,12 +288,12 @@ export function ManagerAdminManagersPage() {
       <>
         <IconButton
           label={`Editar ${manager.name}`}
-          icon={<Pencil size={16} />}
+          icon={<Pencil size={16} aria-hidden="true" />}
           onClick={() => openEdit(manager)}
         />
         <IconButton
           label={isInvite ? `Reenviar convite de ${manager.name}` : `Redefinir senha de ${manager.name}`}
-          icon={isInvite ? <Mail size={16} /> : <KeyRound size={16} />}
+          icon={isInvite ? <Mail size={16} aria-hidden="true" /> : <KeyRound size={16} aria-hidden="true" />}
           onClick={() => handleSendSetPasswordEmail(manager)}
         />
       </>
@@ -362,8 +374,9 @@ export function ManagerAdminManagersPage() {
                   <button
                     type="button"
                     aria-label={`${manager.name}, ${status.text}`}
+                    aria-pressed={selected}
                     onClick={() => selection.toggle(manager.id)}
-                    className="flex w-full flex-col gap-2 p-4 text-left"
+                    className="flex w-full flex-col gap-2 rounded-card p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
                   >
                     <div className="flex justify-between gap-3">
                       <span className="text-caption text-muted">Nome</span>
@@ -443,6 +456,7 @@ export function ManagerAdminManagersPage() {
             </label>
             <TextField
               id="manager-name-input"
+              required
               value={name}
               onChange={(event) => setName(event.target.value)}
               className="mt-2"
@@ -454,6 +468,7 @@ export function ManagerAdminManagersPage() {
             <TextField
               id="manager-email-input"
               type="email"
+              required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               className="mt-2"

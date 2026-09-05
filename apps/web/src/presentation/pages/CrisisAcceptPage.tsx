@@ -42,7 +42,7 @@ export function CrisisAcceptPage() {
 
         <div className="mt-8">
           <p className="text-caption text-muted">
-            Quer que eu te indique onde procurar acompanhamento depois? Você é atendido pelo SUS ou
+            Quer saber onde procurar acompanhamento depois? Você é atendido pelo SUS ou
             por um plano de saúde/rede privada?
           </p>
           {!direction && (
@@ -68,9 +68,13 @@ export function CrisisAcceptPage() {
 
         <div className="flex-1" />
 
-        {direction && (
+        {direction ? (
           <Button variant="primary" onClick={() => navigate(routes.home)}>
             Entendi
+          </Button>
+        ) : (
+          <Button variant="outline" onClick={() => navigate(routes.home)}>
+            Voltar ao início
           </Button>
         )}
       </div>

@@ -63,6 +63,7 @@ function SectorFields({
       </label>
       <TextField
         id={nameFieldId}
+        required
         value={name}
         disabled={nameDisabled}
         onChange={onNameChange ? (event) => onNameChange(event.target.value) : undefined}
@@ -75,7 +76,7 @@ function SectorFields({
               key={suggestion}
               type="button"
               onClick={() => onNameChange?.(suggestion)}
-              className="min-h-11 rounded-status border border-line px-3 py-1.5 text-label text-muted hover:bg-canvas"
+              className="min-h-11 rounded-status border border-line px-3 py-1.5 text-label text-muted hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             >
               {suggestion}
             </button>
@@ -245,7 +246,7 @@ export function ManagerAdminSectorsPage() {
   const isSubmitDisabled = name.trim().length === 0;
 
   const renderRowActions = (sector: AdminSector) => (
-    <IconButton label={`Editar ${sector.name}`} icon={<Pencil size={16} />} onClick={() => openEdit(sector)} />
+    <IconButton label={`Editar ${sector.name}`} icon={<Pencil size={16} aria-hidden="true" />} onClick={() => openEdit(sector)} />
   );
 
   const modalTitle = formMode === "create" ? "Adicionar setor" : editingSector ? `Editar ${editingSector.name}` : "";
@@ -330,8 +331,9 @@ export function ManagerAdminSectorsPage() {
                   <button
                     type="button"
                     aria-label={`${sector.name}, ${status.text}`}
+                    aria-pressed={selected}
                     onClick={() => selection.toggle(sector.id)}
-                    className="flex w-full flex-col gap-2 p-4 text-left"
+                    className="flex w-full flex-col gap-2 rounded-card p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
                   >
                     <div className="flex justify-between gap-3">
                       <span className="text-caption text-muted">Nome</span>

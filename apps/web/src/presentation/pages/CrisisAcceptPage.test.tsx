@@ -92,7 +92,29 @@ describe("CrisisAcceptPage", () => {
 
   it("frames the bond question as optional rather than a gate", () => {
     renderAccept();
-    expect(screen.getByText(/quer que eu te indique onde procurar/i)).toBeInTheDocument();
+    expect(screen.getByText(/quer saber onde procurar/i)).toBeInTheDocument();
+  });
+
+  it("speaks in the app's own voice rather than a first-person assistant", () => {
+    renderAccept();
+    expect(screen.queryByText(/quer que eu/i)).not.toBeInTheDocument();
+  });
+
+  // The higher-distress branch must not have fewer ways out than
+  // CrisisDeclinePage's unconditional "Voltar ao início".
+  it("offers a way home before the bond question is answered", () => {
+    renderAccept();
+    expect(screen.getByRole("button", { name: "Voltar ao início" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Entendi" })).not.toBeInTheDocument();
+  });
+
+  it("replaces Voltar ao início with Entendi once a bond is chosen", async () => {
+    const user = userEvent.setup();
+    renderAccept();
+    await user.click(screen.getByRole("button", { name: "SUS" }));
+
+    expect(screen.getByRole("button", { name: "Entendi" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Voltar ao início" })).not.toBeInTheDocument();
   });
 
   it("gives the page a real heading instead of leading on body copy", () => {

@@ -36,7 +36,7 @@ export function AccentField({ value, onChange }: AccentFieldProps) {
                 isSage ? 'bg-accent-sage-fill' : 'bg-brand-fill'
               }`}
             >
-              {isSelected && <Check size={14} strokeWidth={3} />}
+              {isSelected && <Check size={14} strokeWidth={3} aria-hidden="true" />}
             </span>
             {ACCENT_LABEL[accent]}
           </label>

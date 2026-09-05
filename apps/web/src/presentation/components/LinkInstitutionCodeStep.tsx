@@ -28,6 +28,7 @@ export function LinkInstitutionCodeStep({
       </label>
       <TextField
         id="invite-code"
+        required
         value={code}
         onChange={(event) => onCodeChange(event.target.value)}
         placeholder="Digite o código"
@@ -35,10 +36,12 @@ export function LinkInstitutionCodeStep({
         autoCorrect="off"
         spellCheck={false}
         className="mt-2"
+        aria-invalid={codeErrorMessage ? true : undefined}
+        aria-describedby={codeErrorMessage ? "invite-code-error" : undefined}
       />
 
       {codeErrorMessage && (
-        <p role="alert" className="mt-2 text-label text-danger">
+        <p id="invite-code-error" role="alert" className="mt-2 text-label text-danger">
           {codeErrorMessage}
         </p>
       )}

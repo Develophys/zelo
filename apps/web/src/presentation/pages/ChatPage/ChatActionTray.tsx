@@ -33,7 +33,7 @@ export const ChatActionTray = memo(function ChatActionTray({
           aria-label={collapsed ? 'Expandir atalhos' : 'Recolher atalhos'}
           className="absolute -top-7 right-0 z-10 flex h-7 w-14 items-end justify-center rounded-t-card border border-b-0 border-surface-brand bg-surface pb-1 text-muted hover:text-brand after:absolute after:inset-x-0 after:-top-2 after:-bottom-2 after:content-['']"
         >
-          {collapsed ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          {collapsed ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}
         </Button>
       </div>
 
@@ -49,7 +49,7 @@ export const ChatActionTray = memo(function ChatActionTray({
               onClick={() => navigate(routes.crisis)}
               className={`${COMPACT_ACTION} border border-track`}
             >
-              <HeartHandshake size={16} className="shrink-0" />
+              <HeartHandshake size={16} className="shrink-0" aria-hidden="true" />
               Pessoa real
             </Button>
 
@@ -62,7 +62,7 @@ export const ChatActionTray = memo(function ChatActionTray({
               onClick={() => navigate(routes.assessment)}
               className={`${COMPACT_ACTION} enabled:hover:text-brand`}
             >
-              <ClipboardList size={16} className="shrink-0" />
+              <ClipboardList size={16} className="shrink-0" aria-hidden="true" />
               Avaliar
             </Button>
           </div>
@@ -77,7 +77,7 @@ export const ChatActionTray = memo(function ChatActionTray({
               onClick={() => navigate(routes.crisis)}
               className="border border-track short:min-h-11 short:py-2.5 short-wide:flex-1"
             >
-              <HeartHandshake size={18} className="shrink-0" />
+              <HeartHandshake size={18} className="shrink-0" aria-hidden="true" />
               {HANDOFF_LABEL}
             </Button>
 
@@ -88,7 +88,7 @@ export const ChatActionTray = memo(function ChatActionTray({
               onClick={() => navigate(routes.assessment)}
               className="enabled:hover:text-brand short:min-h-11 short:py-2.5 short-wide:flex-1"
             >
-              <ClipboardList size={18} className="shrink-0" />
+              <ClipboardList size={18} className="shrink-0" aria-hidden="true" />
               {ASSESS_LABEL}
             </Button>
           </div>

@@ -41,7 +41,7 @@ export function ChatTranscriptFallback({
           onClick={onRetry}
           className="border border-track bg-surface text-brand hover:bg-canvas"
         >
-          <RotateCw size={15} className="shrink-0" />
+          <RotateCw size={15} className="shrink-0" aria-hidden="true" />
           Tentar de novo
         </Button>
 
@@ -49,7 +49,7 @@ export function ChatTranscriptFallback({
           href={line.telHref}
           className="inline-flex min-h-11 items-center gap-1.5 rounded-control border border-danger-border bg-surface px-4 text-label font-semibold text-danger-strong hover:bg-danger-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
         >
-          <Phone size={15} className="shrink-0" />
+          <Phone size={15} className="shrink-0" aria-hidden="true" />
           Ligar para o {line.label} · {line.phone}
         </a>
       </div>

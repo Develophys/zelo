@@ -72,6 +72,7 @@ export function AdminInstitutionsPage() {
             </label>
             <TextField
               id="institution-name"
+              required
               value={institutionName}
               onChange={(event) => setInstitutionName(event.target.value)}
               className="mt-2"
@@ -82,6 +83,7 @@ export function AdminInstitutionsPage() {
             </label>
             <TextField
               id="invite-code-input"
+              required
               value={inviteCode}
               onChange={(event) => setInviteCode(event.target.value)}
               className="mt-2"
@@ -92,6 +94,7 @@ export function AdminInstitutionsPage() {
             </label>
             <TextField
               id="hospital-admin-name"
+              required
               value={hospitalAdminName}
               onChange={(event) => setHospitalAdminName(event.target.value)}
               className="mt-2"
@@ -103,13 +106,16 @@ export function AdminInstitutionsPage() {
             <TextField
               id="hospital-admin-email"
               type="email"
+              required
               value={hospitalAdminEmail}
               onChange={(event) => setHospitalAdminEmail(event.target.value)}
               className="mt-2"
+              aria-invalid={createInstitution.isError ? true : undefined}
+              aria-describedby={createInstitution.isError ? "create-institution-error" : undefined}
             />
 
             {createInstitution.isError && (
-              <p role="alert" className="mt-2 text-label text-danger">
+              <p id="create-institution-error" role="alert" className="mt-2 text-label text-danger">
                 Não foi possível criar a instituição agora. Tente novamente.
               </p>
             )}

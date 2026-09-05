@@ -28,7 +28,7 @@ export function SidebarHeader({ to, collapsed, onToggle, testId }: SidebarHeader
       >
         <div className="mx-0.5 flex h-10 w-10 flex-none items-center justify-center rounded-icon bg-brand-fill">
           {logoFailed ? (
-            <span aria-hidden="true" className="font-serif text-[1.375rem] leading-none text-on-fill">
+            <span aria-hidden="true" className="font-serif text-logo-mark leading-none text-on-fill">
               Z
             </span>
           ) : (
@@ -61,7 +61,7 @@ export function SidebarHeader({ to, collapsed, onToggle, testId }: SidebarHeader
         aria-pressed={collapsed}
         className="hidden min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-control text-muted transition-colors duration-150 hover:bg-canvas hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand lg:flex"
       >
-        {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        {collapsed ? <ChevronRight size={18} aria-hidden="true" /> : <ChevronLeft size={18} aria-hidden="true" />}
       </button>
     </div>
   );

@@ -56,6 +56,26 @@ describe("ManagerLoginPage", () => {
       expect(screen.getByRole("alert")).toHaveTextContent("Email ou senha incorretos.");
     });
     expect(screen.queryByText("Manager dashboard")).not.toBeInTheDocument();
+
+    // A screen-reader user tabbing back to either field must hear the error,
+    // not just see it as a sibling paragraph.
+    const alert = screen.getByRole("alert");
+    expect(screen.getByLabelText("Email")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("Email")).toHaveAttribute("aria-describedby", alert.id);
+    expect(screen.getByLabelText("Senha")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("Senha")).toHaveAttribute("aria-describedby", alert.id);
+  });
+
+  it("marks neither field invalid before a login attempt fails", () => {
+    renderPage();
+    expect(screen.getByLabelText("Email")).not.toHaveAttribute("aria-invalid");
+    expect(screen.getByLabelText("Senha")).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("marks email and password required, so the browser's own validation backs the disabled submit", () => {
+    renderPage();
+    expect(screen.getByLabelText("Email")).toBeRequired();
+    expect(screen.getByLabelText("Senha")).toBeRequired();
   });
 
   it("disables the submit button until both fields are filled", async () => {

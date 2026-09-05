@@ -5,6 +5,7 @@ import { MessageBubble } from '@/presentation/ui/MessageBubble';
 import { TranscriptScroller } from '@/presentation/ui/TranscriptScroller';
 import { useStickToBottom } from '@/presentation/hooks/useStickToBottom';
 import { PRIVATE_TEXT_FIELD } from '@/presentation/lib/private-field';
+import { useInlineConfirm } from '@/presentation/hooks/useInlineConfirm';
 
 export interface PeerChatMessage {
   from: 'me' | 'peer';
@@ -25,6 +26,7 @@ export function PeerChatRoom({ messages, onSend, onLeave, peerLeft, connectionLo
   // Messages arrive from another person, so the transcript follows new content
   // the way the AI chat does rather than leaving the reader to scroll for it.
   const { scrollerRef, handleScroll } = useStickToBottom(messages.length);
+  const leaveConfirm = useInlineConfirm();
 
   const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
@@ -107,9 +109,29 @@ export function PeerChatRoom({ messages, onSend, onLeave, peerLeft, connectionLo
       </form>
 
       <div className="mt-3">
-        <Button variant="outline" onClick={onLeave}>
-          Sair da conversa
-        </Button>
+        {leaveConfirm.isConfirming ? (
+          <div
+            ref={leaveConfirm.confirmRef}
+            tabIndex={-1}
+            className="rounded-card border border-line bg-canvas-alt p-3 outline-none"
+          >
+            <p className="text-label text-ink-2">
+              Tem certeza? Você não vai poder voltar a esta conversa.
+            </p>
+            <div className="mt-3 flex gap-3">
+              <Button variant="outline" full={false} className="flex-1" onClick={leaveConfirm.cancel}>
+                Cancelar
+              </Button>
+              <Button variant="danger" full={false} className="flex-1" onClick={onLeave}>
+                Sim, sair
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button ref={leaveConfirm.triggerRef} variant="outline" onClick={leaveConfirm.requestConfirm}>
+            Sair da conversa
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -153,12 +153,12 @@ export function ManagerAdminPeersPage() {
       <>
         <IconButton
           label={`Editar ${peerPartner.name}`}
-          icon={<Pencil size={16} />}
+          icon={<Pencil size={16} aria-hidden="true" />}
           onClick={() => openEdit(peerPartner)}
         />
         <IconButton
           label={isInvite ? `Reenviar convite de ${peerPartner.name}` : `Redefinir senha de ${peerPartner.name}`}
-          icon={isInvite ? <Mail size={16} /> : <KeyRound size={16} />}
+          icon={isInvite ? <Mail size={16} aria-hidden="true" /> : <KeyRound size={16} aria-hidden="true" />}
           onClick={() => handleSendSetPasswordEmail(peerPartner)}
         />
       </>
@@ -247,8 +247,9 @@ export function ManagerAdminPeersPage() {
                   <button
                     type="button"
                     aria-label={`${peerPartner.name}, ${status.text}`}
+                    aria-pressed={selected}
                     onClick={() => selection.toggle(peerPartner.id)}
-                    className="flex w-full flex-col gap-2 p-4 text-left"
+                    className="flex w-full flex-col gap-2 rounded-card p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
                   >
                     <div className="flex justify-between gap-3">
                       <span className="text-caption text-muted">Nome</span>
@@ -322,6 +323,7 @@ export function ManagerAdminPeersPage() {
             </label>
             <TextField
               id="peer-partner-name-input"
+              required
               value={name}
               onChange={(event) => setName(event.target.value)}
               className="mt-2"
@@ -333,6 +335,7 @@ export function ManagerAdminPeersPage() {
             <TextField
               id="peer-partner-email-input"
               type="email"
+              required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               className="mt-2"
@@ -343,6 +346,7 @@ export function ManagerAdminPeersPage() {
             </label>
             <TextField
               id="peer-partner-specialty-input"
+              required
               value={specialty}
               onChange={(event) => setSpecialty(event.target.value)}
               placeholder="Ex: Clínica médica"
@@ -357,6 +361,7 @@ export function ManagerAdminPeersPage() {
               </label>
               <TextField
                 id="peer-partner-edit-specialty-input"
+                required
                 value={editSpecialty}
                 onChange={(event) => setEditSpecialty(event.target.value)}
                 className="mt-2"

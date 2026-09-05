@@ -120,6 +120,12 @@
   --text-mono-data: 0.75rem /* 12px */;
   --text-mono-data--line-height: 1.5;
   --text-mono-data--font-weight: 500;
+  /* The "/max" half of the score dial. */
+  --text-score-max: 1.5rem /* 24px */;
+  /* SidebarHeader's "Z" fallback mark. */
+  --text-logo-mark: 1.375rem /* 22px */;
+  /* PrivacyPage's numbered badge. */
+  --text-privacy-badge: 1.0625rem /* 17px */;
 
   --container-chat: 900px;
 

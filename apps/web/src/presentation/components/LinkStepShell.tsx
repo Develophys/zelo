@@ -23,9 +23,12 @@ export function LinkStepShell({
   children,
 }: LinkStepShellProps) {
   return (
-    <PhoneShell bottomNav centered headerOverride={{ title, subtitle }}>
+    <PhoneShell bottomNav centered headerOverride={{ title }}>
       <form onSubmit={onSubmit}>
-        <Card>{children}</Card>
+        <p data-testid="link-step-subtitle" className="text-pretty text-body text-ink-2">
+          {subtitle}
+        </p>
+        <Card className="mt-4">{children}</Card>
 
         <div className="mt-6 px-4.5">
           <Button type="submit" variant="primary" isLoading={submitLoading} disabled={submitDisabled}>

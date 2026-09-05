@@ -59,7 +59,7 @@ export const ChatAlerts = memo(function ChatAlerts({
             onClick={onRetry}
             className="mt-2.5 border border-danger-border bg-surface text-danger hover:bg-danger-strong-bg"
           >
-            <RotateCw size={15} className="shrink-0" />
+            <RotateCw size={15} className="shrink-0" aria-hidden="true" />
             Tentar de novo
           </Button>
         </div>
@@ -91,7 +91,7 @@ export const ChatAlerts = memo(function ChatAlerts({
               onClick={onRetry}
               className="border border-track bg-surface text-brand hover:bg-canvas"
             >
-              <RotateCw size={15} className="shrink-0" />
+              <RotateCw size={15} className="shrink-0" aria-hidden="true" />
               Tentar de novo
             </Button>
             <CrisisCallLink

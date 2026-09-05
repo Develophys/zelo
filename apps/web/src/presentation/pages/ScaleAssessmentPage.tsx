@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { PhoneShell } from '@/presentation/layout/PhoneShell';
 import { CrisisCallLink } from '@/presentation/components/CrisisCallLink';
@@ -13,6 +13,7 @@ import { AssessmentReview } from '@/presentation/components/AssessmentReview';
 import type { AssessmentScale } from '@/domain/assessment-scales/scales';
 import { useSubmitAssessment } from '@/presentation/hooks/useSubmitAssessment';
 import { routes } from '@/presentation/lib/routes';
+import { clearDraft, recallDraft, rememberDraft } from '@/presentation/lib/assessment-draft';
 
 interface ScaleAssessmentPageProps {
   scale: AssessmentScale;
@@ -21,20 +22,28 @@ interface ScaleAssessmentPageProps {
 export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
   const navigate = useNavigate();
   const { mutateAsync, isPending } = useSubmitAssessment();
-  const [answers, setAnswers] = useState<(number | undefined)[]>(() =>
-    new Array(scale.questions.length).fill(undefined),
+  const resumed = useRef(recallDraft(scale));
+  const [answers, setAnswers] = useState<(number | undefined)[]>(
+    () => resumed.current?.answers ?? new Array(scale.questions.length).fill(undefined),
   );
   // One cursor for the whole instrument: 0..total-1 are questions, `total` is
   // the review. Answering the last item advances here rather than submitting.
-  const [questionIndex, setQuestionIndex] = useState(0);
+  const [questionIndex, setQuestionIndex] = useState(() => resumed.current?.questionIndex ?? 0);
   const [submitError, setSubmitError] = useState(false);
+  const [showResumed, setShowResumed] = useState(() => (resumed.current?.questionIndex ?? 0) > 0);
 
   const total = scale.questions.length;
+
+  useEffect(() => {
+    rememberDraft({ scaleType: scale.type, answers, questionIndex });
+  }, [scale.type, answers, questionIndex]);
+
   const isReview = questionIndex === total;
   const question = scale.questions[questionIndex];
 
   const recordAnswer = (value: number) => {
     setSubmitError(false);
+    setShowResumed(false);
     setAnswers((current) => {
       const next = [...current];
       next[questionIndex] = value;
@@ -55,6 +64,7 @@ export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
 
     try {
       const result = await mutateAsync({ scaleType: scale.type, answers });
+      clearDraft();
       navigate(routes.result, {
         state: {
           scaleType: scale.type,
@@ -101,6 +111,15 @@ export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
             {Math.min(questionIndex + 1, total)}/{total}
           </span>
         </div>
+
+        {showResumed && (
+          <p
+            data-testid="assessment-resumed"
+            className="mt-4 rounded-card border border-line bg-canvas-alt p-3 text-pretty text-caption text-ink-2"
+          >
+            Suas respostas anteriores continuam aqui. Retomamos de onde você parou.
+          </p>
+        )}
 
         {!isReview && <p className="mt-6.5 text-caption text-muted">{scale.prompt}</p>}
 

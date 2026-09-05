@@ -187,7 +187,7 @@ export const ChatComposer = memo(function ChatComposer({
               onClick={onStop}
               className={`${COMPOSER_ACTION} hover:bg-brand-fill-hover`}
             >
-              <Square size={15} fill="currentColor" />
+              <Square size={15} fill="currentColor" aria-hidden="true" />
             </button>
           ) : (
             <button
@@ -196,7 +196,7 @@ export const ChatComposer = memo(function ChatComposer({
               disabled={text.trim().length === 0}
               className={`${COMPOSER_ACTION} disabled:bg-track disabled:text-muted`}
             >
-              <ArrowUp size={20} />
+              <ArrowUp size={20} aria-hidden="true" />
             </button>
           )}
         </div>

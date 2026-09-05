@@ -19,6 +19,7 @@ const PRESENTATION = join(__dirname, '..');
  */
 const NOT_FOCUSABLE = new Map([
   ['pages/YouPage/RevokeConsentSection.tsx', 'programmatic tabIndex={-1} focus target'],
+  ['components/PeerChatRoom.tsx', 'programmatic tabIndex={-1} focus target'],
   ['ui/ToastViewport.tsx', 'pointer-events-none popover container'],
 ]);
 

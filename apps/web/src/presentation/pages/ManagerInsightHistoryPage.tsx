@@ -64,13 +64,13 @@ function InsightDetail({
           <>
             <IconButton
               label={`Baixar PDF da análise de ${dateLabel}`}
-              icon={<FileDown size={16} />}
+              icon={<FileDown size={16} aria-hidden="true" />}
               variant="outline"
               onClick={() => downloadInsightAsPdf(entry)}
             />
             <IconButton
               label={`Baixar texto da análise de ${dateLabel}`}
-              icon={<FileText size={16} />}
+              icon={<FileText size={16} aria-hidden="true" />}
               variant="outline"
               onClick={() => downloadInsightAsText(entry)}
             />

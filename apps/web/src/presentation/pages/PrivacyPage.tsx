@@ -21,7 +21,7 @@ export function PrivacyPage() {
                 <div className="flex items-start gap-3">
                   <div
                     aria-hidden="true"
-                    className="flex h-9.5 w-9.5 flex-none items-center justify-center rounded-icon bg-surface-brand font-serif text-[1.0625rem] text-brand"
+                    className="flex h-9.5 w-9.5 flex-none items-center justify-center rounded-icon bg-surface-brand font-serif text-privacy-badge text-brand"
                   >
                     {index + 1}
                   </div>

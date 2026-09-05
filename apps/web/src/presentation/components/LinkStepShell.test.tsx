@@ -23,7 +23,7 @@ describe("LinkStepShell", () => {
     expect(screen.getByRole("button", { name: "Continuar" }).parentElement).toHaveClass("px-4.5");
   });
 
-  it("puts the step's title and subtitle in the shared header", () => {
+  it("puts the step's title in the shared header and its explanation in the body", () => {
     render(
       <MemoryRouter initialEntries={[routes.linkInstitution]}>
         <LinkStepShell
@@ -40,7 +40,12 @@ describe("LinkStepShell", () => {
 
     const header = screen.getByTestId("app-header");
     expect(header).toHaveTextContent("Qual seu setor?");
-    expect(header).toHaveTextContent("Vinculando a Hospital São Lucas.");
+    // The step's explanatory line is body copy: it carries an institution name
+    // of unknown length, which the header's two clamped lines cannot promise.
+    expect(header).not.toHaveTextContent("Vinculando a Hospital São Lucas.");
+    expect(screen.getByTestId("link-step-subtitle")).toHaveTextContent(
+      "Vinculando a Hospital São Lucas.",
+    );
     // The flow has no sidebar, so the header carries the desktop escape hatch.
     expect(screen.getByTestId("back-button")).toHaveClass("hidden", "md:flex");
   });

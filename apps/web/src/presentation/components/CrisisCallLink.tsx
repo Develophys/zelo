@@ -18,7 +18,7 @@ export function CrisisCallLink({ line, className }: CrisisCallLinkProps) {
       href={line.telHref}
       className={`inline-flex min-h-11 items-center gap-1.5 rounded-control px-4 text-label font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${className}`}
     >
-      <Phone size={15} className="shrink-0" />
+      <Phone size={15} className="shrink-0" aria-hidden="true" />
       Ligar para o {line.label} · {line.phone}
     </a>
   );

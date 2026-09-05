@@ -153,7 +153,7 @@ export function ChatPage() {
               onClick={jumpToBottom}
               className="animate-rise-in absolute inset-x-0 bottom-3 mx-auto w-fit border border-surface-brand bg-surface text-brand shadow-card-lg focus-visible:ring-offset-2"
             >
-              <ArrowDown size={16} className="shrink-0" />
+              <ArrowDown size={16} className="shrink-0" aria-hidden="true" />
               Ver novas mensagens
             </Button>
           )}

@@ -60,8 +60,30 @@ describe('DataTableToolbar', () => {
     await userEvent.click(screen.getByLabelText('Selecionar todos'));
 
     expect(screen.getByTestId('data-table-toolbar-actions')).toBeInTheDocument();
-    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '+ Adicionar' })).toBeInTheDocument();
+  });
+
+  // At 1440px the search and the bulk actions fit side by side twice over —
+  // only a phone has to choose between them.
+  it('keeps the search field mounted beside the bulk actions from md up, hiding it only on a phone', async () => {
+    render(<Selectable actions={<button type="button">Excluir</button>} />);
+    await userEvent.click(screen.getByLabelText('Selecionar todos'));
+
+    const search = screen.getByRole('searchbox');
+    expect(search.closest('label')?.className).toContain('max-md:hidden');
+    expect(search.closest('label')?.className).toContain('md:w-64');
+    expect(screen.getByTestId('data-table-toolbar-actions')).toBeInTheDocument();
+  });
+
+  it('gives the search field the full row width once the selection clears', async () => {
+    const user = userEvent.setup();
+    render(<Selectable actions={<button type="button">Excluir</button>} />);
+    await user.click(screen.getByLabelText('Selecionar todos'));
+    await user.click(screen.getByLabelText('Selecionar todos'));
+
+    const search = screen.getByRole('searchbox');
+    expect(search.closest('label')?.className).not.toContain('max-md:hidden');
+    expect(search.closest('label')?.className).toContain('flex-1');
   });
 
   it('drops the select-all checkbox when the table has no selection to make', () => {

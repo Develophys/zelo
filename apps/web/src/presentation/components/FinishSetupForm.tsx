@@ -52,10 +52,14 @@ export function FinishSetupForm({ onSubmit, onSuccess }: FinishSetupFormProps) {
           <TextField
             id="finish-setup-password"
             type="password"
+            required
+            minLength={MIN_PASSWORD_LENGTH}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="Mínimo de 8 caracteres"
             className="mt-2"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? "finish-setup-error" : undefined}
           />
 
           <label htmlFor="finish-setup-confirm-password" className="mt-4 block text-label font-semibold text-ink-2">
@@ -64,14 +68,17 @@ export function FinishSetupForm({ onSubmit, onSuccess }: FinishSetupFormProps) {
           <TextField
             id="finish-setup-confirm-password"
             type="password"
+            required
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
             placeholder="Digite a senha novamente"
             className="mt-2"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? "finish-setup-error" : undefined}
           />
 
           {error && (
-            <p role="alert" className="mt-2 text-label text-danger">
+            <p id="finish-setup-error" role="alert" className="mt-2 text-label text-danger">
               {error}
             </p>
           )}

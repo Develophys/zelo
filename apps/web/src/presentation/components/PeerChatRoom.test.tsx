@@ -100,14 +100,30 @@ describe("PeerChatRoom", () => {
     expect(onSend).not.toHaveBeenCalled();
   });
 
-  it("calls onLeave when 'Sair da conversa' is clicked", async () => {
+  it("asks for confirmation before calling onLeave, since the transcript cannot be recovered afterwards", async () => {
     const onLeave = vi.fn();
     const user = userEvent.setup();
     render(<PeerChatRoom messages={[]} onSend={() => {}} onLeave={onLeave} peerLeft={false} />);
 
     await user.click(screen.getByRole("button", { name: "Sair da conversa" }));
+    expect(onLeave).not.toHaveBeenCalled();
+    expect(screen.getByText(/Tem certeza/)).toBeInTheDocument();
 
+    await user.click(screen.getByRole("button", { name: "Sim, sair" }));
     expect(onLeave).toHaveBeenCalled();
+  });
+
+  it("returns to the plain button on Cancelar, without calling onLeave", async () => {
+    const onLeave = vi.fn();
+    const user = userEvent.setup();
+    render(<PeerChatRoom messages={[]} onSend={() => {}} onLeave={onLeave} peerLeft={false} />);
+
+    await user.click(screen.getByRole("button", { name: "Sair da conversa" }));
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.queryByText(/Tem certeza/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sair da conversa" })).toHaveFocus();
+    expect(onLeave).not.toHaveBeenCalled();
   });
 
   it("shows a banner when the other side has left", () => {

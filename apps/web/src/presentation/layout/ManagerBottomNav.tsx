@@ -85,7 +85,7 @@ export function ManagerBottomNav({ className = '' }: ManagerBottomNavProps) {
               `${SLOT_CLASS} ${isActive ? 'border-brand text-brand' : 'border-transparent text-muted'}`
             }
           >
-            <Icon size={22} />
+            <Icon size={22} aria-hidden="true" />
             <span>{label}</span>
             {id === 'notifications' && <ManagerUnreadBadge count={unread} asDot />}
           </NavLink>
@@ -101,8 +101,7 @@ export function ManagerBottomNav({ className = '' }: ManagerBottomNavProps) {
         >
           <ChevronUp
             size={22}
-            className={`motion-safe:transition-transform motion-safe:duration-150 ${open ? 'rotate-180' : ''}`}
-          />
+            className={`motion-safe:transition-transform motion-safe:duration-150 ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
           <span>Mais</span>
         </button>
       </div>
@@ -130,7 +129,7 @@ export function ManagerBottomNav({ className = '' }: ManagerBottomNavProps) {
               onClick={closeThen()}
               className="flex min-h-11 items-center gap-3 rounded-control px-3 py-nav-y font-sans text-label font-semibold text-ink hover:bg-canvas focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
             >
-              <Icon size={20} />
+              <Icon size={20} aria-hidden="true" />
               {label}
             </NavLink>
           ))}
@@ -152,7 +151,7 @@ export function ManagerBottomNav({ className = '' }: ManagerBottomNavProps) {
               })}
               className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-control px-3 py-nav-y font-sans text-label font-semibold text-danger hover:bg-danger-bg focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
             >
-              <LogOut size={20} />
+              <LogOut size={20} aria-hidden="true" />
               Sair
             </button>
           </div>

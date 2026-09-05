@@ -56,7 +56,7 @@ export function ConsentPage() {
                     aria-hidden="true"
                     className="flex h-5.5 w-5.5 flex-none items-center justify-center rounded-lg bg-brand-fill text-on-fill"
                   >
-                    <Check size={14} />
+                    <Check size={14} aria-hidden="true" />
                   </div>
                   <p className="text-label text-ink-2">{row}</p>
                 </div>
@@ -70,11 +70,11 @@ export function ConsentPage() {
           onClick={() => setIsEncryptionInfoOpen(true)}
           className="mt-3.5 flex items-start gap-2 rounded-card bg-surface-brand p-3.25 font-mono text-mono-data text-brand"
         >
-          <Lock size={16} />
+          <Lock size={16} aria-hidden="true" />
           <span className="flex-1 text-left">
             Criptografia AES-256 no seu aparelho antes de qualquer envio.
           </span>
-          <ChevronRight size={16} />
+          <ChevronRight size={16} aria-hidden="true" />
         </Button>
         <div className="mt-6">
           <Button variant="primary" onClick={handleAccept}>

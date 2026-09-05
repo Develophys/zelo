@@ -133,4 +133,47 @@ describe("BottomNav secondary menu", () => {
     ]);
     expect(items[0]).toHaveAttribute("href", "/settings");
   });
+
+  it("focuses the first item as soon as the panel opens", async () => {
+    renderNav();
+    await userEvent.click(screen.getByRole("button", { name: "Mais opções" }));
+
+    expect(screen.getByRole("menuitem", { name: "Configurações" })).toHaveFocus();
+  });
+
+  it("moves focus between items with the arrow keys, wrapping at each end", async () => {
+    const user = userEvent.setup();
+    renderNav();
+    await user.click(screen.getByRole("button", { name: "Mais opções" }));
+
+    await user.keyboard("{ArrowDown}");
+    expect(screen.getByRole("menuitem", { name: "Administração" })).toHaveFocus();
+
+    await user.keyboard("{ArrowDown}");
+    expect(screen.getByRole("menuitem", { name: "Configurações" })).toHaveFocus();
+
+    await user.keyboard("{ArrowUp}");
+    expect(screen.getByRole("menuitem", { name: "Administração" })).toHaveFocus();
+  });
+
+  it("jumps to the first and last item with Home and End", async () => {
+    const user = userEvent.setup();
+    renderNav();
+    await user.click(screen.getByRole("button", { name: "Mais opções" }));
+
+    await user.keyboard("{End}");
+    expect(screen.getByRole("menuitem", { name: "Administração" })).toHaveFocus();
+
+    await user.keyboard("{Home}");
+    expect(screen.getByRole("menuitem", { name: "Configurações" })).toHaveFocus();
+  });
+
+  it("returns focus to the toggle when Escape closes the panel", async () => {
+    const user = userEvent.setup();
+    renderNav();
+    await user.click(screen.getByRole("button", { name: "Mais opções" }));
+    await user.keyboard("{Escape}");
+
+    expect(screen.getByRole("button", { name: "Mais opções" })).toHaveFocus();
+  });
 });

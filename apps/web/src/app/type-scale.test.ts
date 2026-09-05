@@ -15,6 +15,7 @@ import { describe, expect, it } from 'vitest';
 const SIZE_TOKEN = /^\s*(--text-[a-z0-9-]+)\s*:\s*([^;]+);/gm;
 const MODIFIER = /--(line-height|letter-spacing|font-weight)$/;
 const BRACKETED_PX = /\btext-\[[0-9.]+px\]/g;
+const BRACKETED_REM = /\btext-\[[0-9.]+rem\]/g;
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -38,8 +39,17 @@ describe('type scale', () => {
   });
 
   it('sets no font size in bracketed px, which would opt that element out of the same preference', () => {
-    const offenders = sourceFiles(join(__dirname, '..', 'presentation')).flatMap((file) => {
+    const offenders = sourceFiles(join(__dirname, '..')).flatMap((file) => {
       const matches = readFileSync(file, 'utf8').match(BRACKETED_PX) ?? [];
+      return matches.map((match) => `${file.replace(/.*[\/]src[\/]/, '')}: ${match}`);
+    });
+
+    expect(offenders).toEqual([]);
+  });
+
+  it('sets no font size in bracketed rem, so a one-off size still goes through a named token', () => {
+    const offenders = sourceFiles(join(__dirname, '..')).flatMap((file) => {
+      const matches = readFileSync(file, 'utf8').match(BRACKETED_REM) ?? [];
       return matches.map((match) => `${file.replace(/.*[\/]src[\/]/, '')}: ${match}`);
     });
 

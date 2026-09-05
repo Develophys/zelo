@@ -4,10 +4,10 @@ import { IconButton } from '@/presentation/ui/IconButton';
 import type { BulkActionState } from './useDataTableSelection';
 
 const ICON_BY_LABEL: Record<string, ReactNode> = {
-  Excluir: <Trash2 size={16} />,
-  Pausar: <Pause size={16} />,
-  Editar: <Pencil size={16} />,
-  Ativar: <Play size={16} />,
+  Excluir: <Trash2 size={16} aria-hidden="true" />,
+  Pausar: <Pause size={16} aria-hidden="true" />,
+  Editar: <Pencil size={16} aria-hidden="true" />,
+  Ativar: <Play size={16} aria-hidden="true" />,
 };
 
 const VARIANT_BY_LABEL: Record<string, 'danger' | 'warn' | 'ink' | 'success'> = {

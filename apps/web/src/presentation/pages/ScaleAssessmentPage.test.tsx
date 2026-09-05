@@ -58,6 +58,9 @@ const SCALES = [
 
 describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, maxScore }) => {
   beforeEach(() => {
+    // Each test is its own browser session; the in-progress draft is scoped to
+    // one, so leaving it behind would resume the previous test's instrument.
+    sessionStorage.clear();
     useInstitutionLinkStore.setState({
       institutionId: null,
       institutionName: null,
@@ -318,7 +321,91 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
   });
 });
 
+describe('ScaleAssessmentPage — an interrupted instrument', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    vi.spyOn(container.submitAssessmentUseCase, 'execute').mockResolvedValue({
+      totalScore: 5,
+      riskSignal: false,
+      submissionSucceeded: true,
+    });
+  });
+
+  // A phone call, a refresh, a PWA evicted under memory pressure, or an
+  // autoUpdate service worker landing mid-session. Starting over is not what an
+  // exhausted person does.
+  it('brings back the answers and the cursor after the page is remounted', async () => {
+    const user = userEvent.setup();
+    const first = renderScale(PHQ9_SCALE, routes.phq9);
+
+    await user.click(screen.getAllByRole('radio')[1]!);
+    await user.click(screen.getAllByRole('radio')[2]!);
+    expect(screen.getByText('3/9')).toBeInTheDocument();
+    first.unmount();
+
+    renderScale(PHQ9_SCALE, routes.phq9);
+    expect(screen.getByText('3/9')).toBeInTheDocument();
+    expect(screen.getByTestId('assessment-resumed')).toBeInTheDocument();
+  });
+
+  it('says the answers were kept rather than dropping the reader mid-instrument', () => {
+    sessionStorage.setItem(
+      'zelo.assessment-draft',
+      JSON.stringify({
+        scaleType: 'PHQ-9',
+        answers: [1, 2, null, null, null, null, null, null, null],
+        questionIndex: 2,
+      }),
+    );
+
+    renderScale(PHQ9_SCALE, routes.phq9);
+    expect(screen.getByTestId('assessment-resumed')).toHaveTextContent(
+      'Retomamos de onde você parou.',
+    );
+  });
+
+  it('drops the resumed note once the reader answers again', async () => {
+    sessionStorage.setItem(
+      'zelo.assessment-draft',
+      JSON.stringify({
+        scaleType: 'PHQ-9',
+        answers: [1, null, null, null, null, null, null, null, null],
+        questionIndex: 1,
+      }),
+    );
+    const user = userEvent.setup();
+    renderScale(PHQ9_SCALE, routes.phq9);
+
+    await user.click(screen.getAllByRole('radio')[0]!);
+    expect(screen.queryByTestId('assessment-resumed')).not.toBeInTheDocument();
+  });
+
+  it('starts a fresh instrument at the first item, with no resumed note', () => {
+    renderScale(PHQ9_SCALE, routes.phq9);
+
+    expect(screen.getByText('1/9')).toBeInTheDocument();
+    expect(screen.queryByTestId('assessment-resumed')).not.toBeInTheDocument();
+  });
+
+  // The submitted answers are on the result screen and in IndexedDB; a draft
+  // left behind would reopen a finished instrument as if it were unfinished.
+  it('forgets the draft once the answers have been sent', async () => {
+    const user = userEvent.setup();
+    renderScale(PHQ9_SCALE, routes.phq9);
+
+    for (let index = 0; index < PHQ9_SCALE.questions.length; index += 1) {
+      await user.click(screen.getAllByRole('radio')[0]!);
+    }
+    await user.click(screen.getByRole('button', { name: 'Enviar respostas' }));
+    await screen.findByText(/Result screen/);
+
+    expect(sessionStorage.getItem('zelo.assessment-draft')).toBeNull();
+  });
+});
+
 describe('ScaleAssessmentPage — the self-harm item', () => {
+  beforeEach(() => sessionStorage.clear());
+
   it("puts the crisis line on the self-harm item itself, before any answer is given", async () => {
     const user = userEvent.setup();
     renderScale(PHQ9_SCALE, routes.phq9);

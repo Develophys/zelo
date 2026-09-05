@@ -12,10 +12,7 @@ export const APP_HEADER_META: Record<string, AppHeaderMeta> = {
   // a second greeting under it just says the same thing twice.
   [routes.home]: { title: 'Início' },
   [routes.chat]: { title: 'Acolhimento', subtitle: 'anonimizado antes do envio' },
-  [routes.assessment]: {
-    title: 'Autoavaliação',
-    subtitle: 'Escolha uma escala validada. Leva cerca de 5 minutos.',
-  },
+  [routes.assessment]: { title: 'Autoavaliação', subtitle: 'Leva cerca de 5 minutos.' },
   [routes.phq9]: { title: 'PHQ-9', subtitle: 'Humor e sinais de depressão' },
   [routes.gad7]: { title: 'GAD-7', subtitle: 'Ansiedade' },
   [routes.result]: { title: 'Resultado' },
@@ -25,10 +22,7 @@ export const APP_HEADER_META: Record<string, AppHeaderMeta> = {
   [routes.crisis]: { title: 'Apoio' },
   [routes.crisisConnect]: { title: 'Falar com alguém' },
   [routes.crisisLine]: { title: 'Linha de crise' },
-  [routes.peers]: {
-    title: 'Pares anônimos',
-    subtitle: 'Médicos treinados para ouvir. Nem você nem seu par veem a identidade um do outro.',
-  },
+  [routes.peers]: { title: 'Pares anônimos', subtitle: 'Médicos treinados para ouvir.' },
   [routes.you]: { title: 'Você', subtitle: 'Seu consentimento e sua privacidade.' },
   [routes.linkInstitution]: { title: 'Vincular ao hospital' },
   [routes.settings]: { title: 'Configurações', subtitle: 'Aparência do app neste dispositivo.' },
@@ -38,11 +32,11 @@ export const APP_HEADER_META: Record<string, AppHeaderMeta> = {
   },
   [routes.managerNotifications]: {
     title: 'Notificações',
-    subtitle: 'Alertas do sistema sobre sinais agregados, convites e integrações.',
+    subtitle: 'Alertas sobre sinais agregados e convites.',
   },
   [routes.managerHistory]: {
     title: 'Análises com IA',
-    subtitle: 'Histórico das análises geradas a partir dos indicadores agregados.',
+    subtitle: 'Histórico das análises dos indicadores agregados.',
   },
   [routes.managerSettings]: {
     title: 'Configurações',
@@ -58,7 +52,7 @@ export const APP_HEADER_META: Record<string, AppHeaderMeta> = {
   },
   [routes.managerAdminPeers]: {
     title: 'Pares anônimos',
-    subtitle: 'Profissionais disponíveis para acolhimento entre pares.',
+    subtitle: 'Profissionais disponíveis para acolhimento.',
   },
 };
 

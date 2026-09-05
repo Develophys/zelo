@@ -26,7 +26,7 @@ function Destination({
         } ${isActive ? 'bg-surface-brand text-brand' : 'text-muted hover:bg-canvas hover:text-brand'}`
       }
     >
-      <Icon size={22} />
+      <Icon size={22} aria-hidden="true" />
       {/* Visible from md up, as on ManagerSidebar. Tablet portrait is exactly
           768px, where this rail is icons-only and the collapse toggle that
           would reveal labels is itself lg-only — leaving a slow native title=

@@ -386,7 +386,7 @@ export function ManagerDashboardPage() {
               className="flex min-h-11 items-center gap-0.5 rounded-control text-label font-bold text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             >
               Ver histórico
-              <ArrowRight size={16} />
+              <ArrowRight size={16} aria-hidden="true" />
             </Link>
           </div>
           {!insight.data && (

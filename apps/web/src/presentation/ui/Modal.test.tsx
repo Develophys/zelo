@@ -104,13 +104,26 @@ describe('Modal', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('focuses the close button when opened', () => {
+  it('focuses the close button when opened with nothing else to focus', () => {
     render(
       <Modal isOpen onClose={vi.fn()} title="Test modal">
         <p>Body</p>
       </Modal>,
     );
     expect(screen.getByRole('button', { name: 'Fechar' })).toHaveFocus();
+  });
+
+  // A keyboard user entering "Adicionar gestor" should start on the name
+  // field, not have to tab past the ✕ first.
+  it('focuses the first field in the body instead of the close button, when one exists', () => {
+    render(
+      <Modal isOpen onClose={vi.fn()} title="Adicionar gestor">
+        <label htmlFor="name">Nome</label>
+        <input id="name" />
+      </Modal>,
+    );
+    expect(screen.getByLabelText('Nome')).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Fechar' })).not.toHaveFocus();
   });
 
   it('gives the close button a 44x44px hit target', () => {

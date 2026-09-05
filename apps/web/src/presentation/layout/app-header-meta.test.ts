@@ -68,6 +68,29 @@ describe('APP_HEADER_META', () => {
   it('has no param route, which an exact pathname lookup could not resolve', () => {
     expect(ROUTE_PATHS.filter((path) => path.includes(':'))).toEqual([]);
   });
+
+  /**
+   * The header's title column at 360px, after `px-4`, the back button, two
+   * `gap-3`s, the theme switch and the privacy badge, is 197px. The subtitle
+   * wraps to two lines and `line-clamp-2` cuts the third, so the copy has to
+   * fit — a `title` tooltip is not an escape hatch on a phone. Longer
+   * explanations belong in the page body, where the decision is made.
+   */
+  const HEADER_COLUMN_PX = 360 - (32 + 44 + 12 + 12 + 44 + 19);
+  const SUBTITLE_PX = 13;
+  const SANS_ADVANCE = 0.55;
+  const WRAP_PACKING = 0.9;
+  const TWO_LINE_BUDGET = Math.floor(
+    ((HEADER_COLUMN_PX / (SUBTITLE_PX * SANS_ADVANCE)) * 2) * WRAP_PACKING,
+  );
+
+  it('states every subtitle in the two lines a 360px phone leaves, so none is clamped away', () => {
+    const clamped = Object.entries(APP_HEADER_META)
+      .filter(([, meta]) => (meta.subtitle?.length ?? 0) > TWO_LINE_BUDGET)
+      .map(([path, meta]) => `${path}: ${meta.subtitle!.length} > ${TWO_LINE_BUDGET}`);
+
+    expect(clamped).toEqual([]);
+  });
 });
 
 describe('resolveAppHeaderMeta', () => {

@@ -43,9 +43,9 @@ export function Checkbox({ indeterminate = false, className = '', ...rest }: Che
             class of its own: `peer-*` compiles to a sibling selector, and this
             icon is a descendant of the sibling, not a sibling itself. */}
         {indeterminate ? (
-          <Minus size={14} strokeWidth={3} className="size-3.5 max-md:size-4" />
+          <Minus size={14} strokeWidth={3} className="size-3.5 max-md:size-4" aria-hidden="true" />
         ) : (
-          <Check size={14} strokeWidth={3} className="size-3.5 max-md:size-4" />
+          <Check size={14} strokeWidth={3} className="size-3.5 max-md:size-4" aria-hidden="true" />
         )}
       </span>
     </span>
