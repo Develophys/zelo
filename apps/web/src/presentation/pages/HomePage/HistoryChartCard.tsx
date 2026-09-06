@@ -78,16 +78,22 @@ export function HistoryChartCard() {
                 />
               ))}
             </div>
-            <div className="mt-2 flex gap-3" aria-hidden="true">
-              <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
-                <span className="h-2 w-2 rounded-full bg-brand" />
-                Mais recente
-              </span>
-              <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
-                <span className="h-2 w-2 rounded-full bg-warn" />
-                Pico
-              </span>
-            </div>
+            {peakIndex === -1 ? (
+              <p className="mt-2 text-caption text-muted">
+                Faça seu primeiro check-in para ver sua tendência aqui.
+              </p>
+            ) : (
+              <div className="mt-2 flex gap-3" aria-hidden="true">
+                <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
+                  <span className="h-2 w-2 rounded-full bg-brand" />
+                  Mais recente
+                </span>
+                <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
+                  <span className="h-2 w-2 rounded-full bg-warn" />
+                  Pico
+                </span>
+              </div>
+            )}
           </>
         )}
       </Card>

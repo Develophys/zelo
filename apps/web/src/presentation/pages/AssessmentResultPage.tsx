@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { PhoneShell } from '@/presentation/layout/PhoneShell';
 import { Button } from '@/presentation/ui/Button';
@@ -9,6 +9,7 @@ import { bandFor, bandNeedsSupport } from '@/presentation/lib/band-for';
 import { isResultState } from '@/presentation/lib/is-result-state';
 import { recallResult, rememberResult } from '@/presentation/lib/last-result';
 import { routes } from '@/presentation/lib/routes';
+import { toast } from '@/stores/toast.store';
 
 export function AssessmentResultPage() {
   const navigate = useNavigate();
@@ -25,8 +26,11 @@ export function AssessmentResultPage() {
     }
   }, [navigated]);
 
+  const redirectToastShownRef = useRef(false);
   useEffect(() => {
-    if (!state) {
+    if (!state && !redirectToastShownRef.current) {
+      redirectToastShownRef.current = true;
+      toast.info('Não encontramos um resultado para mostrar. Comece uma nova autoavaliação.');
       navigate(routes.assessment, { replace: true });
     }
   }, [state, navigate]);

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Check, ChevronRight, Lock } from 'lucide-react';
+import { ChevronRight, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { PhoneShell } from '@/presentation/layout/PhoneShell';
 import { BackButton } from '@/presentation/ui/BackButton';
@@ -54,9 +54,9 @@ export function ConsentPage() {
                 <div className="flex items-start gap-3">
                   <div
                     aria-hidden="true"
-                    className="flex h-5.5 w-5.5 flex-none items-center justify-center rounded-lg bg-brand-fill text-on-fill"
+                    className="flex h-9.5 w-9.5 flex-none items-center justify-center rounded-icon bg-surface-brand font-serif text-privacy-badge text-brand"
                   >
-                    <Check size={14} aria-hidden="true" />
+                    {index + 1}
                   </div>
                   <p className="text-label text-ink-2">{row}</p>
                 </div>

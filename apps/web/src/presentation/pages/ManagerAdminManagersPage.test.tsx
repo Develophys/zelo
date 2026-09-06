@@ -436,7 +436,7 @@ describe("ManagerAdminManagersPage", () => {
     await user.click(await screen.findByRole('checkbox', { name: 'Selecionar Ana' }));
     await user.click(screen.getByRole('button', { name: 'Excluir' }));
 
-    const dialog = within(await screen.findByRole('dialog', { name: 'Excluir gestor?' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Excluir Ana?' }));
     await user.click(dialog.getByRole('button', { name: 'Excluir' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -471,8 +471,8 @@ describe("ManagerAdminManagersPage", () => {
       '1 de 2 excluídos. Este gestor ainda é responsável por setores. Reatribua os setores antes de excluí-lo.',
     );
     // The dialog narrows to just the still-failing manager, so a retry
-    // doesn't re-attempt the one that already succeeded.
-    expect(screen.getByRole('dialog', { name: 'Excluir gestor?' })).toBeInTheDocument();
+    // doesn't re-attempt the one that already succeeded — and now names them.
+    expect(screen.getByRole('dialog', { name: 'Excluir Bruno?' })).toBeInTheDocument();
 
     deleteSpy.mockClear();
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' }));
@@ -534,7 +534,7 @@ describe("ManagerAdminManagersPage", () => {
 
     await user.click(await screen.findByRole('checkbox', { name: 'Selecionar Ana' }));
     await user.click(screen.getByRole('button', { name: 'Excluir' }));
-    const dialog = within(await screen.findByRole('dialog', { name: 'Excluir gestor?' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Excluir Ana?' }));
     await user.click(dialog.getByRole('button', { name: 'Excluir' }));
 
     await waitFor(() =>

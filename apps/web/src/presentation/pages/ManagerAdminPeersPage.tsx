@@ -25,13 +25,13 @@ import type { PeerPartnerSummary } from "@/ports/manager-admin.port";
 import { Pencil, Mail, KeyRound, Trash2 } from "lucide-react";
 
 const COLUMNS: DataTableColumn<PeerPartnerSummary>[] = [
-  { key: "name", header: "Nome", width: "w-[21%]", cell: (row) => row.name },
-  { key: "email", header: "Email", width: "w-[23%]", breakAll: true, cell: (row) => row.email },
-  { key: "specialty", header: "Especialidade", width: "w-[24%]", hideBelowLg: true, cell: (row) => row.specialty },
+  { key: "name", header: "Nome", width: "w-[22%]", cell: (row) => row.name },
+  { key: "email", header: "Email", width: "w-[32%]", breakAll: true, cell: (row) => row.email },
+  { key: "specialty", header: "Especialidade", width: "w-[22%]", hideBelowLg: true, cell: (row) => row.specialty },
   {
     key: "status",
     header: "Status",
-    width: "w-[32%]",
+    width: "w-[24%]",
     cell: (row) => {
       const status = accountStatusPill(row);
       return (
@@ -86,6 +86,7 @@ export function ManagerAdminPeersPage() {
     deleteOne: (id) => deletePeerPartner.mutateAsync(id),
     noun: { singular: "par" },
     onSuccess: () => selection.clear(),
+    getName: (id) => peerPartnerList.find((peerPartner) => peerPartner.id === id)?.name,
   });
 
   const bulkStatus = useBulkStatusUpdate({

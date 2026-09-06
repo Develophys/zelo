@@ -31,7 +31,7 @@ export const ChatActionTray = memo(function ChatActionTray({
           onClick={onToggle}
           aria-pressed={collapsed}
           aria-label={collapsed ? 'Expandir atalhos' : 'Recolher atalhos'}
-          className="absolute -top-7 right-0 z-10 flex h-7 w-14 items-end justify-center rounded-t-card border border-b-0 border-surface-brand bg-surface pb-1 text-muted hover:text-brand after:absolute after:inset-x-0 after:-top-2 after:-bottom-2 after:content-['']"
+          className="absolute -top-7 right-0 z-10 flex h-7 w-14 items-end justify-center rounded-t-card border border-b-0 border-surface-brand bg-surface pb-1 text-muted shadow-lift hover:text-brand after:absolute after:inset-x-0 after:-top-2 after:-bottom-2 after:content-['']"
         >
           {collapsed ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}
         </Button>
@@ -50,7 +50,7 @@ export const ChatActionTray = memo(function ChatActionTray({
               className={`${COMPACT_ACTION} border border-track`}
             >
               <HeartHandshake size={16} className="shrink-0" aria-hidden="true" />
-              Pessoa real
+              Falar com alguém
             </Button>
 
             <Button

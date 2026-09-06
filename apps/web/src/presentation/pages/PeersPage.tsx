@@ -63,9 +63,14 @@ export function PeersPage() {
         headerOverride={{ subtitle: 'Vincule-se para conversar.' }}
       >
         <div>
-          <Button variant="outline" onClick={() => navigate(routes.linkInstitution)}>
-            Vincular ao hospital
-          </Button>
+          <p className="text-pretty text-body text-ink-2">
+            Médicos treinados para ouvir. Nem você nem seu par veem a identidade um do outro.
+          </p>
+          <div className="mt-4">
+            <Button variant="outline" onClick={() => navigate(routes.linkInstitution)}>
+              Vincular ao hospital
+            </Button>
+          </div>
           <PeerFooter />
         </div>
       </PhoneShell>

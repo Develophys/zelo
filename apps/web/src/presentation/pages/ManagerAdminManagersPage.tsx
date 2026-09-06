@@ -131,19 +131,19 @@ function RoleAndSectorFields({
 
 const COLUMNS: DataTableColumn<ManagerSummary>[] = [
   { key: "name", header: "Nome", width: "w-[18%]", cell: (row) => row.name },
-  { key: "email", header: "Email", width: "w-[18%]", breakAll: true, cell: (row) => row.email },
-  { key: "role", header: "Papel", width: "w-[18%]", cell: (row) => roleLabel(row.role) },
+  { key: "email", header: "Email", width: "w-[30%]", breakAll: true, cell: (row) => row.email },
+  { key: "role", header: "Papel", width: "w-[16%]", cell: (row) => roleLabel(row.role) },
   {
     key: "sectors",
     header: "Setores",
-    width: "w-[16%]",
+    width: "w-[14%]",
     hideBelowLg: true,
     cell: (row) => row.sectorNames.join(", ") || "—",
   },
   {
     key: "status",
     header: "Status",
-    width: "w-[30%]",
+    width: "w-[22%]",
     cell: (row) => {
       const status = accountStatusPill(row);
       return (
@@ -201,6 +201,7 @@ export function ManagerAdminManagersPage() {
     deleteOne: (id) => deleteManager.mutateAsync(id),
     noun: { singular: "gestor" },
     onSuccess: () => selection.clear(),
+    getName: (id) => managerList.find((manager) => manager.id === id)?.name,
   });
 
   const bulkStatus = useBulkStatusUpdate({

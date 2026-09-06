@@ -90,7 +90,7 @@ describe("ManagerAdminPeersPage", () => {
 
     await user.click(within(await screen.findByRole("table")).getByRole("button", { name: "Excluir Dr. Paulo" }));
 
-    const dialog = within(await screen.findByRole("dialog", { name: "Excluir par?" }));
+    const dialog = within(await screen.findByRole("dialog", { name: "Excluir Dr. Paulo?" }));
     await user.click(dialog.getByRole("button", { name: "Excluir" }));
 
     await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith("token", "peer-5"));
@@ -260,7 +260,7 @@ describe("ManagerAdminPeersPage", () => {
     await user.click(await screen.findByRole('checkbox', { name: 'Selecionar Ana' }));
     await user.click(screen.getByRole('button', { name: 'Excluir' }));
 
-    const dialog = within(await screen.findByRole('dialog', { name: 'Excluir par?' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Excluir Ana?' }));
     await user.click(dialog.getByRole('button', { name: 'Excluir' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível excluir. Tente de novo.');
@@ -290,8 +290,8 @@ describe("ManagerAdminPeersPage", () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('1 de 2 excluídos. Não foi possível excluir. Tente de novo.');
     // The dialog narrows to just the still-failing peer partner, so a retry
-    // doesn't re-attempt the one that already succeeded.
-    expect(screen.getByRole('dialog', { name: 'Excluir par?' })).toBeInTheDocument();
+    // doesn't re-attempt the one that already succeeded — and now names them.
+    expect(screen.getByRole('dialog', { name: 'Excluir Bruno?' })).toBeInTheDocument();
 
     deleteSpy.mockClear();
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' }));
@@ -350,7 +350,7 @@ describe("ManagerAdminPeersPage", () => {
 
     await user.click(await screen.findByRole('checkbox', { name: 'Selecionar Ana' }));
     await user.click(screen.getByRole('button', { name: 'Excluir' }));
-    const dialog = within(await screen.findByRole('dialog', { name: 'Excluir par?' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Excluir Ana?' }));
     await user.click(dialog.getByRole('button', { name: 'Excluir' }));
 
     await waitFor(() =>

@@ -10,6 +10,8 @@ export interface UseBulkDeleteOptions {
   noun: { singular: string };
   /** Called once, only when every id in the batch succeeds — the caller clears its own selection. */
   onSuccess?(): void;
+  /** Resolves a row's display name for a single-target dialog title; falls back to the noun. */
+  getName?(id: string): string | undefined;
 }
 
 export interface UseBulkDelete {
@@ -27,7 +29,7 @@ function deleteSuccessMessage(count: number, noun: { singular: string }): string
   return count === 1 ? `1 ${noun.singular} excluído.` : `${count} ${plural(noun.singular)} excluídos.`;
 }
 
-export function useBulkDelete({ deleteOne, noun, onSuccess }: UseBulkDeleteOptions): UseBulkDelete {
+export function useBulkDelete({ deleteOne, noun, onSuccess, getName }: UseBulkDeleteOptions): UseBulkDelete {
   const [deleteTarget, setDeleteTarget] = useState<{ ids: string[] } | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
@@ -73,7 +75,11 @@ export function useBulkDelete({ deleteOne, noun, onSuccess }: UseBulkDeleteOptio
   };
 
   const deleteCount = deleteTarget?.ids.length ?? 0;
-  const deleteTitle = deleteCount === 1 ? `Excluir ${noun.singular}?` : `Excluir ${deleteCount} ${plural(noun.singular)}?`;
+  const singleName = deleteCount === 1 ? getName?.(deleteTarget!.ids[0]!) : undefined;
+  const deleteTitle =
+    deleteCount === 1
+      ? `Excluir ${singleName ?? noun.singular}?`
+      : `Excluir ${deleteCount} ${plural(noun.singular)}?`;
 
   return {
     deleteTarget,

@@ -45,6 +45,17 @@ describe("PeersPage", () => {
     expect(screen.queryByRole("button", { name: "Falar com um colega" })).not.toBeInTheDocument();
   });
 
+  it("explains the anonymity guarantee before asking an unlinked médico to link, not only after", () => {
+    renderPeers();
+    const reassurance = screen.getByText(
+      "Médicos treinados para ouvir. Nem você nem seu par veem a identidade um do outro.",
+    );
+    const link = screen.getByRole("button", { name: "Vincular ao hospital" });
+    // The sentence that would make someone trust this enough to link is
+    // wasted if it only shows up after they've already decided to.
+    expect(reassurance.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("emits request-peer with the linked institutionId and sectorName when tapped", async () => {
     useInstitutionLinkStore.setState({ institutionId: "institution-1", institutionName: "Hospital Teste", sectorId: "sector-1", sectorName: "UTI", deviceSignalId: "device-1" });
     const user = userEvent.setup();

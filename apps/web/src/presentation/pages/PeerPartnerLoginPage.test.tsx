@@ -30,6 +30,7 @@ describe("PeerPartnerLoginPage", () => {
     vi.spyOn(container.loginPeerPartnerUseCase, "execute").mockResolvedValue({
       token: "abc.def",
       expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      peerPartnerName: "Dra. Ana",
     });
     const user = userEvent.setup();
     renderPage();

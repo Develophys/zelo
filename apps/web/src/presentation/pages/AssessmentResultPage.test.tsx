@@ -1,11 +1,13 @@
+import { StrictMode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { AssessmentResultPage } from "./AssessmentResultPage";
+import { useToastStore } from "@/stores/toast.store";
 
-function renderResult(state: unknown) {
-  return render(
+function renderResult(state: unknown, { strict = false }: { strict?: boolean } = {}) {
+  const tree = (
     <MemoryRouter initialEntries={[{ pathname: "/assessment/result", state }]}>
       <Routes>
         <Route path="/assessment/result" element={<AssessmentResultPage />} />
@@ -14,13 +16,15 @@ function renderResult(state: unknown) {
         <Route path="/crisis" element={<div>Crisis screen</div>} />
         <Route path="/home" element={<div>Home screen</div>} />
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter>
   );
+  return render(strict ? <StrictMode>{tree}</StrictMode> : tree);
 }
 
 describe("AssessmentResultPage", () => {
   beforeEach(() => {
     sessionStorage.clear();
+    useToastStore.getState().clear();
   });
 
   it("renders the score, band, and 'sinal, não diagnóstico' reframe copy", () => {
@@ -47,6 +51,23 @@ describe("AssessmentResultPage", () => {
   it("redirects to /assessment when there is no navigation state (deep link or refresh)", async () => {
     renderResult(null);
     expect(await screen.findByText("Assessment select screen")).toBeInTheDocument();
+  });
+
+  it("explains the redirect with a toast, instead of silently bouncing", async () => {
+    renderResult(null);
+    await screen.findByText("Assessment select screen");
+    expect(useToastStore.getState().toasts).toEqual([
+      expect.objectContaining({
+        tone: "info",
+        message: "Não encontramos um resultado para mostrar. Comece uma nova autoavaliação.",
+      }),
+    ]);
+  });
+
+  it("shows the redirect toast only once under StrictMode's double-invoked effects", async () => {
+    renderResult(null, { strict: true });
+    await screen.findByText("Assessment select screen");
+    expect(useToastStore.getState().toasts).toHaveLength(1);
   });
 
   it("opens the encryption info modal when the on-device stamp is tapped", async () => {

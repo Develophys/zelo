@@ -61,11 +61,12 @@ export function BottomNav() {
           aria-expanded={open}
           aria-current={isMoreActive ? 'page' : undefined}
           onClick={() => setOpen((previous) => !previous)}
-          className={`flex min-h-11 min-w-11 items-center justify-center rounded-control transition-colors duration-150 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+          className={`flex min-h-11 min-w-11 flex-col items-center justify-center gap-1 rounded-control transition-colors duration-150 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
             isMoreActive ? 'text-brand' : 'text-muted'
           }`}
         >
           {open ? <ArrowDown size={22} aria-hidden="true" /> : <ArrowUp size={22} aria-hidden="true" />}
+          <span className="font-sans text-nav font-semibold">Mais</span>
         </button>
       </div>
 

@@ -177,6 +177,7 @@ export function ManagerAdminSectorsPage() {
     deleteOne: (id) => deleteSector.mutateAsync(id),
     noun: { singular: "setor" },
     onSuccess: () => selection.clear(),
+    getName: (id) => sectorList.find((sector) => sector.id === id)?.name,
   });
 
   const bulkStatus = useBulkStatusUpdate({

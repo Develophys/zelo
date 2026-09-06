@@ -29,6 +29,12 @@ describe("BottomNav", () => {
     expect(screen.getByText("Início").closest("a")).toHaveClass("text-muted");
   });
 
+  it("labels the overflow toggle visibly, like every other tab, instead of only an icon", () => {
+    renderNav();
+    const toggle = screen.getByRole("button", { name: "Mais opções" });
+    expect(toggle).toHaveTextContent("Mais");
+  });
+
   it("links each tab straight at its route, with no handler to wire up", () => {
     renderNav();
     expect(screen.getByRole("link", { name: /check-in/i })).toHaveAttribute(

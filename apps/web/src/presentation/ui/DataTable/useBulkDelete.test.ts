@@ -4,8 +4,12 @@ import { useBulkDelete } from './useBulkDelete';
 import { AdminDeleteConflictError } from '@/ports/manager-admin.port';
 import { useToastStore } from '@/stores/toast.store';
 
-function setup(deleteOne: (id: string) => Promise<unknown>, onSuccess?: () => void) {
-  return renderHook(() => useBulkDelete({ deleteOne, noun: { singular: 'gestor' }, onSuccess }));
+function setup(
+  deleteOne: (id: string) => Promise<unknown>,
+  onSuccess?: () => void,
+  getName?: (id: string) => string | undefined,
+) {
+  return renderHook(() => useBulkDelete({ deleteOne, noun: { singular: 'gestor' }, onSuccess, getName }));
 }
 
 beforeEach(() => {
@@ -29,6 +33,24 @@ describe('useBulkDelete — dialog state', () => {
 
     act(() => result.current.openDeleteConfirm(['a', 'b', 'c']));
     expect(result.current.deleteTitle).toBe('Excluir 3 gestores?');
+  });
+
+  it('names the single target when a name resolver is given, instead of the anonymous noun', () => {
+    const { result } = setup(vi.fn(), undefined, (id) => (id === 'a' ? 'Dra. Camila Rocha' : undefined));
+    act(() => result.current.openDeleteConfirm(['a']));
+    expect(result.current.deleteTitle).toBe('Excluir Dra. Camila Rocha?');
+  });
+
+  it('falls back to the anonymous noun when the resolver has no name for that id', () => {
+    const { result } = setup(vi.fn(), undefined, () => undefined);
+    act(() => result.current.openDeleteConfirm(['a']));
+    expect(result.current.deleteTitle).toBe('Excluir gestor?');
+  });
+
+  it('keeps the plural count title even with a name resolver, for a multi-row delete', () => {
+    const { result } = setup(vi.fn(), undefined, (id) => (id === 'a' ? 'Dra. Camila Rocha' : undefined));
+    act(() => result.current.openDeleteConfirm(['a', 'b']));
+    expect(result.current.deleteTitle).toBe('Excluir 2 gestores?');
   });
 
   it('closes and clears any pending message on close', () => {

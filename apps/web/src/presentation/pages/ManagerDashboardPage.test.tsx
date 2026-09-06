@@ -548,6 +548,26 @@ describe("ManagerDashboardPage", () => {
     expect(todos).toHaveAttribute('aria-pressed', 'false');
   });
 
+  it('shows every individual sector pill unpressed while Todos covers them, so five identical filled pills do not read as five active filters', async () => {
+    const user = userEvent.setup();
+    renderManager();
+    await waitFor(() => expect(screen.getByText('Plantão noturno')).toBeInTheDocument());
+
+    const pills = within(screen.getByTestId('sector-filter-pills'));
+    expect(pills.getByRole('button', { name: 'Todos' })).toHaveAttribute('aria-pressed', 'true');
+    expect(pills.getByRole('button', { name: 'Enfermagem' })).toHaveAttribute('aria-pressed', 'false');
+    expect(pills.getByRole('button', { name: 'Fisioterapia' })).toHaveAttribute('aria-pressed', 'false');
+
+    // Once the manager actually narrows the view, the sectors still in the
+    // filter should read as pressed again — this is about the resting
+    // "everything" state, not about pills losing their selected look
+    // altogether. Clicking Enfermagem from "Todos" unchecks it, leaving
+    // Fisioterapia as the narrowed selection (existing toggle semantics).
+    await user.click(pills.getByRole('button', { name: 'Enfermagem' }));
+    expect(pills.getByRole('button', { name: 'Enfermagem' })).toHaveAttribute('aria-pressed', 'false');
+    expect(pills.getByRole('button', { name: 'Fisioterapia' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
   // Anonymity is a property of the whole panel, not a filter the manager can turn off.
   it('offers no anonymity toggle in the filter', async () => {
     renderManager();
@@ -709,5 +729,19 @@ describe("ManagerDashboardPage", () => {
     // A coordinator scanning for the worst sector should not be scanning for
     // the longest bar in the brand's affirmative colour.
     expect(screen.getByText("Pico")).toBeInTheDocument();
+  });
+
+  it("prints each week's percentage above the desktop bars, not just the mobile rows", async () => {
+    renderManager();
+    await waitFor(() => expect(screen.getAllByTestId("trend-bar")).toHaveLength(2));
+
+    const values = screen.getAllByTestId("trend-bar-value");
+    expect(values.map((el) => el.textContent)).toEqual(["30%", "50%"]);
+    // A 20-point swing collapsing into an h-14 bar is unreadable without the
+    // number — that's the whole reason this label exists — so it must render
+    // for the desktop layout (md:flex), not be hidden there (md:hidden).
+    const desktopRow = values[0]!.parentElement;
+    expect(desktopRow?.className).toContain("md:flex");
+    expect(desktopRow?.className).not.toContain("md:hidden");
   });
 });

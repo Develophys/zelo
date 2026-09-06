@@ -149,7 +149,7 @@ function SectorFilter({ sectors, selectedSectorIds, onChange }: SectorFilterProp
       <div data-testid="sector-filter-pills" className="hidden md:flex">
         <SectorPillPicker
           sectors={sectors}
-          selectedIds={effectiveSelected}
+          selectedIds={allSelected ? [] : effectiveSelected}
           onToggle={toggleSector}
           emptyHref={routes.managerAdminSectors}
           emptyLabel="Cadastrar um setor"
@@ -282,6 +282,17 @@ export function ManagerDashboardPage() {
                   </div>
                 ) : (
                   <>
+                    <div className="hidden gap-2 md:flex" aria-hidden="true">
+                      {weeklyTrend.map((point, index) => (
+                        <span
+                          key={index}
+                          data-testid="trend-bar-value"
+                          className="w-full text-center font-mono text-mono-data text-muted-2"
+                        >
+                          {Math.round(point.concerningRate * 100)}%
+                        </span>
+                      ))}
+                    </div>
                     <div className="mt-auto hidden h-14 items-end gap-2 md:flex" aria-hidden="true">
                       {bars.map((bar, index) => (
                         <div

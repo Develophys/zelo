@@ -80,4 +80,35 @@ describe('HistoryChartCard', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.queryByTestId('skeleton')).not.toBeInTheDocument();
   });
+
+  it('drops the Mais recente/Pico legend when no bar actually uses those colors, and explains why the chart is flat', async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, 'execute').mockResolvedValue(SIX_NULL_POINTS);
+
+    renderCard();
+    await waitFor(() => expect(screen.queryAllByTestId('history-bar')).toHaveLength(6));
+
+    // A legend naming colors that never appear on the chart reads as broken,
+    // not empty — so it should not render at all here.
+    expect(screen.queryByText('Mais recente')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pico')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Faça seu primeiro check-in para ver sua tendência aqui.'),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the legend once there is at least one real reading to point at', async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, 'execute').mockResolvedValue([
+      ...SIX_NULL_POINTS.slice(0, 5),
+      { weekStart: '2026-08-01T00:00:00.000Z', severityFraction: 0.4 },
+    ]);
+
+    renderCard();
+    await waitFor(() => expect(screen.queryAllByTestId('history-bar')).toHaveLength(6));
+
+    expect(screen.getByText('Mais recente')).toBeInTheDocument();
+    expect(screen.getByText('Pico')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Faça seu primeiro check-in para ver sua tendência aqui.'),
+    ).not.toBeInTheDocument();
+  });
 });

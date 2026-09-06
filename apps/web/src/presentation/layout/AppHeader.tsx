@@ -32,7 +32,7 @@ function AppHeaderLogo() {
     <Link
       to={routes.home}
       aria-label="Zelo"
-      className="flex min-h-9 min-w-9 flex-none items-center justify-center rounded-icon md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+      className="flex min-h-11 min-w-11 flex-none items-center justify-center rounded-icon md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
     >
       <span className="flex h-9 w-9 items-center justify-center rounded-icon bg-brand-fill">
         {logoFailed ? (

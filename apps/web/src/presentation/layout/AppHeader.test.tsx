@@ -49,6 +49,13 @@ describe('AppHeader', () => {
     expect(screen.getByRole('link', { name: 'Zelo' })).toHaveAttribute('href', routes.home);
   });
 
+  it('gives the mobile logo a full 44px tap target, not just its 36px visual mark', () => {
+    mount(routes.you);
+    const link = screen.getByRole('link', { name: 'Zelo' });
+    expect(link.className).toContain('min-h-11');
+    expect(link.className).toContain('min-w-11');
+  });
+
   it('hides the mark once a back button already occupies the mobile header', () => {
     render(
       <MemoryRouter initialEntries={[routes.you]}>

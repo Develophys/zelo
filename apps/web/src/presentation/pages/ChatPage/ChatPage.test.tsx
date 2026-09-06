@@ -490,6 +490,15 @@ describe('ChatPage', () => {
     expect(screen.getByText('Crisis offer screen')).toBeInTheDocument();
   });
 
+  it('keeps the collapsed shortcut personal, not just "Pessoa real", right where escalation matters most', async () => {
+    const user = userEvent.setup();
+    renderChat();
+
+    await user.click(screen.getByRole('button', { name: /recolher atalhos/i }));
+
+    expect(screen.getByRole('button', { name: HANDOFF_LABEL })).toHaveTextContent('Falar com alguém');
+  });
+
   it('warns as the message approaches the 2000-character cap instead of silently truncating it', async () => {
     renderChat();
     const input = screen.getByPlaceholderText('Escreva como você está…');

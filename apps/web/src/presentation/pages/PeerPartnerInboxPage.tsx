@@ -13,6 +13,7 @@ import { usePeerPartnerConnection } from "@/presentation/hooks/usePeerPartnerCon
 
 export function PeerPartnerInboxPage() {
   const token = usePeerPartnerSessionStore((state) => state.token);
+  const peerPartnerName = usePeerPartnerSessionStore((state) => state.peerPartnerName);
   const { state, incomingRequest, secondsRemaining, messages, peerLeft, accept, decline, sendMessage, leave, reconnect } = usePeerPartnerConnection(token);
 
   return (
@@ -39,6 +40,7 @@ export function PeerPartnerInboxPage() {
         <Card className="flex items-center gap-3">
           <IconBadge icon={Wifi} tone="brand" />
           <div className="min-w-0">
+            {peerPartnerName && <p className="text-label font-extrabold text-ink">Olá, {peerPartnerName}</p>}
             <Pill tone="positive">Conectado</Pill>
             <p className="mt-1 text-label text-muted">Conectado, aguardando solicitações.</p>
           </div>

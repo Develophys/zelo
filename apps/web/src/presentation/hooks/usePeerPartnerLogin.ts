@@ -13,7 +13,7 @@ export function usePeerPartnerLogin() {
   return useMutation({
     mutationFn: ({ email, password }: LoginVariables) => loginPeerPartnerUseCase.execute(email, password),
     onSuccess: (result) => {
-      setSession(result.token, result.expiresAt);
+      setSession(result.token, result.expiresAt, result.peerPartnerName);
     },
   });
 }

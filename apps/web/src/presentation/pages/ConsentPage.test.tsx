@@ -32,6 +32,14 @@ describe("ConsentPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("numbers the three rows instead of a green checkmark, so nothing on this LGPD screen reads as an already-ticked box", () => {
+    renderConsent();
+    expect(screen.getByText("1")).toBeInTheDocument();
+    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(document.querySelector(".lucide-check")).not.toBeInTheDocument();
+  });
+
   it("grants consent and navigates to /home when accepted", async () => {
     renderConsent();
     await userEvent.click(screen.getByRole("button", { name: "Aceitar e entrar" }));

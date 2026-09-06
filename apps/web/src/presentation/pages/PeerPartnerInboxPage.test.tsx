@@ -36,7 +36,7 @@ describe("PeerPartnerInboxPage", () => {
     emitSpy.mockClear();
     disconnectSpy.mockClear();
     sessionStorage.clear();
-    usePeerPartnerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString());
+    usePeerPartnerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString(), "Dra. Camila Rocha");
   });
 
   it("shows the idle connected state once the socket reports it is connected", async () => {
@@ -45,6 +45,14 @@ describe("PeerPartnerInboxPage", () => {
       handlers["connect"]?.();
     });
     expect(screen.getByText("Conectado, aguardando solicitações.")).toBeInTheDocument();
+  });
+
+  it("greets the logged-in peer partner by name, instead of leaving the connected card anonymous", async () => {
+    renderPage();
+    await act(async () => {
+      handlers["connect"]?.();
+    });
+    expect(screen.getByText("Olá, Dra. Camila Rocha")).toBeInTheDocument();
   });
 
   it("renders the accept/decline card on an incoming request, showing sectorName", async () => {

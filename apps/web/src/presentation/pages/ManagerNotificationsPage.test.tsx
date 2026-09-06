@@ -73,6 +73,31 @@ describe("ManagerNotificationsPage", () => {
     expect(screen.getByText("Não lida")).toBeInTheDocument();
   });
 
+  it("does not tint good news the same amber as a failure, even though both are unread", async () => {
+    const goodNews = { ...UNREAD, id: "n-good", type: "INVITE_ACCEPTED" as const };
+    const badNews = {
+      id: "n-bad",
+      type: "INVITE_EMAIL_FAILED" as const,
+      payload: { email: "paulo@zelo-demo.local" },
+      sectorName: null,
+      readAt: null,
+      createdAt: "2026-08-20T10:00:00.000Z",
+    };
+    vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
+      items: [goodNews, badNews],
+      nextCursor: null,
+      total: 2,
+    });
+    vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(2);
+
+    renderPage();
+
+    const goodRow = await screen.findByRole("button", { name: /Convite aceito/ });
+    const badRow = screen.getByRole("button", { name: /Falha no envio/ });
+    expect(goodRow.className).not.toContain("border-warn");
+    expect(badRow.className).toContain("border-warn");
+  });
+
   it("carries read/unread state in the row's accessible name, not only its visible pill", async () => {
     vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
       items: [UNREAD, READ],

@@ -229,7 +229,7 @@ describe("ManagerAdminSectorsPage", () => {
     await user.click(await screen.findByRole('checkbox', { name: 'Selecionar UTI' }));
     await user.click(screen.getByRole('button', { name: 'Excluir' }));
 
-    const dialog = within(await screen.findByRole('dialog', { name: 'Excluir setor?' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Excluir UTI?' }));
     await user.click(dialog.getByRole('button', { name: 'Excluir' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -264,8 +264,8 @@ describe("ManagerAdminSectorsPage", () => {
       '1 de 2 excluídos. Este setor tem histórico de check-ins e não pode ser excluído. Pause-o para tirá-lo do painel.',
     );
     // The dialog narrows to just the still-failing sector, so a retry
-    // doesn't re-attempt the one that already succeeded.
-    expect(screen.getByRole('dialog', { name: 'Excluir setor?' })).toBeInTheDocument();
+    // doesn't re-attempt the one that already succeeded — and now names it.
+    expect(screen.getByRole('dialog', { name: 'Excluir Pronto-Socorro?' })).toBeInTheDocument();
 
     deleteSpy.mockClear();
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' }));
@@ -327,7 +327,7 @@ describe("ManagerAdminSectorsPage", () => {
 
     await user.click(await screen.findByRole('checkbox', { name: 'Selecionar UTI' }));
     await user.click(screen.getByRole('button', { name: 'Excluir' }));
-    const dialog = within(await screen.findByRole('dialog', { name: 'Excluir setor?' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Excluir UTI?' }));
     await user.click(dialog.getByRole('button', { name: 'Excluir' }));
 
     await waitFor(() =>
