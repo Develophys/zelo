@@ -45,7 +45,7 @@ describe("SweepLapsedInvitesUseCase", () => {
     expect(publisher.events[0]).toEqual({
       institutionId: "institution-1",
       type: "INVITE_EXPIRED",
-      payload: { kind: "manager", name: "Ana" },
+      payload: { kind: "manager", id: "manager-1", name: "Ana" },
       dedupKey: "invite-expired:manager:manager-1:2026-08-20T12:00:00.000Z",
     });
   });

@@ -33,7 +33,7 @@ export class SweepLapsedInvitesUseCase {
       await this.notifications.publish({
         institutionId: account.institutionId,
         type: "INVITE_EXPIRED",
-        payload: { kind: account.kind, name: account.name },
+        payload: { kind: account.kind, id: account.id, name: account.name },
         dedupKey: `invite-expired:${account.kind}:${account.id}:${account.setPasswordTokenExpiresAt.toISOString()}`,
       });
     }
