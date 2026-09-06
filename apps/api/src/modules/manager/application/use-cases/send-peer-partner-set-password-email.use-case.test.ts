@@ -106,6 +106,7 @@ describe("SendPeerPartnerSetPasswordEmailUseCase", () => {
     expect(notifications.events[0]!.type).toBe("INVITE_EMAIL_FAILED");
     expect(notifications.events[0]!.payload).toMatchObject({
       kind: "peer-partner",
+      id: "peer-1",
       name: "Dra. Ana",
       email: "ana@zelo-demo.local",
     });

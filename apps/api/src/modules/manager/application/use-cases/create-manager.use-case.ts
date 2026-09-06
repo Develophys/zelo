@@ -78,7 +78,7 @@ export class CreateManagerUseCase {
           this.notifications.publish({
             institutionId: input.institutionId,
             type: "INVITE_EMAIL_FAILED",
-            payload: { kind: "manager", name: manager.name, email: manager.email, reason },
+            payload: { kind: "manager", id: manager.id, name: manager.name, email: manager.email, reason },
             dedupKey: `invite-email-failed:manager:${manager.id}:${new Date().toISOString()}`,
           }),
       },

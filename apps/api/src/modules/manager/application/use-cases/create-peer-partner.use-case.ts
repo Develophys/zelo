@@ -61,7 +61,7 @@ export class CreatePeerPartnerUseCase {
           this.notifications.publish({
             institutionId: input.institutionId,
             type: "INVITE_EMAIL_FAILED",
-            payload: { kind: "peer-partner", name: peerPartner.name, email: peerPartner.email, reason },
+            payload: { kind: "peer-partner", id: peerPartner.id, name: peerPartner.name, email: peerPartner.email, reason },
             dedupKey: `invite-email-failed:peer-partner:${peerPartner.id}:${new Date().toISOString()}`,
           }),
       },

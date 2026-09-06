@@ -114,6 +114,7 @@ describe("SendManagerSetPasswordEmailUseCase", () => {
     expect(notifications.events[0]!.type).toBe("INVITE_EMAIL_FAILED");
     expect(notifications.events[0]!.payload).toMatchObject({
       kind: "manager",
+      id: "manager-1",
       name: "Ana Konder",
       email: "ana@zelo-demo.local",
     });

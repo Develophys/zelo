@@ -148,6 +148,7 @@ describe("CreateManagerUseCase", () => {
     expect(notifications.events[0]!.type).toBe("INVITE_EMAIL_FAILED");
     expect(notifications.events[0]!.payload).toMatchObject({
       kind: "manager",
+      id: result.manager.id,
       name: "Paulo",
       email: "paulo@zelo-demo.local",
     });

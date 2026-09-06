@@ -103,6 +103,7 @@ describe("CreatePeerPartnerUseCase", () => {
     expect(notifications.events[0]!.type).toBe("INVITE_EMAIL_FAILED");
     expect(notifications.events[0]!.payload).toMatchObject({
       kind: "peer-partner",
+      id: result.peerPartner.id,
       name: "Dra. Ana",
       email: "ana@zelo-demo.local",
     });
