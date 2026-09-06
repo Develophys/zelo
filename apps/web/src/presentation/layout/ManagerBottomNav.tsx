@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
-import { NavLink, useNavigate } from 'react-router';
+import { useRef, useState } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router';
 import { ChevronUp, LogOut } from 'lucide-react';
 import { routes } from '@/presentation/lib/routes';
 import { useManagerSessionStore } from '@/stores/manager-session.store';
 import { useManagerUnreadCount } from '@/presentation/hooks/useManagerNotifications';
 import { ManagerUnreadBadge } from './ManagerUnreadBadge';
+import { BottomSheetMenu, type BottomSheetMenuGroup } from './BottomSheetMenu';
 import {
   MANAGER_ADMIN_GROUP_LABEL,
   managerNavFor,
@@ -27,42 +28,35 @@ interface ManagerBottomNavProps {
  */
 export function ManagerBottomNav({ className = '' }: ManagerBottomNavProps) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const moreRef = useRef<HTMLButtonElement>(null);
   const unread = useManagerUnreadCount();
   const clearSession = useManagerSessionStore((state) => state.clearSession);
   const role = useManagerSessionStore((state) => state.role);
   const nav = managerNavFor(role);
+  const isMoreActive = [...nav.admin.map((item) => item.route), MANAGER_SETTINGS_NAV.route].some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
 
-  // showModal() puts the sheet in the top layer, which is what traps focus and
-  // restores it to the "Mais" button on close — all of it native, no ad-hoc
-  // focus bookkeeping to get subtly wrong.
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) {
-      dialog.showModal();
-      // Escape has to reach the sheet, and it only does if focus is inside it.
-      dialog.querySelector<HTMLElement>('a, button')?.focus();
-    } else if (!open && dialog.open) {
-      dialog.close();
-      moreRef.current?.focus();
-    }
-  }, [open]);
-
-  const closeThen = (action?: () => void) => () => {
-    setOpen(false);
-    action?.();
-  };
-
-  const dismissOnBackdrop = (event: MouseEvent<HTMLDialogElement>) => {
-    if (event.target === dialogRef.current) setOpen(false);
-  };
-
-  const dismissOnEscape = (event: KeyboardEvent<HTMLDialogElement>) => {
-    if (event.key === 'Escape') setOpen(false);
-  };
+  const groups: BottomSheetMenuGroup[] = [
+    { label: nav.showAdminGroup ? MANAGER_ADMIN_GROUP_LABEL : undefined, items: nav.admin },
+    {
+      items: [
+        MANAGER_SETTINGS_NAV,
+        {
+          id: 'logout',
+          label: 'Sair',
+          icon: LogOut,
+          danger: true,
+          onSelect: () => {
+            clearSession();
+            navigate(routes.managerLogin, { replace: true });
+          },
+        },
+      ],
+    },
+  ];
 
   return (
     <nav
@@ -97,7 +91,8 @@ export function ManagerBottomNav({ className = '' }: ManagerBottomNavProps) {
           onClick={() => setOpen((previous) => !previous)}
           aria-haspopup="dialog"
           aria-expanded={open}
-          className={`${SLOT_CLASS} cursor-pointer border-transparent text-muted`}
+          aria-current={isMoreActive ? 'page' : undefined}
+          className={`${SLOT_CLASS} cursor-pointer ${isMoreActive ? 'border-brand text-brand' : 'border-transparent text-muted'}`}
         >
           <ChevronUp
             size={22}
@@ -106,57 +101,13 @@ export function ManagerBottomNav({ className = '' }: ManagerBottomNavProps) {
         </button>
       </div>
 
-      <dialog
-        ref={dialogRef}
-        aria-label="Mais opções do painel"
-        onClick={dismissOnBackdrop}
-        onKeyDown={dismissOnEscape}
+      <BottomSheetMenu
+        open={open}
         onClose={() => setOpen(false)}
-        className="mt-auto mb-0 w-full max-w-none bg-transparent p-0 backdrop:bg-scrim/50"
-      >
-        <div className="rounded-t-card border-t border-surface-brand bg-surface p-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
-          <span aria-hidden="true" className="mx-auto mt-1 mb-3 block h-1 w-10 rounded-pill bg-track" />
-
-          {nav.showAdminGroup && (
-            <h2 className="px-3 pb-1 font-mono text-eyebrow text-muted uppercase">
-              {MANAGER_ADMIN_GROUP_LABEL}
-            </h2>
-          )}
-          {nav.admin.map(({ id, label, icon: Icon, route }) => (
-            <NavLink
-              key={id}
-              to={route}
-              onClick={closeThen()}
-              className="flex min-h-11 items-center gap-3 rounded-control px-3 py-nav-y font-sans text-label font-semibold text-ink hover:bg-canvas focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
-            >
-              <Icon size={20} aria-hidden="true" />
-              {label}
-            </NavLink>
-          ))}
-
-          <div className="mt-2 border-t border-surface-brand pt-2">
-            <NavLink
-              to={MANAGER_SETTINGS_NAV.route}
-              onClick={closeThen()}
-              className="flex min-h-11 items-center gap-3 rounded-control px-3 py-nav-y font-sans text-label font-semibold text-ink hover:bg-canvas focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
-            >
-              <MANAGER_SETTINGS_NAV.icon size={20} />
-              {MANAGER_SETTINGS_NAV.label}
-            </NavLink>
-            <button
-              type="button"
-              onClick={closeThen(() => {
-                clearSession();
-                navigate(routes.managerLogin, { replace: true });
-              })}
-              className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-control px-3 py-nav-y font-sans text-label font-semibold text-danger hover:bg-danger-bg focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
-            >
-              <LogOut size={20} aria-hidden="true" />
-              Sair
-            </button>
-          </div>
-        </div>
-      </dialog>
+        returnFocusRef={moreRef}
+        ariaLabel="Mais opções do painel"
+        groups={groups}
+      />
     </nav>
   );
 }

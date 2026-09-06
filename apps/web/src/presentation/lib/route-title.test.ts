@@ -28,10 +28,12 @@ describe('titleForPathname', () => {
   });
 
   // The splash screen has no page of its own to name, the redirect-only
-  // /manager/admin never renders, and the catch-all fallback's title is
-  // whatever it was on the page the broken link came from — the plain "Zelo"
-  // default suits it as well as anything.
-  const NO_TITLE_NEEDED = [routes.splash, routes.managerAdmin, '/*'];
+  // /manager/admin never renders, the catch-all fallback's title is whatever
+  // it was on the page the broken link came from, and the finish-setup links
+  // carry a real token in place of :token — an exact-pathname lookup can
+  // never match them — so the plain "Zelo" default suits all four as well as
+  // anything.
+  const NO_TITLE_NEEDED = [routes.splash, routes.managerAdmin, routes.managerFinishSetup, routes.peerPartnerFinishSetup, '/*'];
 
   it('covers every route the app actually serves, aside from the ones with nothing to name', () => {
     const uncovered = ROUTE_PATHS.filter(

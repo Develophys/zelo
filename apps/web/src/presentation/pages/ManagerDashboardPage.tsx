@@ -282,7 +282,7 @@ export function ManagerDashboardPage() {
                   </div>
                 ) : (
                   <>
-                    <div className="mt-auto flex h-14 items-end gap-2" aria-hidden="true">
+                    <div className="mt-auto hidden h-14 items-end gap-2 md:flex" aria-hidden="true">
                       {bars.map((bar, index) => (
                         <div
                           key={index}
@@ -300,7 +300,7 @@ export function ManagerDashboardPage() {
                         />
                       ))}
                     </div>
-                    <div className="mt-1.5 flex gap-2" aria-hidden="true">
+                    <div className="mt-1.5 hidden gap-2 md:flex" aria-hidden="true">
                       {weeklyTrend.map((point, index) => (
                         <span
                           key={index}
@@ -309,6 +309,35 @@ export function ManagerDashboardPage() {
                           {weekLabel(point.weekStart)}
                         </span>
                       ))}
+                    </div>
+                    <div className="mt-auto flex flex-col gap-2 md:hidden" aria-hidden="true">
+                      {weeklyTrend.map((point, index) => {
+                        const bar = bars[index]!;
+                        return (
+                          <div key={index} className="flex items-center gap-2">
+                            <span className="w-19 shrink-0 whitespace-nowrap font-mono text-mono-data text-muted-2">
+                              {weekLabel(point.weekStart)}
+                            </span>
+                            <div className="h-2 flex-1 overflow-hidden rounded-pill bg-canvas-alt">
+                              <div
+                                className={`h-full rounded-pill ${
+                                  bar.isZero
+                                    ? "bg-track"
+                                    : index === peakWeek
+                                      ? "bg-warn"
+                                      : index === weeklyTrend.length - 1
+                                        ? "bg-brand"
+                                        : "bg-track"
+                                }`}
+                                style={{ width: `${bar.height}%` }}
+                              />
+                            </div>
+                            <span className="w-9 shrink-0 text-right font-mono text-mono-data text-muted-2">
+                              {Math.round(point.concerningRate * 100)}%
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                     {/* Without this the colours are a guess. Same legend the
                         médico's own chart already carries. */}
@@ -351,9 +380,9 @@ export function ManagerDashboardPage() {
                 <div className="mt-3 flex flex-col gap-3" aria-hidden="true">
                   {segments.map((segment) => (
                     <div key={segment.label}>
-                      <div className="flex items-center justify-between text-label text-ink-2">
-                        <span>{segment.label}</span>
-                        <span className="font-mono text-mono-data text-muted-2">
+                      <div className="flex items-center justify-between gap-2 text-label text-ink-2">
+                        <span className="min-w-0 truncate">{segment.label}</span>
+                        <span className="shrink-0 font-mono text-mono-data text-muted-2">
                           {segment.value}% · {segment.n} {segment.n === 1 ? "resposta" : "respostas"}
                         </span>
                       </div>

@@ -252,7 +252,7 @@ describe("ManagerAdminManagersPage", () => {
     expect(updateSpy).not.toHaveBeenCalled();
   });
 
-  it('anchors + Adicionar gestor to the right of the table\'s own search row', async () => {
+  it('anchors + Adicionar gestor to the right of the table\'s own search row on desktop, and its own full-width row on top on a phone', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
     renderPage();
@@ -261,6 +261,8 @@ describe("ManagerAdminManagersPage", () => {
     const slot = within(toolbar).getByTestId('data-table-toolbar-action');
     expect(within(slot).getByRole('button', { name: '+ Adicionar gestor' })).toBeInTheDocument();
     expect(slot.className).toContain('ml-auto');
+    expect(slot.className).toContain('max-md:order-first');
+    expect(slot.className).toContain('max-md:basis-full');
     expect(document.querySelector('hr')).toBeNull();
   });
 
@@ -302,10 +304,13 @@ describe("ManagerAdminManagersPage", () => {
     // toolbar doesn't gate on load), so wait on the row checkbox instead —
     // it only exists once the manager has actually loaded.
     await screen.findByRole('checkbox', { name: 'Selecionar Ana' });
-    const toolbar = screen.getByRole('checkbox', { name: 'Selecionar todos' }).closest('div')!;
-    const before = toolbar.className;
+    const toolbar = screen.getByTestId('data-table-toolbar');
+    expect(toolbar.className).toContain('h-14');
+
     await user.click(screen.getByRole('checkbox', { name: 'Selecionar Ana' }));
-    expect(toolbar.className).toBe(before);
+
+    // The gap tightens once a selection is live (there is more to fit in the
+    // same row), but the row itself never grows or shrinks.
     expect(toolbar.className).toContain('h-14');
   });
 
@@ -632,20 +637,20 @@ describe("ManagerAdminManagersPage", () => {
     expect(within(await screen.findByRole('table')).getByText('Ana')).toBeInTheDocument();
   });
 
-  it('collapses the add button to "+" on phones while selecting, without losing its name', async () => {
+  it('keeps the add button at its full name while selecting, stretched full width on a phone', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
       { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
+    const user = userEvent.setup();
     renderPage();
 
     const add = await screen.findByRole('button', { name: '+ Adicionar gestor' });
-    const label = within(add).getByText('Adicionar gestor');
+    expect(add.className).toContain('max-md:w-full');
 
-    // sr-only, never hidden: the button still has to announce what it adds when
-    // only the "+" is drawn.
-    expect(label.className).toContain('max-md:group-data-[selecting=true]/action:sr-only');
-    expect(label.className).not.toContain('hidden');
+    await user.click(screen.getByRole('checkbox', { name: 'Selecionar todos' }));
+
+    expect(screen.getByRole('button', { name: '+ Adicionar gestor' })).toBeInTheDocument();
   });
   it("does not open the sector picker before the sector list has arrived, so a slow fetch cannot look like no assignment", async () => {
     vi.spyOn(container.listSectorsUseCase, "execute").mockReturnValue(new Promise(() => {}));

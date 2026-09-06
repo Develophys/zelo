@@ -34,6 +34,8 @@ const IN_SCOPE = [
   routes.managerAdminManagers,
   routes.managerAdminSectors,
   routes.managerAdminPeers,
+  routes.peerPartnerInbox,
+  routes.peerPartnerSettings,
 ];
 
 const OUT_OF_SCOPE = [
@@ -46,7 +48,6 @@ const OUT_OF_SCOPE = [
   routes.admin,
   routes.peerPartnerLogin,
   routes.peerPartnerFinishSetup,
-  routes.peerPartnerInbox,
 ];
 
 describe('APP_HEADER_META', () => {
@@ -65,8 +66,11 @@ describe('APP_HEADER_META', () => {
     expect(orphans).toEqual([]);
   });
 
-  it('has no param route, which an exact pathname lookup could not resolve', () => {
-    expect(ROUTE_PATHS.filter((path) => path.includes(':'))).toEqual([]);
+  it('has no in-scope param route, which an exact pathname lookup could not resolve', () => {
+    // The two finish-setup links carry a real token in place of :token and are
+    // already out of scope above — no header ever needs to resolve for them.
+    const paramRoutes = ROUTE_PATHS.filter((path) => path.includes(':'));
+    expect(paramRoutes).toEqual([routes.managerFinishSetup, routes.peerPartnerFinishSetup]);
   });
 
   /**

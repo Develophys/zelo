@@ -36,4 +36,9 @@ describe("BackButton", () => {
     expect(button).toHaveClass("min-h-11", "min-w-11");
     expect(button).toHaveClass("focus-visible:ring-2");
   });
+
+  it("centers the icon in the hit target, rather than leaving the padding lopsided on one side", () => {
+    render(<BackButton onClick={vi.fn()} />);
+    expect(screen.getByRole("button")).toHaveClass("justify-center");
+  });
 });

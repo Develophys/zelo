@@ -1,8 +1,8 @@
 import { useState, type SubmitEvent } from "react";
-import { useSearchParams } from "react-router";
+import { useParams } from "react-router";
 import { Button } from "@/presentation/ui/Button";
 import { Card } from "@/presentation/ui/Card";
-import { TextField } from "@/presentation/ui/TextField";
+import { PasswordField } from "@/presentation/ui/PasswordField";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -12,8 +12,7 @@ export interface FinishSetupFormProps {
 }
 
 export function FinishSetupForm({ onSubmit, onSuccess }: FinishSetupFormProps) {
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get("token") ?? "";
+  const { token = "" } = useParams();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isPending, setIsPending] = useState(false);
@@ -49,9 +48,8 @@ export function FinishSetupForm({ onSubmit, onSuccess }: FinishSetupFormProps) {
           <label htmlFor="finish-setup-password" className="text-label font-semibold text-ink-2">
             Senha
           </label>
-          <TextField
+          <PasswordField
             id="finish-setup-password"
-            type="password"
             required
             minLength={MIN_PASSWORD_LENGTH}
             value={password}
@@ -65,9 +63,8 @@ export function FinishSetupForm({ onSubmit, onSuccess }: FinishSetupFormProps) {
           <label htmlFor="finish-setup-confirm-password" className="mt-4 block text-label font-semibold text-ink-2">
             Confirme a senha
           </label>
-          <TextField
+          <PasswordField
             id="finish-setup-confirm-password"
-            type="password"
             required
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ADMIN_NAV_ITEM, NAV_TABS } from "./nav-tabs";
+import { ADMIN_NAV_ITEM, NAV_TABS, PEER_PARTNER_NAV_ITEM } from "./nav-tabs";
 import { routes } from "@/presentation/lib/routes";
 
 describe("NAV_TABS", () => {
@@ -27,5 +27,17 @@ describe("ADMIN_NAV_ITEM", () => {
 
   it("is not part of the primary destinations", () => {
     expect(NAV_TABS.map((tab) => tab.id)).not.toContain(ADMIN_NAV_ITEM.id);
+  });
+});
+
+describe("PEER_PARTNER_NAV_ITEM", () => {
+  it("is a separate secondary destination pointing at the peer-partner login screen", () => {
+    expect(PEER_PARTNER_NAV_ITEM.id).toBe("peer-partner");
+    expect(PEER_PARTNER_NAV_ITEM.label).toBe("Par anônimo");
+    expect(PEER_PARTNER_NAV_ITEM.route).toBe(routes.peerPartnerLogin);
+  });
+
+  it("is not part of the primary destinations", () => {
+    expect(NAV_TABS.map((tab) => tab.id)).not.toContain(PEER_PARTNER_NAV_ITEM.id);
   });
 });

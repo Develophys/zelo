@@ -20,8 +20,9 @@ import { useCreatePeerPartner } from "@/presentation/hooks/useCreatePeerPartner"
 import { useUpdatePeerPartner } from "@/presentation/hooks/useUpdatePeerPartner";
 import { useSendPeerPartnerSetPasswordEmail } from "@/presentation/hooks/useSendPeerPartnerSetPasswordEmail";
 import { useDeletePeerPartner } from "@/presentation/hooks/useDeletePeerPartner";
+import { updateConflictMessage } from "@/ports/manager-admin.port";
 import type { PeerPartnerSummary } from "@/ports/manager-admin.port";
-import { Pencil, Mail, KeyRound } from "lucide-react";
+import { Pencil, Mail, KeyRound, Trash2 } from "lucide-react";
 
 const COLUMNS: DataTableColumn<PeerPartnerSummary>[] = [
   { key: "name", header: "Nome", width: "w-[21%]", cell: (row) => row.name },
@@ -55,7 +56,10 @@ export function ManagerAdminPeersPage() {
 
   const [formMode, setFormMode] = useState<"create" | "edit" | null>(null);
   const [editingPeerPartner, setEditingPeerPartner] = useState<PeerPartnerSummary | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
   const [editSpecialty, setEditSpecialty] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -98,13 +102,17 @@ export function ManagerAdminPeersPage() {
 
   const openEdit = (peerPartner: PeerPartnerSummary) => {
     setEditingPeerPartner(peerPartner);
+    setEditName(peerPartner.name);
+    setEditEmail(peerPartner.email);
     setEditSpecialty(peerPartner.specialty);
+    setEditError(null);
     setFormMode("edit");
   };
 
   const closeModal = () => {
     setFormMode(null);
     setEditingPeerPartner(null);
+    setEditError(null);
   };
 
   const handleCreateSubmit = () => {
@@ -121,9 +129,13 @@ export function ManagerAdminPeersPage() {
 
   const handleSaveEdit = () => {
     if (!editingPeerPartner) return;
+    setEditError(null);
     updatePeerPartner.mutate(
-      { id: editingPeerPartner.id, patch: { specialty: editSpecialty } },
-      { onSuccess: () => closeModal() },
+      { id: editingPeerPartner.id, patch: { name: editName, email: editEmail, specialty: editSpecialty } },
+      {
+        onSuccess: () => closeModal(),
+        onError: (error) => setEditError(updateConflictMessage(error) ?? "Não foi possível salvar. Tente de novo."),
+      },
     );
   };
 
@@ -144,7 +156,8 @@ export function ManagerAdminPeersPage() {
   };
 
   const isSubmitDisabled = name.trim().length === 0 || email.trim().length === 0 || specialty.trim().length === 0;
-  const isEditSubmitDisabled = editSpecialty.trim().length === 0;
+  const isEditSubmitDisabled =
+    editName.trim().length === 0 || editEmail.trim().length === 0 || editSpecialty.trim().length === 0;
 
   const renderRowActions = (peerPartner: PeerPartnerSummary) => {
     const status = accountStatusPill(peerPartner);
@@ -160,6 +173,12 @@ export function ManagerAdminPeersPage() {
           label={isInvite ? `Reenviar convite de ${peerPartner.name}` : `Redefinir senha de ${peerPartner.name}`}
           icon={isInvite ? <Mail size={16} aria-hidden="true" /> : <KeyRound size={16} aria-hidden="true" />}
           onClick={() => handleSendSetPasswordEmail(peerPartner)}
+        />
+        <IconButton
+          label={`Excluir ${peerPartner.name}`}
+          icon={<Trash2 size={16} aria-hidden="true" />}
+          variant="danger"
+          onClick={() => bulkDelete.openDeleteConfirm([peerPartner.id])}
         />
       </>
     );
@@ -187,14 +206,8 @@ export function ManagerAdminPeersPage() {
             search={search}
             onSearchChange={setSearch}
             action={
-              <Button variant="primary" size="sm" full={false} onClick={openCreate}>
-                +{' '}
-                {/* Collapses to the bare "+" on a phone while rows are selected,
-                    so the bulk actions keep the row. sr-only rather than hidden:
-                    the button must still announce what it adds. */}
-                <span className="max-md:group-data-[selecting=true]/action:sr-only">
-                  Adicionar par
-                </span>
+              <Button variant="primary" size="sm" full={false} className="max-md:w-full" onClick={openCreate}>
+                + Adicionar par
               </Button>
             }
             actions={
@@ -356,7 +369,30 @@ export function ManagerAdminPeersPage() {
         ) : (
           editingPeerPartner && (
             <>
-              <label htmlFor="peer-partner-edit-specialty-input" className="text-label font-semibold text-ink-2">
+              <label htmlFor="peer-partner-edit-name-input" className="text-label font-semibold text-ink-2">
+                Nome do par
+              </label>
+              <TextField
+                id="peer-partner-edit-name-input"
+                required
+                value={editName}
+                onChange={(event) => setEditName(event.target.value)}
+                className="mt-2"
+              />
+
+              <label htmlFor="peer-partner-edit-email-input" className="mt-4 block text-label font-semibold text-ink-2">
+                Email do par
+              </label>
+              <TextField
+                id="peer-partner-edit-email-input"
+                type="email"
+                required
+                value={editEmail}
+                onChange={(event) => setEditEmail(event.target.value)}
+                className="mt-2"
+              />
+
+              <label htmlFor="peer-partner-edit-specialty-input" className="mt-4 block text-label font-semibold text-ink-2">
                 Especialidade
               </label>
               <TextField
@@ -366,6 +402,12 @@ export function ManagerAdminPeersPage() {
                 onChange={(event) => setEditSpecialty(event.target.value)}
                 className="mt-2"
               />
+
+              {editError && (
+                <p role="alert" className="mt-2 text-label text-danger">
+                  {editError}
+                </p>
+              )}
             </>
           )
         )}

@@ -22,17 +22,17 @@ export function ManagerShell() {
   useManagerSessionExpiry();
 
   return (
-    <div className="flex min-h-dvh bg-surface md:h-dvh md:overflow-hidden">
+    <div className="flex h-dvh overflow-hidden bg-surface">
       <SkipToContentLink />
       <ManagerSidebar />
       {/* min-w-0 is load-bearing: without it a fixed-layout table's intrinsic
           width overflows this flex child and brings back the horizontal
           scrollbar the redesign exists to remove. */}
-      <div className="flex min-w-0 min-h-0 flex-1 flex-col">
+      <div className="flex min-w-0 min-h-0 flex-1 flex-col max-md:h-dvh max-md:overflow-hidden">
         <AppHeader className="sticky top-0 z-30" chrome="manager" />
         <main
           id={CONTENT_ID}
-          className="flex min-h-0 min-w-0 flex-1 flex-col px-6 pt-6 pb-20 md:overflow-y-auto md:pb-8"
+          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto px-6 pt-6 pb-20 md:pb-8"
         >
           <Outlet />
         </main>

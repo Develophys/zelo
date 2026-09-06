@@ -23,12 +23,12 @@ export const APP_HEADER_META: Record<string, AppHeaderMeta> = {
   [routes.crisisConnect]: { title: 'Falar com alguém' },
   [routes.crisisLine]: { title: 'Linha de crise' },
   [routes.peers]: { title: 'Pares anônimos', subtitle: 'Médicos treinados para ouvir.' },
-  [routes.you]: { title: 'Você', subtitle: 'Seu consentimento e sua privacidade.' },
+  [routes.you]: { title: 'Você', subtitle: 'Consentimento e privacidade' },
   [routes.linkInstitution]: { title: 'Vincular ao hospital' },
-  [routes.settings]: { title: 'Configurações', subtitle: 'Aparência do app neste dispositivo.' },
+  [routes.settings]: { title: 'Configurações', subtitle: 'Aparência do app.' },
   [routes.manager]: {
     title: 'Tendências',
-    subtitle: 'Indicadores agregados e anônimos do seu hospital.',
+    subtitle: 'Indicadores agregados e anônimos.',
   },
   [routes.managerNotifications]: {
     title: 'Notificações',
@@ -44,7 +44,7 @@ export const APP_HEADER_META: Record<string, AppHeaderMeta> = {
   },
   [routes.managerAdminManagers]: {
     title: 'Gestores',
-    subtitle: 'Quem tem acesso ao painel e a quais setores.',
+    subtitle: 'Acesso ao painel por setor.',
   },
   [routes.managerAdminSectors]: {
     title: 'Setores',
@@ -54,6 +54,11 @@ export const APP_HEADER_META: Record<string, AppHeaderMeta> = {
     title: 'Pares anônimos',
     subtitle: 'Profissionais disponíveis para acolhimento.',
   },
+  [routes.peerPartnerInbox]: {
+    title: 'Pares anônimos',
+    subtitle: 'Quem pede ajuda nunca se identifica.',
+  },
+  [routes.peerPartnerSettings]: { title: 'Configurações', subtitle: 'Aparência do app.' },
 };
 
 export function resolveAppHeaderMeta(pathname: string): AppHeaderMeta | null {

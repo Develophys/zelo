@@ -228,8 +228,8 @@ describe("ManagerDashboardPage", () => {
     await waitFor(() => {
       expect(screen.getAllByTestId("trend-bar")).toHaveLength(2);
     });
-    expect(screen.getByText("1 de jun.")).toBeInTheDocument();
-    expect(screen.getByText("8 de jun.")).toBeInTheDocument();
+    expect(screen.getAllByText("1 de jun.")).toHaveLength(2);
+    expect(screen.getAllByText("8 de jun.")).toHaveLength(2);
   });
 
   it("draws a zero week shorter than a real low week rather than at the same height", async () => {

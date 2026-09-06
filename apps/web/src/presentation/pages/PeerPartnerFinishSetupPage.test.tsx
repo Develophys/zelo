@@ -10,9 +10,9 @@ function renderPage() {
   const queryClient = new QueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={["/peer/finish-setup?token=abc123"]}>
+      <MemoryRouter initialEntries={["/peer/finish-setup/abc123"]}>
         <Routes>
-          <Route path="/peer/finish-setup" element={<PeerPartnerFinishSetupPage />} />
+          <Route path="/peer/finish-setup/:token" element={<PeerPartnerFinishSetupPage />} />
           <Route path="/peer/login" element={<div>Peer partner login screen</div>} />
         </Routes>
       </MemoryRouter>

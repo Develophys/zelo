@@ -195,7 +195,7 @@ describe('Sidebar administration section', () => {
     expect(screen.getByText('Administração')).not.toHaveClass('lg:block');
   });
 
-  it("offers Configurações above Administração in the ruled-off section", () => {
+  it("offers Configurações, Administração and Par anônimo in that order in the ruled-off section", () => {
     renderAt(routes.home);
     const section = screen.getByTestId("sidebar-admin-section");
     const links = within(section).getAllByRole("link");
@@ -203,6 +203,7 @@ describe('Sidebar administration section', () => {
     expect(links.map((link) => link.getAttribute("aria-label"))).toEqual([
       "Configurações",
       "Administração",
+      "Par anônimo",
     ]);
     expect(links[0]).toHaveAttribute("href", "/settings");
   });

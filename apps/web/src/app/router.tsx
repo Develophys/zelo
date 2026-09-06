@@ -31,6 +31,7 @@ import { AdminInstitutionsPage } from "@/presentation/pages/AdminInstitutionsPag
 import { PeerPartnerLoginPage } from "@/presentation/pages/PeerPartnerLoginPage";
 import { PeerPartnerFinishSetupPage } from "@/presentation/pages/PeerPartnerFinishSetupPage";
 import { PeerPartnerInboxPage } from "@/presentation/pages/PeerPartnerInboxPage";
+import { PeerPartnerSettingsPage } from "@/presentation/pages/PeerPartnerSettingsPage";
 import { useConsentStore } from "@/stores/consent.store";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { useAdminSessionStore } from "@/stores/admin-session.store";
@@ -119,7 +120,7 @@ export const routeChildren: RouteObject[] = [
     loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
   },
   { path: "manager/login", Component: ManagerLoginPage },
-  { path: "manager/finish-setup", Component: ManagerFinishSetupPage },
+  { path: "manager/finish-setup/:token", Component: ManagerFinishSetupPage },
   {
     // One layout route for the whole panel: the shell, and the session guard,
     // are declared once instead of being repeated on every manager screen.
@@ -161,10 +162,15 @@ export const routeChildren: RouteObject[] = [
     loader: () => (useAdminSessionStore.getState().isValid() ? null : redirect(routes.adminLogin)),
   },
   { path: "peer/login", Component: PeerPartnerLoginPage },
-  { path: "peer/finish-setup", Component: PeerPartnerFinishSetupPage },
+  { path: "peer/finish-setup/:token", Component: PeerPartnerFinishSetupPage },
   {
     path: "peer",
     Component: PeerPartnerInboxPage,
+    loader: () => (usePeerPartnerSessionStore.getState().isValid() ? null : redirect(routes.peerPartnerLogin)),
+  },
+  {
+    path: "peer/settings",
+    Component: PeerPartnerSettingsPage,
     loader: () => (usePeerPartnerSessionStore.getState().isValid() ? null : redirect(routes.peerPartnerLogin)),
   },
   // Last, so it only catches what nothing above matched. Without it a stale

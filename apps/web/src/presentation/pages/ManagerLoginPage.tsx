@@ -9,6 +9,7 @@ import { routes } from "@/presentation/lib/routes";
 import { useManagerLogin } from "@/presentation/hooks/useManagerLogin";
 import { InvalidManagerCredentialsError } from "@/ports/manager-auth.port";
 import { TextField } from "@/presentation/ui/TextField";
+import { PasswordField } from "@/presentation/ui/PasswordField";
 
 export function ManagerLoginPage() {
   const navigate = useNavigate();
@@ -62,9 +63,8 @@ export function ManagerLoginPage() {
             <label htmlFor="manager-password" className="mt-4 block text-label font-semibold text-ink-2">
               Senha
             </label>
-            <TextField
+            <PasswordField
               id="manager-password"
-              type="password"
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
@@ -95,7 +95,7 @@ export function ManagerLoginPage() {
 
         {/* There is no self-service reset: the set-password email can only be
             sent by a hospital admin, so the honest answer is who to ask. */}
-        <p className="mt-5 text-pretty text-caption text-muted">
+        <p className="mt-5 text-pretty text-center text-caption text-muted">
           Esqueceu a senha? Peça ao administrador do Zelo no seu hospital para reenviar o acesso.
         </p>
       </div>

@@ -20,7 +20,7 @@ describe('AppHeader', () => {
   it('renders the title and subtitle from the route table', () => {
     mount(routes.you);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Você');
-    expect(screen.getByText('Seu consentimento e sua privacidade.')).toBeInTheDocument();
+    expect(screen.getByText('Consentimento e privacidade')).toBeInTheDocument();
   });
 
   it('renders nothing on a route with no header', () => {
@@ -42,6 +42,44 @@ describe('AppHeader', () => {
       mount(path);
       expect(screen.queryByTestId('back-button')).not.toBeInTheDocument();
     });
+  });
+
+  it('shows the Zelo mark for mobile, where no back button already fills that slot', () => {
+    mount(routes.you);
+    expect(screen.getByRole('link', { name: 'Zelo' })).toHaveAttribute('href', routes.home);
+  });
+
+  it('hides the mark once a back button already occupies the mobile header', () => {
+    render(
+      <MemoryRouter initialEntries={[routes.you]}>
+        <Routes>
+          <Route path="*" element={<AppHeader back="always" />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('link', { name: 'Zelo' })).not.toBeInTheDocument();
+  });
+
+  it('also hides the mark when the back button only shows below md, matching where it appears', () => {
+    render(
+      <MemoryRouter initialEntries={[routes.you]}>
+        <Routes>
+          <Route path="*" element={<AppHeader back="below-md" />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('link', { name: 'Zelo' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the mark when the back button only shows from md up, since mobile still has nothing there', () => {
+    render(
+      <MemoryRouter initialEntries={[routes.you]}>
+        <Routes>
+          <Route path="*" element={<AppHeader back="from-md" />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: 'Zelo' })).toBeInTheDocument();
   });
 
   it('lets the override replace the title while the table keeps the subtitle', () => {
@@ -113,5 +151,31 @@ describe('AppHeader', () => {
       </MemoryRouter>,
     );
     expect(screen.getByTestId('app-header')).toHaveClass('sticky', 'top-0', 'z-30');
+  });
+
+  it('sends the back button to the médico home by default', async () => {
+    render(
+      <MemoryRouter initialEntries={[routes.you]}>
+        <Routes>
+          <Route path="*" element={<AppHeader back="always" />} />
+          <Route path={routes.home} element={<p>Início do médico</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await userEvent.click(screen.getByTestId('back-button'));
+    expect(await screen.findByText('Início do médico')).toBeInTheDocument();
+  });
+
+  it('sends the back button to a caller-supplied destination instead, for a chrome with no médico home', async () => {
+    render(
+      <MemoryRouter initialEntries={[routes.you]}>
+        <Routes>
+          <Route path="*" element={<AppHeader back="always" backTo={routes.peerPartnerInbox} />} />
+          <Route path={routes.peerPartnerInbox} element={<p>Início do parceiro</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await userEvent.click(screen.getByTestId('back-button'));
+    expect(await screen.findByText('Início do parceiro')).toBeInTheDocument();
   });
 });

@@ -274,14 +274,8 @@ export function ManagerAdminSectorsPage() {
             search={search}
             onSearchChange={setSearch}
             action={
-              <Button variant="primary" size="sm" full={false} onClick={openCreate}>
-                +{' '}
-                {/* Collapses to the bare "+" on a phone while rows are selected,
-                    so the bulk actions keep the row. sr-only rather than hidden:
-                    the button must still announce what it adds. */}
-                <span className="max-md:group-data-[selecting=true]/action:sr-only">
-                  Adicionar setor
-                </span>
+              <Button variant="primary" size="sm" full={false} className="max-md:w-full" onClick={openCreate}>
+                + Adicionar setor
               </Button>
             }
             actions={

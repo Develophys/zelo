@@ -63,15 +63,16 @@ describe('DataTableToolbar', () => {
     expect(screen.getByRole('button', { name: '+ Adicionar' })).toBeInTheDocument();
   });
 
-  // At 1440px the search and the bulk actions fit side by side twice over —
-  // only a phone has to choose between them.
-  it('keeps the search field mounted beside the bulk actions from md up, hiding it only on a phone', async () => {
+  // A sidebar and a not-quite-maximized window leave much less room than a
+  // full-width phone screenshot suggests — a fixed md:w-64 search field once
+  // clipped the bulk actions well above the phone breakpoint. Hiding it at
+  // every width, not just below md, is what actually guarantees the fit.
+  it('hides the search field at every width once a selection replaces it with the bulk actions', async () => {
     render(<Selectable actions={<button type="button">Excluir</button>} />);
     await userEvent.click(screen.getByLabelText('Selecionar todos'));
 
     const search = screen.getByRole('searchbox');
-    expect(search.closest('label')?.className).toContain('max-md:hidden');
-    expect(search.closest('label')?.className).toContain('md:w-64');
+    expect(search.closest('label')?.className).toContain('hidden');
     expect(screen.getByTestId('data-table-toolbar-actions')).toBeInTheDocument();
   });
 
@@ -82,7 +83,7 @@ describe('DataTableToolbar', () => {
     await user.click(screen.getByLabelText('Selecionar todos'));
 
     const search = screen.getByRole('searchbox');
-    expect(search.closest('label')?.className).not.toContain('max-md:hidden');
+    expect(search.closest('label')?.className).not.toContain('hidden');
     expect(search.closest('label')?.className).toContain('flex-1');
   });
 
@@ -105,7 +106,7 @@ describe('DataTableToolbar', () => {
     expect(screen.queryByTestId('data-table-toolbar-action')).not.toBeInTheDocument();
   });
 
-  it('keeps the row at one fixed height whichever branch is showing', () => {
+  it('keeps a fixed row height on desktop, and at least that height on a phone where actions can wrap', () => {
     render(
       <DataTableToolbar
         search=""
@@ -113,7 +114,12 @@ describe('DataTableToolbar', () => {
         action={<button type="button">Gerar análise</button>}
       />,
     );
-    expect(screen.getByTestId('data-table-toolbar')).toHaveClass('h-14', 'border-b', 'border-line');
+    expect(screen.getByTestId('data-table-toolbar')).toHaveClass(
+      'md:h-14',
+      'max-md:min-h-14',
+      'border-b',
+      'border-line',
+    );
   });
 
   it('states how many rows the bulk actions will act on', async () => {
@@ -154,7 +160,7 @@ describe('DataTableToolbar', () => {
     expect(input.className).toContain('max-md:bg-surface');
   });
 
-  it('keeps everything on one row, including on phones', async () => {
+  it('wraps the page action to its own row on a phone instead of scrolling the bulk actions out of sight', async () => {
     const user = userEvent.setup();
     render(
       <Selectable
@@ -165,11 +171,11 @@ describe('DataTableToolbar', () => {
     await user.click(screen.getByRole('checkbox', { name: 'Selecionar todos' }));
 
     const toolbar = screen.getByTestId('data-table-toolbar');
-    expect(toolbar.className).not.toContain('flex-wrap');
-    expect(screen.getByTestId('data-table-toolbar-actions').className).not.toContain('w-full');
+    expect(toolbar.className).toContain('flex-wrap');
+    expect(toolbar.className).toContain('md:flex-nowrap');
   });
 
-  it('tells the page action that a selection is in progress, so it can make room', async () => {
+  it('keeps the page action in its own full-width top row on a phone, whether or not a selection is in progress', async () => {
     const user = userEvent.setup();
     render(
       <Selectable
@@ -179,19 +185,46 @@ describe('DataTableToolbar', () => {
     );
 
     const slot = screen.getByTestId('data-table-toolbar-action');
-    expect(slot).toHaveAttribute('data-selecting', 'false');
+    const classesBefore = slot.className;
+    expect(classesBefore).toContain('max-md:order-first');
+    expect(classesBefore).toContain('max-md:basis-full');
 
     await user.click(screen.getByRole('checkbox', { name: 'Selecionar todos' }));
-    expect(screen.getByTestId('data-table-toolbar-action')).toHaveAttribute('data-selecting', 'true');
+    expect(screen.getByTestId('data-table-toolbar-action').className).toBe(classesBefore);
   });
-  it('hides the overflowing actions scrollbar only below md, keeping the desktop scroll cue', async () => {
+  it('wraps the bulk actions on a phone instead of scrolling them, keeping the desktop scroll cue for the rare overflow there', async () => {
     render(<Selectable actions={<button type="button">Excluir</button>} />);
     await userEvent.click(screen.getByLabelText('Selecionar todos'));
 
-    // A hidden scrollbar on a pointer device removes the only signal that
-    // there are more actions to the right.
+    // A horizontally scrolling row with no visible scrollbar (the previous
+    // design) gave a phone user no sign that more actions existed off-screen.
     const scroller = screen.getByTestId('data-table-toolbar-actions');
-    expect(scroller.className).toContain('max-md:no-scrollbar');
-    expect(scroller.className).not.toMatch(/(?:^|\s)no-scrollbar/);
+    expect(scroller.className).toContain('flex-wrap');
+    expect(scroller.className).toContain('md:overflow-x-auto');
+    expect(scroller.className).not.toContain('no-scrollbar');
+  });
+
+  it('keeps the select-all checkbox visible on a phone once a selection is live, instead of hiding it', async () => {
+    render(<Selectable actions={<button type="button">Excluir</button>} />);
+    const checkbox = screen.getByLabelText('Selecionar todos');
+
+    expect(checkbox.parentElement?.className).not.toContain('hidden');
+
+    await userEvent.click(checkbox);
+
+    expect(screen.getByLabelText('Selecionar todos')).toBeInTheDocument();
+    expect(checkbox.parentElement?.className).not.toContain('hidden');
+  });
+
+  it('tightens the row and action gaps once a selection is live, so four icon buttons fit a 360px phone without scrolling', async () => {
+    render(<Selectable actions={<button type="button">Excluir</button>} />);
+    const toolbar = screen.getByTestId('data-table-toolbar');
+
+    expect(toolbar.className).toContain('gap-3');
+
+    await userEvent.click(screen.getByLabelText('Selecionar todos'));
+
+    expect(toolbar.className).toContain('gap-2');
+    expect(screen.getByTestId('data-table-toolbar-actions').className).toContain('gap-1');
   });
 });

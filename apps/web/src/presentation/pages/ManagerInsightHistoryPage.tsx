@@ -192,7 +192,14 @@ export function ManagerInsightHistoryPage() {
   );
 
   const generate = (
-    <Button variant="primary" size="sm" full={false} isLoading={insight.isPending} onClick={() => insight.mutate()}>
+    <Button
+      variant="primary"
+      size="sm"
+      full={false}
+      className="max-md:w-full"
+      isLoading={insight.isPending}
+      onClick={() => insight.mutate()}
+    >
       Gerar análise
     </Button>
   );

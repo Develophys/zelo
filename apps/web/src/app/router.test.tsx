@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider, Outlet } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -111,7 +111,7 @@ describe("onboarding router flow", () => {
     const user = userEvent.setup();
 
     await user.click(await screen.findByRole("button", { name: "Mais opções" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Administração" }));
+    await user.click(within(await screen.findByRole("dialog")).getByRole("link", { name: "Administração" }));
     expect(await screen.findByText("Acesso do gestor")).toBeInTheDocument();
   });
 

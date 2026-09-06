@@ -6,9 +6,9 @@ import { FinishSetupForm } from "./FinishSetupForm";
 
 function renderWithToken(token: string, onSubmit: (params: { token: string; password: string }) => Promise<void>) {
   return render(
-    <MemoryRouter initialEntries={[`/finish-setup?token=${token}`]}>
+    <MemoryRouter initialEntries={[`/finish-setup/${token}`]}>
       <Routes>
-        <Route path="/finish-setup" element={<FinishSetupForm onSubmit={onSubmit} onSuccess={() => {}} />} />
+        <Route path="/finish-setup/:token" element={<FinishSetupForm onSubmit={onSubmit} onSuccess={() => {}} />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -20,9 +20,9 @@ describe("FinishSetupForm", () => {
     const onSuccess = vi.fn();
     const user = userEvent.setup();
     render(
-      <MemoryRouter initialEntries={["/finish-setup?token=abc123"]}>
+      <MemoryRouter initialEntries={["/finish-setup/abc123"]}>
         <Routes>
-          <Route path="/finish-setup" element={<FinishSetupForm onSubmit={onSubmit} onSuccess={onSuccess} />} />
+          <Route path="/finish-setup/:token" element={<FinishSetupForm onSubmit={onSubmit} onSuccess={onSuccess} />} />
         </Routes>
       </MemoryRouter>,
     );
@@ -62,9 +62,9 @@ describe("FinishSetupForm", () => {
     const user = userEvent.setup();
 
     render(
-      <MemoryRouter initialEntries={["/finish-setup?token=abc123"]}>
+      <MemoryRouter initialEntries={["/finish-setup/abc123"]}>
         <Routes>
-          <Route path="/finish-setup" element={<FinishSetupForm onSubmit={onSubmit} onSuccess={onSuccess} />} />
+          <Route path="/finish-setup/:token" element={<FinishSetupForm onSubmit={onSubmit} onSuccess={onSuccess} />} />
         </Routes>
       </MemoryRouter>,
     );

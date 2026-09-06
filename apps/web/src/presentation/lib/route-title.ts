@@ -20,7 +20,6 @@ export const ROUTE_TITLES: Record<string, string> = {
   [routes.managerNotifications]: 'Notificações',
   [routes.managerSettings]: 'Configurações',
   [routes.managerLogin]: 'Acesso do gestor',
-  [routes.managerFinishSetup]: 'Definir senha',
   [routes.you]: 'Você',
   [routes.settings]: 'Configurações',
   [routes.managerHistory]: 'Análises com IA',
@@ -28,8 +27,8 @@ export const ROUTE_TITLES: Record<string, string> = {
   [routes.adminLogin]: 'Acesso administrativo',
   [routes.admin]: 'Instituições',
   [routes.peerPartnerLogin]: 'Acesso do par anônimo',
-  [routes.peerPartnerFinishSetup]: 'Definir senha',
   [routes.peerPartnerInbox]: 'Pares anônimos',
+  [routes.peerPartnerSettings]: 'Configurações',
 };
 
 export function titleForPathname(pathname: string): string {

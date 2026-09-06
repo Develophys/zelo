@@ -68,22 +68,24 @@ describe('ManagerShell', () => {
   it('measures height in dvh, so mobile browser chrome cannot crop the last row', () => {
     const { container } = mount();
     const root = container.firstElementChild as HTMLElement;
-    expect(root.className).toContain('min-h-dvh');
+    expect(root.className).toContain('h-dvh');
     expect(root.className).not.toContain('min-h-screen');
   });
 
-  it('pins the panel to the viewport from the tablet breakpoint up, so a table can own its own scroll', () => {
+  it('pins the panel to the viewport at every width, not just the tablet breakpoint up — a bare min-h-dvh root left a sliver of real page scroll on phone that dragged the sticky header away with it', () => {
     const { container } = mount();
     const root = container.firstElementChild as HTMLElement;
-    expect(root.className).toContain('md:h-dvh');
-    expect(root.className).toContain('md:overflow-hidden');
+    expect(root.className).toContain('h-dvh');
+    expect(root.className).toContain('overflow-hidden');
+    expect(root.className).not.toContain('min-h-dvh');
   });
 
-  it('leaves the phone with the document scroll it has always had', () => {
-    const { container } = mount();
-    const root = container.firstElementChild as HTMLElement;
-    expect(root.className).not.toMatch(/(^|\s)h-dvh/);
-    expect(root.className).not.toMatch(/(^|\s)overflow-hidden/);
+  it('locks the column to the viewport on phone too, so the header and bottom nav scroll with nothing instead of riding away with the page', () => {
+    mount();
+    const main = screen.getByRole('main');
+    const column = main.parentElement as HTMLElement;
+    expect(column.className).toContain('max-md:h-dvh');
+    expect(column.className).toContain('max-md:overflow-hidden');
   });
 
   it('gives main a definite height to divide, so a filling child has something to claim', () => {
@@ -92,7 +94,7 @@ describe('ManagerShell', () => {
     expect(main.className).toContain('min-h-0');
     expect(main.className).toContain('flex-1');
     expect(main.className).toContain('flex-col');
-    expect(main.className).toContain('md:overflow-y-auto');
+    expect(main.className).toContain('overflow-y-auto');
   });
 
   it('carries the sidebar from a rail at md to labels at lg, in one element', () => {

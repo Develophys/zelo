@@ -1,12 +1,14 @@
 import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
+import { BackButton } from "@/presentation/ui/BackButton";
 import { Button } from "@/presentation/ui/Button";
 import { Card } from "@/presentation/ui/Card";
 import { routes } from "@/presentation/lib/routes";
 import { usePeerPartnerLogin } from "@/presentation/hooks/usePeerPartnerLogin";
 import { InvalidPeerPartnerCredentialsError } from "@/ports/peer-partner-auth.port";
 import { TextField } from "@/presentation/ui/TextField";
+import { PasswordField } from "@/presentation/ui/PasswordField";
 
 export function PeerPartnerLoginPage() {
   const navigate = useNavigate();
@@ -28,6 +30,7 @@ export function PeerPartnerLoginPage() {
   return (
     <PhoneShell centered>
       <div className="pt-7.5">
+        <BackButton label="Início" onClick={() => navigate(routes.home)} />
         <h1 className="mb-1.5 mt-4 text-h1 text-ink">Acesso do par anônimo</h1>
         <p className="text-caption text-muted">Entre com seu email e senha de par anônimo.</p>
 
@@ -51,9 +54,8 @@ export function PeerPartnerLoginPage() {
             <label htmlFor="peer-partner-password" className="mt-4 block text-label font-semibold text-ink-2">
               Senha
             </label>
-            <TextField
+            <PasswordField
               id="peer-partner-password"
-              type="password"
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}

@@ -41,7 +41,7 @@ describe("PeersPage", () => {
 
   it("shows a link prompt, not the matching flow, when not linked to an institution", () => {
     renderPeers();
-    expect(screen.getByText("Vincule-se ao hospital para falar com um colega.")).toBeInTheDocument();
+    expect(screen.getByText("Vincule-se para conversar.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Falar com um colega" })).not.toBeInTheDocument();
   });
 

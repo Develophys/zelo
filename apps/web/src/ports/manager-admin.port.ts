@@ -50,9 +50,13 @@ export interface CreatePeerPartnerParams {
 }
 
 export interface UpdatePeerPartnerParams {
+  name?: string;
+  email?: string;
   isActive?: boolean;
   specialty?: string;
 }
+
+export class PeerPartnerEmailConflictError extends Error {}
 
 export class SectorNameConflictError extends Error {}
 export class InvalidManagerAdminRequestError extends Error {}
@@ -87,9 +91,13 @@ export function deleteConflictMessage(error: unknown): string | null {
 }
 
 export function updateConflictMessage(error: unknown): string | null {
-  return error instanceof LastActiveHospitalAdminError
-    ? "Este é o último administrador ativo do hospital. Mantenha-o ativo ou promova outro gestor antes de pausá-lo."
-    : null;
+  if (error instanceof LastActiveHospitalAdminError) {
+    return "Este é o último administrador ativo do hospital. Mantenha-o ativo ou promova outro gestor antes de pausá-lo.";
+  }
+  if (error instanceof PeerPartnerEmailConflictError) {
+    return "Este email já está em uso por outro par anônimo.";
+  }
+  return null;
 }
 
 export interface UpdateSectorParams {

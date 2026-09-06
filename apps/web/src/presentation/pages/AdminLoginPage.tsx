@@ -7,6 +7,7 @@ import { routes } from "@/presentation/lib/routes";
 import { useAdminLogin } from "@/presentation/hooks/useAdminLogin";
 import { InvalidAdminCredentialsError } from "@/ports/admin-auth.port";
 import { TextField } from "@/presentation/ui/TextField";
+import { PasswordField } from "@/presentation/ui/PasswordField";
 
 export function AdminLoginPage() {
   const navigate = useNavigate();
@@ -51,9 +52,8 @@ export function AdminLoginPage() {
             <label htmlFor="admin-password" className="mt-4 block text-label font-semibold text-ink-2">
               Senha
             </label>
-            <TextField
+            <PasswordField
               id="admin-password"
-              type="password"
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}

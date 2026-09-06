@@ -163,31 +163,34 @@ describe('DataTable', () => {
   // over — comparing the same DOM node's className before and after a real
   // selection does. jsdom has no layout engine, so this cannot measure actual
   // pixels; it verifies the structural invariants that guarantee them: a
-  // fixed (not floored) height on an unconditional wrapper, and a
-  // non-wrapping actions row so overflow scrolls instead of growing the row.
-  it('keeps the toolbar row at the same fixed height when a selection appears', async () => {
+  // fixed height from the tablet breakpoint up, and — on a phone, where a
+  // selection can otherwise outgrow one row — a floor instead of a cap, so
+  // the page action wraps to a second line rather than the row clipping it.
+  it('keeps the toolbar row at a fixed height on desktop, and at least that height on a phone, when a selection appears', async () => {
     const user = userEvent.setup();
     render(<Harness />);
     const toolbar = screen.getByTestId('data-table-toolbar');
-    const classNameBeforeSelection = toolbar.className;
-    expect(classNameBeforeSelection).toContain('h-14');
-    expect(classNameBeforeSelection).not.toContain('min-h-14');
+    expect(toolbar.className).toContain('md:h-14');
+    expect(toolbar.className).toContain('max-md:min-h-14');
 
     await user.click(screen.getByRole('checkbox', { name: 'Selecionar Ana' }));
 
+    // The gap tightens once a selection is live (there is more to fit in the
+    // same row), but the height rules themselves never change.
     expect(screen.getByTestId('data-table-toolbar')).toBe(toolbar);
-    expect(toolbar.className).toBe(classNameBeforeSelection);
+    expect(toolbar.className).toContain('md:h-14');
+    expect(toolbar.className).toContain('max-md:min-h-14');
   });
 
-  it('does not let the bulk-action row wrap to a second line', async () => {
+  it('wraps the bulk-action row on a phone instead of scrolling it, but keeps it a single non-wrapping scrollable row from the tablet breakpoint up', async () => {
     const user = userEvent.setup();
     render(<Harness />);
     await user.click(screen.getByRole('checkbox', { name: 'Selecionar Ana' }));
 
     const actionsRow = screen.getByTestId('data-table-toolbar-actions');
-    expect(actionsRow.className).toContain('flex-nowrap');
-    expect(actionsRow.className).not.toContain('flex-wrap');
-    expect(actionsRow.className).toContain('overflow-x-auto');
+    expect(actionsRow.className).toContain('flex-wrap');
+    expect(actionsRow.className).toContain('md:flex-nowrap');
+    expect(actionsRow.className).toContain('md:overflow-x-auto');
     expect(within(actionsRow).getByRole('button', { name: 'Editar' })).toBeInTheDocument();
     expect(within(actionsRow).getByRole('button', { name: 'Excluir' })).toBeInTheDocument();
   });

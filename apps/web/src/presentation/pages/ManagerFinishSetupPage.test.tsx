@@ -10,9 +10,9 @@ function renderPage() {
   const queryClient = new QueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={["/manager/finish-setup?token=abc123"]}>
+      <MemoryRouter initialEntries={["/manager/finish-setup/abc123"]}>
         <Routes>
-          <Route path="/manager/finish-setup" element={<ManagerFinishSetupPage />} />
+          <Route path="/manager/finish-setup/:token" element={<ManagerFinishSetupPage />} />
           <Route path="/manager/login" element={<div>Manager login screen</div>} />
         </Routes>
       </MemoryRouter>

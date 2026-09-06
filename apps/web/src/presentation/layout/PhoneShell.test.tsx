@@ -120,6 +120,34 @@ describe("PhoneShell fill mode", () => {
   });
 });
 
+describe("PhoneShell bottom nav mode", () => {
+  it("locks the root to the viewport height below md, so only the body scrolls and the nav stays put", () => {
+    renderShell(<PhoneShell bottomNav>content</PhoneShell>);
+    const root = screen.getByTestId("phone-shell-root");
+    expect(root).toHaveClass("max-md:h-dvh", "max-md:overflow-hidden");
+  });
+
+  it("leaves the desktop height as a minimum, since the sidebar pins itself independently of this", () => {
+    renderShell(<PhoneShell bottomNav>content</PhoneShell>);
+    const root = screen.getByTestId("phone-shell-root");
+    expect(root).toHaveClass("md:min-h-dvh");
+  });
+
+  it("does not lock the height for a page with no bottom nav to keep on screen", () => {
+    renderShell(<PhoneShell>content</PhoneShell>);
+    const root = screen.getByTestId("phone-shell-root");
+    expect(root).not.toHaveClass("max-md:h-dvh");
+    expect(root).not.toHaveClass("max-md:overflow-hidden");
+  });
+
+  it("defers to fill's own exact-height lock instead of stacking both", () => {
+    renderShell(<PhoneShell bottomNav fill>content</PhoneShell>);
+    const root = screen.getByTestId("phone-shell-root");
+    expect(root).toHaveClass("h-dvh");
+    expect(root).not.toHaveClass("max-md:h-dvh");
+  });
+});
+
 describe("PhoneShell centered mode", () => {
   it("does not constrain body width when centered is unset", () => {
     renderShell(<PhoneShell>content</PhoneShell>);
@@ -184,9 +212,15 @@ describe("PhoneShell header", () => {
     expect(screen.getByTestId("phone-shell-body")).toHaveClass("pt-6");
   });
 
+  it("gives the scrolling body its bottom padding too, so a trailing button never sits flush against the edge", () => {
+    mountAt("/you", <PhoneShell>content</PhoneShell>);
+    expect(screen.getByTestId("phone-shell-body")).toHaveClass("pb-6");
+  });
+
   it("keeps the fill body flush against the header, since the page owns its own chrome", () => {
     mountAt("/chat", <PhoneShell fill bleed>content</PhoneShell>);
     expect(screen.getByTestId("phone-shell-body")).not.toHaveClass("pt-6");
+    expect(screen.getByTestId("phone-shell-body")).not.toHaveClass("pb-6");
   });
 });
 

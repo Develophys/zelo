@@ -8,7 +8,7 @@ interface DataTableToolbarProps<T> {
   selection?: DataTableSelection<T>;
   search: string;
   onSearchChange(value: string): void;
-  /** The bulk buttons, shown once a row is selected — beside the search from md up, in its place on a phone. */
+  /** The bulk buttons, shown once a row is selected, in the search field's place. */
   actions?: ReactNode;
   /** The page's own primary action. Anchored right, and never moves with the selection. */
   action?: ReactNode;
@@ -30,7 +30,9 @@ export function DataTableToolbar<T>({
       // The bottom rule and the inset only make sense inside the shell's box.
       // On phones the toolbar sits above a free-standing card list, so it aligns
       // with the card edges instead.
-      className="flex h-14 flex-none items-center gap-3 border-b border-line px-cell-x max-md:border-b-0 max-md:px-0 max-md:py-2"
+      className={`flex flex-none flex-wrap items-center border-b border-line px-cell-x max-md:h-auto max-md:min-h-14 max-md:border-b-0 max-md:px-0 max-md:pt-1 max-md:pb-2 md:h-14 md:flex-nowrap ${
+        hasSelection ? 'gap-2' : 'gap-3'
+      }`}
     >
       {selection && (
         <Checkbox
@@ -42,7 +44,7 @@ export function DataTableToolbar<T>({
       )}
       <label
         className={`relative flex min-w-0 items-center gap-2 max-md:gap-0 ${
-          hasSelection ? 'max-md:hidden md:w-64' : 'flex-1'
+          hasSelection ? 'hidden' : 'flex-1'
         }`}
       >
         <Search
@@ -76,7 +78,7 @@ export function DataTableToolbar<T>({
           </span>
           <div
             data-testid="data-table-toolbar-actions"
-            className="max-md:no-scrollbar flex flex-nowrap items-center gap-2 overflow-x-auto"
+            className="flex flex-wrap items-center gap-1 md:flex-nowrap md:overflow-x-auto"
           >
             {actions}
           </div>
@@ -85,11 +87,7 @@ export function DataTableToolbar<T>({
       {action && (
         <div
           data-testid="data-table-toolbar-action"
-          // The page action collapses to its icon on a phone while a selection
-          // is live, so the bulk actions keep the row instead of being pushed
-          // into a scroller. The label stays in the accessibility tree.
-          data-selecting={hasSelection}
-          className="group/action ml-auto flex flex-none items-center gap-2"
+          className="ml-auto flex flex-none items-center gap-2 max-md:order-first max-md:basis-full"
         >
           {action}
         </div>

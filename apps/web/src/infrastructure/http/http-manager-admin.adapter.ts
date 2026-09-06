@@ -22,6 +22,7 @@ import {
   LastActiveHospitalAdminError,
   ManagerAdminNotFoundError,
   ManagerSummarySchema,
+  PeerPartnerEmailConflictError,
   PeerPartnerSummarySchema,
   SectorNameConflictError,
 } from "@/ports/manager-admin.port";
@@ -123,6 +124,7 @@ export class HttpManagerAdminAdapter implements ManagerAdminPort {
       body: JSON.stringify(patch),
     });
     if (response.status === 404) throw new ManagerAdminNotFoundError();
+    if (response.status === 409) throw new PeerPartnerEmailConflictError();
     if (!response.ok) throw new Error(`update peer partner failed with status ${response.status}`);
   }
 

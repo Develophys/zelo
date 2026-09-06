@@ -280,7 +280,7 @@ describe("HomePage manager entry point", () => {
     const user = userEvent.setup();
     renderHome();
     await user.click(screen.getByRole("button", { name: "Mais opções" }));
-    await user.click(screen.getByRole("menuitem", { name: "Administração" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("link", { name: "Administração" }));
     expect(await screen.findByText("Manager screen")).toBeInTheDocument();
   });
 });

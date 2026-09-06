@@ -24,7 +24,7 @@ export function BackButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label ? undefined : 'Voltar'}
-      className={`cursor-pointer flex min-h-11 min-w-11 items-center gap-1 text-label font-semibold text-muted transition-opacity duration-150 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${className}`}
+      className={`cursor-pointer flex min-h-11 min-w-11 items-center justify-center gap-1 text-label font-semibold text-muted transition-opacity duration-150 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${className}`}
     >
       <ChevronLeft size={18} aria-hidden="true" />
       {label}

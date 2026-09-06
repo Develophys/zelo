@@ -22,7 +22,7 @@ export const routes = {
   managerNotifications: "/manager/notifications",
   managerSettings: "/manager/settings",
   managerLogin: "/manager/login",
-  managerFinishSetup: "/manager/finish-setup",
+  managerFinishSetup: "/manager/finish-setup/:token",
   you: "/you",
   settings: "/settings",
   managerHistory: "/manager/history",
@@ -30,6 +30,7 @@ export const routes = {
   adminLogin: "/admin/login",
   admin: "/admin",
   peerPartnerLogin: "/peer/login",
-  peerPartnerFinishSetup: "/peer/finish-setup",
+  peerPartnerFinishSetup: "/peer/finish-setup/:token",
   peerPartnerInbox: "/peer",
+  peerPartnerSettings: "/peer/settings",
 } as const;

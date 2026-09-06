@@ -9,7 +9,6 @@ import { routes } from "@/presentation/lib/routes";
 function renderNav(pathname: string = routes.home) {
   return render(
     <MemoryRouter initialEntries={[pathname]}>
-      <button type="button">Fora do menu</button>
       <BottomNav />
     </MemoryRouter>,
   );
@@ -63,7 +62,7 @@ describe("BottomNav secondary menu", () => {
       "aria-expanded",
       "false",
     );
-    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("reveals an Administração link to the manager panel when opened", async () => {
@@ -74,40 +73,50 @@ describe("BottomNav secondary menu", () => {
       "aria-expanded",
       "true",
     );
-    expect(screen.getByRole("menuitem", { name: "Administração" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Administração" })).toHaveAttribute(
       "href",
       routes.manager,
     );
   });
 
-  it("anchors the opened panel above the nav bar", async () => {
+  it("opens the same bottom-sheet dialog the manager panel uses, not an inline popover", async () => {
     renderNav();
     await userEvent.click(screen.getByRole("button", { name: "Mais opções" }));
-    expect(screen.getByRole("menu")).toHaveClass("absolute", "bottom-full");
+    expect(screen.getByRole("dialog").tagName).toBe("DIALOG");
   });
 
-  it("closes the panel on Escape", async () => {
+  it("closes the sheet on Escape and hands focus back to the toggle", async () => {
     const user = userEvent.setup();
-    renderNav();
-    await user.click(screen.getByRole("button", { name: "Mais opções" }));
+    const { container } = renderNav();
+    const toggle = screen.getByRole("button", { name: "Mais opções" });
+    const sheet = container.querySelector("dialog") as HTMLDialogElement;
+
+    await user.click(toggle);
+    expect(sheet.open).toBe(true);
+
     await user.keyboard("{Escape}");
-    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(sheet.open).toBe(false);
+    expect(toggle).toHaveFocus();
   });
 
-  it("closes the panel when something outside it is clicked", async () => {
+  it("closes the sheet when the backdrop is tapped", async () => {
+    const user = userEvent.setup();
+    const { container } = renderNav();
+    const sheet = container.querySelector("dialog") as HTMLDialogElement;
+
+    await user.click(screen.getByRole("button", { name: "Mais opções" }));
+    expect(sheet.open).toBe(true);
+
+    await user.click(sheet);
+    expect(sheet.open).toBe(false);
+  });
+
+  it("closes the sheet after a destination inside it is chosen", async () => {
     const user = userEvent.setup();
     renderNav();
     await user.click(screen.getByRole("button", { name: "Mais opções" }));
-    await user.click(screen.getByRole("button", { name: "Fora do menu" }));
-    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
-  });
-
-  it("closes the panel after a destination inside it is chosen", async () => {
-    const user = userEvent.setup();
-    renderNav();
-    await user.click(screen.getByRole("button", { name: "Mais opções" }));
-    await user.click(screen.getByRole("menuitem", { name: "Administração" }));
-    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("link", { name: "Administração" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("separates the toggle from the primary tabs with a rule to its left", () => {
@@ -122,58 +131,23 @@ describe("BottomNav secondary menu", () => {
     expect(you.compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("lists Configurações above Administração in the more-options sheet, matching the sidebar", async () => {
+  it("lists Configurações, Administração and Par anônimo in that order in the sheet, matching the sidebar", async () => {
     renderNav();
     await userEvent.click(screen.getByRole("button", { name: "Mais opções" }));
 
-    const items = screen.getAllByRole("menuitem");
-    expect(items.map((item) => item.textContent)).toEqual([
+    const links = screen.getAllByRole("link").filter((link) => link.closest("dialog"));
+    expect(links.map((link) => link.textContent)).toEqual([
       "Configurações",
       "Administração",
+      "Par anônimo",
     ]);
-    expect(items[0]).toHaveAttribute("href", "/settings");
+    expect(links[0]).toHaveAttribute("href", "/settings");
   });
 
-  it("focuses the first item as soon as the panel opens", async () => {
+  it("focuses the first item as soon as the sheet opens", async () => {
     renderNav();
     await userEvent.click(screen.getByRole("button", { name: "Mais opções" }));
 
-    expect(screen.getByRole("menuitem", { name: "Configurações" })).toHaveFocus();
-  });
-
-  it("moves focus between items with the arrow keys, wrapping at each end", async () => {
-    const user = userEvent.setup();
-    renderNav();
-    await user.click(screen.getByRole("button", { name: "Mais opções" }));
-
-    await user.keyboard("{ArrowDown}");
-    expect(screen.getByRole("menuitem", { name: "Administração" })).toHaveFocus();
-
-    await user.keyboard("{ArrowDown}");
-    expect(screen.getByRole("menuitem", { name: "Configurações" })).toHaveFocus();
-
-    await user.keyboard("{ArrowUp}");
-    expect(screen.getByRole("menuitem", { name: "Administração" })).toHaveFocus();
-  });
-
-  it("jumps to the first and last item with Home and End", async () => {
-    const user = userEvent.setup();
-    renderNav();
-    await user.click(screen.getByRole("button", { name: "Mais opções" }));
-
-    await user.keyboard("{End}");
-    expect(screen.getByRole("menuitem", { name: "Administração" })).toHaveFocus();
-
-    await user.keyboard("{Home}");
-    expect(screen.getByRole("menuitem", { name: "Configurações" })).toHaveFocus();
-  });
-
-  it("returns focus to the toggle when Escape closes the panel", async () => {
-    const user = userEvent.setup();
-    renderNav();
-    await user.click(screen.getByRole("button", { name: "Mais opções" }));
-    await user.keyboard("{Escape}");
-
-    expect(screen.getByRole("button", { name: "Mais opções" })).toHaveFocus();
+    expect(screen.getByRole("link", { name: "Configurações" })).toHaveFocus();
   });
 });

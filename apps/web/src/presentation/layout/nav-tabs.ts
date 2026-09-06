@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { Home, ClipboardCheck, MessageCircle, UserRound, LifeBuoy, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import { Home, ClipboardCheck, MessageCircle, UserRound, LifeBuoy, ShieldCheck, SlidersHorizontal, HeartHandshake } from "lucide-react";
 import { routes } from "@/presentation/lib/routes";
 
 export type NavTabId = "home" | "checkin" | "chat" | "apoio" | "you";
@@ -50,7 +50,17 @@ export const ADMIN_NAV_ITEM: NavDestination = {
   route: routes.manager,
 };
 
+// The médico's app has no other route to it: without this, a peer partner has
+// to already know the /peer/login URL by heart.
+export const PEER_PARTNER_NAV_ITEM: NavDestination = {
+  id: "peer-partner",
+  label: "Par anônimo",
+  icon: HeartHandshake,
+  route: routes.peerPartnerLogin,
+};
+
 export const SECONDARY_NAV_ITEMS: readonly NavDestination[] = [
   SETTINGS_NAV_ITEM,
   ADMIN_NAV_ITEM,
+  PEER_PARTNER_NAV_ITEM,
 ];

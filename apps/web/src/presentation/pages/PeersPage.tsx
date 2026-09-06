@@ -60,7 +60,7 @@ export function PeersPage() {
         sidebar
         bottomNav
         centered
-        headerOverride={{ subtitle: 'Vincule-se ao hospital para falar com um colega.' }}
+        headerOverride={{ subtitle: 'Vincule-se para conversar.' }}
       >
         <div>
           <Button variant="outline" onClick={() => navigate(routes.linkInstitution)}>

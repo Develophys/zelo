@@ -7,7 +7,7 @@ import { ManagerAdminPeersPage } from "./ManagerAdminPeersPage";
 import * as container from "@/app/container";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { useToastStore } from "@/stores/toast.store";
-import { AdminDeleteConflictError } from "@/ports/manager-admin.port";
+import { AdminDeleteConflictError, PeerPartnerEmailConflictError } from "@/ports/manager-admin.port";
 
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -80,7 +80,24 @@ describe("ManagerAdminPeersPage", () => {
     );
   });
 
-  it('edits an existing peer partner\'s specialty from the edit modal, pre-filled from their current value', async () => {
+  it("deletes a single peer partner from its own row, without needing to select it first", async () => {
+    vi.spyOn(container.listPeerPartnersUseCase, "execute").mockResolvedValue([
+      { id: "peer-5", name: "Dr. Paulo", email: "paulo@zelo-demo.local", specialty: "Clínica médica", isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    const deleteSpy = vi.spyOn(container.deletePeerPartnerAdminUseCase, "execute").mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(within(await screen.findByRole("table")).getByRole("button", { name: "Excluir Dr. Paulo" }));
+
+    const dialog = within(await screen.findByRole("dialog", { name: "Excluir par?" }));
+    await user.click(dialog.getByRole("button", { name: "Excluir" }));
+
+    await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith("token", "peer-5"));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it('edits an existing peer partner\'s name, email and specialty from the edit modal, pre-filled from their current values', async () => {
     vi.spyOn(container.listPeerPartnersUseCase, 'execute').mockResolvedValue([
       { id: 'peer-5', name: 'Dr. Paulo', email: 'paulo@zelo-demo.local', specialty: 'Clínica médica', isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
@@ -91,21 +108,48 @@ describe("ManagerAdminPeersPage", () => {
     await user.click(within(await screen.findByRole('table')).getByRole('button', { name: 'Editar Dr. Paulo' }));
 
     const editForm = within(screen.getByRole('dialog'));
+    expect(editForm.getByLabelText('Nome do par')).toHaveValue('Dr. Paulo');
+    expect(editForm.getByLabelText('Email do par')).toHaveValue('paulo@zelo-demo.local');
     expect(editForm.getByLabelText('Especialidade')).toHaveValue('Clínica médica');
 
+    await user.clear(editForm.getByLabelText('Nome do par'));
+    await user.type(editForm.getByLabelText('Nome do par'), 'Dr. Paulo Reis');
+    await user.clear(editForm.getByLabelText('Email do par'));
+    await user.type(editForm.getByLabelText('Email do par'), 'paulo.reis@zelo-demo.local');
     await user.clear(editForm.getByLabelText('Especialidade'));
     await user.type(editForm.getByLabelText('Especialidade'), 'Cirurgia');
     await user.click(editForm.getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() =>
       expect(container.updatePeerPartnerUseCase.execute).toHaveBeenCalledWith('token', 'peer-5', {
+        name: 'Dr. Paulo Reis',
+        email: 'paulo.reis@zelo-demo.local',
         specialty: 'Cirurgia',
       }),
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
-  it('disables Salvar in the edit modal when the specialty is cleared, same as the create guard', async () => {
+  it('shows a friendly message and keeps the modal open when the new email is already in use', async () => {
+    vi.spyOn(container.listPeerPartnersUseCase, 'execute').mockResolvedValue([
+      { id: 'peer-5', name: 'Dr. Paulo', email: 'paulo@zelo-demo.local', specialty: 'Clínica médica', isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    vi.spyOn(container.updatePeerPartnerUseCase, 'execute').mockRejectedValue(new PeerPartnerEmailConflictError());
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(within(await screen.findByRole('table')).getByRole('button', { name: 'Editar Dr. Paulo' }));
+
+    const editForm = within(screen.getByRole('dialog'));
+    await user.clear(editForm.getByLabelText('Email do par'));
+    await user.type(editForm.getByLabelText('Email do par'), 'ja-em-uso@zelo-demo.local');
+    await user.click(editForm.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => expect(editForm.getByRole('alert')).toHaveTextContent('Este email já está em uso por outro par anônimo.'));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('disables Salvar in the edit modal when the name, email or specialty is cleared, same as the create guard', async () => {
     vi.spyOn(container.listPeerPartnersUseCase, 'execute').mockResolvedValue([
       { id: 'peer-5', name: 'Dr. Paulo', email: 'paulo@zelo-demo.local', specialty: 'Clínica médica', isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
