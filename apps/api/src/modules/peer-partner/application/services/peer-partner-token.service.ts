@@ -8,6 +8,7 @@ const SESSION_DURATION_MS = 8 * 60 * 60 * 1000; // 8 hours
 export interface IssuedPeerPartnerToken {
   token: string;
   expiresAt: string;
+  peerPartnerName: string;
 }
 
 export interface DecodedPeerPartnerToken {
@@ -35,7 +36,11 @@ export class PeerPartnerTokenService {
     const payloadB64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
     const signature = this.sign(payloadB64);
 
-    return { token: `${payloadB64}.${signature}`, expiresAt: new Date(expiresAtEpoch).toISOString() };
+    return {
+      token: `${payloadB64}.${signature}`,
+      expiresAt: new Date(expiresAtEpoch).toISOString(),
+      peerPartnerName,
+    };
   }
 
   verify(token: string): DecodedPeerPartnerToken | null {

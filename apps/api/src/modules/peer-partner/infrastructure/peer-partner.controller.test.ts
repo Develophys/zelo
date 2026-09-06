@@ -94,6 +94,11 @@ describe("peer partner controller", () => {
     expect(response.body.token).toEqual(expect.any(String));
   });
 
+  it("POST /peer-partner/login also returns the peer partner's name, for the inbox to greet them by", async () => {
+    const response = await request(app.getHttpServer()).post("/peer-partner/login").send({ email: "ana@zelo-demo.local", password: "test-password" });
+    expect(response.body.peerPartnerName).toBe("Dra. Ana");
+  });
+
   it("POST /peer-partner/login rejects an unknown email with 401", async () => {
     const response = await request(app.getHttpServer()).post("/peer-partner/login").send({ email: "unknown@zelo-demo.local", password: "test-password" });
     expect(response.status).toBe(401);

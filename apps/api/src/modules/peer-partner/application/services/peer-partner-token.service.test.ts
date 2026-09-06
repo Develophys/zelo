@@ -19,6 +19,13 @@ describe("PeerPartnerTokenService", () => {
     expect(new Date(expiresAt).getTime()).toBeGreaterThan(Date.now());
   });
 
+  it("returns the peer partner's name alongside the token, so the client isn't left decoding it to greet them", () => {
+    const service = new PeerPartnerTokenService(fakeConfig("test-secret"));
+    const { peerPartnerName } = service.issue("peer-1", "Dra. Ana", "institution-1");
+
+    expect(peerPartnerName).toBe("Dra. Ana");
+  });
+
   it("rejects a token signed with a different secret", () => {
     const issuer = new PeerPartnerTokenService(fakeConfig("secret-a"));
     const verifier = new PeerPartnerTokenService(fakeConfig("secret-b"));
