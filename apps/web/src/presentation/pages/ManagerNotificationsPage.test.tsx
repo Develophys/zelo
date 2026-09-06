@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ManagerNotificationsPage } from "./ManagerNotificationsPage";
 import * as container from "@/app/container";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
+import { useToastStore } from "@/stores/toast.store";
 
 const UNREAD = {
   id: "n-1",
@@ -41,6 +42,7 @@ beforeEach(() => {
   useManagerSessionStore
     .getState()
     .setSession("token", new Date(Date.now() + 60_000).toISOString(), "HOSPITAL_ADMIN");
+  useToastStore.getState().clear();
   vi.restoreAllMocks();
 });
 
@@ -96,6 +98,61 @@ describe("ManagerNotificationsPage", () => {
     const badRow = screen.getByRole("button", { name: /Falha no envio/ });
     expect(goodRow.className).not.toContain("border-warn");
     expect(badRow.className).toContain("border-warn");
+  });
+
+  it("lets a manager resend a failed invite straight from the notification, instead of hunting for the row in the admin table", async () => {
+    const failedInvite = {
+      id: "n-bad",
+      type: "INVITE_EMAIL_FAILED" as const,
+      payload: { kind: "peer-partner", id: "peer-9", name: "Dr. Paulo", email: "paulo@zelo-demo.local" },
+      sectorName: null,
+      readAt: null,
+      createdAt: "2026-08-20T10:00:00.000Z",
+    };
+    vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
+      items: [failedInvite],
+      nextCursor: null,
+      total: 1,
+    });
+    vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(1);
+    const resendSpy = vi
+      .spyOn(container.sendPeerPartnerSetPasswordEmailUseCase, "execute")
+      .mockResolvedValue(undefined);
+    const user = userEvent.setup();
+
+    renderPage();
+
+    const resend = await screen.findByRole("button", { name: "Reenviar convite" });
+    await user.click(resend);
+
+    await waitFor(() => expect(resendSpy).toHaveBeenCalledWith("token", "peer-9"));
+    await waitFor(() =>
+      expect(useToastStore.getState().toasts).toEqual([
+        expect.objectContaining({ tone: "success", message: "Convite reenviado para paulo@zelo-demo.local." }),
+      ]),
+    );
+  });
+
+  it("offers no resend action for a notification that predates the id being tracked", async () => {
+    const legacyFailedInvite = {
+      id: "n-legacy",
+      type: "INVITE_EMAIL_FAILED" as const,
+      payload: { kind: "peer-partner", name: "Dr. Paulo", email: "paulo@zelo-demo.local" },
+      sectorName: null,
+      readAt: null,
+      createdAt: "2026-08-20T10:00:00.000Z",
+    };
+    vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
+      items: [legacyFailedInvite],
+      nextCursor: null,
+      total: 1,
+    });
+    vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(1);
+
+    renderPage();
+
+    await screen.findByText("Falha no envio do convite");
+    expect(screen.queryByRole("button", { name: "Reenviar convite" })).not.toBeInTheDocument();
   });
 
   it("carries read/unread state in the row's accessible name, not only its visible pill", async () => {

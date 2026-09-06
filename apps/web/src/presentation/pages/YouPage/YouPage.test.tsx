@@ -51,6 +51,13 @@ describe("YouPage", () => {
     expect(useConsentStore.getState().hasConsented).toBe(true);
   });
 
+  it("keeps the revoke trigger low-emphasis, so it does not outrank everything else on the profile", () => {
+    renderYou();
+    const trigger = screen.getByRole("button", { name: "Revogar consentimento" });
+    expect(trigger.className).not.toContain("bg-danger-fill");
+    expect(trigger.className).not.toContain("w-full");
+  });
+
   it("Cancelar returns to idle without changing state", async () => {
     renderYou();
     await userEvent.click(screen.getByRole("button", { name: "Revogar consentimento" }));

@@ -37,14 +37,19 @@ export function PeerPartnerInboxPage() {
       )}
 
       {state === "idle" && (
-        <Card className="flex items-center gap-3">
-          <IconBadge icon={Wifi} tone="brand" />
-          <div className="min-w-0">
-            {peerPartnerName && <p className="text-label font-extrabold text-ink">Olá, {peerPartnerName}</p>}
-            <Pill tone="positive">Conectado</Pill>
-            <p className="mt-1 text-label text-muted">Conectado, aguardando solicitações.</p>
-          </div>
-        </Card>
+        <>
+          <Card className="flex items-center gap-3">
+            <IconBadge icon={Wifi} tone="brand" />
+            <div className="min-w-0">
+              {peerPartnerName && <p className="text-label font-extrabold text-ink">Olá, {peerPartnerName}</p>}
+              <Pill tone="positive">Conectado</Pill>
+              <p className="mt-1 text-label text-muted">Conectado, aguardando solicitações.</p>
+            </div>
+          </Card>
+          <p className="mt-4 text-caption text-muted">
+            Você recebe um alerta assim que alguém pedir para conversar.
+          </p>
+        </>
       )}
 
       {state === "error" && (

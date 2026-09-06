@@ -19,6 +19,7 @@ import {
   peakTrendIndex,
   describeSegment,
   describeTrendWeek,
+  toTrendBarHeights,
   toTrendBars,
   weekLabel,
 } from "@/presentation/lib/manager-trend-chart";
@@ -194,6 +195,7 @@ export function ManagerDashboardPage() {
 
   const weeklyTrend = data?.weeklyTrend ?? [];
   const bars = toTrendBars(weeklyTrend);
+  const desktopBarHeights = toTrendBarHeights(weeklyTrend);
   const segments = data?.segments ?? [];
   const peakWeek = peakTrendIndex(weeklyTrend);
   const peakSector = peakSegmentLabel(segments);
@@ -307,7 +309,7 @@ export function ManagerDashboardPage() {
                                   ? "bg-brand"
                                   : "bg-track"
                           }`}
-                          style={{ height: `${bar.height}%` }}
+                          style={{ height: `${desktopBarHeights[index]}%` }}
                         />
                       ))}
                     </div>

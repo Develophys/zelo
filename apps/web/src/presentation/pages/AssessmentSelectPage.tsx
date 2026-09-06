@@ -10,9 +10,7 @@ export function AssessmentSelectPage() {
   return (
     <PhoneShell sidebar bottomNav centered>
       <div className="md:pt-4">
-        <p className="text-pretty text-body text-ink-2">
-          Escolha uma escala validada. Leva cerca de 5 minutos.
-        </p>
+        <p className="text-pretty text-body text-ink-2">Escolha uma escala validada.</p>
         <div className="mt-5 flex flex-col gap-3 md:grid md:grid-cols-2 md:gap-4">
           <CardButton
             onClick={() => navigate(routes.phq9)}

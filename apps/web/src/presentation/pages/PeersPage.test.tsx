@@ -56,6 +56,12 @@ describe("PeersPage", () => {
     expect(reassurance.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it("explains how a conversation actually starts, instead of leaving the unlinked screen empty below the CTA", () => {
+    renderPeers();
+    expect(screen.getByText("Peça para conversar")).toBeInTheDocument();
+    expect(screen.getByText("Um colega responde")).toBeInTheDocument();
+  });
+
   it("emits request-peer with the linked institutionId and sectorName when tapped", async () => {
     useInstitutionLinkStore.setState({ institutionId: "institution-1", institutionName: "Hospital Teste", sectorId: "sector-1", sectorName: "UTI", deviceSignalId: "device-1" });
     const user = userEvent.setup();

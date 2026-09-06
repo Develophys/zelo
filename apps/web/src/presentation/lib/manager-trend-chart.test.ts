@@ -4,6 +4,7 @@ import {
   peakTrendIndex,
   describeSegment,
   describeTrendWeek,
+  toTrendBarHeights,
   toTrendBars,
   weekLabel,
 } from './manager-trend-chart';
@@ -27,6 +28,57 @@ describe('toTrendBars', () => {
 
   it('never overflows the plot area', () => {
     expect(toTrendBars([{ weekStart: '', concerningRate: 1.4 }])[0]!.height).toBe(100);
+  });
+});
+
+describe('toTrendBarHeights', () => {
+  it('stretches a real but small week-to-week move across the full plot, instead of a few percentage points of a 0-100 axis', () => {
+    // 40% -> 46% is a meaningful rise, but on a 0-100 scale it is a ~6px sliver
+    // of an already-short bar. The desktop chart's one job is to show whether
+    // the team is getting worse; this must be visually obvious.
+    const heights = toTrendBarHeights([
+      { weekStart: '', concerningRate: 0.4 },
+      { weekStart: '', concerningRate: 0.42 },
+      { weekStart: '', concerningRate: 0.42 },
+      { weekStart: '', concerningRate: 0.44 },
+      { weekStart: '', concerningRate: 0.46 },
+      { weekStart: '', concerningRate: 0.46 },
+    ]);
+
+    expect(Math.min(...heights)).toBeLessThanOrEqual(20);
+    expect(Math.max(...heights)).toBe(100);
+    // Monotonically non-decreasing, matching the underlying rise.
+    for (let i = 1; i < heights.length; i++) {
+      expect(heights[i]!).toBeGreaterThanOrEqual(heights[i - 1]!);
+    }
+  });
+
+  it('keeps a real zero week pinned to the zero-height floor, not stretched by the relative scale', () => {
+    const heights = toTrendBarHeights([
+      { weekStart: '', concerningRate: 0 },
+      { weekStart: '', concerningRate: 0.5 },
+    ]);
+    expect(heights[0]).toBeLessThan(heights[1]!);
+    expect(heights[0]).toBeLessThanOrEqual(4);
+  });
+
+  it('gives a flat, all-equal, non-zero series a visible mid height rather than collapsing to zero range', () => {
+    const heights = toTrendBarHeights([
+      { weekStart: '', concerningRate: 0.3 },
+      { weekStart: '', concerningRate: 0.3 },
+    ]);
+    expect(heights[0]).toBeGreaterThan(20);
+    expect(heights[0]).toBe(heights[1]);
+  });
+
+  it('never exceeds the plot area', () => {
+    for (const height of toTrendBarHeights([
+      { weekStart: '', concerningRate: 0.1 },
+      { weekStart: '', concerningRate: 0.9 },
+    ])) {
+      expect(height).toBeLessThanOrEqual(100);
+      expect(height).toBeGreaterThanOrEqual(0);
+    }
   });
 });
 

@@ -3,6 +3,7 @@ import { Lock } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { PhoneShell } from '@/presentation/layout/PhoneShell';
 import { Button } from '@/presentation/ui/Button';
+import { Card } from '@/presentation/ui/Card';
 import { PeerChatRoom } from '@/presentation/components/PeerChatRoom';
 import { CrisisCallLink } from '@/presentation/components/CrisisCallLink';
 import { getCrisisLine } from '@/presentation/lib/crisis-line';
@@ -13,6 +14,11 @@ import { usePeerRequest } from '@/presentation/hooks/usePeerRequest';
 // Long enough not to nag someone whose match is simply a few seconds away,
 // short enough that a 03:40 search does not sit silent while they wait.
 const SLOW_SEARCH_MS = 15_000;
+
+const HOW_IT_WORKS = [
+  { title: 'Peça para conversar', body: 'Toque em "Falar com um colega" quando precisar.' },
+  { title: 'Um colega responde', body: 'Um médico disponível aceita o pedido, sem saber quem você é.' },
+] as const;
 
 /**
  * The anonymity guarantee and the crisis line, stated once for every state of
@@ -71,6 +77,28 @@ export function PeersPage() {
               Vincular ao hospital
             </Button>
           </div>
+
+          <ol className="mt-6 flex flex-col gap-3">
+            {HOW_IT_WORKS.map((step, index) => (
+              <li key={step.title}>
+                <Card>
+                  <div className="flex items-start gap-3">
+                    <div
+                      aria-hidden="true"
+                      className="flex h-8 w-8 flex-none items-center justify-center rounded-icon bg-surface-brand font-serif text-body-strong text-brand"
+                    >
+                      {index + 1}
+                    </div>
+                    <div>
+                      <p className="text-label font-extrabold text-ink">{step.title}</p>
+                      <p className="text-caption text-muted">{step.body}</p>
+                    </div>
+                  </div>
+                </Card>
+              </li>
+            ))}
+          </ol>
+
           <PeerFooter />
         </div>
       </PhoneShell>

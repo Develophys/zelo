@@ -23,6 +23,33 @@ export function toTrendBars(trend: TrendPoint[]): TrendBar[] {
   });
 }
 
+/**
+ * Desktop-only heights, scaled to the series' own range rather than the
+ * fixed 0-100 axis `toTrendBars` draws. A realistic 40%-46% swing is real
+ * movement, but on a literal scale it is a few pixels of an already-short
+ * bar — the printed percentage above each bar states the number, the shape
+ * still has to show the trend. Real zero weeks keep the same floor
+ * `toTrendBars` uses, since a zero reading is true regardless of the rest
+ * of the series.
+ */
+export function toTrendBarHeights(trend: TrendPoint[]): number[] {
+  const percents = trend.map((point) => Math.round(point.concerningRate * 100));
+  const nonZero = percents.filter((percent) => percent > 0);
+
+  if (nonZero.length === 0) return percents.map(() => ZERO_BAR_HEIGHT);
+
+  const max = Math.max(...nonZero);
+  const min = Math.min(...nonZero);
+  const range = max - min;
+
+  return percents.map((percent) => {
+    if (percent === 0) return ZERO_BAR_HEIGHT;
+    if (range === 0) return 60;
+    const normalized = (percent - min) / range;
+    return Math.round(MIN_NONZERO_BAR_HEIGHT + normalized * (100 - MIN_NONZERO_BAR_HEIGHT));
+  });
+}
+
 export function weekLabel(weekStart: string): string {
   if (!weekStart) return '';
   const date = new Date(weekStart);

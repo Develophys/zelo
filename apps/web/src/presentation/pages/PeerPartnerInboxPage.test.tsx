@@ -55,6 +55,16 @@ describe("PeerPartnerInboxPage", () => {
     expect(screen.getByText("Olá, Dra. Camila Rocha")).toBeInTheDocument();
   });
 
+  it("tells a waiting peer partner what happens next, instead of leaving the connected card as the whole screen", async () => {
+    renderPage();
+    await act(async () => {
+      handlers["connect"]?.();
+    });
+    expect(
+      screen.getByText("Você recebe um alerta assim que alguém pedir para conversar."),
+    ).toBeInTheDocument();
+  });
+
   it("renders the accept/decline card on an incoming request, showing sectorName", async () => {
     renderPage();
     handlers["incoming_request"]!({ requestId: "request-1", sectorName: "UTI" });

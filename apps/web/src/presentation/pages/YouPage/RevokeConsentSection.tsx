@@ -48,7 +48,13 @@ export function RevokeConsentSection() {
             </div>
           </Card>
         ) : (
-          <Button ref={triggerRef} variant="danger" onClick={requestConfirm}>
+          <Button
+            ref={triggerRef}
+            variant="ghost"
+            full={false}
+            className="text-danger enabled:hover:text-danger-strong"
+            onClick={requestConfirm}
+          >
             Revogar consentimento
           </Button>
         )}

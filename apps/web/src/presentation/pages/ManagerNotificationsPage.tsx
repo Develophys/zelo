@@ -3,7 +3,10 @@ import { Button } from "@/presentation/ui/Button";
 import { Skeleton } from "@/presentation/ui/Skeleton";
 import { Pill } from "@/presentation/ui/Pill";
 import { useManagerNotifications, useManagerUnreadCount } from "@/presentation/hooks/useManagerNotifications";
+import { useSendManagerSetPasswordEmail } from "@/presentation/hooks/useSendManagerSetPasswordEmail";
+import { useSendPeerPartnerSetPasswordEmail } from "@/presentation/hooks/useSendPeerPartnerSetPasswordEmail";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
+import { toast } from "@/stores/toast.store";
 import { notificationCopy } from "./manager-notification-copy";
 
 const DATE_FORMAT: Intl.DateTimeFormatOptions = { day: "2-digit", month: "2-digit", year: "numeric" };
@@ -14,6 +17,20 @@ export function ManagerNotificationsPage() {
   const { notifications, isLoading, error, refresh, isRefreshing, markRead, markAllRead } =
     useManagerNotifications();
   const unreadCount = useManagerUnreadCount();
+  const sendManagerSetPasswordEmail = useSendManagerSetPasswordEmail();
+  const sendPeerPartnerSetPasswordEmail = useSendPeerPartnerSetPasswordEmail();
+
+  const resendInvite = (notificationId: string, kind: unknown, id: string, email: unknown) => {
+    const mutation = kind === "manager" ? sendManagerSetPasswordEmail : sendPeerPartnerSetPasswordEmail;
+    mutation.mutate(id, {
+      onSuccess: () => {
+        toast.success(
+          typeof email === "string" ? `Convite reenviado para ${email}.` : "Convite reenviado.",
+        );
+        markRead(notificationId);
+      },
+    });
+  };
 
   return (
     <div className="flex flex-col gap-5">
@@ -69,6 +86,11 @@ export function ManagerNotificationsPage() {
               : "border-line bg-surface"
           }`;
 
+          const resendId =
+            notification.type === "INVITE_EMAIL_FAILED" && typeof notification.payload.id === "string"
+              ? notification.payload.id
+              : null;
+
           const body = (
             <>
               <span className="min-w-0">
@@ -80,16 +102,31 @@ export function ManagerNotificationsPage() {
                   {new Date(notification.createdAt).toLocaleDateString("pt-BR", DATE_FORMAT)}
                 </span>
                 {unread ? <Pill tone="warning">Não lida</Pill> : <Pill tone="neutral">Lida</Pill>}
+                {resendId && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    full={false}
+                    isLoading={sendManagerSetPasswordEmail.isPending || sendPeerPartnerSetPasswordEmail.isPending}
+                    onClick={() =>
+                      resendInvite(notification.id, notification.payload.kind, resendId, notification.payload.email)
+                    }
+                  >
+                    Reenviar convite
+                  </Button>
+                )}
               </span>
             </>
           );
 
           return (
             <li key={notification.id}>
-              {/* Only an unread row does anything, so only an unread row is a
-                  button. Leaving read ones focusable made a keyboard user tab
-                  through every archived notification to reach what is below. */}
-              {unread ? (
+              {resendId ? (
+                <div className={rowClass}>{body}</div>
+              ) : // Only an unread row does anything, so only an unread row is a
+              // button. Leaving read ones focusable made a keyboard user tab
+              // through every archived notification to reach what is below.
+              unread ? (
                 <button type="button" onClick={() => markRead(notification.id)} className={rowClass}>
                   {body}
                 </button>
