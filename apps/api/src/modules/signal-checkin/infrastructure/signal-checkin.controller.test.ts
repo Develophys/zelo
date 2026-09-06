@@ -9,7 +9,7 @@ import {
   UnknownInstitutionOrSectorError,
 } from "../application/ports/signal-checkin-repository.port.ts";
 import type { RecordCheckinParams, SignalCheckinRepository } from "../application/ports/signal-checkin-repository.port.ts";
-import { NOTIFICATION_PUBLISHER, type NotificationEvent, type NotificationPublisher } from "../../notification/application/ports/notification.port.ts";
+import { NOTIFICATION_PUBLISHER, type NotificationEvent, type NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
 
 class FakeSignalCheckinRepository implements SignalCheckinRepository {
   public calls: RecordCheckinParams[] = [];

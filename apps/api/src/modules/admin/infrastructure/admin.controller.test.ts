@@ -17,8 +17,8 @@ import {
   DuplicateInstitutionOrManagerError,
 } from "../application/ports/admin-institution-repository.port.ts";
 import type { AdminInstitutionRepository, AdminInstitutionRow } from "../application/ports/admin-institution-repository.port.ts";
-import { EMAIL_PORT } from "../../../shared/email/email.port.ts";
-import type { EmailPort, EmailTemplate, SendEmailParams } from "../../../shared/email/email.port.ts";
+import { EMAIL_PORT } from "@/shared/email/email.port.js";
+import type { EmailPort, EmailTemplate, SendEmailParams } from "@/shared/email/email.port.js";
 
 class FakeAdminRepository implements AdminRepository {
   public rows: AdminRow[] = [];

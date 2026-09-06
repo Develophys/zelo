@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { AiChatPort } from '../../application/ports/ai-chat.port.ts';
+import type { AiChatPort } from '@/modules/chat/application/ports/ai-chat.port.js';
 import type { AnonymizedMessage, ChatToken } from '@zelo/domain';
 
 const CANNED_REPLIES = [

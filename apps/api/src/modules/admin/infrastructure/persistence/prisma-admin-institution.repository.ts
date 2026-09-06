@@ -4,9 +4,9 @@ import type {
   AdminInstitutionRepository,
   AdminInstitutionRow,
   CreateInstitutionParams,
-} from "../../application/ports/admin-institution-repository.port.ts";
-import { DuplicateInstitutionOrManagerError } from "../../application/ports/admin-institution-repository.port.ts";
-import { PrismaService } from "../../../../shared/prisma/prisma.service.ts";
+} from "@/modules/admin/application/ports/admin-institution-repository.port.js";
+import { DuplicateInstitutionOrManagerError } from "@/modules/admin/application/ports/admin-institution-repository.port.js";
+import { PrismaService } from "@/shared/prisma/prisma.service.js";
 
 const UNIQUE_CONSTRAINT_VIOLATION = "P2002";
 

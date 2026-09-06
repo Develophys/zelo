@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { CreateManagerUseCase } from "./create-manager.use-case.ts";
 import { SectorNotInInstitutionError } from "./manager-admin-errors.ts";
-import { EmailDeliveryError, type EmailPort, type EmailTemplate, type SendEmailParams } from "../../../../shared/email/email.port.ts";
+import { EmailDeliveryError, type EmailPort, type EmailTemplate, type SendEmailParams } from "@/shared/email/email.port.js";
+import { hashSetPasswordToken } from "@/shared/tokens/hash-set-password-token.js";
 import type {
   CreateManagerParams, ManagerRepository, ManagerRow, ManagerSummaryRow
 } from "../ports/manager-repository.port.ts";
-import type { NotificationEvent, NotificationPublisher } from "../../../notification/application/ports/notification.port.ts";
+import type { NotificationEvent, NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
 
 class FakeManagerRepository implements ManagerRepository {
   public created: Array<{ id: string; name: string; email: string }> = [];
@@ -102,7 +103,13 @@ describe("CreateManagerUseCase", () => {
     expect(emailPort.lastSend?.to).toBe("mauricio@zelo-demo.local");
     expect(emailPort.lastSend?.template).toBe("invite");
     expect(emailPort.lastSend?.params.name).toBe("Mauricio");
-    expect(emailPort.lastSend?.params.setPasswordUrl).toContain(managerRepository.lastCreateParams!.setPasswordToken);
+
+    // The URL carries the raw token (so the link works); the repository only
+    // ever sees its hash, so a database leak cannot be replayed as a live
+    // invite/reset link.
+    const rawToken = emailPort.lastSend!.params.setPasswordUrl.split("/").pop()!;
+    expect(managerRepository.lastCreateParams!.setPasswordToken).toBe(hashSetPasswordToken(rawToken));
+    expect(managerRepository.lastCreateParams!.setPasswordToken).not.toBe(rawToken);
   });
 
   it("creates a SECTOR_MANAGER and assigns the given sectors, all belonging to the institution", async () => {

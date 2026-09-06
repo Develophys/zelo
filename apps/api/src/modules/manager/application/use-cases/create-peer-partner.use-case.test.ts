@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { CreatePeerPartnerUseCase } from "./create-peer-partner.use-case.ts";
-import { EmailDeliveryError, type EmailPort, type EmailTemplate, type SendEmailParams } from "../../../../shared/email/email.port.ts";
+import { hashSetPasswordToken } from "@/shared/tokens/hash-set-password-token.js";
+import { EmailDeliveryError, type EmailPort, type EmailTemplate, type SendEmailParams } from "@/shared/email/email.port.js";
 import type {
   CreatePeerPartnerParams, PeerPartnerRepository, PeerPartnerRow, PeerPartnerSummaryRow
-} from "../../../peer-partner/application/ports/peer-partner-repository.port.ts";
-import type { NotificationEvent, NotificationPublisher } from "../../../notification/application/ports/notification.port.ts";
+} from "@/modules/peer-partner/application/ports/peer-partner-repository.port.js";
+import type { NotificationEvent, NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
 
 class FakePeerPartnerRepository implements PeerPartnerRepository {
   public created: Array<{ id: string; name: string; email: string }> = [];
@@ -81,7 +82,13 @@ describe("CreatePeerPartnerUseCase", () => {
     });
     expect(emailPort.lastSend?.to).toBe("ana@zelo-demo.local");
     expect(emailPort.lastSend?.template).toBe("invite");
-    expect(emailPort.lastSend?.params.setPasswordUrl).toContain(repository.lastCreateParams!.setPasswordToken);
+
+    // The URL carries the raw token (so the link works); the repository only
+    // ever sees its hash, so a database leak cannot be replayed as a live
+    // invite/reset link.
+    const rawToken = emailPort.lastSend!.params.setPasswordUrl.split("/").pop()!;
+    expect(repository.lastCreateParams!.setPasswordToken).toBe(hashSetPasswordToken(rawToken));
+    expect(repository.lastCreateParams!.setPasswordToken).not.toBe(rawToken);
   });
 
   it("still creates the peer partner when the invite email cannot be sent, and says so", async () => {

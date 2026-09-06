@@ -3,7 +3,7 @@ import { GetManagerSignalsUseCase, type ManagerSignalsResponse } from "./get-man
 import { AI_INSIGHT_PORT, type AiInsightPort, type ManagerInsightResponse } from "../ports/ai-insight.port.ts";
 import { MANAGER_INSIGHT_SYSTEM_PROMPT } from "../prompts/manager-insight-system-prompt.ts";
 import { MANAGER_INSIGHT_REPOSITORY, type ManagerInsightRepository } from "../ports/manager-insight-repository.port.ts";
-import { SECTOR_REPOSITORY, type SectorRepository } from "../../../sector/application/ports/sector-repository.port.ts";
+import { SECTOR_REPOSITORY, type SectorRepository } from "@/modules/sector/application/ports/sector-repository.port.js";
 
 @Injectable()
 export class GenerateManagerInsightUseCase {

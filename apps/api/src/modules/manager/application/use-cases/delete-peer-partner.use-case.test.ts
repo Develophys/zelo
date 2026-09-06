@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DeletePeerPartnerUseCase } from "./delete-peer-partner.use-case.ts";
 import { PeerPartnerNotFoundError } from "./manager-admin-errors.ts";
-import type { PeerPartnerRepository, PeerPartnerRow } from "../../../peer-partner/application/ports/peer-partner-repository.port.ts";
+import type { PeerPartnerRepository, PeerPartnerRow } from "@/modules/peer-partner/application/ports/peer-partner-repository.port.js";
 
 const PEER: PeerPartnerRow = {
   id: "peer-1",

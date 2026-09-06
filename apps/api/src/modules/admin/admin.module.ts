@@ -10,7 +10,7 @@ import { AdminTokenService } from "./application/services/admin-token.service.ts
 import { AdminPasswordService } from "./application/services/admin-password.service.ts";
 import { ADMIN_REPOSITORY } from "./application/ports/admin-repository.port.ts";
 import { ADMIN_INSTITUTION_REPOSITORY } from "./application/ports/admin-institution-repository.port.ts";
-import { EmailModule } from "../../shared/email/email.module.ts";
+import { EmailModule } from "@/shared/email/email.module.js";
 
 @Module({
   imports: [EmailModule],

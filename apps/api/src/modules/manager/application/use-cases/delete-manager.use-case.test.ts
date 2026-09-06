@@ -6,7 +6,7 @@ import {
   ManagerOwnsSectorsError,
 } from "./manager-admin-errors.ts";
 import type { ManagerRepository, ManagerRow } from "../ports/manager-repository.port.ts";
-import type { SectorRepository } from "../../../sector/application/ports/sector-repository.port.ts";
+import type { SectorRepository } from "@/modules/sector/application/ports/sector-repository.port.js";
 
 const MANAGER: ManagerRow = {
   id: "manager-2",

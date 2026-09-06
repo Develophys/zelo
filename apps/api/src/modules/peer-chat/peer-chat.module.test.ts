@@ -5,8 +5,8 @@ import { PeerChatModule } from "./peer-chat.module.ts";
 import { PeerChatGateway } from "./infrastructure/peer-chat.gateway.ts";
 import { PEER_PARTNER_REPOSITORY, type PeerPartnerRepository } from "../peer-partner/application/ports/peer-partner-repository.port.ts";
 import { NOTIFICATION_PUBLISHER, type NotificationEvent, type NotificationPublisher } from "../notification/application/ports/notification.port.ts";
-import { PrismaService } from "../../shared/prisma/prisma.service.ts";
-import { PrismaModule } from "../../shared/prisma/prisma.module.ts";
+import { PrismaService } from "@/shared/prisma/prisma.service.js";
+import { PrismaModule } from "@/shared/prisma/prisma.module.js";
 
 // Only the Prisma-backed repository is stubbed out here (it would otherwise need a
 // live database); PeerChatGateway itself is deliberately NOT mocked, because the

@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import {
   PEER_PARTNER_REPOSITORY,
   type PeerPartnerRepository,
-} from "../../../peer-partner/application/ports/peer-partner-repository.port.ts";
+} from "@/modules/peer-partner/application/ports/peer-partner-repository.port.js";
 import { PeerPartnerNotFoundError } from "./manager-admin-errors.ts";
 
 export interface DeletePeerPartnerInput {

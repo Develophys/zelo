@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type { AiInsightPort, ManagerInsightResponse } from "../../application/ports/ai-insight.port.ts";
+import type { AiInsightPort, ManagerInsightResponse } from "@/modules/manager/application/ports/ai-insight.port.js";
 
 /**
  * AI_INSIGHT_PORT implementation for local/dev testing without spending real

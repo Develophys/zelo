@@ -6,12 +6,12 @@ import { InstitutionController } from "./institution.controller.ts";
 import { GetInstitutionByInviteCodeUseCase } from "../application/use-cases/get-institution-by-invite-code.use-case.ts";
 import { INSTITUTION_REPOSITORY } from "../application/ports/institution-repository.port.ts";
 import type { InstitutionRepository, InstitutionRow } from "../application/ports/institution-repository.port.ts";
-import { SECTOR_REPOSITORY } from "../../sector/application/ports/sector-repository.port.ts";
+import { SECTOR_REPOSITORY } from "@/modules/sector/application/ports/sector-repository.port.js";
 import type {
   AdminSectorRow,
   SectorRepository,
   UpdateSectorParams,
-} from "../../sector/application/ports/sector-repository.port.ts";
+} from "@/modules/sector/application/ports/sector-repository.port.js";
 
 class FakeInstitutionRepository implements InstitutionRepository {
   public rows: InstitutionRow[] = [];

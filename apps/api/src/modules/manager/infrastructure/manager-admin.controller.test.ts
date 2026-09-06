@@ -7,9 +7,9 @@ import { ManagerAdminController } from "./manager-admin.controller.ts";
 import { ManagerAuthGuard } from "./manager-auth.guard.ts";
 import { HospitalAdminGuard } from "./hospital-admin.guard.ts";
 import { ManagerTokenService } from "../application/services/manager-token.service.ts";
-import { SECTOR_REPOSITORY } from "../../sector/application/ports/sector-repository.port.ts";
-import type { AdminSectorRow, SectorRepository, UpdateSectorParams } from "../../sector/application/ports/sector-repository.port.ts";
-import { SectorNameConflictError } from "../../sector/application/ports/sector-repository.port.ts";
+import { SECTOR_REPOSITORY } from "@/modules/sector/application/ports/sector-repository.port.js";
+import type { AdminSectorRow, SectorRepository, UpdateSectorParams } from "@/modules/sector/application/ports/sector-repository.port.js";
+import { SectorNameConflictError } from "@/modules/sector/application/ports/sector-repository.port.js";
 import { CreateManagerUseCase } from "../application/use-cases/create-manager.use-case.ts";
 import { UpdateManagerUseCase } from "../application/use-cases/update-manager.use-case.ts";
 import { SendManagerSetPasswordEmailUseCase } from "../application/use-cases/send-manager-set-password-email.use-case.ts";
@@ -23,14 +23,14 @@ import { SIGNAL_REPOSITORY } from "../application/ports/signal-repository.port.t
 import type { SignalRepository, SignalRow, WeeklySignalRow } from "../application/ports/signal-repository.port.ts";
 import { CreatePeerPartnerUseCase } from "../application/use-cases/create-peer-partner.use-case.ts";
 import { SendPeerPartnerSetPasswordEmailUseCase } from "../application/use-cases/send-peer-partner-set-password-email.use-case.ts";
-import { PeerPartnerPasswordService } from "../../peer-partner/application/services/peer-partner-password.service.ts";
-import { PEER_PARTNER_REPOSITORY } from "../../peer-partner/application/ports/peer-partner-repository.port.ts";
-import type { CreatePeerPartnerParams, PeerPartnerRepository, PeerPartnerRow, PeerPartnerSummaryRow, UpdatePeerPartnerParams } from "../../peer-partner/application/ports/peer-partner-repository.port.ts";
-import { PeerChatGateway } from "../../peer-chat/infrastructure/peer-chat.gateway.ts";
-import { EMAIL_PORT } from "../../../shared/email/email.port.ts";
-import type { EmailPort, EmailTemplate, SendEmailParams } from "../../../shared/email/email.port.ts";
-import { NOTIFICATION_PUBLISHER } from "../../notification/application/ports/notification.port.ts";
-import type { NotificationEvent, NotificationPublisher } from "../../notification/application/ports/notification.port.ts";
+import { PeerPartnerPasswordService } from "@/modules/peer-partner/application/services/peer-partner-password.service.js";
+import { PEER_PARTNER_REPOSITORY, PeerPartnerEmailConflictError } from "@/modules/peer-partner/application/ports/peer-partner-repository.port.js";
+import type { CreatePeerPartnerParams, PeerPartnerRepository, PeerPartnerRow, PeerPartnerSummaryRow, UpdatePeerPartnerParams } from "@/modules/peer-partner/application/ports/peer-partner-repository.port.js";
+import { PeerChatGateway } from "@/modules/peer-chat/infrastructure/peer-chat.gateway.js";
+import { EMAIL_PORT } from "@/shared/email/email.port.js";
+import type { EmailPort, EmailTemplate, SendEmailParams } from "@/shared/email/email.port.js";
+import { NOTIFICATION_PUBLISHER } from "@/modules/notification/application/ports/notification.port.js";
+import type { NotificationEvent, NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
 
 class FakeNotificationPublisher implements NotificationPublisher {
   events: NotificationEvent[] = [];
@@ -161,6 +161,7 @@ class FakeEmailPort implements EmailPort {
 
 class FakePeerPartnerRepository implements PeerPartnerRepository {
   public rows: PeerPartnerRow[] = [];
+  public shouldThrowEmailConflict = false;
   async findByEmail(): Promise<PeerPartnerRow | null> {
     throw new Error("not used in this test");
   }
@@ -198,6 +199,7 @@ class FakePeerPartnerRepository implements PeerPartnerRepository {
     return { id: row.id, name: row.name, email: row.email };
   }
   async update(id: string, patch: UpdatePeerPartnerParams): Promise<void> {
+    if (this.shouldThrowEmailConflict) throw new PeerPartnerEmailConflictError();
     const row = this.rows.find((r) => r.id === id);
     if (!row) return;
     for (const [key, value] of Object.entries(patch)) {
@@ -301,6 +303,7 @@ describe("manager admin controller — sectors", () => {
     managerRepository.rows = [{ ...ACTING_ADMIN }, { ...ACTING_SECTOR_MANAGER }];
     managerRepository.activeHospitalAdmins = 1;
     peerPartnerRepository.rows = [];
+    peerPartnerRepository.shouldThrowEmailConflict = false;
     signalRepository.countBySectorResult = 0;
   });
 
@@ -583,6 +586,42 @@ describe("manager admin controller — sectors", () => {
 
     expect(response.status).toBe(204);
     expect(peerPartnerRepository.rows[0]!.isActive).toBe(false);
+  });
+
+  it("PATCH /manager/admin/peer-partners/:id updates name and email", async () => {
+    peerPartnerRepository.rows = [{ id: "peer-1", name: "Dra. Ana", email: "dra-ana@institution-1.local", passwordHash: "h", setPasswordTokenExpiresAt: null, institutionId: "institution-1", specialty: "Clínica médica", isActive: true }];
+
+    const response = await request(app.getHttpServer())
+      .patch("/manager/admin/peer-partners/peer-1")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ name: "Dra. Ana Konder", email: "ana.konder@institution-1.local" });
+
+    expect(response.status).toBe(204);
+    expect(peerPartnerRepository.rows[0]!.name).toBe("Dra. Ana Konder");
+    expect(peerPartnerRepository.rows[0]!.email).toBe("ana.konder@institution-1.local");
+  });
+
+  it("PATCH /manager/admin/peer-partners/:id returns 409 when the email already belongs to another peer partner", async () => {
+    peerPartnerRepository.rows = [{ id: "peer-1", name: "Dra. Ana", email: "dra-ana@institution-1.local", passwordHash: "h", setPasswordTokenExpiresAt: null, institutionId: "institution-1", specialty: "Clínica médica", isActive: true }];
+    peerPartnerRepository.shouldThrowEmailConflict = true;
+
+    const response = await request(app.getHttpServer())
+      .patch("/manager/admin/peer-partners/peer-1")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ email: "ja-em-uso@institution-1.local" });
+
+    expect(response.status).toBe(409);
+  });
+
+  it("PATCH /manager/admin/peer-partners/:id rejects an invalid email with 400", async () => {
+    peerPartnerRepository.rows = [{ id: "peer-1", name: "Dra. Ana", email: "dra-ana@institution-1.local", passwordHash: "h", setPasswordTokenExpiresAt: null, institutionId: "institution-1", specialty: "Clínica médica", isActive: true }];
+
+    const response = await request(app.getHttpServer())
+      .patch("/manager/admin/peer-partners/peer-1")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ email: "not-an-email" });
+
+    expect(response.status).toBe(400);
   });
 
   it("PATCH /manager/admin/peer-partners/:id returns 404 for a peer partner in a different institution", async () => {

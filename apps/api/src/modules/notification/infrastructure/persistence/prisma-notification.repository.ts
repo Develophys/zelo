@@ -5,9 +5,9 @@ import type {
   NotificationPage,
   NotificationRepository,
   NotificationRow,
-} from "../../application/ports/notification-repository.port.ts";
-import type { NotificationType } from "../../application/ports/notification.port.ts";
-import { PrismaService } from "../../../../shared/prisma/prisma.service.ts";
+} from "@/modules/notification/application/ports/notification-repository.port.js";
+import type { NotificationType } from "@/modules/notification/application/ports/notification.port.js";
+import { PrismaService } from "@/shared/prisma/prisma.service.js";
 
 type Row = {
   id: string;

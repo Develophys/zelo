@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { FinishManagerSetupUseCase, InvalidOrExpiredManagerSetupTokenError } from "./finish-manager-setup.use-case.ts";
 import { ManagerPasswordService } from "../services/manager-password.service.ts";
 import type { ManagerRepository, ManagerRow, UpdateManagerParams } from "../ports/manager-repository.port.ts";
-import type { NotificationEvent, NotificationPublisher } from "../../../notification/application/ports/notification.port.ts";
+import type { NotificationEvent, NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
+import { hashSetPasswordToken } from "@/shared/tokens/hash-set-password-token.js";
 
 class FakeNotificationPublisher implements NotificationPublisher {
   events: NotificationEvent[] = [];
@@ -59,7 +60,7 @@ describe("FinishManagerSetupUseCase", () => {
     repository.rows = [
       Object.assign(
         { id: "manager-1", name: "Ana Konder", email: "ana@zelo-demo.local", passwordHash: null, setPasswordTokenExpiresAt: new Date(Date.now() - 1000), institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: true } as ManagerRow,
-        { setPasswordToken: "abc123" },
+        { setPasswordToken: hashSetPasswordToken("abc123") },
       ),
     ];
     const useCase = new FinishManagerSetupUseCase(repository, new ManagerPasswordService(), new FakeNotificationPublisher());
@@ -72,7 +73,7 @@ describe("FinishManagerSetupUseCase", () => {
     repository.rows = [
       Object.assign(
         { id: "manager-1", name: "Ana Konder", email: "ana@zelo-demo.local", passwordHash: null, setPasswordTokenExpiresAt: new Date(Date.now() + 60_000), institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: true } as ManagerRow,
-        { setPasswordToken: "abc123" },
+        { setPasswordToken: hashSetPasswordToken("abc123") },
       ),
     ];
     const passwordService = new ManagerPasswordService();
@@ -92,7 +93,7 @@ describe("FinishManagerSetupUseCase", () => {
     repository.rows = [
       Object.assign(
         { id: "manager-1", name: "Ana Konder", email: "ana@zelo-demo.local", passwordHash: null, setPasswordTokenExpiresAt: new Date(Date.now() + 60_000), institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: true } as ManagerRow,
-        { setPasswordToken: "abc123" },
+        { setPasswordToken: hashSetPasswordToken("abc123") },
       ),
     ];
     const notifications = new FakeNotificationPublisher();

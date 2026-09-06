@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { MANAGER_REPOSITORY, type ManagerRepository } from "../ports/manager-repository.port.ts";
-import { SECTOR_REPOSITORY, type SectorRepository } from "../../../sector/application/ports/sector-repository.port.ts";
+import { SECTOR_REPOSITORY, type SectorRepository } from "@/modules/sector/application/ports/sector-repository.port.js";
 import {
   LastActiveHospitalAdminError,
   ManagerNotFoundError,

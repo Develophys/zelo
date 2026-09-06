@@ -5,9 +5,9 @@ import type {
   ManagerRow,
   ManagerSummaryRow,
   UpdateManagerParams,
-} from "../../application/ports/manager-repository.port.ts";
-import { PrismaService } from "../../../../shared/prisma/prisma.service.ts";
-import { LAPSED_INVITE_WINDOW_DAYS } from "../../../notification/application/thresholds.ts";
+} from "@/modules/manager/application/ports/manager-repository.port.js";
+import { PrismaService } from "@/shared/prisma/prisma.service.js";
+import { LAPSED_INVITE_WINDOW_DAYS } from "@/modules/notification/application/thresholds.js";
 
 @Injectable()
 export class PrismaManagerRepository implements ManagerRepository {

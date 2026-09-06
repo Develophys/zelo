@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { MANAGER_REPOSITORY, type ManagerRepository } from "../../../manager/application/ports/manager-repository.port.ts";
-import { SECTOR_REPOSITORY, type SectorRepository } from "../../../sector/application/ports/sector-repository.port.ts";
+import { MANAGER_REPOSITORY, type ManagerRepository } from "@/modules/manager/application/ports/manager-repository.port.js";
+import { SECTOR_REPOSITORY, type SectorRepository } from "@/modules/sector/application/ports/sector-repository.port.js";
 import type { NotificationEvent, NotificationType } from "../ports/notification.port.ts";
 
 const SECTOR_SCOPED: ReadonlySet<NotificationType> = new Set<NotificationType>([

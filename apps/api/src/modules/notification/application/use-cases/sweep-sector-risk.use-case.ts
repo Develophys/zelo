@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { startOfIsoWeek } from "../../../../shared/date/start-of-iso-week.ts";
-import { SIGNAL_REPOSITORY, type SignalRepository } from "../../../manager/application/ports/signal-repository.port.ts";
+import { startOfIsoWeek } from "@/shared/date/start-of-iso-week.js";
+import { SIGNAL_REPOSITORY, type SignalRepository } from "@/modules/manager/application/ports/signal-repository.port.js";
 import { NOTIFICATION_PUBLISHER, type NotificationPublisher } from "../ports/notification.port.ts";
 import { RISK_DELTA_THRESHOLD, RISK_MIN_CHECK_INS, RISK_RATE_THRESHOLD } from "../thresholds.ts";
 

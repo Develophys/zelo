@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { FinishPeerPartnerSetupUseCase, InvalidOrExpiredPeerPartnerSetupTokenError } from "./finish-peer-partner-setup.use-case.ts";
 import { PeerPartnerPasswordService } from "../services/peer-partner-password.service.ts";
 import type { PeerPartnerRepository, PeerPartnerRow, UpdatePeerPartnerParams } from "../ports/peer-partner-repository.port.ts";
-import type { NotificationEvent, NotificationPublisher } from "../../../notification/application/ports/notification.port.ts";
+import type { NotificationEvent, NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
+import { hashSetPasswordToken } from "@/shared/tokens/hash-set-password-token.js";
 
 class FakeNotificationPublisher implements NotificationPublisher {
   events: NotificationEvent[] = [];
@@ -53,7 +54,7 @@ describe("FinishPeerPartnerSetupUseCase", () => {
     repository.rows = [
       Object.assign(
         { id: "peer-1", name: "Dra. Ana", email: "ana@zelo-demo.local", passwordHash: null, setPasswordTokenExpiresAt: new Date(Date.now() - 1000), institutionId: "institution-1", specialty: "Clínica médica", isActive: true } as PeerPartnerRow,
-        { setPasswordToken: "abc123" },
+        { setPasswordToken: hashSetPasswordToken("abc123") },
       ),
     ];
     const useCase = new FinishPeerPartnerSetupUseCase(repository, new PeerPartnerPasswordService(), new FakeNotificationPublisher());
@@ -66,7 +67,7 @@ describe("FinishPeerPartnerSetupUseCase", () => {
     repository.rows = [
       Object.assign(
         { id: "peer-1", name: "Dra. Ana", email: "ana@zelo-demo.local", passwordHash: null, setPasswordTokenExpiresAt: new Date(Date.now() + 60_000), institutionId: "institution-1", specialty: "Clínica médica", isActive: true } as PeerPartnerRow,
-        { setPasswordToken: "abc123" },
+        { setPasswordToken: hashSetPasswordToken("abc123") },
       ),
     ];
     const passwordService = new PeerPartnerPasswordService();
@@ -86,7 +87,7 @@ describe("FinishPeerPartnerSetupUseCase", () => {
     repository.rows = [
       Object.assign(
         { id: "peer-1", name: "Dra. Ana", email: "ana@zelo-demo.local", passwordHash: null, setPasswordTokenExpiresAt: new Date(Date.now() + 60_000), institutionId: "institution-1", specialty: "Clínica médica", isActive: true } as PeerPartnerRow,
-        { setPasswordToken: "abc123" },
+        { setPasswordToken: hashSetPasswordToken("abc123") },
       ),
     ];
     const notifications = new FakeNotificationPublisher();

@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { SendManagerSetPasswordEmailUseCase } from "./send-manager-set-password-email.use-case.ts";
 import { ManagerNotFoundError } from "./manager-admin-errors.ts";
-import { EmailDeliveryError, type EmailPort, type EmailTemplate, type SendEmailParams } from "../../../../shared/email/email.port.ts";
+import { EmailDeliveryError, type EmailPort, type EmailTemplate, type SendEmailParams } from "@/shared/email/email.port.js";
+import { hashSetPasswordToken } from "@/shared/tokens/hash-set-password-token.js";
 import type { ManagerRepository, ManagerRow, UpdateManagerParams } from "../ports/manager-repository.port.ts";
-import type { NotificationEvent, NotificationPublisher } from "../../../notification/application/ports/notification.port.ts";
+import type { NotificationEvent, NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
 
 class FakeManagerRepository implements ManagerRepository {
   rows: ManagerRow[] = [];
@@ -85,7 +86,11 @@ describe("SendManagerSetPasswordEmailUseCase", () => {
     expect(repository.lastUpdate?.patch.setPasswordTokenExpiresAt).toBeInstanceOf(Date);
     expect(emailPort.lastSend?.to).toBe("ana@zelo-demo.local");
     expect(emailPort.lastSend?.template).toBe("invite");
-    expect(emailPort.lastSend?.params.setPasswordUrl).toContain(repository.lastUpdate!.patch.setPasswordToken);
+
+    // The URL carries the raw token; the repository only ever sees its hash.
+    const rawToken = emailPort.lastSend!.params.setPasswordUrl.split("/").pop()!;
+    expect(repository.lastUpdate!.patch.setPasswordToken).toBe(hashSetPasswordToken(rawToken));
+    expect(repository.lastUpdate!.patch.setPasswordToken).not.toBe(rawToken);
   });
 
   it("sends the password-reset-flavored email when the manager already has a password", async () => {

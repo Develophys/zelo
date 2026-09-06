@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { Assessment } from "@zelo/domain";
-import type { AssessmentRepository } from "../../application/ports/assessment-repository.port.ts";
-import { PrismaService } from "../../../../shared/prisma/prisma.service.ts";
+import type { AssessmentRepository } from "@/modules/assessment/application/ports/assessment-repository.port.js";
+import { PrismaService } from "@/shared/prisma/prisma.service.js";
 
 @Injectable()
 export class PrismaAssessmentRepository implements AssessmentRepository {

@@ -3,7 +3,7 @@ import { Test } from "@nestjs/testing";
 import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
 import { HealthModule } from "../health.module.ts";
-import { PrismaModule } from "../../../shared/prisma/prisma.module.ts";
+import { PrismaModule } from "@/shared/prisma/prisma.module.js";
 
 describe("GET /health", () => {
   let app: INestApplication;

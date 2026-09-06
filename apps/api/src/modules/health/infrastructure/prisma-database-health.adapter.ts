@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { DatabaseHealthPort } from "../application/ports/database-health.port.ts";
-import { PrismaService } from "../../../shared/prisma/prisma.service.ts";
+import { PrismaService } from "@/shared/prisma/prisma.service.js";
 
 @Injectable()
 export class PrismaDatabaseHealthAdapter implements DatabaseHealthPort {

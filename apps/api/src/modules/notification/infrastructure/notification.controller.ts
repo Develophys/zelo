@@ -12,7 +12,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import type { Request } from "express";
-import { ManagerAuthGuard } from "../../manager/infrastructure/manager-auth.guard.ts";
+import { ManagerAuthGuard } from "@/modules/manager/infrastructure/manager-auth.guard.js";
 import { DEFAULT_LIMIT, ListNotificationsUseCase, MAX_LIMIT } from "../application/use-cases/list-notifications.use-case.ts";
 import { MarkNotificationReadUseCase, NotificationNotFoundError } from "../application/use-cases/mark-notification-read.use-case.ts";
 import type { NotificationType } from "../application/ports/notification.port.ts";

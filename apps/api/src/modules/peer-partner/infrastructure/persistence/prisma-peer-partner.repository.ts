@@ -1,13 +1,17 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type {
-  CreatePeerPartnerParams,
-  PeerPartnerRepository,
-  PeerPartnerRow,
-  PeerPartnerSummaryRow,
-  UpdatePeerPartnerParams,
-} from "../../application/ports/peer-partner-repository.port.ts";
-import { PrismaService } from "../../../../shared/prisma/prisma.service.ts";
-import { LAPSED_INVITE_WINDOW_DAYS } from "../../../notification/application/thresholds.ts";
+import { Prisma } from "../../../../../generated/prisma/client.ts";
+import {
+  PeerPartnerEmailConflictError,
+  type CreatePeerPartnerParams,
+  type PeerPartnerRepository,
+  type PeerPartnerRow,
+  type PeerPartnerSummaryRow,
+  type UpdatePeerPartnerParams,
+} from "@/modules/peer-partner/application/ports/peer-partner-repository.port.js";
+import { PrismaService } from "@/shared/prisma/prisma.service.js";
+import { LAPSED_INVITE_WINDOW_DAYS } from "@/modules/notification/application/thresholds.js";
+
+const UNIQUE_CONSTRAINT_VIOLATION = "P2002";
 
 @Injectable()
 export class PrismaPeerPartnerRepository implements PeerPartnerRepository {
@@ -56,7 +60,14 @@ export class PrismaPeerPartnerRepository implements PeerPartnerRepository {
   }
 
   async update(id: string, patch: UpdatePeerPartnerParams): Promise<void> {
-    await this.prisma.peerPartner.update({ where: { id }, data: patch });
+    try {
+      await this.prisma.peerPartner.update({ where: { id }, data: patch });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === UNIQUE_CONSTRAINT_VIOLATION) {
+        throw new PeerPartnerEmailConflictError();
+      }
+      throw error;
+    }
   }
 
   async findLapsedInvites(

@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "postinstall": "prisma generate",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "start": "node dist/src/main.js",
     "dev": "tsx watch src/main.ts",
     "lint": "eslint src",
@@ -53,6 +53,7 @@
     "dotenv": "^16.4.0",
     "prisma": "^7.8.0",
     "supertest": "^7.0.0",
+    "tsc-alias": "^1.9.4",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "vitest": "^3.2.7"

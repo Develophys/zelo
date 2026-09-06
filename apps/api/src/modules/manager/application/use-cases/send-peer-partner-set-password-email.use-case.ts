@@ -1,11 +1,12 @@
 import { randomBytes } from "node:crypto";
 import { Inject, Injectable, Logger } from "@nestjs/common";
-import { PEER_PARTNER_REPOSITORY, type PeerPartnerRepository } from "../../../peer-partner/application/ports/peer-partner-repository.port.ts";
-import { EMAIL_PORT, type EmailPort } from "../../../../shared/email/email.port.ts";
-import { sendInviteEmailOrRecord } from "../../../../shared/email/send-invite-email.ts";
-import { buildSetPasswordUrl } from "../../../../shared/email/build-set-password-url.ts";
+import { PEER_PARTNER_REPOSITORY, type PeerPartnerRepository } from "@/modules/peer-partner/application/ports/peer-partner-repository.port.js";
+import { EMAIL_PORT, type EmailPort } from "@/shared/email/email.port.js";
+import { sendInviteEmailOrRecord } from "@/shared/email/send-invite-email.js";
+import { buildSetPasswordUrl } from "@/shared/email/build-set-password-url.js";
+import { hashSetPasswordToken } from "@/shared/tokens/hash-set-password-token.js";
 import { PeerPartnerNotFoundError } from "./manager-admin-errors.ts";
-import { NOTIFICATION_PUBLISHER, type NotificationPublisher } from "../../../notification/application/ports/notification.port.ts";
+import { NOTIFICATION_PUBLISHER, type NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
 
 const SET_PASSWORD_TOKEN_BYTES = 32;
 const SET_PASSWORD_TOKEN_TTL_MS = 48 * 60 * 60 * 1000;
@@ -33,7 +34,10 @@ export class SendPeerPartnerSetPasswordEmailUseCase {
 
     const setPasswordToken = randomBytes(SET_PASSWORD_TOKEN_BYTES).toString("hex");
     const setPasswordTokenExpiresAt = new Date(Date.now() + SET_PASSWORD_TOKEN_TTL_MS);
-    await this.repository.update(input.peerPartnerId, { setPasswordToken, setPasswordTokenExpiresAt });
+    await this.repository.update(input.peerPartnerId, {
+      setPasswordToken: hashSetPasswordToken(setPasswordToken),
+      setPasswordTokenExpiresAt,
+    });
 
     const template = peerPartner.passwordHash ? "password-reset" : "invite";
     // The token has already been persisted at this point. Letting a send

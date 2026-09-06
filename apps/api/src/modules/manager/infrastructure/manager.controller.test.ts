@@ -4,6 +4,7 @@ import type { INestApplication } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import request from "supertest";
 import { ManagerController } from "./manager.controller.ts";
+import { hashSetPasswordToken } from "@/shared/tokens/hash-set-password-token.js";
 import { ManagerAuthGuard } from "./manager-auth.guard.ts";
 import { LoginManagerUseCase } from "../application/use-cases/login-manager.use-case.ts";
 import { GetManagerSignalsUseCase } from "../application/use-cases/get-manager-signals.use-case.ts";
@@ -24,10 +25,10 @@ import { AI_INSIGHT_PORT, InsightGenerationFailedError } from "../application/po
 import type { AiInsightPort, ManagerInsightResponse } from "../application/ports/ai-insight.port.ts";
 import { MANAGER_INSIGHT_REPOSITORY } from "../application/ports/manager-insight-repository.port.ts";
 import type { ManagerInsightRepository, StoredManagerInsight } from "../application/ports/manager-insight-repository.port.ts";
-import { SECTOR_REPOSITORY } from "../../sector/application/ports/sector-repository.port.ts";
-import type { SectorRepository, AdminSectorRow, UpdateSectorParams } from "../../sector/application/ports/sector-repository.port.ts";
-import { NOTIFICATION_PUBLISHER } from "../../notification/application/ports/notification.port.ts";
-import type { NotificationEvent, NotificationPublisher } from "../../notification/application/ports/notification.port.ts";
+import { SECTOR_REPOSITORY } from "@/modules/sector/application/ports/sector-repository.port.js";
+import type { SectorRepository, AdminSectorRow, UpdateSectorParams } from "@/modules/sector/application/ports/sector-repository.port.js";
+import { NOTIFICATION_PUBLISHER } from "@/modules/notification/application/ports/notification.port.js";
+import type { NotificationEvent, NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
 
 class FakeNotificationPublisher implements NotificationPublisher {
   events: NotificationEvent[] = [];
@@ -283,7 +284,8 @@ describe("manager controller", () => {
       role: "HOSPITAL_ADMIN",
       isActive: true,
     });
-    (managerRepository.rows[managerRepository.rows.length - 1] as unknown as { setPasswordToken: string }).setPasswordToken = "valid-token";
+    (managerRepository.rows[managerRepository.rows.length - 1] as unknown as { setPasswordToken: string }).setPasswordToken =
+      hashSetPasswordToken("valid-token");
 
     const response = await request(app.getHttpServer()).post("/manager/finish-setup").send({ token: "valid-token", password: "new-password-123" });
 

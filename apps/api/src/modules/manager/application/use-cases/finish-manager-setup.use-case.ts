@@ -1,7 +1,8 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { MANAGER_REPOSITORY, type ManagerRepository } from "../ports/manager-repository.port.ts";
 import { ManagerPasswordService } from "../services/manager-password.service.ts";
-import { NOTIFICATION_PUBLISHER, type NotificationPublisher } from "../../../notification/application/ports/notification.port.ts";
+import { NOTIFICATION_PUBLISHER, type NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
+import { hashSetPasswordToken } from "@/shared/tokens/hash-set-password-token.js";
 
 export class InvalidOrExpiredManagerSetupTokenError extends Error {}
 
@@ -19,7 +20,7 @@ export class FinishManagerSetupUseCase {
   ) {}
 
   async execute(input: FinishManagerSetupInput): Promise<void> {
-    const manager = await this.managerRepository.findBySetPasswordToken(input.token);
+    const manager = await this.managerRepository.findBySetPasswordToken(hashSetPasswordToken(input.token));
     if (!manager || !manager.setPasswordTokenExpiresAt || manager.setPasswordTokenExpiresAt.getTime() < Date.now()) {
       throw new InvalidOrExpiredManagerSetupTokenError();
     }

@@ -1,8 +1,8 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { Prisma } from "../../../../../generated/prisma/client.ts";
-import type { RecordCheckinParams, SignalCheckinRepository } from "../../application/ports/signal-checkin-repository.port.ts";
-import { UnknownInstitutionOrSectorError } from "../../application/ports/signal-checkin-repository.port.ts";
-import { PrismaService } from "../../../../shared/prisma/prisma.service.ts";
+import type { RecordCheckinParams, SignalCheckinRepository } from "@/modules/signal-checkin/application/ports/signal-checkin-repository.port.js";
+import { UnknownInstitutionOrSectorError } from "@/modules/signal-checkin/application/ports/signal-checkin-repository.port.js";
+import { PrismaService } from "@/shared/prisma/prisma.service.js";
 
 const UNIQUE_CONSTRAINT_VIOLATION = "P2002";
 const FOREIGN_KEY_VIOLATION = "P2003";

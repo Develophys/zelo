@@ -2,7 +2,7 @@ import { Module } from "@nestjs/common";
 import { SectorModule } from "../sector/sector.module.ts";
 import { PeerPartnerModule } from "../peer-partner/peer-partner.module.ts";
 import { PeerChatModule } from "../peer-chat/peer-chat.module.ts";
-import { EmailModule } from "../../shared/email/email.module.ts";
+import { EmailModule } from "@/shared/email/email.module.js";
 import { NotificationModule } from "../notification/notification.module.ts";
 import { ManagerController } from "./infrastructure/manager.controller.ts";
 import { ManagerAdminController } from "./infrastructure/manager-admin.controller.ts";

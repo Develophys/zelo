@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CreateInstitutionUseCase } from "./create-institution.use-case.ts";
-import { EmailDeliveryError, type EmailPort, type EmailTemplate, type SendEmailParams } from "../../../../shared/email/email.port.ts";
+import { EmailDeliveryError, type EmailPort, type EmailTemplate, type SendEmailParams } from "@/shared/email/email.port.js";
 import {
   DuplicateInstitutionOrManagerError,
   type AdminInstitutionRepository,

@@ -1,6 +1,6 @@
 import { Controller, Get, Inject, NotFoundException, Param } from "@nestjs/common";
 import { GetInstitutionByInviteCodeUseCase } from "../application/use-cases/get-institution-by-invite-code.use-case.ts";
-import { SECTOR_REPOSITORY, type SectorRepository } from "../../sector/application/ports/sector-repository.port.ts";
+import { SECTOR_REPOSITORY, type SectorRepository } from "@/modules/sector/application/ports/sector-repository.port.js";
 
 @Controller("institutions")
 export class InstitutionController {

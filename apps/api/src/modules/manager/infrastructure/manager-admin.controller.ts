@@ -18,8 +18,8 @@ import type { Request } from "express";
 import { z } from "zod";
 import { ManagerAuthGuard } from "./manager-auth.guard.ts";
 import { HospitalAdminGuard } from "./hospital-admin.guard.ts";
-import { SECTOR_REPOSITORY, type SectorRepository, type AdminSectorRow } from "../../sector/application/ports/sector-repository.port.ts";
-import { SectorNameConflictError } from "../../sector/application/ports/sector-repository.port.ts";
+import { SECTOR_REPOSITORY, type SectorRepository, type AdminSectorRow } from "@/modules/sector/application/ports/sector-repository.port.js";
+import { SectorNameConflictError } from "@/modules/sector/application/ports/sector-repository.port.js";
 import { MANAGER_REPOSITORY, type ManagerRepository, type ManagerSummaryRow } from "../application/ports/manager-repository.port.ts";
 import { CreateManagerUseCase, type CreateManagerResult } from "../application/use-cases/create-manager.use-case.ts";
 import { UpdateManagerUseCase } from "../application/use-cases/update-manager.use-case.ts";
@@ -35,10 +35,10 @@ import {
   SectorNotInInstitutionError,
   PeerPartnerNotFoundError,
 } from "../application/use-cases/manager-admin-errors.ts";
-import { PEER_PARTNER_REPOSITORY, type PeerPartnerRepository, type PeerPartnerSummaryRow } from "../../peer-partner/application/ports/peer-partner-repository.port.ts";
+import { PEER_PARTNER_REPOSITORY, PeerPartnerEmailConflictError, type PeerPartnerRepository, type PeerPartnerSummaryRow } from "@/modules/peer-partner/application/ports/peer-partner-repository.port.js";
 import { CreatePeerPartnerUseCase, type CreatePeerPartnerResult } from "../application/use-cases/create-peer-partner.use-case.ts";
 import { SendPeerPartnerSetPasswordEmailUseCase } from "../application/use-cases/send-peer-partner-set-password-email.use-case.ts";
-import { PeerChatGateway } from "../../peer-chat/infrastructure/peer-chat.gateway.ts";
+import { PeerChatGateway } from "@/modules/peer-chat/infrastructure/peer-chat.gateway.js";
 
 const CreateSectorSchema = z.object({ name: z.string().trim().min(1).max(200) });
 const UpdateSectorSchema = z.object({ isActive: z.boolean().optional(), managerId: z.string().nullable().optional() });
@@ -62,7 +62,12 @@ const UpdateManagerSchema = z.object({
 });
 
 const CreatePeerPartnerSchema = z.object({ name: z.string().trim().min(1).max(200), email: z.string().trim().email().max(200), specialty: z.string().trim().min(1).max(200) });
-const UpdatePeerPartnerSchema = z.object({ isActive: z.boolean().optional(), specialty: z.string().trim().min(1).max(200).optional() });
+const UpdatePeerPartnerSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  email: z.string().trim().email().max(200).optional(),
+  isActive: z.boolean().optional(),
+  specialty: z.string().trim().min(1).max(200).optional(),
+});
 
 @Controller("manager/admin")
 @UseGuards(ManagerAuthGuard, HospitalAdminGuard)
@@ -251,7 +256,12 @@ export class ManagerAdminController {
       throw new NotFoundException();
     }
 
-    await this.peerPartnerRepository.update(id, parsed.data);
+    try {
+      await this.peerPartnerRepository.update(id, parsed.data);
+    } catch (error) {
+      if (error instanceof PeerPartnerEmailConflictError) throw new ConflictException();
+      throw error;
+    }
     if (parsed.data.isActive === false) {
       this.peerChatGateway.forceDisconnect(id);
     }

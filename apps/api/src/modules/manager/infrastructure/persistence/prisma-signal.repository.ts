@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { SignalRepository, SignalRow, WeeklySignalRow } from "../../application/ports/signal-repository.port.ts";
-import { PrismaService } from "../../../../shared/prisma/prisma.service.ts";
+import type { SignalRepository, SignalRow, WeeklySignalRow } from "@/modules/manager/application/ports/signal-repository.port.js";
+import { PrismaService } from "@/shared/prisma/prisma.service.js";
 
 @Injectable()
 export class PrismaSignalRepository implements SignalRepository {

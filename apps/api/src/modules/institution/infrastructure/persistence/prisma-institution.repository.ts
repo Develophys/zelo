@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { InstitutionRepository, InstitutionRow } from "../../application/ports/institution-repository.port.ts";
-import { PrismaService } from "../../../../shared/prisma/prisma.service.ts";
+import type { InstitutionRepository, InstitutionRow } from "@/modules/institution/application/ports/institution-repository.port.js";
+import { PrismaService } from "@/shared/prisma/prisma.service.js";
 
 @Injectable()
 export class PrismaInstitutionRepository implements InstitutionRepository {

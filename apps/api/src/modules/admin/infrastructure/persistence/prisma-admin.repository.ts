@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { AdminRepository, AdminRow } from "../../application/ports/admin-repository.port.ts";
-import { PrismaService } from "../../../../shared/prisma/prisma.service.ts";
+import type { AdminRepository, AdminRow } from "@/modules/admin/application/ports/admin-repository.port.js";
+import { PrismaService } from "@/shared/prisma/prisma.service.js";
 
 @Injectable()
 export class PrismaAdminRepository implements AdminRepository {

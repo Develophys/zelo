@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { SimulatedFollowUpRepository, SimulatedFollowUpRow } from "../../application/ports/simulated-follow-up-repository.port.ts";
-import { PrismaService } from "../../../../shared/prisma/prisma.service.ts";
+import type { SimulatedFollowUpRepository, SimulatedFollowUpRow } from "@/modules/manager/application/ports/simulated-follow-up-repository.port.js";
+import { PrismaService } from "@/shared/prisma/prisma.service.js";
 
 @Injectable()
 export class PrismaSimulatedFollowUpRepository implements SimulatedFollowUpRepository {

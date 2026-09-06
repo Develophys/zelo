@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { SendPeerPartnerSetPasswordEmailUseCase } from "./send-peer-partner-set-password-email.use-case.ts";
 import { PeerPartnerNotFoundError } from "./manager-admin-errors.ts";
-import { EmailDeliveryError, type EmailPort, type EmailTemplate, type SendEmailParams } from "../../../../shared/email/email.port.ts";
-import type { PeerPartnerRepository, PeerPartnerRow, UpdatePeerPartnerParams } from "../../../peer-partner/application/ports/peer-partner-repository.port.ts";
-import type { NotificationEvent, NotificationPublisher } from "../../../notification/application/ports/notification.port.ts";
+import { EmailDeliveryError, type EmailPort, type EmailTemplate, type SendEmailParams } from "@/shared/email/email.port.js";
+import { hashSetPasswordToken } from "@/shared/tokens/hash-set-password-token.js";
+import type { PeerPartnerRepository, PeerPartnerRow, UpdatePeerPartnerParams } from "@/modules/peer-partner/application/ports/peer-partner-repository.port.js";
+import type { NotificationEvent, NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
 
 class FakePeerPartnerRepository implements PeerPartnerRepository {
   rows: PeerPartnerRow[] = [];
@@ -77,6 +78,11 @@ describe("SendPeerPartnerSetPasswordEmailUseCase", () => {
     expect(repository.lastUpdate?.patch.setPasswordToken).toEqual(expect.any(String));
     expect(emailPort.lastSend?.to).toBe("ana@zelo-demo.local");
     expect(emailPort.lastSend?.template).toBe("invite");
+
+    // The URL carries the raw token; the repository only ever sees its hash.
+    const rawToken = emailPort.lastSend!.params.setPasswordUrl.split("/").pop()!;
+    expect(repository.lastUpdate!.patch.setPasswordToken).toBe(hashSetPasswordToken(rawToken));
+    expect(repository.lastUpdate!.patch.setPasswordToken).not.toBe(rawToken);
   });
 
   it("sends the password-reset-flavored email when the peer partner already has a password", async () => {

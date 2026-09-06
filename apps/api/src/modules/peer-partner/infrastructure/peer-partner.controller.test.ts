@@ -4,14 +4,15 @@ import type { INestApplication } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import request from "supertest";
 import { PeerPartnerController } from "./peer-partner.controller.ts";
+import { hashSetPasswordToken } from "@/shared/tokens/hash-set-password-token.js";
 import { LoginPeerPartnerUseCase } from "../application/use-cases/login-peer-partner.use-case.ts";
 import { FinishPeerPartnerSetupUseCase } from "../application/use-cases/finish-peer-partner-setup.use-case.ts";
 import { PeerPartnerTokenService } from "../application/services/peer-partner-token.service.ts";
 import { PeerPartnerPasswordService } from "../application/services/peer-partner-password.service.ts";
 import { PEER_PARTNER_REPOSITORY } from "../application/ports/peer-partner-repository.port.ts";
 import type { PeerPartnerRepository, PeerPartnerRow } from "../application/ports/peer-partner-repository.port.ts";
-import { NOTIFICATION_PUBLISHER } from "../../notification/application/ports/notification.port.ts";
-import type { NotificationEvent, NotificationPublisher } from "../../notification/application/ports/notification.port.ts";
+import { NOTIFICATION_PUBLISHER } from "@/modules/notification/application/ports/notification.port.js";
+import type { NotificationEvent, NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
 
 class FakeNotificationPublisher implements NotificationPublisher {
   events: NotificationEvent[] = [];
@@ -115,7 +116,8 @@ describe("peer partner controller", () => {
       specialty: "Psiquiatria",
       isActive: true,
     });
-    (repository.rows[repository.rows.length - 1] as unknown as { setPasswordToken: string }).setPasswordToken = "valid-token";
+    (repository.rows[repository.rows.length - 1] as unknown as { setPasswordToken: string }).setPasswordToken =
+      hashSetPasswordToken("valid-token");
 
     const response = await request(app.getHttpServer()).post("/peer-partner/finish-setup").send({ token: "valid-token", password: "new-password-123" });
 

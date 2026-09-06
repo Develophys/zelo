@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { MANAGER_REPOSITORY, type ManagerRepository } from "../../../manager/application/ports/manager-repository.port.ts";
-import { PEER_PARTNER_REPOSITORY, type PeerPartnerRepository } from "../../../peer-partner/application/ports/peer-partner-repository.port.ts";
+import { MANAGER_REPOSITORY, type ManagerRepository } from "@/modules/manager/application/ports/manager-repository.port.js";
+import { PEER_PARTNER_REPOSITORY, type PeerPartnerRepository } from "@/modules/peer-partner/application/ports/peer-partner-repository.port.js";
 import { NOTIFICATION_PUBLISHER, type NotificationPublisher } from "../ports/notification.port.ts";
 
 @Injectable()

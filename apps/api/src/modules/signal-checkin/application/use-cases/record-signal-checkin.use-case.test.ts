@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { RecordSignalCheckinUseCase } from "./record-signal-checkin.use-case.ts";
 import type { RecordCheckinParams, SignalCheckinRepository } from "../ports/signal-checkin-repository.port.ts";
-import type { NotificationEvent, NotificationPublisher } from "../../../notification/application/ports/notification.port.ts";
-import { K_ANONYMITY_THRESHOLD } from "../../../manager/application/constants.ts";
+import type { NotificationEvent, NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
+import { K_ANONYMITY_THRESHOLD } from "@/modules/manager/application/constants.js";
 
 class FakeSignalCheckinRepository implements SignalCheckinRepository {
   public calls: RecordCheckinParams[] = [];

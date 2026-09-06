@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DeleteSectorUseCase } from "./delete-sector.use-case.ts";
 import { SectorHasHistoryError, SectorNotInInstitutionError } from "./manager-admin-errors.ts";
-import type { SectorRepository } from "../../../sector/application/ports/sector-repository.port.ts";
+import type { SectorRepository } from "@/modules/sector/application/ports/sector-repository.port.js";
 import type { SignalRepository } from "../ports/signal-repository.port.ts";
 
 function build(options: {

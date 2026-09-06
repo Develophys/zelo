@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { ResolveNotificationRecipientsUseCase } from "./resolve-notification-recipients.use-case.ts";
 import type { NotificationEvent, NotificationType } from "../ports/notification.port.ts";
-import type { ManagerRepository } from "../../../manager/application/ports/manager-repository.port.ts";
-import type { SectorRepository } from "../../../sector/application/ports/sector-repository.port.ts";
+import type { ManagerRepository } from "@/modules/manager/application/ports/manager-repository.port.js";
+import type { SectorRepository } from "@/modules/sector/application/ports/sector-repository.port.js";
 
 const INSTITUTION = "institution-1";
 

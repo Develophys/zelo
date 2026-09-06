@@ -7,10 +7,10 @@ import { NotificationController } from "./notification.controller.ts";
 import { ListNotificationsUseCase } from "../application/use-cases/list-notifications.use-case.ts";
 import { MarkNotificationReadUseCase } from "../application/use-cases/mark-notification-read.use-case.ts";
 import { NOTIFICATION_REPOSITORY } from "../application/ports/notification-repository.port.ts";
-import { ManagerAuthGuard } from "../../manager/infrastructure/manager-auth.guard.ts";
-import { ManagerTokenService } from "../../manager/application/services/manager-token.service.ts";
-import { MANAGER_REPOSITORY } from "../../manager/application/ports/manager-repository.port.ts";
-import type { ManagerRepository, ManagerRow } from "../../manager/application/ports/manager-repository.port.ts";
+import { ManagerAuthGuard } from "@/modules/manager/infrastructure/manager-auth.guard.js";
+import { ManagerTokenService } from "@/modules/manager/application/services/manager-token.service.js";
+import { MANAGER_REPOSITORY } from "@/modules/manager/application/ports/manager-repository.port.js";
+import type { ManagerRepository, ManagerRow } from "@/modules/manager/application/ports/manager-repository.port.js";
 
 class FakeManagerRepository implements ManagerRepository {
   rows: ManagerRow[] = [];

@@ -12,8 +12,8 @@ import type { Server, Socket } from "socket.io";
 import { PeerPresenceService } from "../application/services/peer-presence.service.ts";
 import { PeerMatchRegistry } from "../application/services/peer-match-registry.service.ts";
 import type { PendingMatch } from "../application/services/peer-match-registry.service.ts";
-import { PeerPartnerTokenService } from "../../peer-partner/application/services/peer-partner-token.service.ts";
-import { PEER_PARTNER_REPOSITORY, type PeerPartnerRepository } from "../../peer-partner/application/ports/peer-partner-repository.port.ts";
+import { PeerPartnerTokenService } from "@/modules/peer-partner/application/services/peer-partner-token.service.js";
+import { PEER_PARTNER_REPOSITORY, type PeerPartnerRepository } from "@/modules/peer-partner/application/ports/peer-partner-repository.port.js";
 
 const ACCEPT_TIMEOUT_MS = 30_000;
 const DEFAULT_ALLOWED_ORIGINS = ["http://localhost:5173", "http://localhost:8080"];

@@ -2,8 +2,8 @@ import { Inject, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import Groq from "groq-sdk";
 import { z } from "zod";
-import type { AiInsightPort, ManagerInsightResponse } from "../../application/ports/ai-insight.port.ts";
-import { InsightGenerationFailedError } from "../../application/ports/ai-insight.port.ts";
+import type { AiInsightPort, ManagerInsightResponse } from "@/modules/manager/application/ports/ai-insight.port.js";
+import { InsightGenerationFailedError } from "@/modules/manager/application/ports/ai-insight.port.js";
 
 const ManagerInsightSchema = z.object({
   interpretation: z.string(),

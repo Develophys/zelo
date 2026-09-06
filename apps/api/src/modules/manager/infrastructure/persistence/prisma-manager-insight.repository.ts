@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { ManagerInsightRepository, StoredManagerInsight } from "../../application/ports/manager-insight-repository.port.ts";
-import { PrismaService } from "../../../../shared/prisma/prisma.service.ts";
+import type { ManagerInsightRepository, StoredManagerInsight } from "@/modules/manager/application/ports/manager-insight-repository.port.js";
+import { PrismaService } from "@/shared/prisma/prisma.service.js";
 
 @Injectable()
 export class PrismaManagerInsightRepository implements ManagerInsightRepository {

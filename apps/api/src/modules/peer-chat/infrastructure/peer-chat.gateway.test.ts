@@ -2,8 +2,8 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { PeerChatGateway } from "./peer-chat.gateway.ts";
 import { PeerPresenceService } from "../application/services/peer-presence.service.ts";
 import { PeerMatchRegistry } from "../application/services/peer-match-registry.service.ts";
-import { PeerPartnerTokenService } from "../../peer-partner/application/services/peer-partner-token.service.ts";
-import type { PeerPartnerRepository, PeerPartnerRow } from "../../peer-partner/application/ports/peer-partner-repository.port.ts";
+import { PeerPartnerTokenService } from "@/modules/peer-partner/application/services/peer-partner-token.service.js";
+import type { PeerPartnerRepository, PeerPartnerRow } from "@/modules/peer-partner/application/ports/peer-partner-repository.port.js";
 import type { ConfigService } from "@nestjs/config";
 
 class FakePeerPartnerRepository implements PeerPartnerRepository {

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { SECTOR_REPOSITORY, type SectorRepository } from "../../../sector/application/ports/sector-repository.port.ts";
+import { SECTOR_REPOSITORY, type SectorRepository } from "@/modules/sector/application/ports/sector-repository.port.js";
 import { SIGNAL_REPOSITORY, type SignalRepository } from "../ports/signal-repository.port.ts";
 import { SectorHasHistoryError, SectorNotInInstitutionError } from "./manager-admin-errors.ts";
 

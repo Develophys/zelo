@@ -4,9 +4,9 @@ import type {
   AdminSectorRow,
   SectorRepository,
   UpdateSectorParams,
-} from "../../application/ports/sector-repository.port.ts";
-import { SectorNameConflictError } from "../../application/ports/sector-repository.port.ts";
-import { PrismaService } from "../../../../shared/prisma/prisma.service.ts";
+} from "@/modules/sector/application/ports/sector-repository.port.js";
+import { SectorNameConflictError } from "@/modules/sector/application/ports/sector-repository.port.js";
+import { PrismaService } from "@/shared/prisma/prisma.service.js";
 
 const UNIQUE_CONSTRAINT_VIOLATION = "P2002";
 

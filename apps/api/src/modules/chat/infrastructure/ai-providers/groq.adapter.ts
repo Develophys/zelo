@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import Groq from "groq-sdk";
-import type { AiChatPort } from "../../application/ports/ai-chat.port.ts";
+import type { AiChatPort } from "@/modules/chat/application/ports/ai-chat.port.js";
 import type { AnonymizedMessage, ChatToken } from "@zelo/domain";
 
 /**

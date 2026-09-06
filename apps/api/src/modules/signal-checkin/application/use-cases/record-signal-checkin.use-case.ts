@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
 import { Inject, Injectable } from "@nestjs/common";
-import { startOfIsoWeek } from "../../../../shared/date/start-of-iso-week.ts";
+import { startOfIsoWeek } from "@/shared/date/start-of-iso-week.js";
 import {
   SIGNAL_CHECKIN_REPOSITORY,
   type SignalCheckinRepository,
 } from "../ports/signal-checkin-repository.port.ts";
-import { K_ANONYMITY_THRESHOLD } from "../../../manager/application/constants.ts";
-import { NOTIFICATION_PUBLISHER, type NotificationPublisher } from "../../../notification/application/ports/notification.port.ts";
+import { K_ANONYMITY_THRESHOLD } from "@/modules/manager/application/constants.js";
+import { NOTIFICATION_PUBLISHER, type NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
 
 export interface RecordSignalCheckinInput {
   institutionId: string;

@@ -4,9 +4,9 @@ import {
   ADMIN_INSTITUTION_REPOSITORY,
   type AdminInstitutionRepository,
 } from "../ports/admin-institution-repository.port.ts";
-import { EMAIL_PORT, type EmailPort } from "../../../../shared/email/email.port.ts";
-import { sendInviteEmailOrRecord } from "../../../../shared/email/send-invite-email.ts";
-import { buildSetPasswordUrl } from "../../../../shared/email/build-set-password-url.ts";
+import { EMAIL_PORT, type EmailPort } from "@/shared/email/email.port.js";
+import { sendInviteEmailOrRecord } from "@/shared/email/send-invite-email.js";
+import { buildSetPasswordUrl } from "@/shared/email/build-set-password-url.js";
 
 const SET_PASSWORD_TOKEN_BYTES = 32;
 const SET_PASSWORD_TOKEN_TTL_MS = 48 * 60 * 60 * 1000;

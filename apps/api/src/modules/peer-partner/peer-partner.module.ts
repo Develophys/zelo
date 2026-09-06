@@ -7,7 +7,7 @@ import { FinishPeerPartnerSetupUseCase } from "./application/use-cases/finish-pe
 import { PeerPartnerTokenService } from "./application/services/peer-partner-token.service.ts";
 import { PeerPartnerPasswordService } from "./application/services/peer-partner-password.service.ts";
 import { PEER_PARTNER_REPOSITORY } from "./application/ports/peer-partner-repository.port.ts";
-import { EmailModule } from "../../shared/email/email.module.ts";
+import { EmailModule } from "@/shared/email/email.module.js";
 import { NotificationModule } from "../notification/notification.module.ts";
 
 @Module({

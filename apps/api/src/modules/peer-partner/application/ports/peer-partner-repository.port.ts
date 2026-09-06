@@ -29,12 +29,16 @@ export interface CreatePeerPartnerParams {
 }
 
 export interface UpdatePeerPartnerParams {
+  name?: string;
+  email?: string;
   isActive?: boolean;
   specialty?: string;
   passwordHash?: string | null;
   setPasswordToken?: string | null;
   setPasswordTokenExpiresAt?: Date | null;
 }
+
+export class PeerPartnerEmailConflictError extends Error {}
 
 export interface PeerPartnerRepository {
   findByEmail(email: string): Promise<PeerPartnerRow | null>;
