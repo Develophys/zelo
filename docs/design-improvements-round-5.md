@@ -10,15 +10,20 @@ Round 4: [design-improvements-round-4.md](./design-improvements-round-4.md).
 
 **Design health: 24/40 (60% — Acceptable). Trend: 25 → 27 → 26 → 24 → 24.**
 
-**Status:** Open — this file is the raw backlog from the round-5 critique, not yet triaged into
-fixed/won't-fix. The flat score hides real movement: **P0 count went 3 → 0** since round 4 (all of
-round 4's P0s and structural P1s were closed this session). What kept the total flat is the same
-mechanism round 4 named — the trend tracks what's been *found*, not how much work has been done, and
-this round opened new territory: the manager dashboard's actual chart legibility, the consent screen,
-and the peer-partner surface this session gave a real header and nav to but not yet a reason to feel
-alive.
+**Status: closed.** All 5 P1s and all 7 P3s were fixed or resolved; of P2's 10 items, 8 are fixed,
+1 (notification dedup/grouping) was investigated and found not to be a bug (each row is a distinct,
+real send attempt — timestamped dedup keys are intentional), and item 7's "history" half is deferred
+as a real feature, not polish (see the item below). Round 6 re-ran the critique against this
+remediation: [design-improvements-round-6.md](./design-improvements-round-6.md).
 
-Legend: ✅ fixed · ⬜ open · ❌ won't fix.
+The flat score hid real movement: **P0 count went 3 → 0** since round 4 (all of round 4's P0s and
+structural P1s were closed this session). What kept the total flat is the same mechanism round 4
+named — the trend tracks what's been *found*, not how much work has been done, and this round opened
+new territory: the manager dashboard's actual chart legibility, the consent screen, and the
+peer-partner surface this session gave a real header and nav to but not yet a reason to feel alive.
+Round 6 (28/40) is the first run where this stopped being true.
+
+Legend: ✅ fixed · 🟡 partially fixed · ⬜ open · ❌ investigated, not a bug or not this pass's scope.
 
 ---
 
@@ -94,93 +99,116 @@ room.
 
 ## P1 — Major
 
-1. ⬜ **Manager dashboard's trend chart is unreadable on desktop.** Bar heights measured live at
+1. ✅ **Manager dashboard's trend chart is unreadable on desktop.** Bar heights measured live at
    22-26px inside a 56px well — a 4px spread hiding a 40%→46% rise in concerning signals. The mobile
    variant prints the percentage next to every bar; desktop doesn't.
    Files: `ManagerDashboardPage.tsx:285-330`, `presentation/lib/manager-trend-chart.ts`.
-   Fix: print values on the desktop bars too, or scale to the data's actual range instead of 0-100%.
-   Suggested command: `/impeccable layout` or `/impeccable clarify`.
+   Fixed by printing the values (this round). The bars themselves still didn't visually encode the
+   trend until round 6's `toTrendBarHeights` rescale — see round 6.
 
-2. ⬜ **Sector filter has no "off" state.** All five pills (`Todos` + 4 sectors) render identically
+2. ✅ **Sector filter has no "off" state.** All five pills (`Todos` + 4 sectors) render identically
    filled by default — nothing distinguishes selected from unselected.
    File: `SectorPillPicker.tsx:4-9`.
-   Fix: outline unselected pills, fill only the active one(s).
-   Suggested command: `/impeccable clarify`.
+   Fixed: individual pills now render outlined while `Todos` covers everything; only a deliberate
+   narrowing lights one.
 
-3. ⬜ **Manager panel's overflow-hidden ancestors may clip dropdowns/popovers.** Live-browser evidence
-   names `ManagerShell`'s own wrapper divs on 3 of 5 manager routes (`/manager`,
-   `/manager/admin/managers`, `/manager/admin/peers`) — the exact element this session's scroll-lock
-   fix changed from `md:`-conditional to unconditional `overflow-hidden`.
-   Fix: manually verify `SectorMultiSelect`, `BottomSheetMenu`, and the notification badge popover
-   don't clip against that ancestor at any breakpoint.
-   Suggested command: `/impeccable audit`.
+3. ❌ **Manager panel's overflow-hidden ancestors may clip dropdowns/popovers.** Investigated with
+   real Playwright measurements (the mobile `SectorMultiSelect` dropdown, the only real
+   absolutely-positioned popover on the flagged routes) — no actual clipping occurs at any tested
+   breakpoint. The detector's static DOM inference doesn't confirm a visible clip in action. Not
+   changed; would risk reintroducing the header-scroll bug the ManagerShell fix exists to prevent.
 
-4. ⬜ **Destructive confirm dialog doesn't name its target.** "Excluir par?" gives no name, and is
+4. ✅ **Destructive confirm dialog doesn't name its target.** "Excluir par?" gives no name, and is
    reachable from both a per-row trash icon and a bulk-selection trash with an active selection.
    File: `ManagerAdminPeersPage.tsx`.
-   Fix: "Excluir Dra. Camila Rocha?" / "Excluir 3 pares?" — the name already exists in the icon's
-   `aria-label`, just not in the visible dialog.
-   Suggested command: `/impeccable harden`.
+   Fixed across all three admin tables (managers/sectors/peers) via `useBulkDelete`'s new `getName`
+   option — single-target dialogs now read "Excluir Dra. Camila Rocha?"; multi-row deletes still
+   show a count, not a list.
 
-5. ⬜ **Peers screen's value proposition sits behind the gate it should open.** The "neither side
-   sees the other's identity" reassurance only renders in the linked idle state, not before linking.
+5. ✅ **Peers screen's value proposition sits behind the gate it should open.** The "neither side
+   sees the other's identity" reassurance only rendered in the linked idle state, not before linking.
    File: `PeersPage.tsx:57-82`.
-   Fix: move that line above the "Vincular ao hospital" CTA.
-   Suggested command: `/impeccable onboard`.
+   Fixed: the line now renders above the "Vincular ao hospital" CTA.
 
 ## P2 — Minor
 
-1. ⬜ **Home history chart has no empty state.** Always renders bars + a "Mais recente / Pico" legend
+1. ✅ **Home history chart has no empty state.** Always renders bars + a "Mais recente / Pico" legend
    for colors that never draw when there's no check-in data yet (the manager's equivalent has
    `TREND_EMPTY` copy; the médico's doesn't). File: `HistoryChartCard.tsx:56-90`.
+   Fixed: the legend is replaced with a first-check-in prompt when no bar has real data.
 
-2. ⬜ **Médico's overflow nav is an unlabeled arrow.** `ArrowUp` icon with only an `aria-label`,
+2. ✅ **Médico's overflow nav is an unlabeled arrow.** `ArrowUp` icon with only an `aria-label`,
    hiding Configurações/Administração/Par anônimo behind it; the manager's identical control is
-   labeled "Mais". File: `BottomNav.tsx:56-69`.
+   labeled "Mais". File: `BottomNav.tsx:56-69`. Fixed: labeled "Mais" to match.
 
-3. ⬜ **Consent page's decorative checkmarks read as pre-ticked consent boxes.** `aria-hidden`
+3. ✅ **Consent page's decorative checkmarks read as pre-ticked consent boxes.** `aria-hidden`
    bullets that every sighted user will read as already-checked, on the one LGPD-sensitive screen in
    the app. File: `ConsentPage.tsx:56-60`.
+   Fixed: replaced with numbered badges matching `PrivacyPage`'s own pattern one screen earlier.
 
-4. ⬜ **Mobile header logo tap target is 36×36** against the product's own stated ≥44×44 minimum.
-   File: `AppHeader.tsx:35,37`.
+4. ✅ **Mobile header logo tap target is 36×36** against the product's own stated ≥44×44 minimum.
+   File: `AppHeader.tsx:35,37`. Fixed: link is now 44×44 around the same 36px visual mark.
 
-5. ⬜ **Collapsed sidebar label token is 11px** (`--text-nav-rail`), visible in the 768-1024px window
+5. ❌ **Collapsed sidebar label token is 11px** (`--text-nav-rail`), visible in the 768-1024px window
    the manager dashboard itself targets. Files: `app/index.css:117`, `Sidebar.tsx:37`,
-   `ManagerSidebar.tsx:52`.
+   `ManagerSidebar.tsx:52`. Investigated: this is a deliberate, already-tested floor from an earlier
+   round (commit `a291edf`, "raise the nav labels off the sub-12px floor") — 11px for the narrow
+   rail vs. 12px for the bottom nav was a considered trade-off with its own guard test, not an
+   oversight. Not changed.
 
-6. ⬜ **Notifications have no dedup or per-item read.** 4 duplicate "Falha no envio do convite"
+6. ✅ **Notifications have no dedup or per-item read.** 4 duplicate "Falha no envio do convite"
    entries for the same address; "Convite aceito" (good) and "Falha no envio" (bad) share the same
    amber warning pill tone. File: `ManagerNotificationsPage.tsx:77`.
+   Per-item read already existed (an incorrect premise in the original finding). The tint-mixing is
+   fixed: good-news types now get a neutral brand tint, not amber. Dedup was investigated: each
+   duplicate is a distinct real send attempt with its own timestamp in the dedup key — intentional,
+   not a bug — so no grouping/dedup UI was added.
 
-7. ⬜ **Peer-partner inbox has no identity/greeting, availability toggle, history, or visible
+7. 🟡 **Peer-partner inbox has no identity/greeting, availability toggle, history, or visible
    response countdown**, even after this session's redesign gave it a real header, loading skeleton,
    and connected/error states. File: `PeerPartnerInboxPage.tsx`.
+   The identity/greeting half is fixed (the inbox now greets the logged-in partner by name).
+   Availability toggle was explicitly left as an open product decision. Conversation history is a
+   real feature (needs backend transcript storage) — flagged, not attempted.
 
-8. ⬜ **Admin tables wrap emails mid-word at 1280px** while the Setores column sits empty — a
-   column-sizing problem, not a content problem.
+8. ✅ **Admin tables wrap emails mid-word at 1280px** while the Setores column sits empty — a
+   column-sizing problem, not a content problem. Fixed: column widths rebalanced on both the peers
+   and managers tables.
 
-9. ⬜ **Chat composer nests as a card inside a card**, per the detector. Minor visual nesting.
+9. ❌ **Chat composer nests as a card inside a card**, per the detector. Investigated: the composer
+   is a flush bottom bar with only a top divider (`border-t`), no rounded corners or shadow — no
+   actual visual card nesting. Detector false positive on a border+background heuristic. Not
+   changed.
 
-10. ⬜ **`/assessment/result` visited with no state silently redirects** to `/assessment` with no
-    explanation.
+10. ✅ **`/assessment/result` visited with no state silently redirects** to `/assessment` with no
+    explanation. Fixed: now shows an info toast explaining the redirect. Also caught and fixed a
+    StrictMode double-toast bug while verifying this in the browser.
 
 ## P3 — Polish
 
-1. ⬜ Managers can be edited but not deleted; peers can be deleted. No stated reason on screen either
-   way.
+1. ❌ Managers can be edited but not deleted; peers can be deleted. No stated reason on screen either
+   way. Investigated: managers actually *can* be bulk-deleted (the finding's premise was incomplete)
+   — only a quick per-row delete is missing. Left as-is: adding an easier way to delete a manager
+   account (which controls dashboard access) is a security-adjacent product decision, not a pure
+   polish fix.
 2. ⬜ No self-service password change exists anywhere — the admin panel only offers
-   "Redefinir senha de X" from the manager side.
-3. ⬜ Manager dashboard's trend window is hardcoded and inconsistent between cards ("últimas 6
-   semanas" vs "(4 semanas)"), with no date-range control.
-4. ⬜ Chat action tray's collapse chevron (`ChatActionTray.tsx:34`) reads as a rendering glitch before
-   its padded 44px hit area is discovered.
-5. ⬜ "Falar com uma pessoa real" shortens to "Pessoa real" at the exact moment escalation matters
-   most.
-6. ⬜ Global `transition: width` fires on `<body>` across all 14 routes tested — likely broader than
-   intended, worth scoping down.
-7. ⬜ `layout-transition` flagged on `aside.hidden` is likely a detector false positive — the element
-   is `display:none`, so an animated property on it has no visible effect.
+   "Redefinir senha de X" from the manager side. A real auth feature (verify old password, rate
+   limits), not polish — flagged, not attempted.
+3. ❌ Manager dashboard's trend window is hardcoded and inconsistent between cards ("últimas 6
+   semanas" vs "(4 semanas)"), with no date-range control. Investigated: these are two genuinely
+   different, correctly-labeled metrics (a 6-week trend and a 4-week check-in count), not a copy
+   inconsistency. Not changed.
+4. ✅ Chat action tray's collapse chevron (`ChatActionTray.tsx:34`) reads as a rendering glitch before
+   its padded 44px hit area is discovered. Fixed with a shadow treatment — round 6's browser
+   evidence then flagged that shadow as a "thin border + wide shadow" anti-pattern, fixed again
+   there with a plain fill-contrast treatment instead.
+5. ✅ "Falar com uma pessoa real" shortens to "Pessoa real" at the exact moment escalation matters
+   most. Fixed: now "Falar com alguém", full `aria-label` unchanged.
+6. ❌ Global `transition: width` fires on `<body>` across all 14 routes tested. Investigated: no
+   authored `transition` or `transition-all` rule targeting `<body>` exists anywhere in the CSS —
+   likely the detector reading a browser-default computed value. Not changed.
+7. ❌ `layout-transition` flagged on `aside.hidden` is likely a detector false positive — the element
+   is `display:none`, so an animated property on it has no visible effect. Confirmed, not changed.
 
 ---
 
