@@ -58,6 +58,20 @@ describe("YouPage", () => {
     expect(trigger.className).not.toContain("w-full");
   });
 
+  it("gives the revoke trigger a real danger color with nothing left to lose the specificity tie against", () => {
+    renderYou();
+    const trigger = screen.getByRole("button", { name: "Revogar consentimento" });
+    // A `variant="ghost"` button already carries `text-muted`; adding
+    // `text-danger` via className used to lose that tie silently (same
+    // specificity, Tailwind's own stylesheet order decides), rendering as
+    // plain grey. `variant="unstyled"` contributes no competing color class
+    // at all, so this asserts the fix's actual mechanism, not just its class
+    // list.
+    expect(trigger.className).not.toContain("text-muted");
+    expect(trigger.className).toContain("text-danger");
+    expect(trigger.className).toContain("underline");
+  });
+
   it("Cancelar returns to idle without changing state", async () => {
     renderYou();
     await userEvent.click(screen.getByRole("button", { name: "Revogar consentimento" }));

@@ -32,7 +32,7 @@ describe('toTrendBars', () => {
 });
 
 describe('toTrendBarHeights', () => {
-  it('stretches a real but small week-to-week move across the full plot, instead of a few percentage points of a 0-100 axis', () => {
+  it('makes a real but small week-to-week move clearly visible, instead of a few percentage points of a 0-100 axis', () => {
     // 40% -> 46% is a meaningful rise, but on a 0-100 scale it is a ~6px sliver
     // of an already-short bar. The desktop chart's one job is to show whether
     // the team is getting worse; this must be visually obvious.
@@ -45,12 +45,30 @@ describe('toTrendBarHeights', () => {
       { weekStart: '', concerningRate: 0.46 },
     ]);
 
-    expect(Math.min(...heights)).toBeLessThanOrEqual(20);
-    expect(Math.max(...heights)).toBe(100);
+    expect(Math.max(...heights) - Math.min(...heights)).toBeGreaterThanOrEqual(15);
     // Monotonically non-decreasing, matching the underlying rise.
     for (let i = 1; i < heights.length; i++) {
       expect(heights[i]!).toBeGreaterThanOrEqual(heights[i - 1]!);
     }
+  });
+
+  it('does not stretch the series minimum to the floor and the maximum to the ceiling, which reads a modest move as "nothing to everything"', () => {
+    // A padded domain, not the series' own exact min/max: a 6-point rise and
+    // an 80-point rise must not render as the same "empty to full" shape.
+    const smallMove = toTrendBarHeights([
+      { weekStart: '', concerningRate: 0.4 },
+      { weekStart: '', concerningRate: 0.46 },
+    ]);
+    expect(Math.min(...smallMove)).toBeGreaterThan(8);
+    expect(Math.max(...smallMove)).toBeLessThan(100);
+  });
+
+  it('lets a genuinely wide swing use most of the plot, unlike the padded small-move case', () => {
+    const wideMove = toTrendBarHeights([
+      { weekStart: '', concerningRate: 0.1 },
+      { weekStart: '', concerningRate: 0.9 },
+    ]);
+    expect(Math.max(...wideMove) - Math.min(...wideMove)).toBeGreaterThan(60);
   });
 
   it('keeps a real zero week pinned to the zero-height floor, not stretched by the relative scale', () => {

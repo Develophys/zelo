@@ -153,30 +153,14 @@ describe('Sidebar', () => {
   });
 });
 
-describe('Sidebar administration section', () => {
+describe('Sidebar secondary section', () => {
   beforeEach(() => {
     window.localStorage.clear();
   });
 
-  it('links to the manager panel from a secondary Administração destination', () => {
+  it('separates Configurações from the primary destinations with a rule above it', () => {
     renderAt(routes.home);
-    expect(screen.getByRole('link', { name: 'Administração' })).toHaveAttribute(
-      'href',
-      routes.manager,
-    );
-  });
-
-  it('marks Administração active while the manager panel is open', () => {
-    renderAt(routes.manager);
-    expect(screen.getByRole('link', { name: 'Administração' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
-  });
-
-  it('separates Administração from the primary destinations with a rule above it', () => {
-    renderAt(routes.home);
-    expect(screen.getByTestId('sidebar-admin-section')).toHaveClass(
+    expect(screen.getByTestId('sidebar-secondary-section')).toHaveClass(
       'border-t',
       'border-surface-brand',
     );
@@ -185,26 +169,18 @@ describe('Sidebar administration section', () => {
   it('sits below the primary destinations rather than among them', () => {
     renderAt(routes.home);
     const nav = screen.getByRole('navigation', { name: 'Navegação principal' });
-    expect(nav).not.toContainElement(screen.getByRole('link', { name: 'Administração' }));
+    expect(nav).not.toContainElement(screen.getByRole('link', { name: 'Configurações' }));
   });
 
-  it('hides the Administração label when the rail is collapsed', async () => {
-    const user = userEvent.setup();
+  // Administração and Par anônimo used to sit here too — a standing door to
+  // a manager login most médicos can't pass, in the same anonymous persona's
+  // own nav. Both now live together on Configurações instead.
+  it("carries only Configurações, not the staff entrances", () => {
     renderAt(routes.home);
-    await user.click(screen.getByRole('button', { name: 'Recolher menu' }));
-    expect(screen.getByText('Administração')).not.toHaveClass('lg:block');
-  });
-
-  it("offers Configurações, Administração and Par anônimo in that order in the ruled-off section", () => {
-    renderAt(routes.home);
-    const section = screen.getByTestId("sidebar-admin-section");
+    const section = screen.getByTestId("sidebar-secondary-section");
     const links = within(section).getAllByRole("link");
 
-    expect(links.map((link) => link.getAttribute("aria-label"))).toEqual([
-      "Configurações",
-      "Administração",
-      "Par anônimo",
-    ]);
+    expect(links.map((link) => link.getAttribute("aria-label"))).toEqual(["Configurações"]);
     expect(links[0]).toHaveAttribute("href", "/settings");
   });
 });

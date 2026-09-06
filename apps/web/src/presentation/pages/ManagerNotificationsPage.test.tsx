@@ -133,6 +133,34 @@ describe("ManagerNotificationsPage", () => {
     );
   });
 
+  it("also offers a resend for an expired invite, not only an email delivery failure", async () => {
+    const expiredInvite = {
+      id: "n-expired",
+      type: "INVITE_EXPIRED" as const,
+      payload: { kind: "manager", id: "manager-9", name: "Roberta Nunes" },
+      sectorName: null,
+      readAt: null,
+      createdAt: "2026-08-20T10:00:00.000Z",
+    };
+    vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
+      items: [expiredInvite],
+      nextCursor: null,
+      total: 1,
+    });
+    vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(1);
+    const resendSpy = vi
+      .spyOn(container.sendManagerSetPasswordEmailUseCase, "execute")
+      .mockResolvedValue(undefined);
+    const user = userEvent.setup();
+
+    renderPage();
+
+    const resend = await screen.findByRole("button", { name: "Reenviar convite" });
+    await user.click(resend);
+
+    await waitFor(() => expect(resendSpy).toHaveBeenCalledWith("token", "manager-9"));
+  });
+
   it("offers no resend action for a notification that predates the id being tracked", async () => {
     const legacyFailedInvite = {
       id: "n-legacy",

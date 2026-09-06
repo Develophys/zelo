@@ -45,7 +45,6 @@ export const ChatActionTray = memo(function ChatActionTray({
               variant="soft"
               size="sm"
               full={false}
-              aria-label={HANDOFF_LABEL}
               onClick={() => navigate(routes.crisis)}
               className={`${COMPACT_ACTION} border border-track`}
             >

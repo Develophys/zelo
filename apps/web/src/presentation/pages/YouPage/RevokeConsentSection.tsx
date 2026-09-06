@@ -50,9 +50,10 @@ export function RevokeConsentSection() {
         ) : (
           <Button
             ref={triggerRef}
-            variant="ghost"
+            variant="unstyled"
+            size="sm"
             full={false}
-            className="text-danger enabled:hover:text-danger-strong"
+            className="text-danger underline enabled:hover:text-danger-strong"
             onClick={requestConfirm}
           >
             Revogar consentimento

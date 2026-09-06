@@ -23,14 +23,22 @@ export function toTrendBars(trend: TrendPoint[]): TrendBar[] {
   });
 }
 
+// Padding the domain rather than scaling to the series' exact min/max: a
+// straight min->max stretch draws a 6-point move and an 80-point move as the
+// same "empty to full" shape, which is its own kind of misleading. Padding
+// both ends means the shortest bar still reads as "some room below it" and
+// the tallest as "some room above it" — only a swing that genuinely spans
+// most of the scale gets to use most of the plot.
+const CHART_DOMAIN_PADDING = 10;
+
 /**
- * Desktop-only heights, scaled to the series' own range rather than the
- * fixed 0-100 axis `toTrendBars` draws. A realistic 40%-46% swing is real
- * movement, but on a literal scale it is a few pixels of an already-short
- * bar — the printed percentage above each bar states the number, the shape
- * still has to show the trend. Real zero weeks keep the same floor
- * `toTrendBars` uses, since a zero reading is true regardless of the rest
- * of the series.
+ * Desktop-only heights, scaled to a padded version of the series' own range
+ * rather than the fixed 0-100 axis `toTrendBars` draws. A realistic 40%-46%
+ * swing is real movement, but on a literal scale it is a few pixels of an
+ * already-short bar — the printed percentage above each bar states the
+ * number, the shape still has to show the trend. Real zero weeks keep the
+ * same floor `toTrendBars` uses, since a zero reading is true regardless of
+ * the rest of the series.
  */
 export function toTrendBarHeights(trend: TrendPoint[]): number[] {
   const percents = trend.map((point) => Math.round(point.concerningRate * 100));
@@ -40,13 +48,15 @@ export function toTrendBarHeights(trend: TrendPoint[]): number[] {
 
   const max = Math.max(...nonZero);
   const min = Math.min(...nonZero);
-  const range = max - min;
+  const lo = Math.max(0, min - CHART_DOMAIN_PADDING);
+  const hi = Math.min(100, max + CHART_DOMAIN_PADDING);
+  const range = hi - lo;
 
   return percents.map((percent) => {
     if (percent === 0) return ZERO_BAR_HEIGHT;
-    if (range === 0) return 60;
-    const normalized = (percent - min) / range;
-    return Math.round(MIN_NONZERO_BAR_HEIGHT + normalized * (100 - MIN_NONZERO_BAR_HEIGHT));
+    if (range <= 0) return 60;
+    const normalized = (percent - lo) / range;
+    return Math.round(Math.min(100, Math.max(MIN_NONZERO_BAR_HEIGHT, normalized * 100)));
   });
 }
 

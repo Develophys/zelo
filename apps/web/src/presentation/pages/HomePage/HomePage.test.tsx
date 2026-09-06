@@ -20,6 +20,7 @@ function renderHome() {
           <Route path="/chat" element={<div>Chat screen</div>} />
           <Route path="/peers" element={<div>Peers screen</div>} />
           <Route path="/manager" element={<div>Manager screen</div>} />
+          <Route path="/settings" element={<div>Settings screen</div>} />
           <Route path="/you" element={<div>You screen</div>} />
           <Route path="/you/link" element={<div>Link institution screen</div>} />
         </Routes>
@@ -276,12 +277,16 @@ describe("HomePage manager entry point", () => {
     expect(screen.queryByRole("button", { name: "Ver painel do gestor" })).not.toBeInTheDocument();
   });
 
-  it("reaches the manager panel through the bottom nav secondary menu instead", async () => {
+  // Administração used to live directly in this sheet; it's now grouped with
+  // Par anônimo under a "Sou gestor ou par voluntário" section on
+  // Configurações instead (see SettingsPage.test.tsx and router.test.tsx for
+  // the full reach-the-manager-panel path).
+  it("reaches Configurações through the bottom nav secondary menu instead", async () => {
     const user = userEvent.setup();
     renderHome();
     await user.click(screen.getByRole("button", { name: "Mais opções" }));
-    await user.click(within(screen.getByRole("dialog")).getByRole("link", { name: "Administração" }));
-    expect(await screen.findByText("Manager screen")).toBeInTheDocument();
+    await user.click(within(screen.getByRole("dialog")).getByRole("link", { name: "Configurações" }));
+    expect(await screen.findByText("Settings screen")).toBeInTheDocument();
   });
 });
 

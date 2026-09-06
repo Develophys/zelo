@@ -71,7 +71,7 @@ describe("BottomNav secondary menu", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("reveals an Administração link to the manager panel when opened", async () => {
+  it("reveals a Configurações link when opened", async () => {
     renderNav();
     await userEvent.click(screen.getByRole("button", { name: "Mais opções" }));
 
@@ -79,9 +79,9 @@ describe("BottomNav secondary menu", () => {
       "aria-expanded",
       "true",
     );
-    expect(screen.getByRole("link", { name: "Administração" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Configurações" })).toHaveAttribute(
       "href",
-      routes.manager,
+      routes.settings,
     );
   });
 
@@ -121,13 +121,15 @@ describe("BottomNav secondary menu", () => {
     const user = userEvent.setup();
     renderNav();
     await user.click(screen.getByRole("button", { name: "Mais opções" }));
-    await user.click(screen.getByRole("link", { name: "Administração" }));
+    await user.click(screen.getByRole("link", { name: "Configurações" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("separates the toggle from the primary tabs with a rule to its left", () => {
+  it("gives the toggle the same flex-1 slot shape as the primary tabs, matching the manager panel's nav", () => {
     renderNav();
-    expect(screen.getByTestId("bottom-nav-secondary")).toHaveClass("border-l", "border-surface-brand");
+    const toggle = screen.getByRole("button", { name: "Mais opções" });
+    expect(toggle.className).toContain("flex-1");
+    expect(toggle.className).toContain("border-t-2");
   });
 
   it("places the toggle after the last primary tab", () => {
@@ -137,16 +139,15 @@ describe("BottomNav secondary menu", () => {
     expect(you.compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("lists Configurações, Administração and Par anônimo in that order in the sheet, matching the sidebar", async () => {
+  // Administração and Par anônimo used to sit here too — a standing door to
+  // a manager login most médicos can't pass, in the same anonymous
+  // persona's own nav. Both now live together on Configurações instead.
+  it("lists only Configurações in the sheet, matching the sidebar", async () => {
     renderNav();
     await userEvent.click(screen.getByRole("button", { name: "Mais opções" }));
 
     const links = screen.getAllByRole("link").filter((link) => link.closest("dialog"));
-    expect(links.map((link) => link.textContent)).toEqual([
-      "Configurações",
-      "Administração",
-      "Par anônimo",
-    ]);
+    expect(links.map((link) => link.textContent)).toEqual(["Configurações"]);
     expect(links[0]).toHaveAttribute("href", "/settings");
   });
 

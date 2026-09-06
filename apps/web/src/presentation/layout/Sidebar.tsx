@@ -75,7 +75,7 @@ export const Sidebar = memo(function Sidebar() {
       </nav>
 
       <div
-        data-testid="sidebar-admin-section"
+        data-testid="sidebar-secondary-section"
         className="flex flex-none flex-col gap-1 border-t border-surface-brand px-2 py-4"
       >
         {SECONDARY_NAV_ITEMS.map((item) => (

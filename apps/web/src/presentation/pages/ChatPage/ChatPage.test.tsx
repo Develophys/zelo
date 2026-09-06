@@ -464,7 +464,7 @@ describe('ChatPage', () => {
       'aria-pressed',
       'true',
     );
-    expect(screen.getByRole('button', { name: HANDOFF_LABEL })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Falar com alguém' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Avaliar como estou' })).toBeInTheDocument();
   });
 
@@ -473,7 +473,7 @@ describe('ChatPage', () => {
     renderChat();
 
     await user.click(screen.getByRole('button', { name: /recolher atalhos/i }));
-    expect(screen.getByRole('button', { name: HANDOFF_LABEL })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Falar com alguém' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /expandir atalhos/i }));
     expect(screen.getByRole('button', { name: HANDOFF_LABEL })).toBeInTheDocument();
@@ -485,7 +485,7 @@ describe('ChatPage', () => {
     renderChat();
 
     await user.click(screen.getByRole('button', { name: /recolher atalhos/i }));
-    await user.click(screen.getByRole('button', { name: HANDOFF_LABEL }));
+    await user.click(screen.getByRole('button', { name: 'Falar com alguém' }));
 
     expect(screen.getByText('Crisis offer screen')).toBeInTheDocument();
   });
@@ -496,7 +496,17 @@ describe('ChatPage', () => {
 
     await user.click(screen.getByRole('button', { name: /recolher atalhos/i }));
 
-    expect(screen.getByRole('button', { name: HANDOFF_LABEL })).toHaveTextContent('Falar com alguém');
+    expect(screen.getByRole('button', { name: 'Falar com alguém' })).toHaveTextContent('Falar com alguém');
+  });
+
+  it('keeps the collapsed shortcut\'s visible label inside its accessible name (WCAG 2.5.3), instead of a longer aria-label a voice-control user can\'t match by reading the screen', async () => {
+    const user = userEvent.setup();
+    renderChat();
+
+    await user.click(screen.getByRole('button', { name: /recolher atalhos/i }));
+
+    const handoff = screen.getByText('Falar com alguém').closest('button')!;
+    expect(handoff).toHaveAccessibleName('Falar com alguém');
   });
 
   it('warns as the message approaches the 2000-character cap instead of silently truncating it', async () => {
@@ -1307,7 +1317,7 @@ describe('ChatPage', () => {
 
     expect(screen.getByRole('button', { name: HANDOFF_LABEL })).toBeInTheDocument();
     await user.click(tab);
-    expect(screen.getByRole('button', { name: HANDOFF_LABEL })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Falar com alguém' })).toBeInTheDocument();
   });
 
   // Nunito Sans at caption size (13px) averages about 0.55em per character, so

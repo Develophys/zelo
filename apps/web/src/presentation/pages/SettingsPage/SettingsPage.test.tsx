@@ -54,6 +54,16 @@ describe('SettingsPage', () => {
     expect(screen.getByText(/Valem só para você, neste dispositivo\./)).toBeInTheDocument();
   });
 
+  it('groups both staff entrances under a single section instead of the main nav', () => {
+    renderSettings();
+    expect(screen.getByText('Sou gestor ou par voluntário')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Administração' })).toHaveAttribute('href', routes.manager);
+    expect(screen.getByRole('link', { name: 'Par anônimo' })).toHaveAttribute(
+      'href',
+      routes.peerPartnerLogin,
+    );
+  });
+
   it('has no axe violations', async () => {
     const { container } = renderSettings();
     expect(await axe(container, { rules: { region: { enabled: false } } })).toHaveNoViolations();

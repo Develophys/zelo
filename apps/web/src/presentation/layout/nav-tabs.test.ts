@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ADMIN_NAV_ITEM, NAV_TABS, PEER_PARTNER_NAV_ITEM } from "./nav-tabs";
+import { ADMIN_NAV_ITEM, NAV_TABS, PEER_PARTNER_NAV_ITEM, SECONDARY_NAV_ITEMS } from "./nav-tabs";
 import { routes } from "@/presentation/lib/routes";
 
 describe("NAV_TABS", () => {
@@ -39,5 +39,16 @@ describe("PEER_PARTNER_NAV_ITEM", () => {
 
   it("is not part of the primary destinations", () => {
     expect(NAV_TABS.map((tab) => tab.id)).not.toContain(PEER_PARTNER_NAV_ITEM.id);
+  });
+});
+
+describe("SECONDARY_NAV_ITEMS", () => {
+  // Administração and Par anônimo used to sit here too, permanently visible
+  // in the anonymous médico's own nav — a standing door to a manager login
+  // most médicos can't pass, and a strange thing to advertise on the one
+  // persona whose whole value proposition is that their employer can't see
+  // them. Both staff entrances now live together on Configurações instead.
+  it("carries only Configurações — the staff entrances live on the settings screen instead", () => {
+    expect(SECONDARY_NAV_ITEMS.map((item) => item.id)).toEqual(["settings"]);
   });
 });

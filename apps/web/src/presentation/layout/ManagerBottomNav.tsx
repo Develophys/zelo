@@ -1,20 +1,18 @@
 import { useRef, useState } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { ChevronUp, LogOut } from 'lucide-react';
 import { routes } from '@/presentation/lib/routes';
 import { useManagerSessionStore } from '@/stores/manager-session.store';
 import { useManagerUnreadCount } from '@/presentation/hooks/useManagerNotifications';
 import { ManagerUnreadBadge } from './ManagerUnreadBadge';
 import { BottomSheetMenu, type BottomSheetMenuGroup } from './BottomSheetMenu';
+import { NAV_SLOT_CLASS, NavSlotLink, navSlotToneClass } from './nav-slot';
 import {
   MANAGER_ADMIN_GROUP_LABEL,
   managerNavFor,
   MANAGER_PRIMARY_NAV,
   MANAGER_SETTINGS_NAV,
 } from './manager-nav';
-
-const SLOT_CLASS =
-  'relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 border-t-2 px-1 py-nav-y font-sans text-nav font-semibold motion-safe:transition-colors motion-safe:duration-150 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none';
 
 interface ManagerBottomNavProps {
   className?: string;
@@ -70,19 +68,15 @@ export function ManagerBottomNav({ className = '' }: ManagerBottomNavProps) {
         .join(' ')}
     >
       <div className="flex items-stretch">
-        {MANAGER_PRIMARY_NAV.map(({ id, label, icon: Icon, route }) => (
-          <NavLink
+        {MANAGER_PRIMARY_NAV.map(({ id, label, icon, route }) => (
+          <NavSlotLink
             key={id}
             to={route}
             end={route === routes.manager}
-            className={({ isActive }) =>
-              `${SLOT_CLASS} ${isActive ? 'border-brand text-brand' : 'border-transparent text-muted'}`
-            }
-          >
-            <Icon size={22} aria-hidden="true" />
-            <span>{label}</span>
-            {id === 'notifications' && <ManagerUnreadBadge count={unread} asDot />}
-          </NavLink>
+            label={label}
+            icon={icon}
+            badge={id === 'notifications' ? <ManagerUnreadBadge count={unread} asDot /> : undefined}
+          />
         ))}
 
         <button
@@ -92,7 +86,7 @@ export function ManagerBottomNav({ className = '' }: ManagerBottomNavProps) {
           aria-haspopup="dialog"
           aria-expanded={open}
           aria-current={isMoreActive ? 'page' : undefined}
-          className={`${SLOT_CLASS} cursor-pointer ${isMoreActive ? 'border-brand text-brand' : 'border-transparent text-muted'}`}
+          className={`${NAV_SLOT_CLASS} cursor-pointer ${navSlotToneClass(isMoreActive)}`}
         >
           <ChevronUp
             size={22}

@@ -59,8 +59,9 @@ export const PEER_PARTNER_NAV_ITEM: NavDestination = {
   route: routes.peerPartnerLogin,
 };
 
-export const SECONDARY_NAV_ITEMS: readonly NavDestination[] = [
-  SETTINGS_NAV_ITEM,
-  ADMIN_NAV_ITEM,
-  PEER_PARTNER_NAV_ITEM,
-];
+// Administração and Par anônimo used to live here too. Both are now grouped
+// under a "Sou gestor ou par voluntário" section on the Configurações screen
+// instead of sitting permanently in the anonymous médico's own nav.
+export const SECONDARY_NAV_ITEMS: readonly NavDestination[] = [SETTINGS_NAV_ITEM];
+
+export const STAFF_NAV_ITEMS: readonly NavDestination[] = [ADMIN_NAV_ITEM, PEER_PARTNER_NAV_ITEM];

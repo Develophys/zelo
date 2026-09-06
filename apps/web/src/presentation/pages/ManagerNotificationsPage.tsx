@@ -12,6 +12,7 @@ import { notificationCopy } from "./manager-notification-copy";
 const DATE_FORMAT: Intl.DateTimeFormatOptions = { day: "2-digit", month: "2-digit", year: "numeric" };
 
 const GOOD_NEWS_TYPES = new Set(["INVITE_ACCEPTED", "ACCOUNT_REACTIVATED", "SECTOR_BECAME_VISIBLE"]);
+const RESENDABLE_TYPES = new Set(["INVITE_EMAIL_FAILED", "INVITE_EXPIRED"]);
 
 export function ManagerNotificationsPage() {
   const { notifications, isLoading, error, refresh, isRefreshing, markRead, markAllRead } =
@@ -87,7 +88,7 @@ export function ManagerNotificationsPage() {
           }`;
 
           const resendId =
-            notification.type === "INVITE_EMAIL_FAILED" && typeof notification.payload.id === "string"
+            RESENDABLE_TYPES.has(notification.type) && typeof notification.payload.id === "string"
               ? notification.payload.id
               : null;
 
