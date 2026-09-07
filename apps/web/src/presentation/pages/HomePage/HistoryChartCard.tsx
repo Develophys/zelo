@@ -60,7 +60,18 @@ export function HistoryChartCard() {
                 <li key={index}>{describeHistoryWeek(point, index, latestIndex, peakIndex)}</li>
               ))}
             </ul>
-            <div className="mt-3 flex h-14 items-end gap-2" aria-hidden="true">
+            <div className="mt-3 flex gap-2" aria-hidden="true">
+              {points.map((point, index) => (
+                <span
+                  key={index}
+                  data-testid="history-bar-value"
+                  className="w-full text-center font-mono text-mono-data text-muted-2"
+                >
+                  {point.severityFraction === null ? '' : `${Math.round(point.severityFraction * 100)}%`}
+                </span>
+              ))}
+            </div>
+            <div className="mt-1 flex h-14 items-end gap-2" aria-hidden="true">
               {bars.map((bar, index) => (
                 <div
                   key={index}

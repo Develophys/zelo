@@ -129,6 +129,20 @@ describe('HistoryChartCard', () => {
     expect(screen.getByText('Pico')).toBeInTheDocument();
   });
 
+  it('prints each week\'s percentage above its bar, matching the manager dashboard\'s trend chart', async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, 'execute').mockResolvedValue([
+      ...SIX_NULL_POINTS.slice(0, 4),
+      { weekStart: '2026-08-01T00:00:00.000Z', severityFraction: 0.4 },
+      { weekStart: '2026-08-08T00:00:00.000Z', severityFraction: 0.67 },
+    ]);
+
+    renderCard();
+    await waitFor(() => expect(screen.queryAllByTestId('history-bar')).toHaveLength(6));
+
+    const values = screen.getAllByTestId('history-bar-value');
+    expect(values.map((el) => el.textContent)).toEqual(['', '', '', '', '40%', '67%']);
+  });
+
   it('drops "Mais recente" when the latest week itself has no check-in, even though an earlier week is the peak', async () => {
     vi.spyOn(container.getAssessmentHistoryUseCase, 'execute').mockResolvedValue([
       { weekStart: '2026-07-01T00:00:00.000Z', severityFraction: 0.9 },

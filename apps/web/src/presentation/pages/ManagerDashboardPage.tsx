@@ -126,6 +126,15 @@ function SectorFilter({ sectors, selectedSectorIds, onChange }: SectorFilterProp
   const allSelected = effectiveSelected.length === sectors.length;
 
   const toggleSector = (id: string) => {
+    // From "Todos", every id is already in effectiveSelected, so the toggle
+    // below would read a first click as "remove this one, keep the rest" —
+    // the opposite of what clicking a single pill means. The resting state
+    // has nothing explicitly chosen, so the first click sets the choice
+    // instead of subtracting from an implicit full set.
+    if (allSelected) {
+      onChange([id]);
+      return;
+    }
     const next = effectiveSelected.includes(id)
       ? effectiveSelected.filter((sectorId) => sectorId !== id)
       : [...effectiveSelected, id];
@@ -195,7 +204,7 @@ export function ManagerDashboardPage() {
 
   const weeklyTrend = data?.weeklyTrend ?? [];
   const bars = toTrendBars(weeklyTrend);
-  const desktopBarHeights = toTrendBarHeights(weeklyTrend);
+  const trendBarProportions = toTrendBarHeights(weeklyTrend);
   const segments = data?.segments ?? [];
   const peakWeek = peakTrendIndex(weeklyTrend);
   const peakSector = peakSegmentLabel(segments);
@@ -309,7 +318,7 @@ export function ManagerDashboardPage() {
                                   ? "bg-brand"
                                   : "bg-control-edge"
                           }`}
-                          style={{ height: `${desktopBarHeights[index]}%` }}
+                          style={{ height: `${trendBarProportions[index]}%` }}
                         />
                       ))}
                     </div>
@@ -333,6 +342,7 @@ export function ManagerDashboardPage() {
                             </span>
                             <div className="h-2 flex-1 overflow-hidden rounded-pill bg-canvas-alt">
                               <div
+                                data-testid="trend-bar-mobile"
                                 className={`h-full rounded-pill ${
                                   bar.isZero
                                     ? "bg-control-edge"
@@ -342,7 +352,7 @@ export function ManagerDashboardPage() {
                                         ? "bg-brand"
                                         : "bg-control-edge"
                                 }`}
-                                style={{ width: `${bar.height}%` }}
+                                style={{ width: `${trendBarProportions[index]}%` }}
                               />
                             </div>
                             <span className="w-9 shrink-0 text-right font-mono text-mono-data text-muted-2">

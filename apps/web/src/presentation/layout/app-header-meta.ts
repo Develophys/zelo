@@ -11,7 +11,7 @@ export const APP_HEADER_META: Record<string, AppHeaderMeta> = {
   // No subtitle: HomePage overrides the title with a time-aware greeting, and
   // a second greeting under it just says the same thing twice.
   [routes.home]: { title: 'Início' },
-  [routes.chat]: { title: 'Acolhimento', subtitle: 'anonimizado antes do envio' },
+  [routes.chat]: { title: 'Acolhimento', subtitle: 'CRM, e-mail e telefone removidos' },
   [routes.assessment]: { title: 'Autoavaliação', subtitle: 'Leva cerca de 5 minutos.' },
   [routes.phq9]: { title: 'PHQ-9', subtitle: 'Humor e sinais de depressão' },
   [routes.gad7]: { title: 'GAD-7', subtitle: 'Ansiedade' },

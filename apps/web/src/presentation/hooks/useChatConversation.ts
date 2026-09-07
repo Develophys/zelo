@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AnonymizedMessage } from '@zelo/domain';
-import { sendChatMessageUseCase } from '@/app/container';
+import { anonymizeTextUseCase, sendChatMessageUseCase } from '@/app/container';
 import { isChatErrorEvent } from '@/ports/chat-gateway.port';
 import { MAX_MESSAGE_LENGTH } from '@/presentation/lib/chat-limits';
 import {
@@ -185,9 +185,13 @@ export function useChatConversation(conversationId: string) {
       const text = rawUserText.trim().slice(0, MAX_MESSAGE_LENGTH);
       if (text.length === 0 || isStreamingRef.current) return;
 
+      // Redacted before it ever reaches the transcript, not just before the
+      // network call — otherwise the médico's own sent bubble is the one
+      // place the anonymization claim has no visible evidence.
+      const anonymized = anonymizeTextUseCase.execute(text);
       const history = readMessages();
-      setMessages((prev) => [...prev, { id: nextMessageId(), role: 'user', content: text }]);
-      await runStream(history, text, hasActiveRiskSignal);
+      setMessages((prev) => [...prev, { id: nextMessageId(), role: 'user', content: anonymized }]);
+      await runStream(history, anonymized, hasActiveRiskSignal);
     },
     [readMessages, runStream, setMessages],
   );

@@ -9,7 +9,7 @@ export function ChatEmptyState() {
         nada em particular.
       </p>
       <AnonymityNote className="mt-4 text-body">
-        Seu texto é anonimizado antes do envio.
+        Removemos CRM, e-mail e telefone automaticamente antes do envio — evite escrever seu nome.
       </AnonymityNote>
     </div>
   );

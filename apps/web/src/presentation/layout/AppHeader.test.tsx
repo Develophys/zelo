@@ -93,7 +93,7 @@ describe('AppHeader', () => {
     mount(routes.chat, { title: 'Boa tarde' });
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Boa tarde');
     expect(screen.getByTestId('app-header-subtitle')).toHaveTextContent(
-      'anonimizado antes do envio',
+      'CRM, e-mail e telefone removidos',
     );
   });
 

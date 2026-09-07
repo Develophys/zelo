@@ -354,7 +354,7 @@ describe("ManagerDashboardPage", () => {
     expect(screen.getByRole("button", { name: "Exportar PDF" })).toBeDisabled();
   });
 
-  it("shows a sector filter when more than one sector is accessible, and narrows the signals request when a sector is unchecked", async () => {
+  it("shows a sector filter when more than one sector is accessible, and narrows to just the clicked sector from Todos", async () => {
     vi.spyOn(container.listAccessibleSectorsUseCase, "execute").mockResolvedValue([
       { id: "sector-1", name: "UTI" },
       { id: "sector-2", name: "Pronto-Socorro" },
@@ -370,12 +370,16 @@ describe("ManagerDashboardPage", () => {
 
     await user.click(pills.getByRole("button", { name: "UTI" }));
 
+    // Clicking a pill from "Todos" means "show me just this one", not "show
+    // me everything except this one" — the opposite reading is what made the
+    // first click on any pill look like it did nothing to the sector it
+    // named.
     await waitFor(() => {
-      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", ["sector-2"]);
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", ["sector-1"]);
     });
   });
 
-  it("unchecking the last remaining sector returns to Todos instead of emptying the panel", async () => {
+  it("re-selecting the other sector after narrowing returns to Todos instead of emptying the panel", async () => {
     vi.spyOn(container.listAccessibleSectorsUseCase, "execute").mockResolvedValue([
       { id: "sector-1", name: "UTI" },
       { id: "sector-2", name: "Pronto-Socorro" },
@@ -390,13 +394,15 @@ describe("ManagerDashboardPage", () => {
     const pills = within(screen.getByTestId("sector-filter-pills"));
     await user.click(pills.getByRole("button", { name: "UTI" }));
     await waitFor(() =>
-      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", ["sector-2"]),
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", ["sector-1"]),
     );
 
     await user.click(pills.getByRole("button", { name: "Pronto-Socorro" }));
 
-    // A filter that selects nothing can only produce an empty screen, so the
-    // last sector cannot be switched off — turning it off clears the filter.
+    // Adding the only other sector back in reconstructs the full set, which
+    // is the same request as "Todos" — spelling out every id instead of
+    // clearing the filter is what dragged an unrelated partial week into the
+    // query in an earlier round.
     await waitFor(() =>
       expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", undefined),
     );
@@ -425,7 +431,7 @@ describe("ManagerDashboardPage", () => {
 
     await user.click(pills.getByRole("button", { name: "Enfermagem" }));
     await waitFor(() =>
-      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", ["sector-b"]),
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", ["sector-a"]),
     );
 
     await user.click(pills.getByRole("button", { name: "Todos" }));
@@ -467,7 +473,7 @@ describe("ManagerDashboardPage", () => {
 
     await user.click(pills.getByRole("button", { name: "Enfermagem" }));
     await waitFor(() =>
-      expect(screen.getByTestId("location-search")).toHaveTextContent("?sectorIds=sector-b"),
+      expect(screen.getByTestId("location-search")).toHaveTextContent("?sectorIds=sector-a"),
     );
 
     await user.click(pills.getByRole("button", { name: "Todos" }));
@@ -561,11 +567,10 @@ describe("ManagerDashboardPage", () => {
     // Once the manager actually narrows the view, the sectors still in the
     // filter should read as pressed again — this is about the resting
     // "everything" state, not about pills losing their selected look
-    // altogether. Clicking Enfermagem from "Todos" unchecks it, leaving
-    // Fisioterapia as the narrowed selection (existing toggle semantics).
+    // altogether. Clicking Enfermagem from "Todos" narrows to just it.
     await user.click(pills.getByRole('button', { name: 'Enfermagem' }));
-    expect(pills.getByRole('button', { name: 'Enfermagem' })).toHaveAttribute('aria-pressed', 'false');
-    expect(pills.getByRole('button', { name: 'Fisioterapia' })).toHaveAttribute('aria-pressed', 'true');
+    expect(pills.getByRole('button', { name: 'Enfermagem' })).toHaveAttribute('aria-pressed', 'true');
+    expect(pills.getByRole('button', { name: 'Fisioterapia' })).toHaveAttribute('aria-pressed', 'false');
   });
 
   // Anonymity is a property of the whole panel, not a filter the manager can turn off.
@@ -752,6 +757,23 @@ describe("ManagerDashboardPage", () => {
     // takes whatever the "neutral" bar color is — that color must not be the
     // near-invisible bg-track.
     expect(bars[0]!.className).not.toContain("bg-track");
+  });
+
+  it("draws the mobile trend bar at the same padded-domain proportion as the desktop bar for the same week, not the literal 0-100 scale", async () => {
+    renderManager();
+    await waitFor(() => expect(screen.getAllByTestId("trend-bar")).toHaveLength(2));
+
+    // SIGNALS_RESPONSE trends 0.3 then 0.5 — a real but modest swing. The
+    // desktop bar already draws this on a padded domain (manager-trend-chart's
+    // toTrendBarHeights); the mobile row must draw the identical data at the
+    // same proportion, not a literal 30%/50% width that tells a different
+    // visual story from the same numbers.
+    const desktopBars = screen.getAllByTestId("trend-bar");
+    const mobileBars = screen.getAllByTestId("trend-bar-mobile");
+    expect(mobileBars).toHaveLength(desktopBars.length);
+    for (let index = 0; index < desktopBars.length; index++) {
+      expect(mobileBars[index]!.style.width).toBe(desktopBars[index]!.style.height);
+    }
   });
 
   it("prints each week's percentage above the desktop bars, not just the mobile rows", async () => {

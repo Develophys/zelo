@@ -1332,7 +1332,7 @@ describe('ChatPage', () => {
     const header = screen.getByTestId('app-header');
     const promise = within(header).getByTestId('app-header-subtitle').textContent ?? '';
 
-    expect(promise).toBe('anonimizado antes do envio');
+    expect(promise).toBe('CRM, e-mail e telefone removidos');
     expect(promise.length * SANS_ADVANCE).toBeLessThanOrEqual((NARROWEST_PHONE - CHROME) * 2);
   });
 

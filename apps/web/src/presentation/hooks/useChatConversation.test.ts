@@ -42,6 +42,20 @@ describe('useChatConversation', () => {
     expect(result.current.retryLastMessage).toBe(initialRetry);
   });
 
+  it('shows the redacted text in the sent bubble instead of the raw CRM the médico typed, so the anonymization claim has visible evidence', async () => {
+    vi.spyOn(container.sendChatMessageUseCase, 'execute').mockImplementation(streamOf(['ok']));
+
+    const { result } = renderHook(() => useChatConversation(CONVERSATION_ID));
+
+    await act(async () => {
+      await result.current.sendMessage('Sou o Dr. Fulano, CRM 123456', false);
+    });
+
+    await waitFor(() => expect(result.current.messages).toHaveLength(2));
+    expect(result.current.messages[0]?.content).toBe('Sou o Dr. Fulano, [CRM]');
+    expect(result.current.messages[0]?.content).not.toContain('123456');
+  });
+
   it('still streams a reply under StrictMode, whose double-invoked effects must not leave the abort flag stuck on', async () => {
     const deltas = ['tudo ', 'bem'];
     vi.spyOn(container.sendChatMessageUseCase, 'execute').mockImplementation(streamOf(deltas));
