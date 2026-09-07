@@ -72,7 +72,7 @@ export function HistoryChartCard() {
                         ? 'bg-brand'
                         : index === peakIndex
                           ? 'bg-warn'
-                          : 'bg-track'
+                          : 'bg-control-edge'
                   }`}
                   style={{ height: `${bar.height}%` }}
                 />
@@ -84,14 +84,18 @@ export function HistoryChartCard() {
               </p>
             ) : (
               <div className="mt-2 flex gap-3" aria-hidden="true">
-                <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
-                  <span className="h-2 w-2 rounded-full bg-brand" />
-                  Mais recente
-                </span>
-                <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
-                  <span className="h-2 w-2 rounded-full bg-warn" />
-                  Pico
-                </span>
+                {bars[latestIndex]!.hasData && (
+                  <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
+                    <span className="h-2 w-2 rounded-full bg-brand" />
+                    Mais recente
+                  </span>
+                )}
+                {peakIndex !== latestIndex && (
+                  <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
+                    <span className="h-2 w-2 rounded-full bg-warn" />
+                    Pico
+                  </span>
+                )}
               </div>
             )}
           </>

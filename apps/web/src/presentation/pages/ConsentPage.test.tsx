@@ -19,7 +19,7 @@ function renderConsent() {
 
 describe("ConsentPage", () => {
   beforeEach(() => {
-    useConsentStore.setState({ hasConsented: false, consentedAt: null });
+    useConsentStore.setState({ hasConsented: false, consentedAt: null, aggregateOptIn: true });
   });
 
   it("renders the three consent rows and the encryption note", () => {
@@ -34,10 +34,10 @@ describe("ConsentPage", () => {
 
   it("numbers the three rows instead of a green checkmark, so nothing on this LGPD screen reads as an already-ticked box", () => {
     renderConsent();
-    expect(screen.getByText("1")).toBeInTheDocument();
-    expect(screen.getByText("2")).toBeInTheDocument();
-    expect(screen.getByText("3")).toBeInTheDocument();
-    expect(document.querySelector(".lucide-check")).not.toBeInTheDocument();
+    const badges = [screen.getByText("1"), screen.getByText("2"), screen.getByText("3")];
+    for (const badge of badges) {
+      expect(badge.querySelector(".lucide-check")).not.toBeInTheDocument();
+    }
   });
 
   it("grants consent and navigates to /home when accepted", async () => {
@@ -45,6 +45,28 @@ describe("ConsentPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "Aceitar e entrar" }));
     expect(useConsentStore.getState().hasConsented).toBe(true);
     expect(useConsentStore.getState().consentedAt).not.toBeNull();
+    expect(screen.getByText("Home screen")).toBeInTheDocument();
+  });
+
+  it("pre-checks the aggregate-signal toggle, so accepting without touching it opts in", async () => {
+    renderConsent();
+    const toggle = screen.getByRole("checkbox", { name: /anônimo e agregado/ });
+    expect(toggle).toBeChecked();
+
+    await userEvent.click(screen.getByRole("button", { name: "Aceitar e entrar" }));
+
+    expect(useConsentStore.getState().aggregateOptIn).toBe(true);
+  });
+
+  it("lets the médico decline the aggregate signal and still enter the app", async () => {
+    renderConsent();
+    const toggle = screen.getByRole("checkbox", { name: /anônimo e agregado/ });
+
+    await userEvent.click(toggle);
+    await userEvent.click(screen.getByRole("button", { name: "Aceitar e entrar" }));
+
+    expect(useConsentStore.getState().hasConsented).toBe(true);
+    expect(useConsentStore.getState().aggregateOptIn).toBe(false);
     expect(screen.getByText("Home screen")).toBeInTheDocument();
   });
 

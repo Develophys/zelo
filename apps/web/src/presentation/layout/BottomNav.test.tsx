@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { BottomNav } from "./BottomNav";
 import { routes } from "@/presentation/lib/routes";
@@ -24,15 +23,9 @@ describe("BottomNav", () => {
   });
 
   it("styles the active tab with brand color", () => {
-    renderNav(routes.chat);
-    expect(screen.getByText("Conversar").closest("a")).toHaveClass("text-brand");
+    renderNav(routes.assessment);
+    expect(screen.getByText("Check-in").closest("a")).toHaveClass("text-brand");
     expect(screen.getByText("Início").closest("a")).toHaveClass("text-muted");
-  });
-
-  it("labels the overflow toggle visibly, like every other tab, instead of only an icon", () => {
-    renderNav();
-    const toggle = screen.getByRole("button", { name: "Mais opções" });
-    expect(toggle).toHaveTextContent("Mais");
   });
 
   it("links each tab straight at its route, with no handler to wire up", () => {
@@ -61,100 +54,32 @@ describe("BottomNav", () => {
   });
 });
 
-describe("BottomNav secondary menu", () => {
-  it("keeps the secondary options collapsed until the toggle is pressed", () => {
+describe("BottomNav settings slot", () => {
+  // A "Mais" sheet only makes sense once it holds more than one destination —
+  // with Administração and Par anônimo moved to Configurações, this nav has
+  // exactly one secondary item left, so it goes straight in the bar instead
+  // of behind a toggle that opens to reveal a single link.
+  it("puts Configurações directly in the bar instead of behind a Mais toggle", () => {
     renderNav();
-    expect(screen.getByRole("button", { name: "Mais opções" })).toHaveAttribute(
-      "aria-expanded",
-      "false",
-    );
+    expect(screen.queryByRole("button", { name: /mais/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  });
-
-  it("reveals a Configurações link when opened", async () => {
-    renderNav();
-    await userEvent.click(screen.getByRole("button", { name: "Mais opções" }));
-
-    expect(screen.getByRole("button", { name: "Mais opções" })).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
     expect(screen.getByRole("link", { name: "Configurações" })).toHaveAttribute(
       "href",
       routes.settings,
     );
   });
 
-  it("opens the same bottom-sheet dialog the manager panel uses, not an inline popover", async () => {
+  it("places Configurações after the last primary tab", () => {
     renderNav();
-    await userEvent.click(screen.getByRole("button", { name: "Mais opções" }));
-    expect(screen.getByRole("dialog").tagName).toBe("DIALOG");
-  });
-
-  it("closes the sheet on Escape and hands focus back to the toggle", async () => {
-    const user = userEvent.setup();
-    const { container } = renderNav();
-    const toggle = screen.getByRole("button", { name: "Mais opções" });
-    const sheet = container.querySelector("dialog") as HTMLDialogElement;
-
-    await user.click(toggle);
-    expect(sheet.open).toBe(true);
-
-    await user.keyboard("{Escape}");
-    expect(sheet.open).toBe(false);
-    expect(toggle).toHaveFocus();
-  });
-
-  it("closes the sheet when the backdrop is tapped", async () => {
-    const user = userEvent.setup();
-    const { container } = renderNav();
-    const sheet = container.querySelector("dialog") as HTMLDialogElement;
-
-    await user.click(screen.getByRole("button", { name: "Mais opções" }));
-    expect(sheet.open).toBe(true);
-
-    await user.click(sheet);
-    expect(sheet.open).toBe(false);
-  });
-
-  it("closes the sheet after a destination inside it is chosen", async () => {
-    const user = userEvent.setup();
-    renderNav();
-    await user.click(screen.getByRole("button", { name: "Mais opções" }));
-    await user.click(screen.getByRole("link", { name: "Configurações" }));
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  });
-
-  it("gives the toggle the same flex-1 slot shape as the primary tabs, matching the manager panel's nav", () => {
-    renderNav();
-    const toggle = screen.getByRole("button", { name: "Mais opções" });
-    expect(toggle.className).toContain("flex-1");
-    expect(toggle.className).toContain("border-t-2");
-  });
-
-  it("places the toggle after the last primary tab", () => {
-    renderNav();
-    const toggle = screen.getByRole("button", { name: "Mais opções" });
+    const settings = screen.getByRole("link", { name: "Configurações" });
     const you = screen.getByText("Você").closest("a") as HTMLElement;
-    expect(you.compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(you.compareDocumentPosition(settings) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  // Administração and Par anônimo used to sit here too — a standing door to
-  // a manager login most médicos can't pass, in the same anonymous
-  // persona's own nav. Both now live together on Configurações instead.
-  it("lists only Configurações in the sheet, matching the sidebar", async () => {
+  it("gives Configurações the same flex-1 slot shape as the primary tabs, matching the manager panel's nav", () => {
     renderNav();
-    await userEvent.click(screen.getByRole("button", { name: "Mais opções" }));
-
-    const links = screen.getAllByRole("link").filter((link) => link.closest("dialog"));
-    expect(links.map((link) => link.textContent)).toEqual(["Configurações"]);
-    expect(links[0]).toHaveAttribute("href", "/settings");
-  });
-
-  it("focuses the first item as soon as the sheet opens", async () => {
-    renderNav();
-    await userEvent.click(screen.getByRole("button", { name: "Mais opções" }));
-
-    expect(screen.getByRole("link", { name: "Configurações" })).toHaveFocus();
+    const settings = screen.getByRole("link", { name: "Configurações" });
+    expect(settings.className).toContain("flex-1");
+    expect(settings.className).toContain("border-t-2");
   });
 });

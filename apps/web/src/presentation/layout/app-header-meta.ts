@@ -25,7 +25,7 @@ export const APP_HEADER_META: Record<string, AppHeaderMeta> = {
   [routes.peers]: { title: 'Pares anônimos', subtitle: 'Médicos treinados para ouvir.' },
   [routes.you]: { title: 'Você', subtitle: 'Consentimento e privacidade' },
   [routes.linkInstitution]: { title: 'Vincular ao hospital' },
-  [routes.settings]: { title: 'Configurações', subtitle: 'Aparência do app.' },
+  [routes.settings]: { title: 'Configurações', subtitle: 'Aparência do app e acesso da equipe.' },
   [routes.manager]: {
     title: 'Tendências',
     subtitle: 'Indicadores agregados e anônimos.',

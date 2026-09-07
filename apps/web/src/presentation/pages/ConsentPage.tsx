@@ -5,6 +5,7 @@ import { PhoneShell } from '@/presentation/layout/PhoneShell';
 import { BackButton } from '@/presentation/ui/BackButton';
 import { Button } from '@/presentation/ui/Button';
 import { Card } from '@/presentation/ui/Card';
+import { Checkbox } from '@/presentation/ui/Checkbox';
 import { useConsentStore } from '@/stores/consent.store';
 import { routes } from '@/presentation/lib/routes';
 import { EncryptionInfoModal } from '@/presentation/components/EncryptionInfoModal';
@@ -23,14 +24,21 @@ const ROWS: ReactNode[] = [
   </>,
 ];
 
+// Item 2 is the only row that authorizes anything — the other two are
+// disclosures, true regardless of what the médico picks. Declining it never
+// blocks entry: it only decides whether check-ins later contribute to the
+// hospital's anonymous, aggregated signal.
+const AGGREGATE_ROW_INDEX = 1;
+
 export function ConsentPage() {
   const navigate = useNavigate();
   const grant = useConsentStore((state) => state.grant);
   const [isEncryptionInfoOpen, setIsEncryptionInfoOpen] = useState(false);
+  const [aggregateOptIn, setAggregateOptIn] = useState(true);
 
   const handleAccept = () => {
     try {
-      grant();
+      grant(aggregateOptIn);
     } catch {
       // Persisting to localStorage can throw (private browsing quota, storage
       // blocked in an embedded webview); grant() already updated in-memory
@@ -51,15 +59,31 @@ export function ConsentPage() {
           {ROWS.map((row, index) => (
             <li key={index}>
               <Card>
-                <div className="flex items-start gap-3">
-                  <div
-                    aria-hidden="true"
-                    className="flex h-9.5 w-9.5 flex-none items-center justify-center rounded-icon bg-surface-brand font-serif text-privacy-badge text-brand"
-                  >
-                    {index + 1}
+                {index === AGGREGATE_ROW_INDEX ? (
+                  <label className="flex items-start gap-3">
+                    <div
+                      aria-hidden="true"
+                      className="flex h-9.5 w-9.5 flex-none items-center justify-center rounded-icon bg-surface-brand font-serif text-privacy-badge text-brand"
+                    >
+                      {index + 1}
+                    </div>
+                    <p className="flex-1 text-label text-ink-2">{row}</p>
+                    <Checkbox
+                      checked={aggregateOptIn}
+                      onChange={(event) => setAggregateOptIn(event.target.checked)}
+                    />
+                  </label>
+                ) : (
+                  <div className="flex items-start gap-3">
+                    <div
+                      aria-hidden="true"
+                      className="flex h-9.5 w-9.5 flex-none items-center justify-center rounded-icon bg-surface-brand font-serif text-privacy-badge text-brand"
+                    >
+                      {index + 1}
+                    </div>
+                    <p className="text-label text-ink-2">{row}</p>
                   </div>
-                  <p className="text-label text-ink-2">{row}</p>
-                </div>
+                )}
               </Card>
             </li>
           ))}

@@ -23,7 +23,11 @@ function renderYou() {
 describe("YouPage", () => {
   beforeEach(() => {
     localStorage.clear();
-    useConsentStore.setState({ hasConsented: true, consentedAt: "2026-07-12T12:00:00.000Z" });
+    useConsentStore.setState({
+      hasConsented: true,
+      consentedAt: "2026-07-12T12:00:00.000Z",
+      aggregateOptIn: true,
+    });
     useInstitutionLinkStore.setState({
       institutionId: null,
       institutionName: null,
@@ -116,6 +120,11 @@ describe("YouPage", () => {
 
     expect(useInstitutionLinkStore.getState().institutionId).toBeNull();
     expect(screen.getByRole("button", { name: "Vincular agora" })).toBeInTheDocument();
+  });
+
+  it("offers the aggregate-signal toggle so the choice can be changed after onboarding", () => {
+    renderYou();
+    expect(screen.getByRole("checkbox", { name: /anônimo e agregado/ })).toBeChecked();
   });
 
   it("carries no appearance control of its own: that lives in Configurações, off the nav", () => {

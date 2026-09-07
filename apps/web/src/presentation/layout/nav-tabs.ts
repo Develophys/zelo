@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { Home, ClipboardCheck, MessageCircle, UserRound, LifeBuoy, ShieldCheck, SlidersHorizontal, HeartHandshake } from "lucide-react";
+import { Home, ClipboardCheck, MessageCircle, UserRound, HandHeart, ShieldCheck, SlidersHorizontal, HeartHandshake } from "lucide-react";
 import { routes } from "@/presentation/lib/routes";
 
 export type NavTabId = "home" | "checkin" | "chat" | "apoio" | "you";
@@ -29,7 +29,7 @@ export const NAV_TABS: NavTab[] = [
   { id: "home", label: "Início", icon: Home, route: routes.home },
   { id: "checkin", label: "Check-in", icon: ClipboardCheck, route: routes.assessment },
   { id: "chat", label: "Conversar", icon: MessageCircle, route: routes.chat },
-  { id: "apoio", label: "Apoio", icon: LifeBuoy, route: routes.crisis },
+  { id: "apoio", label: "Apoio", icon: HandHeart, route: routes.crisis },
   { id: "you", label: "Você", icon: UserRound, route: routes.you },
 ];
 

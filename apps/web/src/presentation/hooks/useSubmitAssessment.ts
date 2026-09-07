@@ -5,6 +5,7 @@ import type {
   SubmitAssessmentResult,
 } from '@/use-cases/submit-assessment.usecase';
 import { useInstitutionLinkStore } from '@/stores/institution-link.store';
+import { useConsentStore } from '@/stores/consent.store';
 import { isConcerningScore } from '@/domain/is-concerning-score';
 
 export function useSubmitAssessment() {
@@ -18,7 +19,8 @@ export function useSubmitAssessment() {
       // device must fire zero check-in network calls, so we skip invoking the
       // use case entirely rather than calling it with a null link.
       const { institutionId, sectorId, deviceSignalId } = useInstitutionLinkStore.getState();
-      if (institutionId !== null && sectorId !== null && deviceSignalId !== null) {
+      const { aggregateOptIn } = useConsentStore.getState();
+      if (institutionId !== null && sectorId !== null && deviceSignalId !== null && aggregateOptIn) {
         void recordSignalCheckinUseCase
           .execute({
             link: { institutionId, sectorId, deviceSignalId },

@@ -731,6 +731,29 @@ describe("ManagerDashboardPage", () => {
     expect(screen.getByText("Pico")).toBeInTheDocument();
   });
 
+  it('drops the "Mais recente" legend entry when the peak week and the latest week are the same bar, since no bar is ever drawn in that color then', async () => {
+    renderManager();
+    await waitFor(() => expect(screen.getAllByTestId("trend-bar")).toHaveLength(2));
+
+    // SIGNALS_RESPONSE trends 0.3 then 0.5: the peak is also the latest week,
+    // and this component's precedence draws that bar bg-warn ("Pico"), so no
+    // bar is ever bg-brand ("Mais recente") — the legend must not claim
+    // otherwise.
+    expect(screen.getByText("Pico")).toBeInTheDocument();
+    expect(screen.queryByText("Mais recente")).not.toBeInTheDocument();
+  });
+
+  it("does not paint a non-highlighted bar at bg-track, which measures under 1.5:1 against the card and fails WCAG 1.4.11 for a graphical object", async () => {
+    renderManager();
+    await waitFor(() => expect(screen.getAllByTestId("trend-bar")).toHaveLength(2));
+
+    const bars = screen.getAllByTestId("trend-bar");
+    // bars[0] is neither the peak nor the latest week in this fixture, so it
+    // takes whatever the "neutral" bar color is — that color must not be the
+    // near-invisible bg-track.
+    expect(bars[0]!.className).not.toContain("bg-track");
+  });
+
   it("prints each week's percentage above the desktop bars, not just the mobile rows", async () => {
     renderManager();
     await waitFor(() => expect(screen.getAllByTestId("trend-bar")).toHaveLength(2));

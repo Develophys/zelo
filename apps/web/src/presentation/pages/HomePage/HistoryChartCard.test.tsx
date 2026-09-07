@@ -105,10 +105,40 @@ describe('HistoryChartCard', () => {
     renderCard();
     await waitFor(() => expect(screen.queryAllByTestId('history-bar')).toHaveLength(6));
 
+    // A single real reading is both the latest week and the peak; this
+    // component draws that bar bg-brand ("Mais recente"), not bg-warn — so
+    // "Pico" must not claim a colour nothing on screen uses.
     expect(screen.getByText('Mais recente')).toBeInTheDocument();
-    expect(screen.getByText('Pico')).toBeInTheDocument();
+    expect(screen.queryByText('Pico')).not.toBeInTheDocument();
     expect(
       screen.queryByText('Faça seu primeiro check-in para ver sua tendência aqui.'),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows both legend entries once the peak and the latest week are different bars', async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, 'execute').mockResolvedValue([
+      { weekStart: '2026-07-01T00:00:00.000Z', severityFraction: 0.9 },
+      ...SIX_NULL_POINTS.slice(0, 4),
+      { weekStart: '2026-08-01T00:00:00.000Z', severityFraction: 0.2 },
+    ]);
+
+    renderCard();
+    await waitFor(() => expect(screen.queryAllByTestId('history-bar')).toHaveLength(6));
+
+    expect(screen.getByText('Mais recente')).toBeInTheDocument();
+    expect(screen.getByText('Pico')).toBeInTheDocument();
+  });
+
+  it('drops "Mais recente" when the latest week itself has no check-in, even though an earlier week is the peak', async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, 'execute').mockResolvedValue([
+      { weekStart: '2026-07-01T00:00:00.000Z', severityFraction: 0.9 },
+      ...SIX_NULL_POINTS.slice(0, 5),
+    ]);
+
+    renderCard();
+    await waitFor(() => expect(screen.queryAllByTestId('history-bar')).toHaveLength(6));
+
+    expect(screen.getByText('Pico')).toBeInTheDocument();
+    expect(screen.queryByText('Mais recente')).not.toBeInTheDocument();
   });
 });

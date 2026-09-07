@@ -159,16 +159,22 @@ export function PeersPage() {
         )}
 
         {state === 'no_peer_available' && (
-          <div className="mt-5">
-            <p role="alert" className="mb-2 text-label text-danger">
+          <div className="mt-5 rounded-card border border-danger-border bg-danger-bg p-4.5">
+            <p role="alert" className="text-body font-extrabold text-danger">
               Nenhum colega disponível agora.
             </p>
-            <div data-testid="no-peer-actions" className="flex flex-col gap-3">
+            <p className="mt-1 text-pretty text-caption text-danger-ink">
+              Ninguém está livre para conversar neste instante. Enquanto isso:
+            </p>
+            <div data-testid="no-peer-actions" className="mt-4 flex flex-col gap-3">
               <Button
                 variant="outline"
                 onClick={() => requestPeer(institutionId, sectorName ?? undefined)}
               >
                 Tentar novamente
+              </Button>
+              <Button variant="outline" onClick={() => navigate(routes.chat)}>
+                Conversar com o assistente
               </Button>
               <CrisisCallLink
                 line={line}

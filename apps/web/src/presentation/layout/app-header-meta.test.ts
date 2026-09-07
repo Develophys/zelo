@@ -109,4 +109,9 @@ describe('resolveAppHeaderMeta', () => {
   it('returns null for a pathname with no header', () => {
     expect(resolveAppHeaderMeta(routes.splash)).toBeNull();
     expect(resolveAppHeaderMeta('/nope')).toBeNull();
-  });});
+  });
+
+  it("mentions the staff-access section on /settings, not just appearance, since that section now lives on this screen too", () => {
+    expect(resolveAppHeaderMeta(routes.settings)?.subtitle).not.toBe('Aparência do app.');
+  });
+});

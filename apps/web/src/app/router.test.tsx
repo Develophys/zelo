@@ -110,8 +110,8 @@ describe("onboarding router flow", () => {
     buildTestRouter("/home");
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole("button", { name: "Mais opções" }));
-    await user.click(within(await screen.findByRole("dialog")).getByRole("link", { name: "Configurações" }));
+    const bottomNav = await screen.findByTestId("bottom-nav");
+    await user.click(within(bottomNav).getByRole("link", { name: "Configurações" }));
     await user.click(await screen.findByRole("link", { name: "Administração" }));
     expect(await screen.findByText("Acesso do gestor")).toBeInTheDocument();
   });

@@ -280,12 +280,14 @@ describe("HomePage manager entry point", () => {
   // Administração used to live directly in this sheet; it's now grouped with
   // Par anônimo under a "Sou gestor ou par voluntário" section on
   // Configurações instead (see SettingsPage.test.tsx and router.test.tsx for
-  // the full reach-the-manager-panel path).
-  it("reaches Configurações through the bottom nav secondary menu instead", async () => {
+  // the full reach-the-manager-panel path). Configurações itself moved from
+  // behind a "Mais" toggle straight into the bar once it was the only item
+  // left in that sheet.
+  it("reaches Configurações directly from the bottom nav", async () => {
     const user = userEvent.setup();
     renderHome();
-    await user.click(screen.getByRole("button", { name: "Mais opções" }));
-    await user.click(within(screen.getByRole("dialog")).getByRole("link", { name: "Configurações" }));
+    const bottomNav = screen.getByTestId("bottom-nav");
+    await user.click(within(bottomNav).getByRole("link", { name: "Configurações" }));
     expect(await screen.findByText("Settings screen")).toBeInTheDocument();
   });
 });

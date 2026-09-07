@@ -302,12 +302,12 @@ export function ManagerDashboardPage() {
                           data-testid="trend-bar"
                           className={`w-full rounded-md ${
                             bar.isZero
-                              ? "bg-track"
+                              ? "bg-control-edge"
                               : index === peakWeek
                                 ? "bg-warn"
                                 : index === weeklyTrend.length - 1
                                   ? "bg-brand"
-                                  : "bg-track"
+                                  : "bg-control-edge"
                           }`}
                           style={{ height: `${desktopBarHeights[index]}%` }}
                         />
@@ -335,12 +335,12 @@ export function ManagerDashboardPage() {
                               <div
                                 className={`h-full rounded-pill ${
                                   bar.isZero
-                                    ? "bg-track"
+                                    ? "bg-control-edge"
                                     : index === peakWeek
                                       ? "bg-warn"
                                       : index === weeklyTrend.length - 1
                                         ? "bg-brand"
-                                        : "bg-track"
+                                        : "bg-control-edge"
                                 }`}
                                 style={{ width: `${bar.height}%` }}
                               />
@@ -353,16 +353,25 @@ export function ManagerDashboardPage() {
                       })}
                     </div>
                     {/* Without this the colours are a guess. Same legend the
-                        médico's own chart already carries. */}
+                        médico's own chart already carries. Each entry only
+                        shows when a bar actually uses that colour — peak and
+                        latest coincide on a rising series, and this bar
+                        renders bg-warn, not bg-brand, when they do. */}
                     <div className="mt-2 flex gap-3" aria-hidden="true">
-                      <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
-                        <span className="h-2 w-2 rounded-full bg-warn" />
-                        Pico
-                      </span>
-                      <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
-                        <span className="h-2 w-2 rounded-full bg-brand" />
-                        Mais recente
-                      </span>
+                      {peakWeek !== -1 && (
+                        <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
+                          <span className="h-2 w-2 rounded-full bg-warn" />
+                          Pico
+                        </span>
+                      )}
+                      {weeklyTrend.length > 0 &&
+                        !bars[weeklyTrend.length - 1]!.isZero &&
+                        peakWeek !== weeklyTrend.length - 1 && (
+                          <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
+                            <span className="h-2 w-2 rounded-full bg-brand" />
+                            Mais recente
+                          </span>
+                        )}
                     </div>
                   </>
                 )}
@@ -402,7 +411,7 @@ export function ManagerDashboardPage() {
                       <div className="mt-1 h-2 overflow-hidden rounded-pill bg-canvas-alt">
                         <div
                           className={`h-full rounded-pill ${
-                            segment.label === peakSector ? "bg-warn" : "bg-track"
+                            segment.label === peakSector ? "bg-warn" : "bg-control-edge"
                           }`}
                           style={{ width: `${segment.value}%` }}
                         />
