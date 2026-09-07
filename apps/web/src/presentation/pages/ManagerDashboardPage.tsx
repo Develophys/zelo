@@ -1,4 +1,13 @@
+import type { ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
+import {
+  MANAGER_METRICS,
+  checkInsReading,
+  concerningRateReading,
+  followUpBandFor,
+  followUpReading,
+  type MetricDefinition,
+} from "@zelo/domain";
 import { SectionLabel } from "@/presentation/ui/SectionLabel";
 import { Card } from "@/presentation/ui/Card";
 import { Button } from "@/presentation/ui/Button";
@@ -6,6 +15,8 @@ import { Skeleton } from "@/presentation/ui/Skeleton";
 import { CardTitle } from "@/presentation/ui/CardTitle";
 import { SectorMultiSelect } from "@/presentation/ui/SectorMultiSelect";
 import { SectorPillPicker, SECTOR_PILL_CLASS } from "@/presentation/ui/SectorPillPicker";
+import { MetricHelp } from "@/presentation/ui/MetricHelp";
+import { Pill } from "@/presentation/ui/Pill";
 import { routes } from "@/presentation/lib/routes";
 import { useManagerSignals } from "@/presentation/hooks/useManagerSignals";
 import { useManagerSectors } from "@/presentation/hooks/useManagerSectors";
@@ -181,6 +192,41 @@ function SectorFilter({ sectors, selectedSectorIds, onChange }: SectorFilterProp
   );
 }
 
+function metricHelpContent(metric: MetricDefinition, extra?: string) {
+  return (
+    <span className="flex flex-col gap-1.5">
+      <span>{metric.method}</span>
+      <span>{metric.window}</span>
+      <span>{metric.suppression}</span>
+      {extra && <span>{extra}</span>}
+    </span>
+  );
+}
+
+interface KpiCardProps {
+  metric: MetricDefinition;
+  value: string;
+  valueClass: string;
+  reading: string;
+  /** Acrescentado ao fim do tooltip — o significado da faixa, quando há uma. */
+  extraHelp?: string;
+  badge?: ReactNode;
+}
+
+function KpiCard({ metric, value, valueClass, reading, extraHelp, badge }: KpiCardProps) {
+  return (
+    <Card className="flex h-full flex-col text-center" data-testid="kpi-card">
+      <p className={`font-serif text-stat ${valueClass}`}>{value}</p>
+      <p className="mt-0.5 flex items-center justify-center gap-1 text-caption text-muted">
+        <span>{metric.label}</span>
+        <MetricHelp label={metric.label} content={metricHelpContent(metric, extraHelp)} />
+      </p>
+      <p className="mt-1.5 text-pretty text-label text-muted-2">{reading}</p>
+      {badge && <div className="mt-2">{badge}</div>}
+    </Card>
+  );
+}
+
 export function ManagerDashboardPage() {
   const sectorsQuery = useManagerSectors();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -219,6 +265,17 @@ export function ManagerDashboardPage() {
   const overallConcerningRate = data?.overallConcerningRate ?? 0;
   const checkInsLast4Weeks = data?.checkInsLast4Weeks ?? 0;
   const followUpResponseRate = data?.followUpResponseRate ?? 0;
+  const sectorCoverage = data?.sectorCoverage ?? { visible: 0, total: 0 };
+  const concerningPercent = Math.round(overallConcerningRate * 100);
+  const followUpPercent = Math.round(followUpResponseRate * 100);
+  // A faixa lê o mesmo inteiro que o card imprime: classificar a fração crua
+  // faria 0,804 e 0,7996 exibirem ambos "80%" em faixas diferentes.
+  const followUpBand = followUpBandFor(followUpPercent);
+  // O KPI principal é da semana de referência, que é a última da série — não
+  // uma média das seis.
+  const referenceWeek = weeklyTrend[weeklyTrend.length - 1];
+  const referenceWeekResponses = referenceWeek?.checkIns ?? 0;
+  const referenceWeekLabel = referenceWeek ? weekLabel(referenceWeek.weekStart) : "—";
 
   return (
     <div>
@@ -263,21 +320,45 @@ export function ManagerDashboardPage() {
             </Card>
           ) : (
             <>
-              <Card className="h-full text-center" data-testid="kpi-card">
-                {/* Deliberately not tone-coded. What counts as a concerning rate is
-                    an open product question (PRODUCT.md), and an unconditional
-                    amber reads as a warning even at 0%. */}
-                <p className="font-serif text-stat text-ink">{Math.round(overallConcerningRate * 100)}%</p>
-                <p className="text-caption text-muted">sinais de burnout na equipe</p>
-              </Card>
-              <Card className="h-full text-center" data-testid="kpi-card">
-                <p className="font-serif text-stat text-brand">{checkInsLast4Weeks}</p>
-                <p className="text-caption text-muted">questionários respondidos (4 semanas)</p>
-              </Card>
-              <Card className="h-full text-center" data-testid="kpi-card">
-                <p className="font-serif text-stat text-brand">{Math.round(followUpResponseRate * 100)}%</p>
-                <p className="text-caption text-muted">taxa de resposta do follow-up</p>
-              </Card>
+              {/* Deliberadamente sem tom. O que conta como taxa preocupante é
+                  questão de produto em aberto, e um âmbar incondicional lê
+                  como alerta até a 0%. O follow-up abaixo ganha tom porque
+                  "qual taxa de resposta é boa" é metodologia de survey, não
+                  questão clínica em aberto. */}
+              <KpiCard
+                metric={MANAGER_METRICS.concerningRate}
+                value={`${concerningPercent}%`}
+                valueClass="text-ink"
+                reading={concerningRateReading({
+                  percent: concerningPercent,
+                  responses: referenceWeekResponses,
+                  weekLabel: referenceWeekLabel,
+                })}
+              />
+              <KpiCard
+                metric={MANAGER_METRICS.checkIns}
+                value={String(checkInsLast4Weeks)}
+                valueClass="text-brand"
+                reading={checkInsReading({
+                  total: checkInsLast4Weeks,
+                  visibleSectors: sectorCoverage.visible,
+                })}
+              />
+              <KpiCard
+                metric={MANAGER_METRICS.followUpRate}
+                value={`${followUpPercent}%`}
+                valueClass="text-muted"
+                reading={followUpReading()}
+                extraHelp={followUpBand.meaning}
+                badge={
+                  <span className="flex items-center justify-center gap-2">
+                    <Pill tone="neutral">demonstração</Pill>
+                    <Pill tone={followUpBand.tone === "poor" ? "warning" : "neutral"}>
+                      {followUpBand.label}
+                    </Pill>
+                  </span>
+                }
+              />
             </>
           )}
         </div>

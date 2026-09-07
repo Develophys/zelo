@@ -151,7 +151,7 @@ describe("ManagerDashboardPage", () => {
       expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
     });
     expect(screen.getByText("70%")).toBeInTheDocument();
-    expect(screen.getByText("taxa de resposta do follow-up")).toBeInTheDocument();
+    expect(screen.getByText("Taxa de resposta do follow-up")).toBeInTheDocument();
   });
 
   it("withholds the KPI numerals instead of printing a fabricated 0% and a hospital-wide follow-up rate beside it", async () => {
@@ -188,7 +188,53 @@ describe("ManagerDashboardPage", () => {
     await waitFor(() => {
       expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
     });
-    expect(screen.getByText("questionários respondidos (4 semanas)")).toBeInTheDocument();
+    expect(screen.getByText("Questionários respondidos")).toBeInTheDocument();
+  });
+
+  it("labels the main indicator by what it measures, never as burnout", async () => {
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("Respostas com sinal de sofrimento relevante")).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/burnout/i)).not.toBeInTheDocument();
+  });
+
+  it("states the base and the week under the main number", async () => {
+    renderManager();
+
+    // 41% de 24 respostas — a última semana da série, não a média das seis.
+    await waitFor(() => {
+      expect(screen.getByText("41% das 24 respostas na semana de 8 de jun.")).toBeInTheDocument();
+    });
+  });
+
+  it("says how many sectors the check-in total spans", async () => {
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("111 respostas em 3 setores visíveis, nas últimas 4 semanas")).toBeInTheDocument();
+    });
+  });
+
+  it("marks the follow-up rate as demonstration data and bands it", async () => {
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("Dado de demonstração — não reflete esta instituição")).toBeInTheDocument();
+    });
+    // 70% cai em "Média": a regra é "abaixo de 70 é baixa".
+    expect(screen.getByText("Média")).toBeInTheDocument();
+  });
+
+  it("offers a help trigger for every KPI card", async () => {
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Sobre: Respostas com sinal de sofrimento relevante" })).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Sobre: Questionários respondidos" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sobre: Taxa de resposta do follow-up" })).toBeInTheDocument();
   });
 
   it("shows skeleton placeholders while signals are loading, then replaces them with real content", async () => {
