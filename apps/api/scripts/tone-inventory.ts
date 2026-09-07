@@ -33,7 +33,7 @@ const SCRIPTS: Record<string, string[]> = {
   ],
 };
 
-const RUNS_PER_SCRIPT = 3;
+const RUNS_PER_SCRIPT = 1;
 
 const TELLS: Record<string, (reply: string) => boolean> = {
   "opening cliché": (reply) =>
