@@ -3,9 +3,9 @@ import type { AiChatPort } from '@/modules/chat/application/ports/ai-chat.port.j
 import type { AnonymizedMessage, ChatToken } from '@zelo/domain';
 
 const CANNED_REPLIES = [
-  'Oi, tudo bem por aí? Entendi o que você compartilhou — quer me contar um pouco mais sobre como isso tem te afetado no dia a dia?',
-  'Faz sentido você estar se sentindo assim. Esses últimos plantões têm sido bem pesados. O que costuma te ajudar a recarregar, mesmo que um pouco?',
-  'Obrigado por confiar isso a mim. Antes de seguirmos, como está seu sono nos últimos dias?',
+  'Tô aqui. Pode falar do jeito que vier.',
+  'Isso pesa mesmo. E pesa mais quando não dá pra falar sobre no meio do plantão.',
+  'Faz quanto tempo que tá assim?',
 ];
 
 function pickReply(anonymizedMessages: AnonymizedMessage[]): string {
