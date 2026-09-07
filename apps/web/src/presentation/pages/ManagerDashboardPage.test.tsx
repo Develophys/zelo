@@ -35,8 +35,8 @@ const SIGNALS_RESPONSE = {
   overallConcerningRate: 0.41,
   checkInsLast4Weeks: 111,
   weeklyTrend: [
-    { weekStart: "2026-06-01T00:00:00.000Z", concerningRate: 0.3 },
-    { weekStart: "2026-06-08T00:00:00.000Z", concerningRate: 0.5 },
+    { weekStart: "2026-06-01T00:00:00.000Z", concerningRate: 0.3, checkIns: 20, concerning: 6 },
+    { weekStart: "2026-06-08T00:00:00.000Z", concerningRate: 0.5, checkIns: 24, concerning: 12 },
   ],
   segments: [
     { label: "Plantão noturno", value: 52, n: 18 },
@@ -44,6 +44,7 @@ const SIGNALS_RESPONSE = {
     { label: "UTI", value: 44, n: 9 },
   ],
   followUpResponseRate: 0.7,
+  sectorCoverage: { visible: 3, total: 4 },
 };
 
 describe("ManagerDashboardPage", () => {
@@ -160,6 +161,7 @@ describe("ManagerDashboardPage", () => {
       weeklyTrend: [],
       segments: [],
       followUpResponseRate: 0.7,
+      sectorCoverage: { visible: 0, total: 0 },
     });
 
     renderManager();
@@ -264,8 +266,8 @@ describe("ManagerDashboardPage", () => {
     vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
       ...SIGNALS_RESPONSE,
       weeklyTrend: [
-        { weekStart: "2026-06-01T00:00:00.000Z", concerningRate: 0 },
-        { weekStart: "2026-06-08T00:00:00.000Z", concerningRate: 0.08 },
+        { weekStart: "2026-06-01T00:00:00.000Z", concerningRate: 0, checkIns: 20, concerning: 0 },
+        { weekStart: "2026-06-08T00:00:00.000Z", concerningRate: 0.08, checkIns: 25, concerning: 2 },
       ],
     });
     renderManager();

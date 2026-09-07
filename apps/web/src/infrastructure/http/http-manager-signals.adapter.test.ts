@@ -7,6 +7,7 @@ const VALID_RESPONSE_BODY = {
   weeklyTrend: [],
   segments: [],
   followUpResponseRate: 0,
+  sectorCoverage: { visible: 0, total: 0 },
 };
 
 function stubFetchOk() {

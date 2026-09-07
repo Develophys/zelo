@@ -36,6 +36,7 @@ const DATA: ManagerSignalsResponse = {
     { label: "UTI", value: 44, n: 9 },
   ],
   followUpResponseRate: 0.7,
+  sectorCoverage: { visible: 3, total: 4 },
 };
 
 const GENERATED_AT = new Date("2026-07-01T00:00:00.000Z");
