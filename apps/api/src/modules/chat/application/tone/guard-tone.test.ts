@@ -143,3 +143,96 @@ describe("guardTone — opening sentinel", () => {
     expect(tokens.at(-1)?.done).toBe(true);
   });
 });
+
+describe("guardTone — tail sentinel", () => {
+  it("drops a trailing question when the previous reply also ended in one", async () => {
+    const factory = scriptedFactory("Isso pesa mesmo. Faz quanto tempo que tá assim?");
+
+    const text = await textOf(
+      guardTone(factory, contextWith({ priorAssistantReplies: ["Como tá o sono?"] })),
+    );
+
+    expect(text.trim()).toBe("Isso pesa mesmo.");
+  });
+
+  it("keeps a trailing question when the previous reply did not end in one", async () => {
+    const factory = scriptedFactory("Isso pesa mesmo. Faz quanto tempo que tá assim?");
+
+    const text = await textOf(
+      guardTone(factory, contextWith({ priorAssistantReplies: ["Isso é pesado."] })),
+    );
+
+    expect(text.trim()).toBe("Isso pesa mesmo. Faz quanto tempo que tá assim?");
+  });
+
+  it("keeps a trailing question on the very first reply", async () => {
+    const factory = scriptedFactory("Isso pesa mesmo. Faz tempo?");
+
+    const text = await textOf(guardTone(factory, contextWith()));
+
+    expect(text.trim()).toBe("Isso pesa mesmo. Faz tempo?");
+  });
+
+  it("drops a closing rhetorical reframe even when a question would be allowed", async () => {
+    const factory = scriptedFactory(
+      "O corpo não recupera. Não é sobre o plantão, é sobre não ter pausa.",
+    );
+
+    const text = await textOf(guardTone(factory, contextWith()));
+
+    expect(text.trim()).toBe("O corpo não recupera.");
+  });
+
+  it("keeps a single-sentence question rather than emptying the reply", async () => {
+    const factory = scriptedFactory("Faz quanto tempo que tá assim?");
+
+    const text = await textOf(
+      guardTone(factory, contextWith({ priorAssistantReplies: ["Como tá o sono?"] })),
+    );
+
+    expect(text.trim()).toBe("Faz quanto tempo que tá assim?");
+  });
+
+  it("leaves a reply with no trailing tic byte-identical", async () => {
+    const factory = scriptedFactory("Isso pesa mesmo. O corpo não recupera. Faz sentido.");
+
+    const text = await textOf(
+      guardTone(factory, contextWith({ priorAssistantReplies: ["Como tá o sono?"] })),
+    );
+
+    expect(text.trim()).toBe("Isso pesa mesmo. O corpo não recupera. Faz sentido.");
+  });
+
+  it("is inert under an active risk signal, keeping the offer of a real person", async () => {
+    const factory = scriptedFactory(
+      "Isso assusta mesmo. Quer falar agora com uma pessoa de verdade?",
+    );
+
+    const text = await textOf(
+      guardTone(
+        factory,
+        contextWith({ hasActiveRiskSignal: true, priorAssistantReplies: ["Como tá o sono?"] }),
+      ),
+    );
+
+    expect(text.trim()).toBe("Isso assusta mesmo. Quer falar agora com uma pessoa de verdade?");
+  });
+
+  it("flushes held text before propagating a mid-stream provider error", async () => {
+    async function* failing(): AsyncGenerator<ChatToken> {
+      yield { conversationId: CONVERSATION_ID, delta: "Isso pesa mesmo. O corpo ", done: false };
+      throw new Error("provider unreachable");
+    }
+    const emitted: string[] = [];
+
+    await expect(
+      (async () => {
+        for await (const token of guardTone(() => failing(), contextWith())) {
+          emitted.push(token.delta);
+        }
+      })(),
+    ).rejects.toThrow("provider unreachable");
+
+    expect(emitted.join("")).toContain("Isso pesa mesmo.");
+  });
+});

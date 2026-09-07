@@ -1,6 +1,7 @@
 import type { ChatToken } from "@zelo/domain";
 import { boundaryIndices } from "./sentence-split.ts";
-import { matchOpeningTell } from "./tone-tells.ts";
+import { isClosingTic, matchOpeningTell } from "./tone-tells.ts";
+import { shouldAllowTrailingQuestion } from "./cadence.ts";
 
 const OPENING_CAP = 120;
 
@@ -21,9 +22,11 @@ async function* runAttempt(
   stream: AsyncGenerator<ChatToken>,
   conversationId: string,
   validateOpening: boolean,
+  allowTrailingQuestion: boolean,
 ): AsyncGenerator<ChatToken, RejectedOpening | null> {
   let pending = "";
   let openingChecked = !validateOpening;
+  let emittedAny = false;
 
   try {
     for await (const token of stream) {
@@ -46,9 +49,12 @@ async function* runAttempt(
         openingChecked = true;
       }
 
-      if (pending.length > 0) {
-        yield { conversationId, delta: pending, done: false };
-        pending = "";
+      const boundaries = boundaryIndices(pending);
+      if (boundaries.length >= 2) {
+        const cut = boundaries[boundaries.length - 2]! + 1;
+        yield { conversationId, delta: pending.slice(0, cut), done: false };
+        pending = pending.slice(cut);
+        emittedAny = true;
       }
     }
   } catch (error) {
@@ -58,9 +64,13 @@ async function* runAttempt(
     throw error;
   }
 
-  if (pending.length > 0) {
+  const dropTail =
+    emittedAny && pending.trim().length > 0 && isClosingTic(pending, allowTrailingQuestion);
+
+  if (!dropTail && pending.length > 0) {
     yield { conversationId, delta: pending, done: false };
   }
+
   yield { conversationId, delta: "", done: true };
   return null;
 }
@@ -74,13 +84,21 @@ export async function* guardTone(
     return;
   }
 
-  const rejected = yield* runAttempt(requestReply(), context.conversationId, true);
+  const allowTrailingQuestion = shouldAllowTrailingQuestion(context.priorAssistantReplies);
+
+  const rejected = yield* runAttempt(
+    requestReply(),
+    context.conversationId,
+    true,
+    allowTrailingQuestion,
+  );
 
   if (rejected !== null) {
     yield* runAttempt(
       requestReply(context.buildNudge(rejected.rejectedOpening)),
       context.conversationId,
       false,
+      allowTrailingQuestion,
     );
   }
 }
