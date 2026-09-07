@@ -35,6 +35,40 @@ export interface SendChatMessageParams {
   hasActiveRiskSignal: boolean;
 }
 
+class EmptyReplyError extends Error {
+  constructor() {
+    super("AI reply produced no visible content");
+    this.name = "EmptyReplyError";
+  }
+}
+
+async function* rejectEmptyReply(source: AsyncGenerator<ChatToken>): AsyncGenerator<ChatToken> {
+  const held: ChatToken[] = [];
+  let content = "";
+  let flushed = false;
+
+  for await (const token of source) {
+    if (flushed) {
+      yield token;
+      continue;
+    }
+
+    held.push(token);
+    content += token.delta;
+
+    if (content.trim().length > 0) {
+      yield* held;
+      held.length = 0;
+      flushed = true;
+      continue;
+    }
+
+    if (token.done) {
+      throw new EmptyReplyError();
+    }
+  }
+}
+
 @Injectable()
 export class SendChatMessageUseCase {
   private readonly logger = new Logger(SendChatMessageUseCase.name);
@@ -59,13 +93,15 @@ export class SendChatMessageUseCase {
       });
 
     try {
-      yield* guardTone(requestReply, {
-        conversationId: params.conversationId,
-        hasActiveRiskSignal: params.hasActiveRiskSignal,
-        priorAssistantReplies,
-        buildNudge: openingNudge,
-        onTell: (rule) => this.logger.log(`tone_guard rule=${rule}`),
-      });
+      yield* rejectEmptyReply(
+        guardTone(requestReply, {
+          conversationId: params.conversationId,
+          hasActiveRiskSignal: params.hasActiveRiskSignal,
+          priorAssistantReplies,
+          buildNudge: openingNudge,
+          onTell: (rule) => this.logger.log(`tone_guard rule=${rule}`),
+        }),
+      );
     } catch (error) {
       this.logger.error(`chat_stream_failed error=${error instanceof Error ? error.name : "unknown"}`);
       if (params.hasActiveRiskSignal) {

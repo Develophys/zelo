@@ -26,7 +26,11 @@ export class GroqAdapter implements AiChatPort {
   }): AsyncGenerator<ChatToken> {
     const stream = await this.client.chat.completions.create({
       model: this.model,
-      max_tokens: 512,
+      // 512 caused a ~29% empty-reply rate on long, nudged conversations:
+      // gpt-oss-120b is a reasoning model, its reasoning tokens count against
+      // max_tokens, and a long conversation could burn the whole budget on
+      // reasoning before emitting any visible text.
+      max_tokens: 2048,
       // 0.8 was chosen to break the low-variance phrase looping that feeds the
       // "feels like a robot" tell this project's user research flagged (ENT-01,
       // persona.md). It was calibrated against Llama-family models, which Groq

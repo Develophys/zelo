@@ -59,6 +59,72 @@ describe("SendChatMessageUseCase", () => {
   });
 });
 
+class FakeDoneOnlyAiChatPort implements AiChatPort {
+  async *streamReply(): AsyncGenerator<ChatToken> {
+    yield { conversationId: "c1", delta: "", done: true };
+  }
+}
+
+class FakeWhitespaceOnlyAiChatPort implements AiChatPort {
+  async *streamReply(): AsyncGenerator<ChatToken> {
+    yield { conversationId: "c1", delta: "  ", done: false };
+    yield { conversationId: "c1", delta: "\n", done: false };
+    yield { conversationId: "c1", delta: "", done: true };
+  }
+}
+
+class FakeShortRealReplyAiChatPort implements AiChatPort {
+  async *streamReply(): AsyncGenerator<ChatToken> {
+    yield { conversationId: "c1", delta: "Isso pesa mesmo.", done: false };
+    yield { conversationId: "c1", delta: "", done: true };
+  }
+}
+
+describe("SendChatMessageUseCase empty-reply guard", () => {
+  it("treats a stream that yields only a done token as a provider failure", async () => {
+    const useCase = new SendChatMessageUseCase(new FakeDoneOnlyAiChatPort());
+
+    await expect(
+      collect(useCase.execute({ conversationId: "c1", anonymizedMessages: [], hasActiveRiskSignal: false })),
+    ).rejects.toBeInstanceOf(AiProviderUnavailableError);
+  });
+
+  it("treats a stream of whitespace-only deltas as a provider failure", async () => {
+    const useCase = new SendChatMessageUseCase(new FakeWhitespaceOnlyAiChatPort());
+
+    await expect(
+      collect(useCase.execute({ conversationId: "c1", anonymizedMessages: [], hasActiveRiskSignal: false })),
+    ).rejects.toBeInstanceOf(AiProviderUnavailableError);
+  });
+
+  it("passes a short but real reply through untouched", async () => {
+    const useCase = new SendChatMessageUseCase(new FakeShortRealReplyAiChatPort());
+
+    const tokens = await collect(
+      useCase.execute({ conversationId: "c1", anonymizedMessages: [], hasActiveRiskSignal: false }),
+    );
+
+    expect(tokens.map((token) => token.delta).join("")).toBe("Isso pesa mesmo.");
+    expect(tokens.at(-1)).toEqual({ conversationId: "c1", delta: "", done: true });
+  });
+
+  it("routes an empty reply to CrisisFallbackRequiredError under an active risk signal", async () => {
+    const useCase = new SendChatMessageUseCase(new FakeDoneOnlyAiChatPort());
+
+    await expect(
+      collect(useCase.execute({ conversationId: "c1", anonymizedMessages: [], hasActiveRiskSignal: true })),
+    ).rejects.toBeInstanceOf(CrisisFallbackRequiredError);
+  });
+
+  it("routes an empty reply to AiProviderUnavailableError without a risk signal", async () => {
+    const useCase = new SendChatMessageUseCase(new FakeDoneOnlyAiChatPort());
+
+    await expect(
+      collect(useCase.execute({ conversationId: "c1", anonymizedMessages: [], hasActiveRiskSignal: false })),
+    ).rejects.toBeInstanceOf(AiProviderUnavailableError);
+  });
+});
+
 class RecordingAiChatPort implements AiChatPort {
   readonly prompts: string[] = [];
   private call = 0;
