@@ -18,6 +18,7 @@ import { SectorMultiSelect } from "@/presentation/ui/SectorMultiSelect";
 import { SectorPillPicker, SECTOR_PILL_CLASS } from "@/presentation/ui/SectorPillPicker";
 import { MetricHelp } from "@/presentation/ui/MetricHelp";
 import { Pill } from "@/presentation/ui/Pill";
+import { Tooltip } from "@/presentation/ui/Tooltip";
 import { routes } from "@/presentation/lib/routes";
 import { useManagerSignals } from "@/presentation/hooks/useManagerSignals";
 import { useManagerSectors } from "@/presentation/hooks/useManagerSectors";
@@ -31,9 +32,11 @@ import {
   peakTrendIndex,
   describeSegment,
   describeTrendWeek,
+  trendWeekDetail,
   toTrendBarHeights,
   toTrendBars,
   weekLabel,
+  type TrendWeekDetail,
 } from "@/presentation/lib/manager-trend-chart";
 
 const TREND_SKELETON_BAR_COUNT = 6;
@@ -227,6 +230,26 @@ function KpiCard({ metric, value, valueClass, reading, extraHelp, badge }: KpiCa
   );
 }
 
+function TrendWeekBubble({ detail }: { detail: TrendWeekDetail }) {
+  const move =
+    detail.deltaPoints === null
+      ? "Primeira semana da série"
+      : detail.deltaPoints === 0
+        ? "Sem variação vs. a semana anterior"
+        : `${detail.deltaPoints > 0 ? "+" : "−"}${Math.abs(detail.deltaPoints)} pontos vs. a semana anterior`;
+
+  return (
+    <span className="flex flex-col gap-0.5">
+      <span className="font-semibold">Semana de {detail.weekLabel}</span>
+      <span>
+        {detail.percent}% — {detail.concerning} de {detail.checkIns}{" "}
+        {detail.checkIns === 1 ? "resposta" : "respostas"}
+      </span>
+      <span>{move}</span>
+    </span>
+  );
+}
+
 export function ManagerDashboardPage() {
   const sectorsQuery = useManagerSectors();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -384,11 +407,6 @@ export function ManagerDashboardPage() {
                   <CardTitle>Tendência geral</CardTitle>
                   <p className="font-mono text-mono-data text-muted-2">últimas 6 semanas</p>
                 </div>
-                <ul data-testid="trend-description" className="sr-only">
-                  {weeklyTrend.map((point, index) => (
-                    <li key={index}>{describeTrendWeek(point, index, weeklyTrend.length - 1)}</li>
-                  ))}
-                </ul>
                 {weeklyTrend.length === 0 ? (
                   <div className="mt-auto flex h-14 items-end gap-2" aria-hidden="true">
                     {Array.from({ length: TREND_SKELETON_BAR_COUNT }, (_, index) => (
@@ -408,23 +426,29 @@ export function ManagerDashboardPage() {
                         </span>
                       ))}
                     </div>
-                    <div className="mt-auto hidden h-14 items-end gap-2 md:flex" aria-hidden="true">
-                      {bars.map((bar, index) => (
-                        <div
-                          key={index}
-                          data-testid="trend-bar"
-                          className={`w-full rounded-md ${
-                            bar.isZero
-                              ? "bg-control-edge"
-                              : index === peakWeek
-                                ? "bg-warn"
-                                : index === weeklyTrend.length - 1
-                                  ? "bg-brand"
-                                  : "bg-control-edge"
-                          }`}
-                          style={{ height: `${trendBarProportions[index]}%` }}
-                        />
-                      ))}
+                    <div className="mt-auto hidden h-14 items-end gap-2 md:flex">
+                      {bars.map((bar, index) => {
+                        const detail = trendWeekDetail(weeklyTrend, index, peakWeek);
+                        return (
+                          <Tooltip key={index} align="start" content={<TrendWeekBubble detail={detail} />}>
+                            <button
+                              type="button"
+                              data-testid="trend-bar"
+                              aria-label={describeTrendWeek(detail)}
+                              className={`w-full rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                                bar.isZero
+                                  ? "bg-control-edge"
+                                  : index === peakWeek
+                                    ? "bg-warn"
+                                    : index === weeklyTrend.length - 1
+                                      ? "bg-brand"
+                                      : "bg-control-edge"
+                              }`}
+                              style={{ height: `${trendBarProportions[index]}%` }}
+                            />
+                          </Tooltip>
+                        );
+                      })}
                     </div>
                     <div className="mt-1.5 hidden gap-2 md:flex" aria-hidden="true">
                       {weeklyTrend.map((point, index) => (
@@ -436,33 +460,40 @@ export function ManagerDashboardPage() {
                         </span>
                       ))}
                     </div>
-                    <div className="mt-auto flex flex-col gap-2 md:hidden" aria-hidden="true">
+                    <div className="mt-auto flex flex-col gap-2 md:hidden">
                       {weeklyTrend.map((point, index) => {
                         const bar = bars[index]!;
+                        const detail = trendWeekDetail(weeklyTrend, index, peakWeek);
                         return (
-                          <div key={index} className="flex items-center gap-2">
-                            <span className="w-19 shrink-0 whitespace-nowrap font-mono text-mono-data text-muted-2">
-                              {weekLabel(point.weekStart)}
-                            </span>
-                            <div className="h-2 flex-1 overflow-hidden rounded-pill bg-canvas-alt">
-                              <div
-                                data-testid="trend-bar-mobile"
-                                className={`h-full rounded-pill ${
-                                  bar.isZero
-                                    ? "bg-control-edge"
-                                    : index === peakWeek
-                                      ? "bg-warn"
-                                      : index === weeklyTrend.length - 1
-                                        ? "bg-brand"
-                                        : "bg-control-edge"
-                                }`}
-                                style={{ width: `${trendBarProportions[index]}%` }}
-                              />
-                            </div>
-                            <span className="w-9 shrink-0 text-right font-mono text-mono-data text-muted-2">
-                              {Math.round(point.concerningRate * 100)}%
-                            </span>
-                          </div>
+                          <Tooltip key={index} align="start" content={<TrendWeekBubble detail={detail} />}>
+                            <button
+                              type="button"
+                              aria-label={describeTrendWeek(detail)}
+                              className="flex w-full items-center gap-2 rounded-control text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                            >
+                              <span aria-hidden="true" className="w-19 shrink-0 whitespace-nowrap font-mono text-mono-data text-muted-2">
+                                {weekLabel(point.weekStart)}
+                              </span>
+                              <span aria-hidden="true" className="h-2 flex-1 overflow-hidden rounded-pill bg-canvas-alt">
+                                <span
+                                  data-testid="trend-bar-mobile"
+                                  className={`block h-full rounded-pill ${
+                                    bar.isZero
+                                      ? "bg-control-edge"
+                                      : index === peakWeek
+                                        ? "bg-warn"
+                                        : index === weeklyTrend.length - 1
+                                          ? "bg-brand"
+                                          : "bg-control-edge"
+                                  }`}
+                                  style={{ width: `${trendBarProportions[index]}%` }}
+                                />
+                              </span>
+                              <span aria-hidden="true" className="w-9 shrink-0 text-right font-mono text-mono-data text-muted-2">
+                                {Math.round(point.concerningRate * 100)}%
+                              </span>
+                            </button>
+                          </Tooltip>
                         );
                       })}
                     </div>

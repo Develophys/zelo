@@ -274,16 +274,46 @@ describe("ManagerDashboardPage", () => {
     });
   });
 
-  it("gives the trend chart an accessible description, as the médico's chart has", async () => {
+  it("gives each trend week an accessible name carrying its full detail", async () => {
     renderManager();
-    await waitFor(() => {
-      expect(screen.getByTestId("trend-description")).toBeInTheDocument();
-    });
-    const items = within(screen.getByTestId("trend-description")).getAllByRole("listitem");
-    expect(items.map((item) => item.textContent)).toEqual([
-      "Semana de 1 de jun.: 30%",
-      "Semana de 8 de jun.: 50% (mais recente)",
+    const bars = await screen.findAllByTestId("trend-bar");
+    expect(bars.map((bar) => bar.getAttribute("aria-label"))).toEqual([
+      "Semana de 1 de jun.: 30%, 6 de 20 respostas, primeira semana da série",
+      "Semana de 8 de jun.: 50%, 12 de 24 respostas, 20 pontos acima da semana anterior (pico, mais recente)",
     ]);
+  });
+
+  it("exposes each trend week as a focusable button naming its base", async () => {
+    renderManager();
+
+    // Both the desktop bar and the mobile row are buttons carrying this same
+    // accessible name — Tailwind's `hidden md:flex` / `flex md:hidden` split
+    // is CSS-only, so jsdom (no stylesheet applied) renders both at once.
+    // `findAllBy` accounts for that; the point under test is that at least
+    // one focusable trend-week button exists with the full detail as its name.
+    const bars = await screen.findAllByRole("button", {
+      name: "Semana de 8 de jun.: 50%, 12 de 24 respostas, 20 pontos acima da semana anterior (pico, mais recente)",
+    });
+    expect(bars.length).toBeGreaterThan(0);
+  });
+
+  it("shows the week detail on focus", async () => {
+    renderManager();
+
+    const [bar] = await screen.findAllByRole("button", { name: /Semana de 8 de jun\./ });
+    bar!.focus();
+
+    const bubble = await screen.findByTestId("tooltip");
+    expect(bubble).toHaveTextContent("50%");
+    expect(bubble).toHaveTextContent("12 de 24 respostas");
+  });
+
+  it("keeps no focusable element inside aria-hidden content", async () => {
+    const { container } = renderManager();
+    await screen.findAllByRole("button", { name: /Semana de 8 de jun\./ });
+
+    const hidden = container.querySelectorAll('[aria-hidden="true"] button, [aria-hidden="true"] a');
+    expect(hidden).toHaveLength(0);
   });
 
   it("gives the segments card an accessible description too", async () => {
@@ -721,8 +751,8 @@ describe("ManagerDashboardPage", () => {
     const [trendCard] = within(grid).getAllByTestId('manager-card');
     expect(trendCard!.className).toContain('flex');
     expect(trendCard!.className).toContain('flex-col');
-    const barsRow = screen.getAllByTestId('trend-bar')[0]!.parentElement;
-    expect(barsRow?.className).toContain('mt-auto');
+    const barsRow = screen.getAllByTestId('trend-bar')[0]!.closest('.mt-auto');
+    expect(barsRow).not.toBeNull();
   });
 
   it('puts the sector filter in a plain row above the KPIs, with no rule drawn across the page', async () => {
