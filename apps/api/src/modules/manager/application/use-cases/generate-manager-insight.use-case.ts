@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
-import { MANAGER_METRICS } from "@zelo/domain";
+import { MANAGER_METRICS, sectorCoverageReading } from "@zelo/domain";
 import { GetManagerSignalsUseCase, type ManagerSignalsResponse } from "./get-manager-signals.use-case.ts";
 import { AI_INSIGHT_PORT, type AiInsightPort, type ManagerInsightResponse } from "../ports/ai-insight.port.ts";
 import { MANAGER_INSIGHT_SYSTEM_PROMPT } from "../prompts/manager-insight-system-prompt.ts";
@@ -60,7 +60,7 @@ export class GenerateManagerInsightUseCase {
 
     return [
       `Dados agregados da equipe (última semana visível, últimas ${signals.weeklyTrend.length} semanas de tendência):`,
-      `- Cobertura: ${signals.sectorCoverage.visible} de ${signals.sectorCoverage.total} setores atingiram o mínimo de 5 respostas e entram nos números abaixo.`,
+      `- ${MANAGER_METRICS.sectorCoverage.label}: ${sectorCoverageReading(signals.sectorCoverage)}`,
       `- ${MANAGER_METRICS.concerningRate.label}: ${Math.round(signals.overallConcerningRate * 100)}%`,
       `- ${MANAGER_METRICS.checkIns.label} (4 semanas): ${signals.checkInsLast4Weeks}`,
       `- Tendência semanal (taxa e base por semana, ${signals.weeklyTrend.length} semanas): ${trendLine}`,

@@ -39,6 +39,15 @@ describe("MANAGER_METRICS", () => {
   it("carries a methodology version, so a change of rule is datable", () => {
     expect(MANAGER_METHODOLOGY_VERSION.length).toBeGreaterThan(0);
   });
+
+  // O k-anonimato é decidido por setor, uma vez, na semana de referência —
+  // não semana a semana. Um setor visível mostra todas as suas semanas com a
+  // contagem real, inclusive as que sozinhas ficariam abaixo de 5. Quem audita
+  // a supressão precisa ler isso na metodologia, não deduzir do código.
+  it("discloses that a visible sector shows its sub-threshold weeks with their real counts", () => {
+    expect(MANAGER_METRICS.concerningRate.suppression).toMatch(/decidida por setor/i);
+    expect(MANAGER_METRICS.concerningRate.suppression).toMatch(/abaixo de 5/i);
+  });
 });
 
 describe("plain-language readings", () => {

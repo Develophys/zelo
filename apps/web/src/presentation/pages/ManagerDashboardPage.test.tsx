@@ -944,6 +944,28 @@ describe("ManagerDashboardPage", () => {
     expect(desktopRow?.className).not.toContain("md:hidden");
   });
 
+  // A API não filtra por data: a tendência traz quantas semanas existirem.
+  // "últimas 6 semanas" era uma janela que ninguém aplica.
+  it("labels the trend window with the number of weeks it actually drew", async () => {
+    renderManager();
+
+    await waitFor(() => expect(screen.getAllByTestId("trend-bar")).toHaveLength(2));
+    expect(screen.getByText("últimas 2 semanas")).toBeInTheDocument();
+    expect(screen.queryByText("últimas 6 semanas")).not.toBeInTheDocument();
+  });
+
+  it("says 'última semana' rather than 'últimas 1 semanas' for a single week", async () => {
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
+      ...SIGNALS_RESPONSE,
+      weeklyTrend: [
+        { weekStart: "2026-06-08T00:00:00.000Z", concerningRate: 0.5, checkIns: 24, concerning: 12 },
+      ],
+    });
+    renderManager();
+
+    await waitFor(() => expect(screen.getByText("última semana")).toBeInTheDocument());
+  });
+
   it("explains that the peak marker is relative to the series, not an alert threshold", async () => {
     renderManager();
 

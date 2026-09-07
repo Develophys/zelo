@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { MANAGER_METRICS, sectorCoverageReading } from "@zelo/domain";
 import { GenerateManagerInsightUseCase } from "./generate-manager-insight.use-case.ts";
 import { GetManagerSignalsUseCase } from "./get-manager-signals.use-case.ts";
 import type { SignalRepository, SignalRow, WeeklySignalRow } from "../ports/signal-repository.port.ts";
@@ -98,7 +99,14 @@ describe("GenerateManagerInsightUseCase", () => {
     expect(aiInsight.lastParams?.summary).toContain(
       "Tendência semanal (taxa e base por semana, 2 semanas): 30% (n=10), 60% (n=10)",
     );
-    expect(aiInsight.lastParams?.summary).toContain("Cobertura: 1 de 2 setores");
+    // A mesma frase que o card de cobertura, o CSV e o PDF imprimem — o prompt
+    // não pode descrever a cobertura com palavras próprias.
+    expect(aiInsight.lastParams?.summary).toContain(
+      `${MANAGER_METRICS.sectorCoverage.label}: ${sectorCoverageReading({ visible: 1, total: 2 })}`,
+    );
+    expect(aiInsight.lastParams?.summary).toContain(
+      "1 de 2 setores · 1 oculto por ter menos de 5 respostas",
+    );
     expect(aiInsight.lastParams?.summary).toContain(
       "Taxa de resposta do follow-up: 0% — dado de demonstração, não reflete esta instituição",
     );
@@ -126,7 +134,9 @@ describe("GenerateManagerInsightUseCase", () => {
     const summary = aiInsight.lastParams?.summary ?? "";
     // 3 check-ins fica abaixo do limiar de 5: o setor nunca deveria contribuir
     // para nenhum agregado, nem sequer para o denominador da tendência.
-    expect(summary).toContain("Cobertura: 1 de 2 setores");
+    expect(summary).toContain(
+      `${MANAGER_METRICS.sectorCoverage.label}: ${sectorCoverageReading({ visible: 1, total: 2 })}`,
+    );
     expect(summary).toContain("Respostas com sinal de sofrimento relevante: 40%");
     expect(summary).toContain("Tendência semanal (taxa e base por semana, 1 semanas): 40% (n=10)");
     expect(summary).not.toContain("Pediatria");

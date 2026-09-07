@@ -25,7 +25,7 @@ export const MANAGER_METRICS: Record<ManagerMetricId, MetricDefinition> = {
       "Proporção de autoavaliações cujo escore total de PHQ-9 ou GAD-7 ficou acima de 9 — o teto da faixa \"leve\" das duas escalas. Um escore acima disso indica sintomas de depressão ou ansiedade em intensidade ao menos moderada, condição que a literatura associa a maior risco de esgotamento profissional. Não é um diagnóstico de burnout nem de nenhuma outra condição.",
     window: "Apenas a semana mais recente com dados suficientes — não é média das 6 semanas.",
     suppression:
-      "Soma somente os setores com 5 respostas ou mais na semana de referência. Setores abaixo desse limite não entram nem no numerador nem no denominador.",
+      "Soma somente os setores com 5 respostas ou mais na semana de referência. Setores abaixo desse limite não entram nem no numerador nem no denominador. A visibilidade é decidida por setor, não semana a semana: uma vez que o setor atinge o mínimo na semana de referência, todas as semanas dele aparecem no gráfico com a contagem real, inclusive as semanas em que essa contagem ficou abaixo de 5.",
   },
   checkIns: {
     id: "checkIns",

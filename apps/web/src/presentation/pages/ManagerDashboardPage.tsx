@@ -97,7 +97,7 @@ const INSIGHT_EMPTY_EXPLANATION =
   "Interpreta os indicadores agregados e anônimos desta página e sugere ações para a liderança, sem acesso a dados individuais de nenhum profissional.";
 
 const PEAK_LEGEND_HELP =
-  "A semana com a maior proporção de sinais dentro destas 6 semanas. É uma comparação relativa à própria série e não é um limite de alerta: a barra fica marcada mesmo que o valor seja baixo, porque indica o ponto mais alto do período, não que ele seja preocupante.";
+  "A semana com a maior proporção de sinais dentro deste período. É uma comparação relativa à própria série e não é um limite de alerta: a barra fica marcada mesmo que o valor seja baixo, porque indica o ponto mais alto do período, não que ele seja preocupante.";
 
 const LATEST_LEGEND_HELP =
   "A última semana com dados. Aparece separada porque é a que reflete a situação atual; quando ela também é o pico, prevalece a marcação de pico.";
@@ -310,6 +310,9 @@ export function ManagerDashboardPage() {
     weeklyTrend[weeklyTrend.length - 1];
   const referenceWeekResponses = referenceWeek?.checkIns ?? 0;
   const referenceWeekLabel = referenceWeek ? weekLabel(referenceWeek.weekStart) : "—";
+  // A API não recorta janela nenhuma: a tendência traz quantas semanas houver.
+  const trendWindowLabel =
+    weeklyTrend.length === 1 ? "última semana" : `últimas ${weeklyTrend.length} semanas`;
 
   return (
     <div>
@@ -416,7 +419,9 @@ export function ManagerDashboardPage() {
               <Card className="flex h-full flex-col" data-testid="manager-card">
                 <div className="flex items-center justify-between">
                   <CardTitle>Tendência geral</CardTitle>
-                  <p className="font-mono text-mono-data text-muted-2">últimas 6 semanas</p>
+                  {weeklyTrend.length > 0 && (
+                    <p className="font-mono text-mono-data text-muted-2">{trendWindowLabel}</p>
+                  )}
                 </div>
                 {weeklyTrend.length === 0 ? (
                   <div className="mt-auto flex h-14 items-end gap-2" aria-hidden="true">
