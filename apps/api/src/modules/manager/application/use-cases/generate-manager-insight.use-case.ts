@@ -59,7 +59,7 @@ export class GenerateManagerInsightUseCase {
       .join("\n");
 
     return [
-      "Dados agregados da equipe (última semana visível, últimas 6 semanas de tendência):",
+      `Dados agregados da equipe (última semana visível, últimas ${signals.weeklyTrend.length} semanas de tendência):`,
       `- Cobertura: ${signals.sectorCoverage.visible} de ${signals.sectorCoverage.total} setores atingiram o mínimo de 5 respostas e entram nos números abaixo.`,
       `- ${MANAGER_METRICS.concerningRate.label}: ${Math.round(signals.overallConcerningRate * 100)}%`,
       `- ${MANAGER_METRICS.checkIns.label} (4 semanas): ${signals.checkInsLast4Weeks}`,
