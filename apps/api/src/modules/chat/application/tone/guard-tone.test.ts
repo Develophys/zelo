@@ -233,6 +233,16 @@ describe("guardTone — tail sentinel", () => {
       })(),
     ).rejects.toThrow("provider unreachable");
 
-    expect(emitted.join("")).toContain("Isso pesa mesmo.");
+    expect(emitted.join("")).toBe("Isso pesa mesmo. O corpo ");
+  });
+
+  it("keeps a reframe when the stream was truncated mid-sentence after it", async () => {
+    const truncated =
+      "O corpo não recupera. Não é sobre o plantão, é sobre não ter pausa. E você segue sem";
+    const factory = scriptedFactory(truncated);
+
+    const text = await textOf(guardTone(factory, contextWith()));
+
+    expect(text.trim()).toBe(truncated);
   });
 });

@@ -64,8 +64,12 @@ async function* runAttempt(
     throw error;
   }
 
+  const heldTail = pending.trim();
   const dropTail =
-    emittedAny && pending.trim().length > 0 && isClosingTic(pending, allowTrailingQuestion);
+    emittedAny &&
+    heldTail.length > 0 &&
+    /[.!?…]$/.test(heldTail) &&
+    isClosingTic(pending, allowTrailingQuestion);
 
   if (!dropTail && pending.length > 0) {
     yield { conversationId, delta: pending, done: false };
