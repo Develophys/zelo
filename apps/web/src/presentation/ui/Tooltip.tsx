@@ -27,6 +27,24 @@ interface TooltipProps {
    * existentes esperam.
    */
   align?: 'center' | 'start';
+  /**
+   * Substitui inteiramente a classe default `inline-flex` do span wrapper —
+   * para um trigger que precisa participar do layout flex/percentual do pai
+   * (por exemplo, uma barra numa linha flex cuja altura é uma porcentagem de
+   * um ancestral com altura definida), em vez de se comportar como um
+   * trigger inline comum. Substitui, não concatena, para não colocar duas
+   * utilities de `display` conflitantes no mesmo elemento.
+   */
+  wrapperClassName?: string;
+  /**
+   * Marca que `content` já repete inteiramente o que o `aria-label` do
+   * trigger diz — por exemplo, uma bolha rica montada a partir dos mesmos
+   * dados que geraram o `aria-label`. Pula o `aria-describedby` e esconde a
+   * bolha da árvore de acessibilidade, do mesmo jeito que o caso de
+   * string-igual já faz, já que um usuário de leitor de tela ouviria a
+   * mesma informação duas vezes.
+   */
+  redundantWithName?: boolean;
   children: ReactElement<Record<string, unknown>>;
 }
 
@@ -71,7 +89,13 @@ function mergeRefs<T>(refs: Array<Ref<T> | null | undefined>) {
  * ancestor (a table row's rounded card, a list item) clips the latter no
  * matter how high its `z-index` is.
  */
-export function Tooltip({ content, align = 'center', children }: TooltipProps) {
+export function Tooltip({
+  content,
+  align = 'center',
+  wrapperClassName,
+  redundantWithName,
+  children,
+}: TooltipProps) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<BubblePosition>({ top: 0, left: 0 });
@@ -129,7 +153,8 @@ export function Tooltip({ content, align = 'center', children }: TooltipProps) {
   }, [open, measure]);
 
   const restatesTheName =
-    typeof content === 'string' && children.props['aria-label'] === content;
+    redundantWithName ||
+    (typeof content === 'string' && children.props['aria-label'] === content);
 
   const chain =
     <E,>(theirs: unknown, ours: (event: E) => void) =>
@@ -183,7 +208,7 @@ export function Tooltip({ content, align = 'center', children }: TooltipProps) {
   );
 
   return (
-    <span className="inline-flex">
+    <span className={wrapperClassName ?? 'inline-flex'}>
       {trigger}
       {bubble && typeof document !== 'undefined' ? createPortal(bubble, document.body) : bubble}
     </span>

@@ -430,7 +430,13 @@ export function ManagerDashboardPage() {
                       {bars.map((bar, index) => {
                         const detail = trendWeekDetail(weeklyTrend, index, peakWeek);
                         return (
-                          <Tooltip key={index} align="start" content={<TrendWeekBubble detail={detail} />}>
+                          <Tooltip
+                            key={index}
+                            align="start"
+                            content={<TrendWeekBubble detail={detail} />}
+                            redundantWithName
+                            wrapperClassName="flex h-full w-full items-end"
+                          >
                             <button
                               type="button"
                               data-testid="trend-bar"
@@ -465,7 +471,12 @@ export function ManagerDashboardPage() {
                         const bar = bars[index]!;
                         const detail = trendWeekDetail(weeklyTrend, index, peakWeek);
                         return (
-                          <Tooltip key={index} align="start" content={<TrendWeekBubble detail={detail} />}>
+                          <Tooltip
+                            key={index}
+                            align="start"
+                            content={<TrendWeekBubble detail={detail} />}
+                            redundantWithName
+                          >
                             <button
                               type="button"
                               aria-label={describeTrendWeek(detail)}
