@@ -16,7 +16,10 @@ notification-resend claim was investigated and confirmed as pre-existing seed da
 regression. The admin table's truncated Papel column is fixed. The one item framed as a legal/product
 question — whether the `/consent` screen's single accept button improperly bundles a genuine data-use
 authorization with two informational disclosures — was put to the user directly and implemented as an
-architectural change, not a unilateral fix.
+architectural change, not a unilateral fix. Assessment B's detector + browser evidence pass
+independently confirms the app has converged on the mechanical/deterministic side: zero CLI findings,
+and every browser-evidence pattern is either a known, already-dismissed false positive or verified as
+one here — no additional real issues.
 
 Legend: ✅ fixed · ❌ investigated, not a bug or not this pass's scope.
 
@@ -37,6 +40,37 @@ sweep hits the same dedup key and no-ops forever, until that invite is resent (r
 the row ages out. The client already handles this gracefully: `ManagerNotificationsPage.tsx` gates the
 resend button on `typeof notification.payload.id === "string"`, so old rows just don't show a button
 rather than crashing. No code change; this is expected behavior for data that predates the fix.
+
+---
+
+## Assessment B — detector + browser evidence, verified
+
+Assessment B's CLI scan found **0 findings** across 433 files (exit code 0), independently confirmed
+non-broken with a positive-control test (a synthetic `<img src="">` file correctly returned a
+`broken-image` finding, exit 2). Its live-browser pass, driven across 14 authenticated and
+unauthenticated routes, surfaced four patterns — all either self-flagged as likely false positives by
+the agent itself, or verified as such here:
+
+- **`layout-transition` on `<body>`** (global `transition: width`, all 14/14 routes) and **on
+  `div.h-full.rounded-pill`** (the PHQ-9 progress bar) — already investigated in earlier rounds as
+  deliberate, harmless CSS; nothing changed since.
+- **`layout-transition` on `aside.hidden.flex-none`** — the agent's own report calls this a likely
+  false positive, since the element carries Tailwind's `.hidden` (`display:none`) and an animated
+  property on a non-rendered element has no visible effect. Agreed; no action.
+- **`nested-cards` on `/chat`'s message composer** — the same "card inside a card" pattern
+  investigated and dismissed in an earlier round (the composer bar is deliberately styled as a
+  distinct surface at the bottom of the chat card, not an accidental nesting).
+- **`clipped-overflow-container` on `/manager`, `/manager/admin/managers`, `/manager/admin/peers`** —
+  flagged by the agent as "not obviously a false positive... worth a look." Checked: the ancestors
+  named (`ManagerShell`'s `div.flex.h-dvh.overflow-hidden`, its content column, and the admin tables'
+  `rounded-card` wrapper) are a standard app-shell scroll-lock (fixed sidebar, independently-scrolling
+  content) and a table's routine corner-clipping wrapper. Neither of these three pages renders any
+  tooltip, dropdown, or popover that would need to escape those bounds — the only kind of element this
+  detector rule exists to catch. Assessment B's own visual inspection of `/manager/admin/managers`
+  found no clipped or truncated text either. Confirmed false positive; no action.
+
+No genuine new issue from this half of the pair — it independently confirms Assessment A's report was
+complete rather than surfacing anything additional.
 
 ---
 
