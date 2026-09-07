@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import type { AnonymizedMessage, ChatToken } from "@zelo/domain";
 import { AI_CHAT_PORT, type AiChatPort } from "../ports/ai-chat.port.ts";
 import { CHAT_SYSTEM_PROMPT, openingNudge } from "../prompts/chat-system-prompt.ts";
@@ -32,6 +32,8 @@ export interface SendChatMessageParams {
 
 @Injectable()
 export class SendChatMessageUseCase {
+  private readonly logger = new Logger(SendChatMessageUseCase.name);
+
   constructor(@Inject(AI_CHAT_PORT) private readonly aiChat: AiChatPort) {}
 
   async *execute(params: SendChatMessageParams): AsyncGenerator<ChatToken> {
@@ -50,8 +52,10 @@ export class SendChatMessageUseCase {
           .filter((message) => message.role === "assistant")
           .map((message) => message.content),
         buildNudge: openingNudge,
+        onTell: (rule) => this.logger.log(`tone_guard rule=${rule}`),
       });
-    } catch {
+    } catch (error) {
+      this.logger.error(`chat_stream_failed error=${error instanceof Error ? error.name : "unknown"}`);
       if (params.hasActiveRiskSignal) {
         throw new CrisisFallbackRequiredError();
       }

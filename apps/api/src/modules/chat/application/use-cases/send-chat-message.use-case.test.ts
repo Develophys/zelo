@@ -39,6 +39,7 @@ describe("SendChatMessageUseCase", () => {
 
     expect(tokens.map((token) => token.delta).join("")).toBe("Oi, estou aqui.");
     expect(tokens.at(-1)).toEqual({ conversationId: "c1", delta: "", done: true });
+    expect(tokens.filter((token) => token.done)).toHaveLength(1);
   });
 
   it("throws AiProviderUnavailableError on failure with no active risk signal", async () => {

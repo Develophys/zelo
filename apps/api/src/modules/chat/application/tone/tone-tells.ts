@@ -21,12 +21,25 @@ export function matchOpeningTell(opening: string): string | null {
   return OPENING_TELLS.some((tell) => tell.test(trimmed)) ? trimmed : null;
 }
 
-export function isClosingTic(sentence: string, allowTrailingQuestion: boolean): boolean {
+export type ClosingTic = "rhetorical_reframe" | "trailing_question";
+
+export function classifyClosingTic(
+  sentence: string,
+  allowTrailingQuestion: boolean,
+): ClosingTic | null {
   const trimmed = sentence.trim();
 
   if (RHETORICAL_REFRAME.test(trimmed)) {
-    return true;
+    return "rhetorical_reframe";
   }
 
-  return !allowTrailingQuestion && trimmed.endsWith("?");
+  if (!allowTrailingQuestion && trimmed.endsWith("?")) {
+    return "trailing_question";
+  }
+
+  return null;
+}
+
+export function isClosingTic(sentence: string, allowTrailingQuestion: boolean): boolean {
+  return classifyClosingTic(sentence, allowTrailingQuestion) !== null;
 }

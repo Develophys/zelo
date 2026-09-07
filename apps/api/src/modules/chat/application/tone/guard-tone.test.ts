@@ -246,3 +246,73 @@ describe("guardTone — tail sentinel", () => {
     expect(text.trim()).toBe(truncated);
   });
 });
+
+describe("guardTone — violation reporting", () => {
+  it("reports a regenerated clichéd opening", async () => {
+    const rules: string[] = [];
+    const factory = scriptedFactory(
+      "Entendo que isso pesa. Deve ser difícil.",
+      "Isso pesa mesmo. Faz tempo.",
+    );
+
+    await textOf(guardTone(factory, contextWith({ onTell: (rule) => rules.push(rule) })));
+
+    expect(rules).toEqual(["opening_cliche_regenerated"]);
+  });
+
+  it("reports a clichéd opening that survived the one regeneration", async () => {
+    const rules: string[] = [];
+    const factory = scriptedFactory(
+      "Entendo que isso pesa. Deve ser difícil.",
+      "Sinto muito por isso. Deve ser difícil.",
+    );
+
+    await textOf(guardTone(factory, contextWith({ onTell: (rule) => rules.push(rule) })));
+
+    expect(rules).toEqual(["opening_cliche_regenerated", "opening_cliche_persisted"]);
+  });
+
+  it("reports a dropped trailing question", async () => {
+    const rules: string[] = [];
+    const factory = scriptedFactory("Isso pesa mesmo. Faz quanto tempo?");
+
+    await textOf(
+      guardTone(
+        factory,
+        contextWith({
+          priorAssistantReplies: ["Como tá o sono?"],
+          onTell: (rule) => rules.push(rule),
+        }),
+      ),
+    );
+
+    expect(rules).toEqual(["trailing_question"]);
+  });
+
+  it("reports nothing for a clean reply", async () => {
+    const rules: string[] = [];
+    const factory = scriptedFactory("Isso pesa mesmo. O corpo não recupera.");
+
+    await textOf(guardTone(factory, contextWith({ onTell: (rule) => rules.push(rule) })));
+
+    expect(rules).toEqual([]);
+  });
+
+  it("reports nothing under an active risk signal", async () => {
+    const rules: string[] = [];
+    const factory = scriptedFactory("Entendo que isso pesa. Quer falar com alguém?");
+
+    await textOf(
+      guardTone(
+        factory,
+        contextWith({
+          hasActiveRiskSignal: true,
+          priorAssistantReplies: ["Como tá o sono?"],
+          onTell: (rule) => rules.push(rule),
+        }),
+      ),
+    );
+
+    expect(rules).toEqual([]);
+  });
+});

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isClosingTic, matchOpeningTell } from "./tone-tells.ts";
+import { classifyClosingTic, isClosingTic, matchOpeningTell } from "./tone-tells.ts";
 
 describe("matchOpeningTell", () => {
   it.each([
@@ -61,5 +61,21 @@ describe("isClosingTic", () => {
 
   it("keeps a sentence that merely contains 'não é'", () => {
     expect(isClosingTic("Isso não é pouca coisa.", false)).toBe(false);
+  });
+});
+
+describe("classifyClosingTic", () => {
+  it("labels a dropped trailing question", () => {
+    expect(classifyClosingTic("Como tá o sono?", false)).toBe("trailing_question");
+  });
+
+  it("labels a dropped rhetorical reframe", () => {
+    expect(classifyClosingTic("Não é sobre o plantão, é sobre não ter pausa.", true)).toBe(
+      "rhetorical_reframe",
+    );
+  });
+
+  it("returns null for an ordinary closing statement", () => {
+    expect(classifyClosingTic("Isso é pesado mesmo.", false)).toBeNull();
   });
 });

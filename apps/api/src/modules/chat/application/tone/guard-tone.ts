@@ -1,18 +1,27 @@
 import type { ChatToken } from "@zelo/domain";
 import { boundaryIndices } from "./sentence-split.ts";
-import { isClosingTic, matchOpeningTell } from "./tone-tells.ts";
+import { classifyClosingTic, matchOpeningTell } from "./tone-tells.ts";
 import { shouldAllowTrailingQuestion } from "./cadence.ts";
 
 const OPENING_CAP = 120;
 
 export type ReplyStreamFactory = (nudge?: string) => AsyncGenerator<ChatToken>;
 
+export type ToneRule =
+  | "opening_cliche_regenerated"
+  | "opening_cliche_persisted"
+  | "rhetorical_reframe"
+  | "trailing_question";
+
 export interface ToneGuardContext {
   conversationId: string;
   hasActiveRiskSignal: boolean;
   priorAssistantReplies: string[];
   buildNudge: (offendingOpening: string) => string;
+  onTell?: (rule: ToneRule) => void;
 }
+
+type OpeningMode = "enforce" | "report";
 
 interface RejectedOpening {
   rejectedOpening: string;
@@ -21,11 +30,12 @@ interface RejectedOpening {
 async function* runAttempt(
   stream: AsyncGenerator<ChatToken>,
   conversationId: string,
-  validateOpening: boolean,
+  openingMode: OpeningMode,
   allowTrailingQuestion: boolean,
+  onTell?: (rule: ToneRule) => void,
 ): AsyncGenerator<ChatToken, RejectedOpening | null> {
   let pending = "";
-  let openingChecked = !validateOpening;
+  let openingChecked = false;
   let emittedAny = false;
 
   try {
@@ -43,8 +53,11 @@ async function* runAttempt(
         const end = boundaries.length > 0 ? boundaries[0]! + 1 : pending.length;
         const tell = matchOpeningTell(pending.slice(0, end));
         if (tell !== null) {
-          await stream.return(undefined);
-          return { rejectedOpening: tell };
+          if (openingMode === "enforce") {
+            await stream.return(undefined);
+            return { rejectedOpening: tell };
+          }
+          onTell?.("opening_cliche_persisted");
         }
         openingChecked = true;
       }
@@ -65,13 +78,14 @@ async function* runAttempt(
   }
 
   const heldTail = pending.trim();
-  const dropTail =
-    emittedAny &&
-    heldTail.length > 0 &&
-    /[.!?…]$/.test(heldTail) &&
-    isClosingTic(pending, allowTrailingQuestion);
+  const tic =
+    emittedAny && heldTail.length > 0 && /[.!?…]$/.test(heldTail)
+      ? classifyClosingTic(pending, allowTrailingQuestion)
+      : null;
 
-  if (!dropTail && pending.length > 0) {
+  if (tic !== null) {
+    onTell?.(tic);
+  } else if (pending.length > 0) {
     yield { conversationId, delta: pending, done: false };
   }
 
@@ -93,16 +107,19 @@ export async function* guardTone(
   const rejected = yield* runAttempt(
     requestReply(),
     context.conversationId,
-    true,
+    "enforce",
     allowTrailingQuestion,
+    context.onTell,
   );
 
   if (rejected !== null) {
+    context.onTell?.("opening_cliche_regenerated");
     yield* runAttempt(
       requestReply(context.buildNudge(rejected.rejectedOpening)),
       context.conversationId,
-      false,
+      "report",
       allowTrailingQuestion,
+      context.onTell,
     );
   }
 }
