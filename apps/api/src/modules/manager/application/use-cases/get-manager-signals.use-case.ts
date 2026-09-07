@@ -13,6 +13,13 @@ export interface ManagerSignalsResponse {
   segments: { label: string; value: number; n: number }[];
   followUpResponseRate: number;
   sectorCoverage: { visible: number; total: number };
+  /**
+   * The week `overallConcerningRate`, `segments` and `sectorCoverage` were all
+   * read from. It is not always the last entry of `weeklyTrend`: a visible
+   * sector contributes every week it has rows for, including weeks newer than
+   * this one that never cleared k on their own.
+   */
+  referenceWeekStart: string | null;
 }
 
 const RECENT_WEEKS_FOR_VOLUME = 4;
@@ -22,6 +29,7 @@ const EMPTY_RESPONSE: Omit<ManagerSignalsResponse, "followUpResponseRate"> = {
   weeklyTrend: [],
   segments: [],
   sectorCoverage: { visible: 0, total: 0 },
+  referenceWeekStart: null,
 };
 
 /**
@@ -149,6 +157,7 @@ export class GetManagerSignalsUseCase {
       // all, or "total" would leak whether a suppressed sector has any
       // activity — information the suppression exists to hide.
       sectorCoverage: { visible: visibleSectorIds.size, total: sectorIds.length },
+      referenceWeekStart: new Date(mostRecentWeek).toISOString(),
     };
   }
 

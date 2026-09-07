@@ -300,9 +300,14 @@ export function ManagerDashboardPage() {
   // A faixa lê o mesmo inteiro que o card imprime: classificar a fração crua
   // faria 0,804 e 0,7996 exibirem ambos "80%" em faixas diferentes.
   const followUpBand = followUpBandFor(followUpPercent);
-  // O KPI principal é da semana de referência, que é a última da série — não
-  // uma média das seis.
-  const referenceWeek = weeklyTrend[weeklyTrend.length - 1];
+  // O KPI principal é da semana de referência, que a API nomeia — não uma
+  // média da série e não necessariamente a última entrada: uma semana em curso
+  // entra na tendência sem ter atingido o mínimo por conta própria, e lê-la
+  // aqui pareava a porcentagem de uma semana com o denominador e a data de
+  // outra.
+  const referenceWeek =
+    weeklyTrend.find((point) => point.weekStart === data?.referenceWeekStart) ??
+    weeklyTrend[weeklyTrend.length - 1];
   const referenceWeekResponses = referenceWeek?.checkIns ?? 0;
   const referenceWeekLabel = referenceWeek ? weekLabel(referenceWeek.weekStart) : "—";
 

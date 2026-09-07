@@ -55,6 +55,7 @@ describe("GetManagerSignalsUseCase", () => {
       segments: [],
       followUpResponseRate: 0,
       sectorCoverage: { visible: 0, total: 0 },
+      referenceWeekStart: null,
     });
     expect(repository.lastCall).toBeNull();
   });
@@ -239,6 +240,42 @@ describe("GetManagerSignalsUseCase", () => {
     const result = await useCase.execute("inst-1", ["a", "never-checked-in"]);
 
     expect(result.sectorCoverage).toEqual({ visible: 1, total: 2 });
+  });
+
+  // O consumidor não pode inferir a semana de referência pela posição no
+  // array: a semana em curso é parcial e entra na tendência sem ter atingido
+  // o mínimo por conta própria, então a última entrada de weeklyTrend não é a
+  // semana de onde overallConcerningRate saiu.
+  it("names the reference week, which is not the newest week when the current one is still partial", async () => {
+    const REFERENCE = new Date("2026-08-24T00:00:00.000Z");
+    const PARTIAL = new Date("2026-08-31T00:00:00.000Z"); // a semana em curso
+    const rows = [
+      { sectorId: "s1", sectorName: "UTI", weekStart: REFERENCE, checkIns: 20, concerning: 8 },
+      { sectorId: "s1", sectorName: "UTI", weekStart: PARTIAL, checkIns: 3, concerning: 1 },
+    ];
+    const useCase = makeUseCase(rows);
+
+    const result = await useCase.execute("inst-1", ["s1"]);
+
+    expect(result.referenceWeekStart).toBe(REFERENCE.toISOString());
+    // A semana parcial continua na tendência — o setor é visível como um todo —
+    // e é a última do array, exatamente o que induzia o card ao erro.
+    expect(result.weeklyTrend.map((point) => point.weekStart)).toEqual([
+      REFERENCE.toISOString(),
+      PARTIAL.toISOString(),
+    ]);
+    expect(result.overallConcerningRate).toBe(0.4); // 8/20, da semana de referência
+  });
+
+  it("names no reference week when no week reaches the minimum", async () => {
+    const rows = [
+      { sectorId: "a", sectorName: "UTI", weekStart: WEEK_2, checkIns: 2, concerning: 1 },
+    ];
+    const useCase = makeUseCase(rows);
+
+    const result = await useCase.execute("inst-1", ["a"]);
+
+    expect(result.referenceWeekStart).toBeNull();
   });
 });
 

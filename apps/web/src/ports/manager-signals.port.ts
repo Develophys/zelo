@@ -14,6 +14,7 @@ export const ManagerSignalsResponseSchema = z.object({
   segments: z.array(z.object({ label: z.string(), value: z.number(), n: z.number() })),
   followUpResponseRate: z.number(),
   sectorCoverage: z.object({ visible: z.number(), total: z.number() }),
+  referenceWeekStart: z.string().nullable(),
 });
 export type ManagerSignalsResponse = z.infer<typeof ManagerSignalsResponseSchema>;
 

@@ -10,6 +10,7 @@ const SAMPLE_RESPONSE: ManagerSignalsResponse = {
   segments: [{ label: "UTI", value: 44, n: 9 }],
   followUpResponseRate: 0.7,
   sectorCoverage: { visible: 1, total: 3 },
+  referenceWeekStart: "2026-06-01T00:00:00.000Z",
 };
 
 class FakeManagerSignalsPort implements ManagerSignalsPort {

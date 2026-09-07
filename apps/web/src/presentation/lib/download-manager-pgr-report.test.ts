@@ -40,6 +40,9 @@ const DATA: ManagerSignalsResponse = {
   ],
   followUpResponseRate: 0.7,
   sectorCoverage: { visible: 4, total: 7 },
+  // Este fixture não tem tendência alguma, então não há semana de referência
+  // para nomear.
+  referenceWeekStart: null,
 };
 
 const GENERATED_AT = new Date("2026-07-01T00:00:00.000Z");

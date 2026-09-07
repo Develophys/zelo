@@ -133,6 +133,7 @@ describe("onboarding router flow", () => {
       segments: [],
       followUpResponseRate: 0,
       sectorCoverage: { visible: 0, total: 0 },
+      referenceWeekStart: null,
     });
 
     buildTestRouter("/manager");
@@ -171,6 +172,7 @@ describe("onboarding router flow", () => {
       segments: [],
       followUpResponseRate: 0,
       sectorCoverage: { visible: 0, total: 0 },
+      referenceWeekStart: null,
     });
 
     buildTestRouter("/manager/admin/sectors");

@@ -403,6 +403,7 @@ describe("manager controller", () => {
       segments: [],
       followUpResponseRate: 0,
       sectorCoverage: { visible: 0, total: 0 },
+      referenceWeekStart: null,
     });
   });
 

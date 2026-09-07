@@ -46,6 +46,7 @@ const SIGNALS_RESPONSE = {
   ],
   followUpResponseRate: 0.7,
   sectorCoverage: { visible: 3, total: 4 },
+  referenceWeekStart: "2026-06-08T00:00:00.000Z",
 };
 
 describe("ManagerDashboardPage", () => {
@@ -175,6 +176,7 @@ describe("ManagerDashboardPage", () => {
       segments: [],
       followUpResponseRate: 0.7,
       sectorCoverage: { visible: 0, total: 0 },
+      referenceWeekStart: null,
     });
 
     renderManager();
@@ -220,6 +222,28 @@ describe("ManagerDashboardPage", () => {
     await waitFor(() => {
       expect(screen.getByText("41% das 24 respostas na semana de 8 de jun.")).toBeInTheDocument();
     });
+  });
+
+  it("reads the base and the date from the week the API named, not from the last one in the array", async () => {
+    // A semana de 8 de jun. é a semana em curso: 3 respostas, abaixo do mínimo
+    // de 5, presente na tendência só porque o setor já era visível. A leitura
+    // tem que ser da semana de 1 de jun., de onde os 41% saíram — senão a
+    // frase pareia a porcentagem de uma semana com o denominador e a data de
+    // outra e se contradiz sozinha.
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
+      ...SIGNALS_RESPONSE,
+      weeklyTrend: [
+        { weekStart: "2026-06-01T00:00:00.000Z", concerningRate: 0.41, checkIns: 20, concerning: 8 },
+        { weekStart: "2026-06-08T00:00:00.000Z", concerningRate: 0.33, checkIns: 3, concerning: 1 },
+      ],
+      referenceWeekStart: "2026-06-01T00:00:00.000Z",
+    });
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("41% das 20 respostas na semana de 1 de jun.")).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/das 3 respostas na semana de 8 de jun\./)).not.toBeInTheDocument();
   });
 
   it("says how many sectors the check-in total spans", async () => {
