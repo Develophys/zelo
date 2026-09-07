@@ -9,9 +9,10 @@ import {
 export interface ManagerSignalsResponse {
   overallConcerningRate: number;
   checkInsLast4Weeks: number;
-  weeklyTrend: { weekStart: string; concerningRate: number }[];
+  weeklyTrend: { weekStart: string; concerningRate: number; checkIns: number; concerning: number }[];
   segments: { label: string; value: number; n: number }[];
   followUpResponseRate: number;
+  sectorCoverage: { visible: number; total: number };
 }
 
 const RECENT_WEEKS_FOR_VOLUME = 4;
@@ -20,6 +21,7 @@ const EMPTY_RESPONSE: Omit<ManagerSignalsResponse, "followUpResponseRate"> = {
   checkInsLast4Weeks: 0,
   weeklyTrend: [],
   segments: [],
+  sectorCoverage: { visible: 0, total: 0 },
 };
 
 /**
@@ -80,7 +82,10 @@ export class GetManagerSignalsUseCase {
     // keeps a suppressed sector out of every aggregate.
     const mostRecentWeek = referenceWeek(bySector);
     if (mostRecentWeek === null) {
-      return { ...EMPTY_RESPONSE, followUpResponseRate };
+      // `total` vem de bySector, não de zero: "0 de 4 setores" diz que a
+      // semana ainda não atingiu o mínimo, enquanto "0 de 0" leria como
+      // "esta instituição não tem setores".
+      return { ...EMPTY_RESPONSE, sectorCoverage: { visible: 0, total: bySector.size }, followUpResponseRate };
     }
 
     // A sector is either fully visible or fully suppressed, decided solely by
@@ -128,10 +133,21 @@ export class GetManagerSignalsUseCase {
       return {
         weekStart: new Date(weekTime).toISOString(),
         concerningRate: totalCheckIns === 0 ? 0 : totalConcerning / totalCheckIns,
+        checkIns: totalCheckIns,
+        concerning: totalConcerning,
       };
     });
 
-    return { overallConcerningRate, checkInsLast4Weeks, weeklyTrend, segments, followUpResponseRate };
+    return {
+      overallConcerningRate,
+      checkInsLast4Weeks,
+      weeklyTrend,
+      segments,
+      followUpResponseRate,
+      // Somados sobre `visibleRows`, que já é o conjunto filtrado por
+      // k-anonimato — expor o total não afrouxa nada.
+      sectorCoverage: { visible: visibleSectorIds.size, total: bySector.size },
+    };
   }
 
   private async computeFollowUpResponseRate(): Promise<number> {

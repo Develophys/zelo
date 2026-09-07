@@ -402,6 +402,7 @@ describe("manager controller", () => {
       weeklyTrend: [],
       segments: [],
       followUpResponseRate: 0,
+      sectorCoverage: { visible: 0, total: 0 },
     });
   });
 
