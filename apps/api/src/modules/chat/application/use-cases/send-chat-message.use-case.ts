@@ -1,7 +1,12 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import type { AnonymizedMessage, ChatToken } from "@zelo/domain";
 import { AI_CHAT_PORT, type AiChatPort } from "../ports/ai-chat.port.ts";
-import { CHAT_SYSTEM_PROMPT, openingNudge } from "../prompts/chat-system-prompt.ts";
+import {
+  CHAT_SYSTEM_PROMPT,
+  noTrailingQuestionNudge,
+  openingNudge,
+} from "../prompts/chat-system-prompt.ts";
+import { shouldAllowTrailingQuestion } from "../tone/cadence.ts";
 import { guardTone } from "../tone/guard-tone.ts";
 
 export class AiProviderUnavailableError extends Error {
@@ -37,20 +42,27 @@ export class SendChatMessageUseCase {
   constructor(@Inject(AI_CHAT_PORT) private readonly aiChat: AiChatPort) {}
 
   async *execute(params: SendChatMessageParams): AsyncGenerator<ChatToken> {
+    const priorAssistantReplies = params.anonymizedMessages
+      .filter((message) => message.role === "assistant")
+      .map((message) => message.content);
+
+    const cadenceNudge =
+      params.hasActiveRiskSignal || shouldAllowTrailingQuestion(priorAssistantReplies)
+        ? ""
+        : noTrailingQuestionNudge();
+
     const requestReply = (nudge?: string): AsyncGenerator<ChatToken> =>
       this.aiChat.streamReply({
         conversationId: params.conversationId,
         anonymizedMessages: params.anonymizedMessages,
-        systemPrompt: nudge === undefined ? CHAT_SYSTEM_PROMPT : CHAT_SYSTEM_PROMPT + nudge,
+        systemPrompt: CHAT_SYSTEM_PROMPT + (nudge ?? "") + cadenceNudge,
       });
 
     try {
       yield* guardTone(requestReply, {
         conversationId: params.conversationId,
         hasActiveRiskSignal: params.hasActiveRiskSignal,
-        priorAssistantReplies: params.anonymizedMessages
-          .filter((message) => message.role === "assistant")
-          .map((message) => message.content),
+        priorAssistantReplies,
         buildNudge: openingNudge,
         onTell: (rule) => this.logger.log(`tone_guard rule=${rule}`),
       });

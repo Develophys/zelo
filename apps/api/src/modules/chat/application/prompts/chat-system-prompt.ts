@@ -71,3 +71,7 @@ Seu papel é o primeiro espaço de fala, não o único nem o final.`;
 export function openingNudge(offendingOpening: string): string {
   return `\n\nATENÇÃO: sua última tentativa de resposta começou com «${offendingOpening}». Essa abertura está proibida nas regras acima. Escreva de novo, começando de outro jeito — entre direto no assunto, sem preâmbulo e sem parafrasear o que a pessoa disse.`;
 }
+
+export function noTrailingQuestionNudge(): string {
+  return `\n\nATENÇÃO, só nesta resposta: sua resposta anterior já terminou em pergunta. Esta NÃO pode terminar em pergunta — feche com uma afirmação curta, uma reação ou uma observação, e deixe a pessoa continuar se quiser. Nenhuma frase depois dessa, e nenhum ponto de interrogação no fim.`;
+}

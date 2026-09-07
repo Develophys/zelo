@@ -113,7 +113,7 @@ describe("SendChatMessageUseCase tone guard wiring", () => {
     expect(text.trim()).toBe("Isso pesa mesmo. Faz tempo.");
   });
 
-  it("derives the cadence from prior assistant turns in anonymizedMessages", async () => {
+  it("derives the cadence from prior assistant turns and nudges the request up front", async () => {
     const port = new RecordingAiChatPort(["Isso pesa mesmo. Faz quanto tempo?"]);
 
     const text = await textFrom(port, [
@@ -122,7 +122,56 @@ describe("SendChatMessageUseCase tone guard wiring", () => {
       { role: "user", content: "ruim" },
     ]);
 
-    expect(text.trim()).toBe("Isso pesa mesmo.");
+    expect(port.prompts).toHaveLength(1);
+    expect(port.prompts[0]).toMatch(/NÃO pode terminar em pergunta/);
+    expect(text.trim()).toBe("Isso pesa mesmo. Faz quanto tempo?");
+  });
+
+  it("omits the cadence nudge when the previous reply did not end in a question", async () => {
+    const port = new RecordingAiChatPort(["Isso pesa mesmo. Faz quanto tempo?"]);
+
+    await textFrom(port, [
+      { role: "user", content: "tô exausto" },
+      { role: "assistant", content: "Isso é pesado mesmo." },
+      { role: "user", content: "é" },
+    ]);
+
+    expect(port.prompts[0]).not.toMatch(/NÃO pode terminar em pergunta/);
+  });
+
+  it("omits the cadence nudge under an active risk signal", async () => {
+    const port = new RecordingAiChatPort(["Quer falar agora com uma pessoa de verdade?"]);
+
+    await textFrom(
+      port,
+      [
+        { role: "user", content: "não sei se aguento" },
+        { role: "assistant", content: "Como tá o sono?" },
+        { role: "user", content: "ruim" },
+      ],
+      true,
+    );
+
+    expect(port.prompts[0]).not.toMatch(/NÃO pode terminar em pergunta/);
+  });
+
+  it("keeps the cadence nudge last when a regeneration nudge is also appended", async () => {
+    const port = new RecordingAiChatPort([
+      "Entendo que isso pesa. Deve ser difícil.",
+      "Isso pesa mesmo. Faz tempo.",
+    ]);
+
+    await textFrom(port, [
+      { role: "user", content: "tô exausto" },
+      { role: "assistant", content: "Como tá o sono?" },
+      { role: "user", content: "ruim" },
+    ]);
+
+    expect(port.prompts).toHaveLength(2);
+    expect(port.prompts[1]).toContain("«Entendo que isso pesa.»");
+    expect(port.prompts[1]?.indexOf("NÃO pode terminar em pergunta")).toBeGreaterThan(
+      port.prompts[1]?.indexOf("«Entendo que isso pesa.»") ?? 0,
+    );
   });
 
   it("leaves the stream untouched under an active risk signal", async () => {

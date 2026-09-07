@@ -91,16 +91,18 @@ async function* runAttempt(
   }
 
   const heldTail = pending.trim();
-  const tic =
-    emittedAny && heldTail.length > 0 && /[.!?…]$/.test(heldTail)
-      ? classifyClosingTic(pending, allowTrailingQuestion)
-      : null;
+  const closedCleanly = heldTail.length > 0 && /[.!?…]$/.test(heldTail);
+  const tic = emittedAny && closedCleanly ? classifyClosingTic(pending) : null;
 
   if (tic !== null) {
     onTell?.(tic);
   }
 
-  if (tic !== "trailing_question" && pending.length > 0) {
+  if (!allowTrailingQuestion && closedCleanly && heldTail.endsWith("?")) {
+    onTell?.("trailing_question");
+  }
+
+  if (pending.length > 0) {
     yield { conversationId, delta: pending, done: false };
   }
 

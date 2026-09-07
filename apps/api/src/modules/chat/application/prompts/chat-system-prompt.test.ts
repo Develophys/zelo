@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CHAT_SYSTEM_PROMPT, openingNudge } from "./chat-system-prompt";
+import { CHAT_SYSTEM_PROMPT, noTrailingQuestionNudge, openingNudge } from "./chat-system-prompt";
 
 describe("CHAT_SYSTEM_PROMPT", () => {
   it("caps the assistant to one question per reply", () => {
@@ -18,5 +18,20 @@ describe("openingNudge", () => {
 
   it("tells the model to open differently rather than restating the ban list", () => {
     expect(openingNudge("Sinto muito.")).toMatch(/começando de outro jeito/i);
+  });
+});
+
+describe("noTrailingQuestionNudge", () => {
+  it("scopes the instruction to this one reply", () => {
+    expect(noTrailingQuestionNudge()).toMatch(/só nesta resposta/i);
+  });
+
+  it("asks for a closing statement instead of a question", () => {
+    expect(noTrailingQuestionNudge()).toMatch(/NÃO pode terminar em pergunta/);
+    expect(noTrailingQuestionNudge()).toMatch(/afirmação/i);
+  });
+
+  it("stays short enough not to compete with the inviolable clinical rules", () => {
+    expect(noTrailingQuestionNudge().length).toBeLessThan(CHAT_SYSTEM_PROMPT.length / 10);
   });
 });

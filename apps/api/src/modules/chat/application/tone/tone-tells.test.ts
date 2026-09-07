@@ -39,36 +39,28 @@ describe("matchOpeningTell", () => {
 });
 
 describe("classifyClosingTic", () => {
-  it("labels a dropped trailing question", () => {
-    expect(classifyClosingTic("Como tá o sono?", false)).toBe("trailing_question");
-  });
-
-  it("keeps a trailing question when the cadence permits one", () => {
-    expect(classifyClosingTic("Como tá o sono?", true)).toBeNull();
-  });
-
   it("labels a rhetorical reframe for reporting only", () => {
-    expect(classifyClosingTic("Não é sobre o plantão, é sobre não ter pausa.", true)).toBe(
+    expect(classifyClosingTic("Não é sobre o plantão, é sobre não ter pausa.")).toBe(
       "rhetorical_reframe",
     );
   });
 
   it("labels the 'não se trata de X, mas Y' variant", () => {
-    expect(classifyClosingTic("Não se trata de fraqueza, mas de limite.", true)).toBe(
+    expect(classifyClosingTic("Não se trata de fraqueza, mas de limite.")).toBe(
       "rhetorical_reframe",
     );
   });
 
   it("returns null for an ordinary closing statement", () => {
-    expect(classifyClosingTic("Isso é pesado mesmo.", false)).toBeNull();
+    expect(classifyClosingTic("Isso é pesado mesmo.")).toBeNull();
   });
 
   it("returns null for a sentence that merely contains 'não é'", () => {
-    expect(classifyClosingTic("Isso não é pouca coisa.", false)).toBeNull();
+    expect(classifyClosingTic("Isso não é pouca coisa.")).toBeNull();
   });
 });
 
-describe("classifyClosingTic — only an allowlisted clinical check-in is droppable", () => {
+describe("classifyClosingTic — no question is classified at all", () => {
   it.each([
     "Como tá o sono?",
     "Como tem sido o tempo de descanso entre os plantões?",
@@ -84,8 +76,8 @@ describe("classifyClosingTic — only an allowlisted clinical check-in is droppa
     "Você tem dormido bem?",
     "O que mudou nesse último mês?",
     "Quantos plantões você fez essa semana?",
-  ])("drops the allowlisted check-in %j", (sentence) => {
-    expect(classifyClosingTic(sentence, false)).toBe("trailing_question");
+  ])("no longer classifies the clinical check-in %j", (sentence) => {
+    expect(classifyClosingTic(sentence)).toBeNull();
   });
 
   it.each([
@@ -101,16 +93,16 @@ describe("classifyClosingTic — only an allowlisted clinical check-in is droppa
     "Tem um amigo com quem você consiga falar?",
     "Seu companheiro percebeu essa mudança?",
     "Você falou com seu preceptor sobre isso?",
-  ])("keeps the unanticipated phrasing %j, which no allowlist entry matches", (sentence) => {
-    expect(classifyClosingTic(sentence, false)).toBeNull();
+  ])("does not classify the offer of human contact %j", (sentence) => {
+    expect(classifyClosingTic(sentence)).toBeNull();
   });
 
-  it("keeps an offer of human contact that is also shaped like a check-in question", () => {
-    expect(classifyClosingTic("Tem alguém que te ajude a descansar?", false)).toBeNull();
+  it("does not classify a question that is also shaped like a check-in", () => {
+    expect(classifyClosingTic("Tem alguém que te ajude a descansar?")).toBeNull();
   });
 
-  it("reports rather than drops a question that is also a rhetorical reframe", () => {
-    expect(classifyClosingTic("Não é só cansaço, mas exaustão — faz quanto tempo?", false)).toBe(
+  it("still reports a question that is also a rhetorical reframe", () => {
+    expect(classifyClosingTic("Não é só cansaço, mas exaustão — faz quanto tempo?")).toBe(
       "rhetorical_reframe",
     );
   });
@@ -123,6 +115,6 @@ describe("classifyClosingTic — ordinary consoling reframes are reported, never
     "Você não é fraco, mas tá no limite.",
     "Não é só cansaço, e sim exaustão.",
   ])("reports %j as rhetorical_reframe rather than a droppable tic", (sentence) => {
-    expect(classifyClosingTic(sentence, true)).toBe("rhetorical_reframe");
+    expect(classifyClosingTic(sentence)).toBe("rhetorical_reframe");
   });
 });

@@ -180,24 +180,40 @@ describe("guardTone — opening sentinel", () => {
 });
 
 describe("guardTone — tail sentinel", () => {
-  it("drops a trailing question when the previous reply also ended in one", async () => {
+  it("keeps and counts a trailing question when the previous reply also ended in one", async () => {
+    const rules: string[] = [];
     const factory = scriptedFactory("Isso pesa mesmo. Faz quanto tempo que tá assim?");
 
     const text = await textOf(
-      guardTone(factory, contextWith({ priorAssistantReplies: ["Como tá o sono?"] })),
-    );
-
-    expect(text.trim()).toBe("Isso pesa mesmo.");
-  });
-
-  it("keeps a trailing question when the previous reply did not end in one", async () => {
-    const factory = scriptedFactory("Isso pesa mesmo. Faz quanto tempo que tá assim?");
-
-    const text = await textOf(
-      guardTone(factory, contextWith({ priorAssistantReplies: ["Isso é pesado."] })),
+      guardTone(
+        factory,
+        contextWith({
+          priorAssistantReplies: ["Como tá o sono?"],
+          onTell: (rule) => rules.push(rule),
+        }),
+      ),
     );
 
     expect(text.trim()).toBe("Isso pesa mesmo. Faz quanto tempo que tá assim?");
+    expect(rules).toEqual(["trailing_question"]);
+  });
+
+  it("keeps a trailing question, uncounted, when the previous reply did not end in one", async () => {
+    const rules: string[] = [];
+    const factory = scriptedFactory("Isso pesa mesmo. Faz quanto tempo que tá assim?");
+
+    const text = await textOf(
+      guardTone(
+        factory,
+        contextWith({
+          priorAssistantReplies: ["Isso é pesado."],
+          onTell: (rule) => rules.push(rule),
+        }),
+      ),
+    );
+
+    expect(text.trim()).toBe("Isso pesa mesmo. Faz quanto tempo que tá assim?");
+    expect(rules).toEqual([]);
   });
 
   it("keeps a trailing question on the very first reply", async () => {
@@ -269,24 +285,40 @@ describe("guardTone — tail sentinel", () => {
     expect(text.trim()).toBe(reply);
   });
 
-  it("still drops a trailing question that offers no human contact", async () => {
+  it("keeps and counts a clinical check-in that offers no human contact", async () => {
+    const rules: string[] = [];
     const factory = scriptedFactory("Isso pesa mesmo. Isso vem acontecendo toda semana?");
 
     const text = await textOf(
-      guardTone(factory, contextWith({ priorAssistantReplies: ["Como tá o sono?"] })),
+      guardTone(
+        factory,
+        contextWith({
+          priorAssistantReplies: ["Como tá o sono?"],
+          onTell: (rule) => rules.push(rule),
+        }),
+      ),
     );
 
-    expect(text.trim()).toBe("Isso pesa mesmo.");
+    expect(text.trim()).toBe("Isso pesa mesmo. Isso vem acontecendo toda semana?");
+    expect(rules).toEqual(["trailing_question"]);
   });
 
-  it("keeps a single-sentence question rather than emptying the reply", async () => {
+  it("keeps and counts a single-sentence question", async () => {
+    const rules: string[] = [];
     const factory = scriptedFactory("Faz quanto tempo que tá assim?");
 
     const text = await textOf(
-      guardTone(factory, contextWith({ priorAssistantReplies: ["Como tá o sono?"] })),
+      guardTone(
+        factory,
+        contextWith({
+          priorAssistantReplies: ["Como tá o sono?"],
+          onTell: (rule) => rules.push(rule),
+        }),
+      ),
     );
 
     expect(text.trim()).toBe("Faz quanto tempo que tá assim?");
+    expect(rules).toEqual(["trailing_question"]);
   });
 
   it("leaves a reply with no trailing tic byte-identical", async () => {
@@ -400,9 +432,29 @@ describe("guardTone — violation reporting", () => {
     expect(rules).toEqual(["opening_cliche_regenerated", "opening_cliche_persisted"]);
   });
 
-  it("reports a dropped trailing question", async () => {
+  it("reports a kept trailing question that the cadence disallowed", async () => {
     const rules: string[] = [];
     const factory = scriptedFactory("Isso pesa mesmo. Faz quanto tempo?");
+
+    const text = await textOf(
+      guardTone(
+        factory,
+        contextWith({
+          priorAssistantReplies: ["Como tá o sono?"],
+          onTell: (rule) => rules.push(rule),
+        }),
+      ),
+    );
+
+    expect(rules).toEqual(["trailing_question"]);
+    expect(text.trim()).toBe("Isso pesa mesmo. Faz quanto tempo?");
+  });
+
+  it("reports an open coping question the old allowlist could never have seen", async () => {
+    const rules: string[] = [];
+    const factory = scriptedFactory(
+      "Isso pesa mesmo. Tem alguma estratégia que costuma te dar um respiro?",
+    );
 
     await textOf(
       guardTone(
