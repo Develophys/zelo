@@ -906,4 +906,15 @@ describe("ManagerDashboardPage", () => {
     expect(desktopRow?.className).toContain("md:flex");
     expect(desktopRow?.className).not.toContain("md:hidden");
   });
+
+  it("explains that the peak marker is relative to the series, not an alert threshold", async () => {
+    const user = userEvent.setup();
+    renderManager();
+
+    const help = await screen.findByRole("button", { name: "Sobre: Pico" });
+    help.focus();
+
+    const bubble = await screen.findByTestId("tooltip");
+    expect(bubble).toHaveTextContent("não é um limite de alerta");
+  });
 });

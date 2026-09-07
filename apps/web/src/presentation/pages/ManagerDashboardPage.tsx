@@ -96,6 +96,12 @@ const KPI_EMPTY = "Sem dados suficientes para os indicadores desta seleção.";
 const INSIGHT_EMPTY_EXPLANATION =
   "Interpreta os indicadores agregados e anônimos desta página e sugere ações para a liderança, sem acesso a dados individuais de nenhum profissional.";
 
+const PEAK_LEGEND_HELP =
+  "A semana com a maior proporção de sinais dentro destas 6 semanas. É uma comparação relativa à própria série e não é um limite de alerta: a barra fica marcada mesmo que o valor seja baixo, porque indica o ponto mais alto do período, não que ele seja preocupante.";
+
+const LATEST_LEGEND_HELP =
+  "A última semana com dados. Aparece separada porque é a que reflete a situação atual; quando ela também é o pico, prevalece a marcação de pico.";
+
 function KpiCardSkeleton({ className = "" }: { className?: string }) {
   return (
     <Card className={["h-full text-center", className].join(" ")} data-testid="kpi-card">
@@ -513,19 +519,21 @@ export function ManagerDashboardPage() {
                         shows when a bar actually uses that colour — peak and
                         latest coincide on a rising series, and this bar
                         renders bg-warn, not bg-brand, when they do. */}
-                    <div className="mt-2 flex gap-3" aria-hidden="true">
+                    <div className="mt-2 flex gap-3">
                       {peakWeek !== -1 && (
                         <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
-                          <span className="h-2 w-2 rounded-full bg-warn" />
+                          <span aria-hidden="true" className="h-2 w-2 rounded-full bg-warn" />
                           Pico
+                          <MetricHelp label="Pico" content={PEAK_LEGEND_HELP} />
                         </span>
                       )}
                       {weeklyTrend.length > 0 &&
                         !bars[weeklyTrend.length - 1]!.isZero &&
                         peakWeek !== weeklyTrend.length - 1 && (
                           <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
-                            <span className="h-2 w-2 rounded-full bg-brand" />
+                            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-brand" />
                             Mais recente
+                            <MetricHelp label="Mais recente" content={LATEST_LEGEND_HELP} />
                           </span>
                         )}
                     </div>
