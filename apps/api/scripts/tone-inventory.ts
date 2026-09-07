@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { pathToFileURL } from "node:url";
 import Groq from "groq-sdk";
 import { CHAT_SYSTEM_PROMPT } from "../src/modules/chat/application/prompts/chat-system-prompt.ts";
 
@@ -96,7 +97,9 @@ async function main(): Promise<void> {
   console.log(`\n=== samples ===\n${samples.join("\n\n")}`);
 }
 
-main().catch((error: unknown) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error: unknown) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
