@@ -88,6 +88,14 @@ describe("classifyClosingTic — human-contact offers are never a tic", () => {
     "Já pensou em procurar um profissional?",
     "Prefere falar com uma pessoa real sobre isso?",
     "Tem alguém em casa com você?",
+    "Tem algum colega que você confie?",
+    "Tem um amigo com quem você consiga falar?",
+    "Sua família sabe como você tá?",
+    "Você falou com seu preceptor sobre isso?",
+    "Algum familiar consegue te dar uma folga em casa?",
+    "Seu chefe sabe do tamanho da escala?",
+    "Dá pra falar com o coordenador do setor?",
+    "Seu companheiro percebeu essa mudança?",
   ])("never classifies %j as a tic", (sentence) => {
     expect(classifyClosingTic(sentence, false)).toBeNull();
   });
@@ -96,6 +104,8 @@ describe("classifyClosingTic — human-contact offers are never a tic", () => {
     "Faz quanto tempo que tá assim?",
     "Como tá o sono?",
     "Isso vem acontecendo toda semana?",
+    "O que mudou nesse último mês?",
+    "Você tem conseguido comer direito?",
   ])("still drops the ordinary trailing question %j", (sentence) => {
     expect(classifyClosingTic(sentence, false)).toBe("trailing_question");
   });

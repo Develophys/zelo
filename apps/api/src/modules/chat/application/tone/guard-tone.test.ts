@@ -255,6 +255,10 @@ describe("guardTone — tail sentinel", () => {
     "Isso pesa mesmo. Tem alguém com quem você consiga falar hoje?",
     "Isso pesa mesmo. Já pensou em procurar um profissional?",
     "Isso pesa mesmo. Prefere falar com uma pessoa real sobre isso?",
+    "Isso pesa mesmo. Tem algum colega que você confie?",
+    "Isso pesa mesmo. Tem um amigo com quem você consiga falar?",
+    "Isso pesa mesmo. Sua família sabe como você tá?",
+    "Isso pesa mesmo. Você falou com seu preceptor sobre isso?",
   ])("keeps the closing human-contact offer in %j", async (reply) => {
     const factory = scriptedFactory(reply);
 
