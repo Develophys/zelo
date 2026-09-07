@@ -1,6 +1,10 @@
 {
   "extends": "@zelo/config/tsconfig.base.json",
   "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
     "outDir": "dist",
     "rootDir": "src"
   },
