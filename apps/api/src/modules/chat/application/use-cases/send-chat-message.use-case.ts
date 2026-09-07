@@ -1,7 +1,8 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { AnonymizedMessage, ChatToken } from "@zelo/domain";
 import { AI_CHAT_PORT, type AiChatPort } from "../ports/ai-chat.port.ts";
-import { CHAT_SYSTEM_PROMPT } from "../prompts/chat-system-prompt.ts";
+import { CHAT_SYSTEM_PROMPT, openingNudge } from "../prompts/chat-system-prompt.ts";
+import { guardTone } from "../tone/guard-tone.ts";
 
 export class AiProviderUnavailableError extends Error {
   constructor() {
@@ -34,11 +35,21 @@ export class SendChatMessageUseCase {
   constructor(@Inject(AI_CHAT_PORT) private readonly aiChat: AiChatPort) {}
 
   async *execute(params: SendChatMessageParams): AsyncGenerator<ChatToken> {
-    try {
-      yield* this.aiChat.streamReply({
+    const requestReply = (nudge?: string): AsyncGenerator<ChatToken> =>
+      this.aiChat.streamReply({
         conversationId: params.conversationId,
         anonymizedMessages: params.anonymizedMessages,
-        systemPrompt: CHAT_SYSTEM_PROMPT,
+        systemPrompt: nudge === undefined ? CHAT_SYSTEM_PROMPT : CHAT_SYSTEM_PROMPT + nudge,
+      });
+
+    try {
+      yield* guardTone(requestReply, {
+        conversationId: params.conversationId,
+        hasActiveRiskSignal: params.hasActiveRiskSignal,
+        priorAssistantReplies: params.anonymizedMessages
+          .filter((message) => message.role === "assistant")
+          .map((message) => message.content),
+        buildNudge: openingNudge,
       });
     } catch {
       if (params.hasActiveRiskSignal) {
