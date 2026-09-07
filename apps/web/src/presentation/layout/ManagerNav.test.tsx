@@ -169,11 +169,11 @@ describe('ManagerSidebar', () => {
 });
 
 describe('ManagerBottomNav', () => {
-  it('keeps four slots, because a fifth would break the 44px tap minimum at 375px', () => {
+  it('now carries five slots, since the primary nav grew a fourth destination', () => {
     mount(<ManagerBottomNav />);
     const nav = screen.getByTestId('manager-bottom-nav');
     const slots = within(nav).getAllByRole('link').length + 1; // + "Mais"
-    expect(slots).toBe(4);
+    expect(slots).toBe(5);
   });
 
   it('reaches Sair in two taps: Mais, then Sair', async () => {

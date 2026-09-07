@@ -26,6 +26,7 @@ export const routes = {
   you: "/you",
   settings: "/settings",
   managerHistory: "/manager/history",
+  managerMethodology: "/manager/methodology",
   linkInstitution: "/you/link",
   adminLogin: "/admin/login",
   admin: "/admin",

@@ -672,6 +672,15 @@ export function ManagerDashboardPage() {
           </Card>
         )}
       </div>
+
+      <p className="mt-4 text-label text-muted">
+        <Link
+          to={routes.managerMethodology}
+          className="rounded-control font-bold text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        >
+          Como calculamos estes números
+        </Link>
+      </p>
     </div>
   );
 }
