@@ -23,7 +23,8 @@ describe("ManagerSignalsResponseSchema", () => {
   });
 
   it("rejects a response without coverage", () => {
-    const { sectorCoverage: _omitted, ...stale } = VALID;
+    const stale: Partial<typeof VALID> = { ...VALID };
+    delete stale.sectorCoverage;
     expect(() => ManagerSignalsResponseSchema.parse(stale)).toThrow();
   });
 });

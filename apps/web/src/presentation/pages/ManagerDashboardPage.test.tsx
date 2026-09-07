@@ -921,7 +921,6 @@ describe("ManagerDashboardPage", () => {
   });
 
   it("explains that the peak marker is relative to the series, not an alert threshold", async () => {
-    const user = userEvent.setup();
     renderManager();
 
     const help = await screen.findByRole("button", { name: "Sobre: Pico" });
