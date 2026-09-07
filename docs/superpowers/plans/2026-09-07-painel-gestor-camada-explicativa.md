@@ -186,7 +186,7 @@ Expected: PASS — inclusive os testes existentes de `Tooltip`, que exercitam o 
 git add apps/web/src/presentation/ui/Tooltip.tsx apps/web/src/presentation/ui/MetricHelp.tsx apps/web/src/presentation/ui/MetricHelp.test.tsx
 git commit -m "feat(web): add a left-aligned tooltip variant and the MetricHelp trigger
 
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ```
 
 ---
@@ -325,7 +325,7 @@ Expected: PASS — 6 testes.
 git add packages/domain/src/manager/metric-bands.ts packages/domain/src/manager/metric-bands.test.ts packages/domain/src/index.ts
 git commit -m "feat(domain): add follow-up response rate bands
 
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ```
 
 ---
@@ -559,7 +559,7 @@ Expected: sucesso. Sem isso, `@zelo/web` e `@zelo/api` importam o `dist/` antigo
 git add packages/domain/src/manager/metric-glossary.ts packages/domain/src/manager/metric-glossary.test.ts packages/domain/src/index.ts
 git commit -m "feat(domain): add the manager metric glossary as the single source of metric copy
 
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ```
 
 ---
@@ -753,7 +753,7 @@ Expected: PASS. Se `manager.controller.test.ts` afirmar o corpo da resposta inte
 git add apps/api/src/modules/manager/application/use-cases/get-manager-signals.use-case.ts apps/api/src/modules/manager/application/use-cases/get-manager-signals.use-case.test.ts apps/api/src/modules/manager/infrastructure/manager.controller.test.ts
 git commit -m "feat(api): carry weekly denominators and sector coverage in the signals response
 
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ```
 
 ---
@@ -874,7 +874,7 @@ Expected: PASS.
 git add apps/web/src/ports/manager-signals.port.ts apps/web/src/ports/manager-signals.port.test.ts apps/web/src/presentation
 git commit -m "feat(web): accept weekly denominators and sector coverage from the signals API
 
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ```
 
 ---
@@ -1089,7 +1089,7 @@ Expected: PASS. Testes antigos que procuravam "sinais de burnout na equipe" prec
 git add apps/web/src/presentation/pages/ManagerDashboardPage.tsx apps/web/src/presentation/pages/ManagerDashboardPage.test.tsx
 git commit -m "feat(web): render KPI cards from the metric glossary, with readings and help
 
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ```
 
 ---
@@ -1166,7 +1166,7 @@ Expected: PASS. Ajustar qualquer teste que afirmasse o texto antigo completo de 
 git add apps/web/src/presentation/pages/ManagerDashboardPage.tsx apps/web/src/presentation/pages/ManagerDashboardPage.test.tsx
 git commit -m "feat(web): show how many sectors a dashboard reading actually covers
 
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ```
 
 ---
@@ -1456,7 +1456,7 @@ Expected: PASS. Testes antigos que consultavam `trend-description` precisam ser 
 git add apps/web/src/presentation/lib/manager-trend-chart.ts apps/web/src/presentation/lib/manager-trend-chart.test.ts apps/web/src/presentation/pages/ManagerDashboardPage.tsx apps/web/src/presentation/pages/ManagerDashboardPage.test.tsx
 git commit -m "feat(web): make trend weeks focusable and show their base on hover and focus
 
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ```
 
 ---
@@ -1541,7 +1541,7 @@ Expected: PASS.
 git add apps/web/src/presentation/pages/ManagerDashboardPage.tsx apps/web/src/presentation/pages/ManagerDashboardPage.test.tsx
 git commit -m "feat(web): explain what the peak and latest chart legends mean
 
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ```
 
 ---
@@ -1683,7 +1683,7 @@ Expected: PASS.
 git add apps/web/src/presentation/lib/download-manager-pgr-report.ts apps/web/src/presentation/lib/download-manager-pgr-report.test.ts
 git commit -m "feat(web): drive the PGR exports from the metric glossary
 
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ```
 
 ---
@@ -1886,7 +1886,7 @@ Expected: PASS. `ManagerNav.test.tsx` pode afirmar a contagem de itens do menu p
 git add apps/web/src/presentation/pages/ManagerMethodologyPage.tsx apps/web/src/presentation/pages/ManagerMethodologyPage.test.tsx apps/web/src/presentation/lib/routes.ts apps/web/src/app/router.tsx apps/web/src/presentation/layout/manager-nav.ts apps/web/src/presentation/layout/ManagerNav.test.tsx apps/web/src/presentation/pages/ManagerDashboardPage.tsx
 git commit -m "feat(web): add a citable methodology page generated from the glossary
 
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ```
 
 ---
@@ -1905,89 +1905,65 @@ Hoje o modelo lê `40%, 42%, 44%` sem saber se cada ponto vem de 8 ou de 180 res
 - Consumes: `ManagerSignalsResponse` da Task 4; `MANAGER_METRICS` da Task 3
 - Produces: nada
 
-- [ ] **Step 1: Write the failing test**
+**IMPORTANTE — leia antes de escrever qualquer teste:** este arquivo de teste já existe e já compõe `GenerateManagerInsightUseCase` a partir do `GetManagerSignalsUseCase` **real**, alimentado por uma `FakeSignalRepository` que já está declarada no arquivo — não pelo objeto do use case mockado diretamente. Não introduza um helper novo nem um `ManagerSignalsResponse` escrito à mão: use exatamente o padrão que as quatro `it()` existentes já seguem (`new FakeSignalRepository([...])` → `new GetManagerSignalsUseCase(signalsRepository, new FakeSimulatedFollowUpRepository())` → `new GenerateManagerInsightUseCase(getManagerSignals, aiInsight, insightRepository, sectorRepository as never)` → `useCase.execute("Ana Konder", "institution-1")` → asserção em `aiInsight.lastParams?.summary`). As classes `FakeSignalRepository`, `FakeSectorRepository`, `FakeSimulatedFollowUpRepository`, `FakeAiInsightPort` e `FakeManagerInsightRepository` já existem no topo do arquivo — reutilize-as.
+
+**A primeira `it()` do arquivo quebra com esta mudança e precisa ser atualizada, não só as novas serem acrescentadas.** Ela afirma o texto exato do `summary` antigo, que este task reescreve.
+
+- [ ] **Step 1: Update the existing test's assertions to the new summary text**
+
+Na primeira `it()` (`"formats the current ManagerSignalsResponse into a PT-BR summary..."`), trocar as três linhas de asserção sobre `summary`:
 
 ```ts
-  it("gives the model the denominator of every trend week, so it cannot call noise a trend", async () => {
-    const { summary } = await generateAndCaptureSummary({
-      weeklyTrend: [
-        { weekStart: "2026-08-24T00:00:00.000Z", concerningRate: 0.4, checkIns: 10, concerning: 4 },
-        { weekStart: "2026-08-31T00:00:00.000Z", concerningRate: 0.47, checkIns: 62, concerning: 29 },
-      ],
-    });
-
-    expect(summary).toContain("40% (n=10)");
-    expect(summary).toContain("47% (n=62)");
-  });
-
-  it("tells the model how much of the institution the reading covers", async () => {
-    const { summary } = await generateAndCaptureSummary({ sectorCoverage: { visible: 4, total: 7 } });
-
-    expect(summary).toContain("4 de 7 setores");
-  });
-
-  // Sem isto o modelo constrói recomendação em cima de um número simulado.
-  it("tells the model the follow-up rate is demonstration data", async () => {
-    const { summary } = await generateAndCaptureSummary({});
-
-    expect(summary).toContain("demonstração");
-  });
-```
-
-E o helper, no topo do `describe`:
-
-```ts
-  const BASE_SIGNALS: ManagerSignalsResponse = {
-    overallConcerningRate: 0.47,
-    checkInsLast4Weeks: 312,
-    weeklyTrend: [
-      { weekStart: "2026-08-31T00:00:00.000Z", concerningRate: 0.47, checkIns: 62, concerning: 29 },
-    ],
-    segments: [{ label: "UTI", value: 44, n: 20 }],
-    followUpResponseRate: 0.72,
-    sectorCoverage: { visible: 4, total: 7 },
-  };
-
-  /**
-   * Executa o caso de uso e devolve o `summary` que chegou ao port de IA —
-   * é o único ponto onde dá para observar o que o modelo realmente recebe.
-   */
-  async function generateAndCaptureSummary(overrides: Partial<ManagerSignalsResponse>) {
-    const signals = { ...BASE_SIGNALS, ...overrides };
-    let captured = "";
-
-    const aiInsight: AiInsightPort = {
-      generateInsight: async (input) => {
-        captured = input.summary;
-        return { interpretation: "irrelevante para este teste", suggestedActions: [] };
-      },
-    };
-    const getSignals = { execute: async () => signals } as unknown as GetManagerSignalsUseCase;
-    const insightRepository: ManagerInsightRepository = { save: async () => undefined, findAll: async () => [] };
-    const sectorRepository = {
-      findActiveByInstitution: async () => [{ id: "s1", name: "UTI" }],
-    } as unknown as SectorRepository;
-
-    const useCase = new GenerateManagerInsightUseCase(
-      getSignals,
-      aiInsight,
-      insightRepository,
-      sectorRepository,
+    expect(aiInsight.lastParams?.summary).toContain("Respostas com sinal de sofrimento relevante: 60%");
+    expect(aiInsight.lastParams?.summary).toContain("UTI: 60% (n=10)");
+    expect(aiInsight.lastParams?.summary).toContain(
+      "Tendência semanal (taxa e base por semana, 2 semanas): 30% (n=10), 60% (n=10)",
     );
-    await useCase.execute("Gestor de teste", "inst-1");
-
-    return { summary: captured };
-  }
+    expect(aiInsight.lastParams?.summary).toContain("Cobertura: 1 de 1 setores");
+    expect(aiInsight.lastParams?.summary).toContain(
+      "Taxa de resposta do follow-up: 0% — dado de demonstração, não reflete esta instituição",
+    );
 ```
 
-Se `ManagerInsightRepository` ou `SectorRepository` tiverem mais métodos do que os usados aqui, o `as unknown as` já cobre — mas prefira preencher os métodos reais se forem poucos, para o teste quebrar quando a porta mudar.
+A segunda linha (`"UTI: 60% (n=10)"`) já era verdadeira antes — o formato de segmento não muda nesta task — mas é repetida aqui para o bloco ficar completo e substituível de uma vez.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Write the failing test for suppression reaching the summary**
+
+Acrescentar ao `describe`, depois da primeira `it()`:
+
+```ts
+  it("keeps a sub-threshold sector out of every number in the summary, but still reports it was suppressed", async () => {
+    const signalsRepository = new FakeSignalRepository([
+      { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 4 },
+      { sectorId: "sector-peq", sectorName: "Pediatria", weekStart: WEEK_2, checkIns: 3, concerning: 1 },
+    ]);
+    const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository, new FakeSimulatedFollowUpRepository());
+    const aiInsight = new FakeAiInsightPort({ interpretation: "texto", suggestedActions: [] });
+    const insightRepository = new FakeManagerInsightRepository();
+    const sectorRepository = new FakeSectorRepository([
+      { id: "sector-uti", name: "UTI" },
+      { id: "sector-peq", name: "Pediatria" },
+    ]);
+    const useCase = new GenerateManagerInsightUseCase(getManagerSignals, aiInsight, insightRepository, sectorRepository as never);
+
+    await useCase.execute("Ana Konder", "institution-1");
+
+    const summary = aiInsight.lastParams?.summary ?? "";
+    // 3 check-ins fica abaixo do limiar de 5: o setor nunca deveria contribuir
+    // para nenhum agregado, nem sequer para o denominador da tendência.
+    expect(summary).toContain("Cobertura: 1 de 2 setores");
+    expect(summary).toContain("Respostas com sinal de sofrimento relevante: 40%");
+    expect(summary).toContain("Tendência semanal (taxa e base por semana, 1 semanas): 40% (n=10)");
+    expect(summary).not.toContain("Pediatria");
+  });
+```
+
+- [ ] **Step 3: Run tests to verify they fail**
 
 Run: `pnpm --filter @zelo/api exec vitest run src/modules/manager/application/use-cases/generate-manager-insight.use-case.test.ts`
-Expected: FAIL — o summary traz só a lista de percentuais.
+Expected: FAIL — a primeira `it()` falha nas novas asserções (texto antigo ainda no código), a segunda `it()` nova falha porque `signals.sectorCoverage` ainda não existe no `formatSummary`.
 
-- [ ] **Step 3: Rewrite formatSummary**
+- [ ] **Step 4: Rewrite formatSummary**
 
 Acrescentar ao topo do arquivo:
 
@@ -2022,28 +1998,28 @@ E trocar o método:
   }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [ ] **Step 5: Run tests to verify they pass**
 
 Run: `pnpm --filter @zelo/api exec vitest run src/modules/manager/`
 Expected: PASS.
 
-- [ ] **Step 5: Run the whole monorepo suite**
+- [ ] **Step 6: Run the whole monorepo suite**
 
 Run: `pnpm test`
 Expected: PASS em `@zelo/domain`, `@zelo/api` e `@zelo/web`.
 
-- [ ] **Step 6: Run lint and boundary checks**
+- [ ] **Step 7: Run lint and boundary checks**
 
 Run: `pnpm lint && pnpm lint:boundaries`
 Expected: sem erros.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add apps/api/src/modules/manager/application/use-cases/generate-manager-insight.use-case.ts apps/api/src/modules/manager/application/use-cases/generate-manager-insight.use-case.test.ts
 git commit -m "feat(api): give the insight model weekly denominators, coverage and the demo caveat
 
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ```
 
 ---
