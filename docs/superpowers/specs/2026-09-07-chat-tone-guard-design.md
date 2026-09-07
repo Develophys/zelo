@@ -2,6 +2,55 @@
 
 **Date:** 2026-09-07
 
+> ## What actually shipped — read this before the rest
+>
+> **The tail sentinel described below was built, measured, and then abandoned. It does
+> not exist in the shipped code.** Everything from "Tail sentinel" onward describes a
+> design that failed for reasons worth keeping, not the current system.
+>
+> **What ships instead:** when the cadence rule determines this turn may not end in a
+> question, a nudge is appended to that request's system prompt telling the model not to
+> end on one. The model complies up front. **Nothing is ever deleted from a reply.**
+>
+> **Why the original design was abandoned — three findings, in order:**
+>
+> 1. **Deleting the trailing sentence deleted the wrong things.** It removed offers of
+>    human contact ("Quer falar agora com uma pessoa de verdade?") and ordinary
+>    consolation ("Você não é fraco, mas tá no limite."). The `hasActiveRiskSignal`
+>    interlock that was supposed to prevent this is dead code: `ChatPage.tsx:54` passes
+>    a hardcoded `false`, because real risk detection is a separate unshipped project.
+> 2. **Protecting by exception does not converge.** Three rounds of widening the
+>    exemption list each looked complete and each was narrower than reality — keyed on
+>    verbs, it missed "te conecte com alguém"; keyed on nouns, it missed "algum colega";
+>    with the doctor's network added, it missed "com quem contar em casa". The set of
+>    ways a model can offer human contact is not enumerable.
+> 3. **Inverting to an allowlist was safe and useless.** Dropping only recognisable
+>    clinical check-ins pushed the question rate to 97%, worse than no guard at all
+>    (79%), because in multi-turn the model asks open coping questions
+>    ("O que costuma te ajudar a recarregar?"), not the somatic check-ins an allowlist
+>    can recognise. The guard fired once in 36 replies.
+>
+> **The lesson, which generalises past this feature:** every version of the deletion
+> design required classifying whether a given sentence was safe to remove. That
+> classification is the unsolvable part. Instructing the model up front removes the need
+> to classify at all — which is why it works and why it cannot fail the way the
+> deletion designs did.
+>
+> **Measured outcome** (multi-turn, real endpoint, `openai/gpt-oss-120b`): replies
+> ending in a question **94% → 49%**; on turns where the cadence rule disallowed one,
+> **35/35 complied** versus 24/26 failing in the control.
+>
+> **What did survive from the design below:** the opening sentinel (unchanged, still
+> regenerates once on a stock opener), the violation counters, the rhetorical-reframe
+> rule as **report-only**, and the sentence-boundary and cadence modules.
+>
+> **Owed follow-up:** `max_tokens` was raised 512 → 2048 because the nudge caused a ~29%
+> empty-reply rate on long conversations — `gpt-oss-120b` is a reasoning model and its
+> reasoning tokens count against the cap. An empty reply now converts into the existing
+> provider-error path rather than reaching the doctor, and that is unit-tested. **That
+> 2048 eliminates the empty replies has not been confirmed against the live model** —
+> Groq's daily quota was exhausted. Re-run the multi-turn live check to confirm.
+
 ## Problem
 
 The acolhimento chat must not read as a generic AI assistant. This is not a polish

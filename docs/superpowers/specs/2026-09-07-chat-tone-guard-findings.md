@@ -438,3 +438,75 @@ zero consecutive-question violations, zero catalogued-opener leaks, zero
 malformed output, and clean, PII-free log lines whose rate is internally
 self-consistent with the observed replies. This is what the guard was
 built to do, and on this run it did it.
+
+---
+
+## Final outcome — the deletion design was abandoned
+
+The "After the guard" numbers above measure the **tail-sentinel deletion** design, which
+no longer exists. It was removed after a whole-branch review found it deleting offers of
+human contact and ordinary consolation. See the "What actually shipped" section at the
+top of `2026-09-07-chat-tone-guard-design.md` for the full reasoning.
+
+### The four measurements, in order
+
+| condition | n | ended in a question |
+|---|---|---|
+| ungued, 1-turn harness | 14 | 79% |
+| tail-sentinel deletion, multi-turn | 12 | 50% |
+| clinical-check-in allowlist, multi-turn | 36 | 97% |
+| allowlist re-measured as guard-off control | 36 | 94% |
+| **per-turn nudge (shipped), multi-turn** | **72** | **49%** |
+
+The allowlist row is the important negative result: restricting deletion to
+recognisable clinical check-ins made the guard fire **once in 36 replies**. In
+multi-turn the model does not ask somatic check-ins ("Como tá o sono?"); it asks open
+coping questions ("O que costuma te ajudar a recarregar?"). An allowlist that
+recognises the former cannot touch the latter, and widening it to reach the latter
+re-endangers "Você tem com quem contar em casa?".
+
+### The shipped design's hit rate
+
+On turns where the cadence rule disallowed a trailing question:
+
+- **per-turn nudge: 0 of 35 still ended in one (100% compliance)**
+- control on the same harness: 24 of 26 failed (92% non-compliance)
+- API log cross-check: zero `tone_guard rule=trailing_question` lines across 72 nudged
+  replies, versus 24 consecutive-question violations across 3 control runs
+
+Two honest caveats: 7 of the 35 nudged turns obeyed the letter by relocating the
+question mid-reply rather than dropping it (still 28/35 with no question at all, versus
+1/26 in control); and the nudge caused empty replies until `max_tokens` was raised — see
+below.
+
+### The empty-reply failure, and what is still unverified
+
+The nudge caused blank replies on long conversations. Root cause, reproduced directly:
+
+```
+7-turn conversation, openai/gpt-oss-120b, max_tokens: 512
+  WITH nudge    → 4/14 empty, finish_reason="length", completion_tokens=512
+  WITHOUT nudge → 0/14 empty
+```
+
+`gpt-oss-120b` is a reasoning model: reasoning tokens count against `max_tokens` but are
+not visible content. With the nudge giving it more to reason about on a long history, it
+consumed the entire budget reasoning and returned nothing.
+
+Two fixes shipped: `max_tokens` raised to 2048, and an empty or whitespace-only reply is
+now converted into the existing provider-error path so the doctor sees the app's real
+error handling rather than a blank bubble. The second is unit-tested and verified.
+
+**Still unverified:** that 2048 actually eliminates the empty replies against the live
+model. Groq's free-tier daily quota (200k tokens) was exhausted during this work. Re-run
+the 7-turn / 14-sample check to confirm before trusting the value.
+
+### Environment footgun that cost time twice
+
+`apps/api/.env.development.local` (gitignored) sets `AI_PROVIDER=mock`, blanks
+`GROQ_API_KEY`, and pins the discontinued `llama-3.3-70b-versatile`. NestJS loads it
+ahead of `.env`, so `pnpm dev` has always used `FakeChatAdapter` locally. Any local
+observation of chat behaviour is canned strings unless that file is overridden. This is
+the likely source of the original "the replies read as robotic" report — before this
+work, all three canned replies ended in a question and one opened with
+"Entendi o que você compartilhou".
