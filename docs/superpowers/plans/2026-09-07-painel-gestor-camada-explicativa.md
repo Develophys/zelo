@@ -885,8 +885,10 @@ Renomeação nas telas, linha fixa por card, ícone de ajuda, e a faixa do follo
 
 **Files:**
 
-- Modify: `apps/web/src/presentation/pages/ManagerDashboardPage.tsx:254-271`
+- Modify: `apps/web/src/presentation/pages/ManagerDashboardPage.tsx` — bloco do `kpi-grid`, dentro do `isLoading ? ... : checkInsLast4Weeks === 0 ? ... : (<>...</>)`
 - Test: `apps/web/src/presentation/pages/ManagerDashboardPage.test.tsx`
+
+**IMPORTANTE — leia antes de editar:** este arquivo já ganhou, num commit posterior a este plano, um terceiro ramo no ternário do `kpi-grid`: `checkInsLast4Weeks === 0` renderiza um único `<Card data-testid="kpi-empty">{KPI_EMPTY}</Card>` no lugar dos três KPIs, para não fabricar um "0%" ao lado de um follow-up hospital-wide quando o filtro de setor suprime tudo. Esse ramo — e a constante `KPI_EMPTY` logo acima dele — **não fazem parte desta task e não devem ser tocados**. Confirme, antes de editar, que o teste `"withholds the KPI numerals instead of printing a fabricated 0% and a hospital-wide follow-up rate beside it"` já existe em `ManagerDashboardPage.test.tsx` e continua passando sem alteração ao final desta task — ele exercita exatamente esse ramo e não o que você está reescrevendo.
 
 **Interfaces:**
 
@@ -1014,7 +1016,7 @@ import type { ReactNode } from "react";
 
 - [ ] **Step 4: Replace the three inline cards**
 
-Trocar o bloco `:254-269` (os três `<Card>` do `else`) por:
+Dentro do `kpi-grid`, o ternário tem três ramos: `isLoading ? (<>...skeletons...</>) : checkInsLast4Weeks === 0 ? (<Card data-testid="kpi-empty">...) : (<>...os três <Card> antigos...</>)`. Trocar **apenas o terceiro ramo** — o `else` final, com os três `<Card data-testid="kpi-card">` — por:
 
 ```tsx
             <>
@@ -1100,12 +1102,12 @@ Hoje a página diz a regra ("segmentos com menos de 5 respostas ficam ocultos");
 
 **Files:**
 
-- Modify: `apps/web/src/presentation/pages/ManagerDashboardPage.tsx:62-63` e `:223`
+- Modify: `apps/web/src/presentation/pages/ManagerDashboardPage.tsx` — a constante `DASHBOARD_DISCLOSURE` e o parágrafo que a renderiza logo acima do `kpi-grid`
 - Test: `apps/web/src/presentation/pages/ManagerDashboardPage.test.tsx`
 
 **Interfaces:**
 
-- Consumes: `MANAGER_METRICS`, `sectorCoverageReading` de `@zelo/domain`; `sectorCoverage` da Task 5
+- Consumes: `MANAGER_METRICS`, `sectorCoverageReading` de `@zelo/domain`; a variável `sectorCoverage` já declarada no corpo do componente pela Task 6, Step 5 (esta task roda depois dela)
 - Produces: nada
 
 - [ ] **Step 1: Write the failing test**
@@ -1130,7 +1132,7 @@ Expected: FAIL — o texto não existe.
 
 - [ ] **Step 3: Replace the disclosure paragraph**
 
-Trocar a linha `:223` por:
+Trocar o parágrafo `<p className="mt-3 max-w-[62ch] text-label text-muted">{DASHBOARD_DISCLOSURE}</p>` (logo acima da div `data-testid="kpi-grid"`) por:
 
 ```tsx
       <div className="mt-3 flex max-w-[62ch] flex-wrap items-center gap-x-1.5 gap-y-1">
