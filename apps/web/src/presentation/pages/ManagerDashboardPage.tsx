@@ -6,6 +6,7 @@ import {
   concerningRateReading,
   followUpBandFor,
   followUpReading,
+  sectorCoverageReading,
   type MetricDefinition,
 } from "@zelo/domain";
 import { SectionLabel } from "@/presentation/ui/SectionLabel";
@@ -70,8 +71,7 @@ function parseSectorParam(raw: string | null, sectors: { id: string }[] | undefi
   return valid;
 }
 
-const DASHBOARD_DISCLOSURE =
-  "Nenhum dado individual é exibido; segmentos com menos de 5 respostas ficam ocultos.";
+const DASHBOARD_DISCLOSURE = "Nenhum dado individual é exibido.";
 
 const TREND_EMPTY =
   "Sem dados nas últimas 6 semanas. O gráfico aparece assim que houver check-ins.";
@@ -285,7 +285,18 @@ export function ManagerDashboardPage() {
         </div>
       )}
 
-      <p className="mt-3 max-w-[62ch] text-label text-muted">{DASHBOARD_DISCLOSURE}</p>
+      <div className="mt-3 flex max-w-[62ch] flex-wrap items-center gap-x-1.5 gap-y-1">
+        <p className="text-label text-muted">{DASHBOARD_DISCLOSURE}</p>
+        {data && (
+          <p className="flex items-center gap-1 text-label text-ink-2" data-testid="sector-coverage">
+            <span>{sectorCoverageReading(sectorCoverage)}</span>
+            <MetricHelp
+              label={MANAGER_METRICS.sectorCoverage.label}
+              content={metricHelpContent(MANAGER_METRICS.sectorCoverage)}
+            />
+          </p>
+        )}
+      </div>
 
       {loadFailed && (
         <div className="mt-5 rounded-card border border-danger-border bg-danger-bg p-4.5">

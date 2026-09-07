@@ -739,6 +739,17 @@ describe("ManagerDashboardPage", () => {
     expect(screen.queryByTestId('manager-action-bar')).not.toBeInTheDocument();
   });
 
+  it("says how much of the institution this reading covers", async () => {
+    renderManager();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("3 de 4 setores · 1 oculto por ter menos de 5 respostas"),
+      ).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Sobre: Cobertura desta leitura" })).toBeInTheDocument();
+  });
+
   it('does not render the filter row when only one sector is accessible, since the filter itself is hidden', async () => {
     vi.spyOn(container.listAccessibleSectorsUseCase, 'execute').mockResolvedValue([{ id: 'sector-1', name: 'UTI' }]);
     renderManager();
