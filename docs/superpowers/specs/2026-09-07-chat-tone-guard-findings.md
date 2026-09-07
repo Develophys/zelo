@@ -252,3 +252,189 @@ candidate models are individually bad at the persona. That is good news
 for Tasks 3–8: a cadence rule enforced in code (rather than relying on the
 model choosing to follow a soft phrase) should work regardless of which of
 these three models ends up shipping.
+
+## After the guard (Task 10)
+
+Date: 2026-09-07
+Harness: `apps/api/scripts/tone-inventory.ts` (control, unchanged) and a new
+throwaway `apps/api/scripts/tone-guard-live-check.ts` (through the guard,
+via the real `/chat/stream` HTTP endpoint — **not committed**, listed for
+transparency only; delete it or ask the coordinator whether it should move
+under a `scripts/` "manual QA" convention).
+
+### Method note: driving the guard, not the browser
+
+Per direction, this task did **not** drive the chat by hand in a browser.
+It drove the real HTTP endpoint with a script, because that produces a
+number comparable to the control table instead of an impression, and it
+exercises the real controller + real Groq streaming (mid-word chunk splits
+included) that no unit fixture reproduces.
+
+Two operational findings surfaced while wiring this up, neither a guard
+bug, both worth recording so the next person doesn't lose an hour to them:
+
+1. `pnpm dev`'s default local environment (`apps/api/.env.development.local`)
+   sets `AI_PROVIDER=mock` **and** blanks `GROQ_API_KEY=` **and** pins
+   `GROQ_MODEL=llama-3.3-70b-versatile` (the dead model from the "Why three
+   models" section above). The first live-check run against a freshly
+   started `pnpm dev` came back with the exact same three canned sentences
+   on a strict 3-turn rotation, regardless of the user's script or turn
+   number — that is `FakeChatAdapter`'s `CANNED_REPLIES` array, not the
+   real model. Confirmed by reading `chat.module.ts` and
+   `fake-chat.adapter.ts`. Re-ran with `AI_PROVIDER=groq` and
+   `GROQ_MODEL=openai/gpt-oss-120b` exported *before* `pnpm dev` starts
+   (dotenv never overrides an already-set `process.env` key, so this wins
+   over the `.local` file) and `GROQ_API_KEY` read out of `.env` into the
+   child process only, never echoed or logged. Anyone doing this kind of
+   verification against `pnpm dev` needs to know to override these three
+   vars, or they are silently testing the mock.
+2. Port 3000 already had a live instance running (PID 30964, presumably the
+   user's own dev server, unrelated to this task) — its console isn't
+   ours to capture and it wasn't touched. The guarded instance for this
+   check was started on `PORT=3001` instead, its own throwaway `pnpm dev`
+   process, killed after the check.
+
+### Control table (re-run)
+
+n=14 replies, `openai/gpt-oss-120b`, `RUNS_PER_SCRIPT=1`, direct-to-Groq,
+no guard — same as the original Task 2 run:
+
+```
+opening cliché.......... 1/14
+ended in a question..... 11/14
+clinical paraphrase..... 0/14
+markdown / list......... 0/14
+rhetorical reframe...... 0/14
+more than one question.. 2/14
+```
+
+Identical to the original baseline (11/14, 78.6%) down to the exact count.
+n is small, so this is a mix of luck and genuine model stability — not
+proof the raw rate never moves — but it means the control held and the
+comparison below is apples-to-apples.
+
+### Through the guard
+
+3 scripts (`plantao-longo`, `quase-erro`, `minimizacao`), each extended to
+4 user turns (from the control's 1–2), each assistant reply fed back into
+`anonymizedMessages` before the next turn, `hasActiveRiskSignal: false`,
+against a real `/chat/stream` POST, `openai/gpt-oss-120b`, ndjson parsed
+into full replies. n=12 replies (3 conversations × 4 turns).
+
+```
+opening cliché.......... 1/12
+ended in a question..... 6/12
+clinical paraphrase..... 0/12
+markdown / list......... 0/12
+rhetorical reframe...... 0/12
+more than one question.. 1/12
+```
+
+| tell | baseline (no guard, n=14) | through the guard (n=12) |
+|---|---|---|
+| ended in a question | 11/14 (79%) | 6/12 (**50%**) |
+
+79% -> 50%, landing exactly on the ~50% ceiling the cadence rule
+(`shouldAllowTrailingQuestion`) predicts: never two consecutive, so at
+most every other reply may end in "?". This is the number the guard
+exists to move, and it moved to the theoretical ceiling, not just
+"lower."
+
+### Pass/fail on each check
+
+**1. Rate of replies ending in a question — PASS.** 6/12 (50%), not above
+the ~55% caution line. Down from 79% control.
+
+**2. Never two consecutive — PASS, and independently confirmed by the log.**
+All 9 adjacent turn-pairs across the 3 conversations checked; 0 violations.
+Each conversation's post-guard sequence is exactly question / non-question
+/ question / non-question. The API log recorded exactly 6
+`tone_guard rule=trailing_question` lines — one per non-question turn, no
+more, no fewer — meaning every suppressed turn is accounted for and
+nothing was suppressed that shouldn't have been:
+
+```
+[SendChatMessageUseCase] tone_guard rule=trailing_question   (x6, at 1:11:25/27/28/29/31/50)
+```
+
+**3. No reply opens with a catalogued cliché — PASS, with one caveat worth
+flagging.** Checked all 12 openings against the production regex list in
+`tone-tells.ts` (`OPENING_TELLS`) by hand — none matched, and the log shows
+zero `opening_cliche_persisted`/`opening_cliche_regenerated` lines,
+consistent. The broader inventory-style regex reused from
+`tone-inventory.ts` for apples-to-apples comparison flagged 1/12
+(`minimizacao` turn 3: "Entendo, não precisa transformar isso em drama...")
+— but the production catalog only matches `^entendo que`, not bare
+`Entendo,`, so the guard correctly did not touch it (nothing to persist or
+regenerate). Whether "Entendo," alone deserves to join the catalog is a
+product judgment call, not a bug — flagging it as a candidate 7th
+phrasing, the same way the original findings flagged "Isso pesa mesmo" as
+a candidate tell above.
+
+**4. Nothing malformed — PASS.** Read all 12 raw replies by eye (quoted in
+full below) plus ran automated checks for double spaces, empty replies,
+repeated words, and missing-punctuation endings. Every reply is a complete
+sentence or two, correctly spaced, no visible splice seam from the
+sentence-boundary buffering, no truncated mid-word cut, no doubled text.
+This was the check most likely to catch a real bug in the buffering logic
+and it came back clean on this sample.
+
+**5. `tone_guard rule=` log lines — PASS.** All 6 lines are exactly
+`tone_guard rule=trailing_question`, no reply text, no prompt, no
+`conversationId` in any line — confirmed by reading the raw log file. Rate
+(6/12 turns, 100% of the turns disallowed by cadence) is internally
+consistent with the observed output: every turn where
+`shouldAllowTrailingQuestion` should return `false` produced exactly one
+log line and exactly one non-question final reply.
+
+### Sample replies (through the guard, verbatim)
+
+```
+[plantao-longo t1] Isso tá pesado, ainda mais em sequência. Como tem sido a
+sua rotina de descanso entre os plantões?
+
+[plantao-longo t2] É complicado quando o cansaço vira parte do dia a dia.
+
+[plantao-longo t3] Isso só piora o desgaste, né? Tem algum espacinho no
+intervalo que você consegue se recompor, mesmo que por poucos minutos?
+
+[plantao-longo t4] É muita pressão, ainda mais sem nem conseguir se
+alimentar direito. Se sentir que está chegando ao limite, vale pedir ajuda
+agora mesmo – tem alguém no plantão ou um colega que possa cobrir um
+pouco, ou até acionar o suporte da instituição.
+
+[quase-erro t1] Isso realmente assusta, ainda mais quando a gente percebe
+que o cansaço tá atrapalhando a segurança. Quer conversar mais sobre como
+foi o momento ou prefere chamar alguém para conversar agora?
+
+[quase-erro t2] Passar a noite dando a volta nesse episódio pode pesar
+bastante.
+
+[minimizacao t3] Entendo, não precisa transformar isso em drama. Só que
+esse cansaço tem atrapalhado algo importante pra você agora?
+```
+
+No truncated words, no doubled text, no missing spaces at a join, no empty
+or fragment-only reply anywhere in the 12-reply sample.
+
+### Tells that survived
+
+None of the sentinel-covered tells (`clinical paraphrase`, `markdown /
+list`, `rhetorical reframe`) fired at all in this sample (0/12, matching
+the control's 0/14) — consistent with the original findings that these are
+low-base-rate on every model tested, not evidence the guard is failing to
+catch something present. The one soft miss is the "Entendo," bare-opener
+case in check 3 above; it is a near-miss on the existing catalog's
+phrasing, not a tell surviving mid-reply, so it does not belong in the
+spec's "Known gap: the middle of the reply" section — it belongs in the
+catalog's own backlog if the team decides bare "Entendo," is worth
+banning.
+
+### Bottom line
+
+The guard moved "ended in a question" from 79% (control, no guard) to 50%
+(through the guard) — exactly the ceiling the cadence rule predicts — with
+zero consecutive-question violations, zero catalogued-opener leaks, zero
+malformed output, and clean, PII-free log lines whose rate is internally
+self-consistent with the observed replies. This is what the guard was
+built to do, and on this run it did it.
