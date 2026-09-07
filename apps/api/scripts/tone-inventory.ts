@@ -2,7 +2,7 @@ import "dotenv/config";
 import Groq from "groq-sdk";
 import { CHAT_SYSTEM_PROMPT } from "../src/modules/chat/application/prompts/chat-system-prompt.ts";
 
-const SCRIPTS: Record<string, string[]> = {
+export const SCRIPTS: Record<string, string[]> = {
   "plantao-longo": [
     "Fiz um plantão de 12h ontem e não consegui dormir depois. Terceira vez essa semana.",
     "Acho que já virou rotina.",
@@ -35,7 +35,7 @@ const SCRIPTS: Record<string, string[]> = {
 
 const RUNS_PER_SCRIPT = 1;
 
-const TELLS: Record<string, (reply: string) => boolean> = {
+export const TELLS: Record<string, (reply: string) => boolean> = {
   "opening cliché": (reply) =>
     /^\s*(entendo|eu entendo|entendi|sinto muito|lamento|é importante|como (uma )?ia|você (tem razão|está cert)|(isso )?faz (todo )?sentido|obrigad[oa] por|parece que você|primeiro|que bom que você)/i.test(
       reply,

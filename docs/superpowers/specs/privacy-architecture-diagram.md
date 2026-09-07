@@ -105,9 +105,18 @@ flowchart TD
   anonymous, deduplicated signal (`POST /signals/checkin`) that increments real counters,
   separate from the encrypted `Assessment` write `B -.-> F` already shows. Say so live rather
   than letting the diagram imply either extreme (all real, or all still mocked).
-- The LLM provider box (`J`) is generic by design — the PRD still lists "Escolha final do
-  provedor de LLM" as an open dependency. If that gets locked (see the team's action-plan P5),
-  update this label with the real provider name.
+- The LLM provider box (`J`) is **Groq** (`openai/gpt-oss-120b` as of 2026-09-07), which
+  closes the PRD's "Escolha final do provedor de LLM" dependency. Its retention posture, the
+  comparison against Anthropic and OpenAI, and what has to be true before a sale are in
+  `2026-09-07-llm-data-retention.md`.
+- **`J`'s "anonymized text only" label overstates what the code does, and this matters for any
+  buyer conversation.** `anonymize-text.usecase.ts` is regex redaction of four patterns (CRM,
+  email, phone, and a name only right after a self-identification phrase) — not
+  de-identification. A doctor who describes their hospital, shift and specialty is
+  re-identifiable from context and no rule fires; the file's own doc block calls this a
+  deliberate PoC scope limit. Either strengthen the redaction or stop making the stronger
+  claim, but do not present this diagram as evidence of de-identification until one of those
+  happens.
 - The partner-psychologist path (`K`) may be simulated for the live demo if no real partner is
   confirmed by the checkpoint — the PRD already anticipates this (`prd.md`, Dependências). The
   diagram documents the intended architecture either way; the demo script should say explicitly
