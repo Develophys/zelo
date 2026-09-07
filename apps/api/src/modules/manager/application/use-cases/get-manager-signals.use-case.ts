@@ -59,7 +59,7 @@ export class GetManagerSignalsUseCase {
 
     const rows = await this.repository.findAll(institutionId, sectorIds);
     if (rows.length === 0) {
-      return { ...EMPTY_RESPONSE, followUpResponseRate };
+      return { ...EMPTY_RESPONSE, sectorCoverage: { visible: 0, total: sectorIds.length }, followUpResponseRate };
     }
 
     const bySector = new Map<string, SignalRow[]>();
@@ -82,10 +82,10 @@ export class GetManagerSignalsUseCase {
     // keeps a suppressed sector out of every aggregate.
     const mostRecentWeek = referenceWeek(bySector);
     if (mostRecentWeek === null) {
-      // `total` vem de bySector, não de zero: "0 de 4 setores" diz que a
-      // semana ainda não atingiu o mínimo, enquanto "0 de 0" leria como
-      // "esta instituição não tem setores".
-      return { ...EMPTY_RESPONSE, sectorCoverage: { visible: 0, total: bySector.size }, followUpResponseRate };
+      // `total` is the count of sectors this query is scoped to, not zero:
+      // "0 of 4 sectors" says the week hasn't reached the minimum yet, while
+      // "0 of 0" would read as "this institution has no sectors".
+      return { ...EMPTY_RESPONSE, sectorCoverage: { visible: 0, total: sectorIds.length }, followUpResponseRate };
     }
 
     // A sector is either fully visible or fully suppressed, decided solely by
@@ -144,9 +144,11 @@ export class GetManagerSignalsUseCase {
       weeklyTrend,
       segments,
       followUpResponseRate,
-      // Somados sobre `visibleRows`, que já é o conjunto filtrado por
-      // k-anonimato — expor o total não afrouxa nada.
-      sectorCoverage: { visible: visibleSectorIds.size, total: bySector.size },
+      // `total` is sectorIds.length, not bySector.size: a sector with rows
+      // that never clear k must count the same as a sector with zero rows at
+      // all, or "total" would leak whether a suppressed sector has any
+      // activity — information the suppression exists to hide.
+      sectorCoverage: { visible: visibleSectorIds.size, total: sectorIds.length },
     };
   }
 

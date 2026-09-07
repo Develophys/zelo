@@ -223,12 +223,22 @@ describe("GetManagerSignalsUseCase", () => {
     expect(result.segments).toEqual([]);
   });
 
-  it("reports zero coverage when there is no data at all", async () => {
+  it("reports the requested sector count as the total when there is no data at all", async () => {
     const useCase = makeUseCase([]);
 
     const result = await useCase.execute("inst-1", ["a"]);
 
-    expect(result.sectorCoverage).toEqual({ visible: 0, total: 0 });
+    expect(result.sectorCoverage).toEqual({ visible: 0, total: 1 });
+  });
+
+  it("counts a sector that has never had a single check-in toward the total, not just sectors with rows", async () => {
+    const week = new Date("2026-08-31T00:00:00.000Z");
+    const rows = [{ sectorId: "a", sectorName: "UTI", weekStart: week, checkIns: 20, concerning: 9 }];
+    const useCase = makeUseCase(rows);
+
+    const result = await useCase.execute("inst-1", ["a", "never-checked-in"]);
+
+    expect(result.sectorCoverage).toEqual({ visible: 1, total: 2 });
   });
 });
 
