@@ -3,7 +3,7 @@ import { CheckCheck, RefreshCw } from "lucide-react";
 import { Button } from "@/presentation/ui/Button";
 import { Skeleton } from "@/presentation/ui/Skeleton";
 import { Pill } from "@/presentation/ui/Pill";
-import { SECTOR_PILL_CLASS } from "@/presentation/ui/SectorPillPicker";
+import { MultiSelectDropdown } from "@/presentation/ui/MultiSelectDropdown";
 import { useManagerNotifications, useManagerUnreadCount } from "@/presentation/hooks/useManagerNotifications";
 import { useSendManagerSetPasswordEmail } from "@/presentation/hooks/useSendManagerSetPasswordEmail";
 import { useSendPeerPartnerSetPasswordEmail } from "@/presentation/hooks/useSendPeerPartnerSetPasswordEmail";
@@ -26,7 +26,11 @@ export function ManagerNotificationsPage() {
   const unreadCount = useManagerUnreadCount();
   const sendManagerSetPasswordEmail = useSendManagerSetPasswordEmail();
   const sendPeerPartnerSetPasswordEmail = useSendPeerPartnerSetPasswordEmail();
-  const [typeFilter, setTypeFilter] = useState<ManagerNotification["type"] | null>(null);
+  // undefined = every type selected — the dropdown's own convention, matching
+  // the sector filter on /manager. A narrowed selection is a concrete array,
+  // never re-narrowed to a single value, so filtering by "any of these" was
+  // the natural fit once the filter became a checklist instead of one radio.
+  const [typeFilter, setTypeFilter] = useState<ManagerNotification["type"][] | undefined>(undefined);
 
   const resendInvite = (notificationIds: string[], kind: unknown, id: string, email: unknown) => {
     const mutation = kind === "manager" ? sendManagerSetPasswordEmail : sendPeerPartnerSetPasswordEmail;
@@ -41,7 +45,11 @@ export function ManagerNotificationsPage() {
   };
 
   const presentTypes = TYPE_ORDER.filter((type) => notifications.some((n) => n.type === type));
-  const filtered = typeFilter ? notifications.filter((n) => n.type === typeFilter) : notifications;
+  const effectiveTypeFilter = typeFilter ?? presentTypes;
+  const filtered =
+    effectiveTypeFilter.length === presentTypes.length
+      ? notifications
+      : notifications.filter((n) => (effectiveTypeFilter as string[]).includes(n.type));
   const groups = groupConsecutiveNotifications(filtered);
 
   return (
@@ -60,39 +68,15 @@ export function ManagerNotificationsPage() {
       </div>
 
       {presentTypes.length > 1 && (
-        <div
-          data-testid="notifications-type-filter"
-          role="radiogroup"
-          aria-label="Filtrar por tipo"
-          className="flex flex-wrap gap-2"
-        >
-          {/* role="radio" instead of the plain button every other pill row in
-              this app uses: a filter pill's own label text is identical to a
-              matching row's event name (e.g. "Convite aceito" names both),
-              and a button role here would be indistinguishable by accessible
-              name from the row it filters — a radiogroup is also the more
-              correct pattern for "pick exactly one" than a set of buttons. */}
-          <button
-            type="button"
-            role="radio"
-            aria-checked={typeFilter === null}
-            onClick={() => setTypeFilter(null)}
-            className={SECTOR_PILL_CLASS(typeFilter === null)}
-          >
-            Todos
-          </button>
-          {presentTypes.map((type) => (
-            <button
-              key={type}
-              type="button"
-              role="radio"
-              aria-checked={typeFilter === type}
-              onClick={() => setTypeFilter(type)}
-              className={SECTOR_PILL_CLASS(typeFilter === type)}
-            >
-              {NOTIFICATION_TYPE_LABEL[type]}
-            </button>
-          ))}
+        <div data-testid="notifications-type-filter" className="max-w-72">
+          <MultiSelectDropdown
+            options={presentTypes.map((type) => ({ id: type, name: NOTIFICATION_TYPE_LABEL[type] }))}
+            selected={typeFilter}
+            onChange={(selected) => setTypeFilter(selected as ManagerNotification["type"][])}
+            allLabel="Todos os tipos"
+            countLabel={(count) => `${count} tipos selecionados`}
+            groupLabel="Tipos de notificação"
+          />
         </div>
       )}
 

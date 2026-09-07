@@ -485,21 +485,59 @@ describe("ManagerNotificationsPage", () => {
 
     await screen.findAllByText("Convite aceito");
     expect(screen.getByText("Falha no envio do convite")).toBeInTheDocument();
-    // Only types present in this manager's notifications get a filter pill —
-    // no empty category clutters the row.
-    expect(screen.queryByRole("radio", { name: "Conta desativada" })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("radio", { name: "Falha no envio" }));
+    const filter = screen.getByTestId("notifications-type-filter");
+    await user.click(within(filter).getByRole("button", { name: "Todos os tipos" }));
 
-    // The pill itself still reads "Convite aceito" even while that type is
-    // filtered out — only the row for it should be gone.
-    expect(within(screen.getByTestId("notifications-type-filter")).getByText("Convite aceito")).toBeInTheDocument();
+    // Only types present in this manager's notifications get a checkbox — no
+    // empty category clutters the list.
+    expect(screen.queryByLabelText("Conta desativada")).not.toBeInTheDocument();
+
+    // Unchecking every type but one narrows to it, same as toggling a radio
+    // used to — but now via the checklist, since more than one can apply.
+    await user.click(screen.getByLabelText("Convite aceito"));
+
+    // The checkbox label itself still reads "Convite aceito" even while that
+    // type is filtered out — only the row for it should be gone.
+    expect(within(filter).getByText("Convite aceito")).toBeInTheDocument();
     expect(screen.queryAllByText("Convite aceito")).toHaveLength(1);
     expect(screen.getByText("Falha no envio do convite")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("radio", { name: "Todos" }));
+    await user.click(screen.getByLabelText("Todos"));
 
     expect(screen.getAllByText("Convite aceito")).toHaveLength(2);
     expect(screen.getByText("Falha no envio do convite")).toBeInTheDocument();
+  });
+
+  it("filters to several types at once, since the filter is a checklist now, not a single choice", async () => {
+    vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
+      items: [
+        UNREAD,
+        { ...READ, id: "n-fail", type: "INVITE_EMAIL_FAILED" as const, payload: { email: "x@zelo-demo.local" } },
+        { ...READ, id: "n-expired", type: "INVITE_EXPIRED" as const, payload: { email: "y@zelo-demo.local" } },
+      ],
+      nextCursor: null,
+      total: 3,
+    });
+    vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(1);
+    const user = userEvent.setup();
+
+    renderPage();
+
+    await screen.findAllByText("Convite aceito");
+    expect(screen.getByText("Falha no envio do convite")).toBeInTheDocument();
+    expect(screen.getByText(/Convite expirado/)).toBeInTheDocument();
+
+    const filter = screen.getByTestId("notifications-type-filter");
+    await user.click(within(filter).getByRole("button", { name: "Todos os tipos" }));
+
+    // Uncheck only one of the three present types — everything starts
+    // checked, so this narrows to the other two at once, not down to one.
+    await user.click(screen.getByLabelText("Convite expirado"));
+    await user.keyboard("{Escape}");
+
+    expect(screen.getByText("Convite aceito")).toBeInTheDocument();
+    expect(screen.getByText("Falha no envio do convite")).toBeInTheDocument();
+    expect(screen.queryByText(/Convite expirado/)).not.toBeInTheDocument();
   });
 });

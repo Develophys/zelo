@@ -3,40 +3,58 @@ import { ChevronDown } from 'lucide-react';
 import { FIELD_SURFACE } from './TextField';
 import { Checkbox } from './Checkbox';
 
-interface SectorMultiSelectProps {
-  sectors: { id: string; name: string }[];
+interface MultiSelectDropdownProps {
+  options: { id: string; name: string }[];
   selected: string[] | undefined; // undefined = implicitly "all"
   onChange: (selected: string[]) => void;
+  /** Trigger label when every option is selected, e.g. "Todos os setores". */
+  allLabel: string;
+  /** Trigger label for a partial selection, e.g. (n) => `${n} setores selecionados`. */
+  countLabel: (count: number) => string;
+  /** Accessible name for the option panel, e.g. "Setores". */
+  groupLabel: string;
 }
 
-function triggerLabel(sectors: { id: string; name: string }[], effectiveSelected: string[]): string {
-  if (effectiveSelected.length === sectors.length) return 'Todos os setores';
+function triggerLabel(
+  options: { id: string; name: string }[],
+  effectiveSelected: string[],
+  allLabel: string,
+  countLabel: (count: number) => string,
+): string {
+  if (effectiveSelected.length === options.length) return allLabel;
   if (effectiveSelected.length === 1) {
-    return sectors.find((sector) => sector.id === effectiveSelected[0])?.name ?? 'Todos os setores';
+    return options.find((option) => option.id === effectiveSelected[0])?.name ?? allLabel;
   }
-  return `${effectiveSelected.length} setores selecionados`;
+  return countLabel(effectiveSelected.length);
 }
 
-export function SectorMultiSelect({ sectors, selected, onChange }: SectorMultiSelectProps) {
+export function MultiSelectDropdown({
+  options,
+  selected,
+  onChange,
+  allLabel,
+  countLabel,
+  groupLabel,
+}: MultiSelectDropdownProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelId = useId();
 
-  const effectiveSelected = selected ?? sectors.map((sector) => sector.id);
-  const allSelected = effectiveSelected.length === sectors.length;
+  const effectiveSelected = selected ?? options.map((option) => option.id);
+  const allSelected = effectiveSelected.length === options.length;
 
   const toggle = (id: string) => {
     const next = effectiveSelected.includes(id)
-      ? effectiveSelected.filter((sectorId) => sectorId !== id)
+      ? effectiveSelected.filter((optionId) => optionId !== id)
       : [...effectiveSelected, id];
     // Unchecking the last one filters everything away, which can only draw an
     // empty screen. Falling back to all keeps the control from having a dead
-    // end the manager has to guess their way out of.
-    onChange(next.length === 0 ? sectors.map((sector) => sector.id) : next);
+    // end the user has to guess their way out of.
+    onChange(next.length === 0 ? options.map((option) => option.id) : next);
   };
 
-  const selectAll = () => onChange(sectors.map((sector) => sector.id));
+  const selectAll = () => onChange(options.map((option) => option.id));
 
   useEffect(() => {
     if (!open) return;
@@ -72,7 +90,7 @@ export function SectorMultiSelect({ sectors, selected, onChange }: SectorMultiSe
         onClick={() => setOpen((value) => !value)}
         className={`${FIELD_SURFACE} flex min-h-11 items-center justify-between gap-2 text-left`}
       >
-        <span className="truncate">{triggerLabel(sectors, effectiveSelected)}</span>
+        <span className="truncate">{triggerLabel(options, effectiveSelected, allLabel, countLabel)}</span>
         <ChevronDown
           size={18}
           aria-hidden="true"
@@ -84,7 +102,7 @@ export function SectorMultiSelect({ sectors, selected, onChange }: SectorMultiSe
         <div
           id={panelId}
           role="group"
-          aria-label="Setores"
+          aria-label={groupLabel}
           className="absolute z-40 mt-2 max-h-72 w-full overflow-y-auto rounded-control border border-line bg-surface p-2 shadow-lift"
         >
           <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-control px-2 text-label font-semibold text-ink-2 hover:bg-canvas">
@@ -92,13 +110,13 @@ export function SectorMultiSelect({ sectors, selected, onChange }: SectorMultiSe
             Todos
           </label>
           <div className="my-1 border-t border-line" />
-          {sectors.map((sector) => (
+          {options.map((option) => (
             <label
-              key={sector.id}
+              key={option.id}
               className="flex min-h-11 cursor-pointer items-center gap-2 rounded-control px-2 text-label text-ink-2 hover:bg-canvas"
             >
-              <Checkbox checked={effectiveSelected.includes(sector.id)} onChange={() => toggle(sector.id)} />
-              {sector.name}
+              <Checkbox checked={effectiveSelected.includes(option.id)} onChange={() => toggle(option.id)} />
+              {option.name}
             </label>
           ))}
         </div>

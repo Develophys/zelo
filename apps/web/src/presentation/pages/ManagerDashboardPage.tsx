@@ -14,7 +14,7 @@ import { Card } from "@/presentation/ui/Card";
 import { Button } from "@/presentation/ui/Button";
 import { Skeleton } from "@/presentation/ui/Skeleton";
 import { CardTitle } from "@/presentation/ui/CardTitle";
-import { SectorMultiSelect } from "@/presentation/ui/SectorMultiSelect";
+import { MultiSelectDropdown } from "@/presentation/ui/MultiSelectDropdown";
 import { SectorPillPicker, SECTOR_PILL_CLASS } from "@/presentation/ui/SectorPillPicker";
 import { MetricHelp } from "@/presentation/ui/MetricHelp";
 import { Pill } from "@/presentation/ui/Pill";
@@ -195,7 +195,14 @@ function SectorFilter({ sectors, selectedSectorIds, onChange }: SectorFilterProp
         />
       </div>
       <div data-testid="sector-filter-dropdown" className="md:hidden">
-        <SectorMultiSelect sectors={sectors} selected={selectedSectorIds} onChange={onChange} />
+        <MultiSelectDropdown
+          options={sectors}
+          selected={selectedSectorIds}
+          onChange={onChange}
+          allLabel="Todos os setores"
+          countLabel={(count) => `${count} setores selecionados`}
+          groupLabel="Setores"
+        />
       </div>
     </div>
   );
