@@ -250,6 +250,11 @@ describe("guardTone — tail sentinel", () => {
     "Isso pesa mesmo. Tem como procurar um psicólogo essa semana?",
     "Isso pesa mesmo. O CVV atende 24h no 188, quer o número?",
     "Isso pesa mesmo. Buscar ajuda profissional agora ajudaria?",
+    "Isso pesa mesmo. Quer que eu te conecte com alguém?",
+    "Isso pesa mesmo. Quer que eu chame alguém pra você?",
+    "Isso pesa mesmo. Tem alguém com quem você consiga falar hoje?",
+    "Isso pesa mesmo. Já pensou em procurar um profissional?",
+    "Isso pesa mesmo. Prefere falar com uma pessoa real sobre isso?",
   ])("keeps the closing human-contact offer in %j", async (reply) => {
     const factory = scriptedFactory(reply);
 
@@ -258,6 +263,16 @@ describe("guardTone — tail sentinel", () => {
     );
 
     expect(text.trim()).toBe(reply);
+  });
+
+  it("still drops a trailing question that offers no human contact", async () => {
+    const factory = scriptedFactory("Isso pesa mesmo. Isso vem acontecendo toda semana?");
+
+    const text = await textOf(
+      guardTone(factory, contextWith({ priorAssistantReplies: ["Como tá o sono?"] })),
+    );
+
+    expect(text.trim()).toBe("Isso pesa mesmo.");
   });
 
   it("keeps a single-sentence question rather than emptying the reply", async () => {

@@ -17,7 +17,7 @@ const RHETORICAL_REFRAME =
   /\bnão (é|se trata de)(?![\p{L}\p{N}_])(?! pouca)[^.!?]{3,80}?,\s*(mas|e sim|é sobre|é que)(?![\p{L}\p{N}_])/iu;
 
 const HUMAN_CONTACT_OFFER =
-  /psic[óo]log|psiquiatr|terapeuta|terapia|terap[êe]ut|profissiona|(?<![\p{L}\p{N}_])(pessoa de verdade|pessoa real|algu[ée]m de verdade|falar com algu[ée]m|falar com uma pessoa|conversar com algu[ée]m|conversar com uma pessoa|atendimento|cvv|188)(?![\p{L}\p{N}_])/iu;
+  /pessoa|psic[óo]log|psiquiatr|terap[êe]ut|terapia|profissiona|(?<![\p{L}\p{N}_])(algu[ée]m|atendimento|cvv|188)(?![\p{L}\p{N}_])/iu;
 
 export function matchOpeningTell(opening: string): string | null {
   const trimmed = opening.trim();

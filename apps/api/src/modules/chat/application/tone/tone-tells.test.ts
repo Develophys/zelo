@@ -81,8 +81,23 @@ describe("classifyClosingTic — human-contact offers are never a tic", () => {
     "Falar com uma pessoa real ajuda mais que eu.",
     "Um psiquiatra pode ajudar com isso?",
     "Quer falar com alguem agora?",
+    "Quer que eu te conecte com alguém?",
+    "Quer que eu chame alguém pra você?",
+    "Quer que eu te coloque em contato com alguém?",
+    "Tem alguém com quem você consiga falar hoje?",
+    "Já pensou em procurar um profissional?",
+    "Prefere falar com uma pessoa real sobre isso?",
+    "Tem alguém em casa com você?",
   ])("never classifies %j as a tic", (sentence) => {
     expect(classifyClosingTic(sentence, false)).toBeNull();
+  });
+
+  it.each([
+    "Faz quanto tempo que tá assim?",
+    "Como tá o sono?",
+    "Isso vem acontecendo toda semana?",
+  ])("still drops the ordinary trailing question %j", (sentence) => {
+    expect(classifyClosingTic(sentence, false)).toBe("trailing_question");
   });
 
   it("exempts a human-contact offer that is also shaped like a reframe", () => {
