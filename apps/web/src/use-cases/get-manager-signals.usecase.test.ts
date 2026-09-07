@@ -6,9 +6,11 @@ import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 const SAMPLE_RESPONSE: ManagerSignalsResponse = {
   overallConcerningRate: 0.41,
   checkInsLast4Weeks: 111,
-  weeklyTrend: [{ weekStart: "2026-06-01T00:00:00.000Z", concerningRate: 0.3 }],
+  weeklyTrend: [{ weekStart: "2026-06-01T00:00:00.000Z", concerningRate: 0.3, checkIns: 20, concerning: 6 }],
   segments: [{ label: "UTI", value: 44, n: 9 }],
   followUpResponseRate: 0.7,
+  sectorCoverage: { visible: 1, total: 3 },
+  referenceWeekStart: "2026-06-01T00:00:00.000Z",
 };
 
 class FakeManagerSignalsPort implements ManagerSignalsPort {

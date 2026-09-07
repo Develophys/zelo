@@ -1,7 +1,10 @@
+import { MANAGER_METHODOLOGY_VERSION, MANAGER_METRICS, sectorCoverageReading } from "@zelo/domain";
 import type { ManagerSignalsResponse } from "@/ports/manager-signals.port";
 
 const DISCLAIMER =
   "Isto é um insumo para a gestão de risco psicossocial do empregador, não uma certificação de conformidade com a NR-1.";
+
+const DEMONSTRATION_SUFFIX = " (dado de demonstração — não usar como evidência)";
 
 function formatDate(generatedAt: Date): string {
   return generatedAt.toLocaleDateString("pt-BR", { year: "numeric", month: "long", day: "numeric" });
@@ -31,14 +34,17 @@ export function buildPgrCsvLines(data: ManagerSignalsResponse, generatedAt: Date
     csvQuote("Insumo para o PGR - Zelo"),
     csvQuote(formatDate(generatedAt)),
     csvQuote(DISCLAIMER),
+    csvQuote(sectorCoverageReading(data.sectorCoverage)),
     "",
     "Métrica,Valor",
-    `Sinais de burnout na equipe,${Math.round(data.overallConcerningRate * 100)}%`,
-    `Questionários respondidos (4 semanas),${data.checkInsLast4Weeks}`,
-    `Taxa de resposta do follow-up,${Math.round(data.followUpResponseRate * 100)}%`,
+    `${MANAGER_METRICS.concerningRate.label},${Math.round(data.overallConcerningRate * 100)}%`,
+    `${MANAGER_METRICS.checkIns.label} (4 semanas),${data.checkInsLast4Weeks}`,
+    `${MANAGER_METRICS.followUpRate.label}${DEMONSTRATION_SUFFIX},${Math.round(data.followUpResponseRate * 100)}%`,
     "",
     "Setor,Sinais (%),n",
     ...data.segments.map((segment) => `${segment.label},${segment.value}%,${segment.n}`),
+    "",
+    csvQuote(`Metodologia: /manager/methodology — versão ${MANAGER_METHODOLOGY_VERSION}`),
   ];
 }
 
@@ -70,11 +76,17 @@ export async function downloadPgrReportAsPdf(
   doc.text(disclaimerLines, 14, y);
   y += disclaimerLines.length * LINE_HEIGHT + 8;
 
-  doc.text(`Sinais de burnout na equipe: ${Math.round(data.overallConcerningRate * 100)}%`, 14, y);
+  doc.text(`${MANAGER_METRICS.concerningRate.label}: ${Math.round(data.overallConcerningRate * 100)}%`, 14, y);
   y += LINE_HEIGHT;
-  doc.text(`Questionários respondidos (4 semanas): ${data.checkInsLast4Weeks}`, 14, y);
+  doc.text(`${MANAGER_METRICS.checkIns.label} (4 semanas): ${data.checkInsLast4Weeks}`, 14, y);
   y += LINE_HEIGHT;
-  doc.text(`Taxa de resposta do follow-up: ${Math.round(data.followUpResponseRate * 100)}%`, 14, y);
+  const followUpLines = doc.splitTextToSize(
+    `${MANAGER_METRICS.followUpRate.label}${DEMONSTRATION_SUFFIX}: ${Math.round(data.followUpResponseRate * 100)}%`,
+    180,
+  );
+  doc.text(followUpLines, 14, y);
+  y += followUpLines.length * LINE_HEIGHT;
+  doc.text(sectorCoverageReading(data.sectorCoverage), 14, y);
   y += LINE_HEIGHT + 6;
 
   doc.text("Sinais por setor:", 14, y);
@@ -84,6 +96,10 @@ export async function downloadPgrReportAsPdf(
     doc.text(`- ${segment.label}: ${segment.value}% (n=${segment.n})`, 14, y);
     y += LINE_HEIGHT;
   });
+
+  y += 6;
+  doc.setFontSize(9);
+  doc.text(`Metodologia: /manager/methodology — versão ${MANAGER_METHODOLOGY_VERSION}`, 14, y);
 
   doc.save(`pgr-zelo-${formatFileDate(generatedAt)}.pdf`);
 }

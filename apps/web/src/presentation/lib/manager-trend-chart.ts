@@ -1,6 +1,8 @@
 export interface TrendPoint {
   weekStart: string;
   concerningRate: number;
+  checkIns: number;
+  concerning: number;
 }
 
 export interface TrendBar {
@@ -70,12 +72,54 @@ export function weekLabel(weekStart: string): string {
   return date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 }
 
-export function describeTrendWeek(point: TrendPoint, index: number, latestIndex: number): string {
-  const label = weekLabel(point.weekStart);
+export interface TrendWeekDetail {
+  weekLabel: string;
+  percent: number;
+  concerning: number;
+  checkIns: number;
+  deltaPoints: number | null;
+  isPeak: boolean;
+  isLatest: boolean;
+}
+
+export function trendWeekDetail(
+  trend: TrendPoint[],
+  index: number,
+  peakIndex: number,
+): TrendWeekDetail {
+  const point = trend[index]!;
+  const previous = index > 0 ? trend[index - 1] : undefined;
   const percent = Math.round(point.concerningRate * 100);
-  const suffix = index === latestIndex ? ' (mais recente)' : '';
-  const week = label ? `Semana de ${label}` : `Semana ${index + 1}`;
-  return `${week}: ${percent}%${suffix}`;
+  return {
+    weekLabel: weekLabel(point.weekStart),
+    percent,
+    concerning: point.concerning,
+    checkIns: point.checkIns,
+    deltaPoints: previous ? percent - Math.round(previous.concerningRate * 100) : null,
+    isPeak: index === peakIndex,
+    isLatest: index === trend.length - 1,
+  };
+}
+
+/**
+ * Nome acessível de uma barra. Sai da mesma estrutura que a bolha do tooltip
+ * renderiza, para que o que o leitor de tela ouve e o que o mouse mostra não
+ * possam divergir.
+ */
+export function describeTrendWeek(detail: TrendWeekDetail): string {
+  const week = detail.weekLabel ? `Semana de ${detail.weekLabel}` : 'Semana';
+  const base = `${detail.concerning} de ${detail.checkIns} ${detail.checkIns === 1 ? 'resposta' : 'respostas'}`;
+
+  let move: string;
+  if (detail.deltaPoints === null) move = 'primeira semana da série';
+  else if (detail.deltaPoints === 0) move = 'sem variação vs. a semana anterior';
+  else if (detail.deltaPoints > 0) move = `${detail.deltaPoints} pontos acima da semana anterior`;
+  else move = `${Math.abs(detail.deltaPoints)} pontos abaixo da semana anterior`;
+
+  const marks = [detail.isPeak && 'pico', detail.isLatest && 'mais recente'].filter(Boolean);
+  const suffix = marks.length > 0 ? ` (${marks.join(', ')})` : '';
+
+  return `${week}: ${detail.percent}%, ${base}, ${move}${suffix}`;
 }
 
 export function describeSegment(segment: { label: string; value: number; n: number }): string {

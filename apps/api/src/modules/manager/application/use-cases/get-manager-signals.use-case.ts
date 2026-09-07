@@ -9,9 +9,17 @@ import {
 export interface ManagerSignalsResponse {
   overallConcerningRate: number;
   checkInsLast4Weeks: number;
-  weeklyTrend: { weekStart: string; concerningRate: number }[];
+  weeklyTrend: { weekStart: string; concerningRate: number; checkIns: number; concerning: number }[];
   segments: { label: string; value: number; n: number }[];
   followUpResponseRate: number;
+  sectorCoverage: { visible: number; total: number };
+  /**
+   * The week `overallConcerningRate`, `segments` and `sectorCoverage` were all
+   * read from. It is not always the last entry of `weeklyTrend`: a visible
+   * sector contributes every week it has rows for, including weeks newer than
+   * this one that never cleared k on their own.
+   */
+  referenceWeekStart: string | null;
 }
 
 const RECENT_WEEKS_FOR_VOLUME = 4;
@@ -20,6 +28,8 @@ const EMPTY_RESPONSE: Omit<ManagerSignalsResponse, "followUpResponseRate"> = {
   checkInsLast4Weeks: 0,
   weeklyTrend: [],
   segments: [],
+  sectorCoverage: { visible: 0, total: 0 },
+  referenceWeekStart: null,
 };
 
 /**
@@ -57,7 +67,7 @@ export class GetManagerSignalsUseCase {
 
     const rows = await this.repository.findAll(institutionId, sectorIds);
     if (rows.length === 0) {
-      return { ...EMPTY_RESPONSE, followUpResponseRate };
+      return { ...EMPTY_RESPONSE, sectorCoverage: { visible: 0, total: sectorIds.length }, followUpResponseRate };
     }
 
     const bySector = new Map<string, SignalRow[]>();
@@ -80,7 +90,10 @@ export class GetManagerSignalsUseCase {
     // keeps a suppressed sector out of every aggregate.
     const mostRecentWeek = referenceWeek(bySector);
     if (mostRecentWeek === null) {
-      return { ...EMPTY_RESPONSE, followUpResponseRate };
+      // `total` is the count of sectors this query is scoped to, not zero:
+      // "0 of 4 sectors" says the week hasn't reached the minimum yet, while
+      // "0 of 0" would read as "this institution has no sectors".
+      return { ...EMPTY_RESPONSE, sectorCoverage: { visible: 0, total: sectorIds.length }, followUpResponseRate };
     }
 
     // A sector is either fully visible or fully suppressed, decided solely by
@@ -128,10 +141,24 @@ export class GetManagerSignalsUseCase {
       return {
         weekStart: new Date(weekTime).toISOString(),
         concerningRate: totalCheckIns === 0 ? 0 : totalConcerning / totalCheckIns,
+        checkIns: totalCheckIns,
+        concerning: totalConcerning,
       };
     });
 
-    return { overallConcerningRate, checkInsLast4Weeks, weeklyTrend, segments, followUpResponseRate };
+    return {
+      overallConcerningRate,
+      checkInsLast4Weeks,
+      weeklyTrend,
+      segments,
+      followUpResponseRate,
+      // `total` is sectorIds.length, not bySector.size: a sector with rows
+      // that never clear k must count the same as a sector with zero rows at
+      // all, or "total" would leak whether a suppressed sector has any
+      // activity — information the suppression exists to hide.
+      sectorCoverage: { visible: visibleSectorIds.size, total: sectorIds.length },
+      referenceWeekStart: new Date(mostRecentWeek).toISOString(),
+    };
   }
 
   private async computeFollowUpResponseRate(): Promise<number> {

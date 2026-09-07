@@ -28,6 +28,10 @@ class FakeSimulatedFollowUpRepository implements SimulatedFollowUpRepository {
 const WEEK_1 = new Date("2026-06-15T00:00:00.000Z");
 const WEEK_2 = new Date("2026-06-22T00:00:00.000Z"); // most recent
 
+function makeUseCase(rows: SignalRow[]) {
+  return new GetManagerSignalsUseCase(new FakeSignalRepository(rows), new FakeSimulatedFollowUpRepository([]));
+}
+
 describe("GetManagerSignalsUseCase", () => {
   it("passes the given institutionId and sectorIds through to the repository", async () => {
     const repository = new FakeSignalRepository([]);
@@ -50,6 +54,8 @@ describe("GetManagerSignalsUseCase", () => {
       weeklyTrend: [],
       segments: [],
       followUpResponseRate: 0,
+      sectorCoverage: { visible: 0, total: 0 },
+      referenceWeekStart: null,
     });
     expect(repository.lastCall).toBeNull();
   });
@@ -104,8 +110,8 @@ describe("GetManagerSignalsUseCase", () => {
 
     // "C" is suppressed in every week, so its 4+4 check-ins never reach the sums.
     expect(result.weeklyTrend).toEqual([
-      { weekStart: WEEK_1.toISOString(), concerningRate: 0.35 },
-      { weekStart: WEEK_2.toISOString(), concerningRate: 0.5 },
+      { weekStart: WEEK_1.toISOString(), concerningRate: 0.35, checkIns: 20, concerning: 7 },
+      { weekStart: WEEK_2.toISOString(), concerningRate: 0.5, checkIns: 20, concerning: 10 },
     ]);
     expect(result.checkInsLast4Weeks).toBe(40);
   });
@@ -120,8 +126,8 @@ describe("GetManagerSignalsUseCase", () => {
     const result = await useCase.execute("institution-1", ["a"]);
 
     expect(result.weeklyTrend).toEqual([
-      { weekStart: WEEK_1.toISOString(), concerningRate: 0.5 },
-      { weekStart: WEEK_2.toISOString(), concerningRate: 0.5 },
+      { weekStart: WEEK_1.toISOString(), concerningRate: 0.5, checkIns: 2, concerning: 1 },
+      { weekStart: WEEK_2.toISOString(), concerningRate: 0.5, checkIns: 10, concerning: 5 },
     ]);
     expect(result.checkInsLast4Weeks).toBe(12);
   });
@@ -152,6 +158,124 @@ describe("GetManagerSignalsUseCase", () => {
     expect(result.overallConcerningRate).toBe(0);
     expect(result.weeklyTrend).toEqual([]);
     expect(result.checkInsLast4Weeks).toBe(0);
+  });
+
+  it("carries the denominator of every trend week, so a rate can be read against its base", async () => {
+    const rows = [
+      { sectorId: "s1", sectorName: "UTI", weekStart: new Date("2026-08-24T00:00:00.000Z"), checkIns: 10, concerning: 4 },
+      { sectorId: "s1", sectorName: "UTI", weekStart: new Date("2026-08-31T00:00:00.000Z"), checkIns: 20, concerning: 9 },
+    ];
+    const useCase = makeUseCase(rows);
+
+    const result = await useCase.execute("inst-1", ["s1"]);
+
+    expect(result.weeklyTrend).toEqual([
+      { weekStart: "2026-08-24T00:00:00.000Z", concerningRate: 0.4, checkIns: 10, concerning: 4 },
+      { weekStart: "2026-08-31T00:00:00.000Z", concerningRate: 0.45, checkIns: 20, concerning: 9 },
+    ]);
+  });
+
+  // A garantia mais importante do produto não pode depender de leitura de
+  // código: um setor abaixo do limiar fica fora de TODOS os agregados,
+  // inclusive do denominador da tendência, onde seria fácil vazá-lo.
+  it("keeps a sub-threshold sector out of the trend denominators entirely", async () => {
+    const week = new Date("2026-08-31T00:00:00.000Z");
+    const rows = [
+      { sectorId: "visible", sectorName: "UTI", weekStart: week, checkIns: 20, concerning: 9 },
+      { sectorId: "hidden", sectorName: "Pediatria", weekStart: week, checkIns: 3, concerning: 3 },
+    ];
+    const useCase = makeUseCase(rows);
+
+    const result = await useCase.execute("inst-1", ["visible", "hidden"]);
+
+    expect(result.weeklyTrend).toHaveLength(1);
+    expect(result.weeklyTrend[0]!.checkIns).toBe(20);
+    expect(result.weeklyTrend[0]!.concerning).toBe(9);
+    expect(result.segments.map((s) => s.label)).toEqual(["UTI"]);
+  });
+
+  it("reports how many sectors the reading covers and how many are suppressed", async () => {
+    const week = new Date("2026-08-31T00:00:00.000Z");
+    const rows = [
+      { sectorId: "a", sectorName: "UTI", weekStart: week, checkIns: 20, concerning: 9 },
+      { sectorId: "b", sectorName: "PS", weekStart: week, checkIns: 8, concerning: 2 },
+      { sectorId: "c", sectorName: "Pediatria", weekStart: week, checkIns: 3, concerning: 1 },
+    ];
+    const useCase = makeUseCase(rows);
+
+    const result = await useCase.execute("inst-1", ["a", "b", "c"]);
+
+    expect(result.sectorCoverage).toEqual({ visible: 2, total: 3 });
+  });
+
+  // Quando nenhum setor chega ao limiar a página fica vazia, e "0 de 0" leria
+  // como "esta instituição não tem setores" — que é outra coisa.
+  it("still reports the total when every sector is suppressed", async () => {
+    const week = new Date("2026-08-31T00:00:00.000Z");
+    const rows = [
+      { sectorId: "a", sectorName: "UTI", weekStart: week, checkIns: 2, concerning: 1 },
+      { sectorId: "b", sectorName: "PS", weekStart: week, checkIns: 1, concerning: 0 },
+    ];
+    const useCase = makeUseCase(rows);
+
+    const result = await useCase.execute("inst-1", ["a", "b"]);
+
+    expect(result.sectorCoverage).toEqual({ visible: 0, total: 2 });
+    expect(result.segments).toEqual([]);
+  });
+
+  it("reports the requested sector count as the total when there is no data at all", async () => {
+    const useCase = makeUseCase([]);
+
+    const result = await useCase.execute("inst-1", ["a"]);
+
+    expect(result.sectorCoverage).toEqual({ visible: 0, total: 1 });
+  });
+
+  it("counts a sector that has never had a single check-in toward the total, not just sectors with rows", async () => {
+    const week = new Date("2026-08-31T00:00:00.000Z");
+    const rows = [{ sectorId: "a", sectorName: "UTI", weekStart: week, checkIns: 20, concerning: 9 }];
+    const useCase = makeUseCase(rows);
+
+    const result = await useCase.execute("inst-1", ["a", "never-checked-in"]);
+
+    expect(result.sectorCoverage).toEqual({ visible: 1, total: 2 });
+  });
+
+  // O consumidor não pode inferir a semana de referência pela posição no
+  // array: a semana em curso é parcial e entra na tendência sem ter atingido
+  // o mínimo por conta própria, então a última entrada de weeklyTrend não é a
+  // semana de onde overallConcerningRate saiu.
+  it("names the reference week, which is not the newest week when the current one is still partial", async () => {
+    const REFERENCE = new Date("2026-08-24T00:00:00.000Z");
+    const PARTIAL = new Date("2026-08-31T00:00:00.000Z"); // a semana em curso
+    const rows = [
+      { sectorId: "s1", sectorName: "UTI", weekStart: REFERENCE, checkIns: 20, concerning: 8 },
+      { sectorId: "s1", sectorName: "UTI", weekStart: PARTIAL, checkIns: 3, concerning: 1 },
+    ];
+    const useCase = makeUseCase(rows);
+
+    const result = await useCase.execute("inst-1", ["s1"]);
+
+    expect(result.referenceWeekStart).toBe(REFERENCE.toISOString());
+    // A semana parcial continua na tendência — o setor é visível como um todo —
+    // e é a última do array, exatamente o que induzia o card ao erro.
+    expect(result.weeklyTrend.map((point) => point.weekStart)).toEqual([
+      REFERENCE.toISOString(),
+      PARTIAL.toISOString(),
+    ]);
+    expect(result.overallConcerningRate).toBe(0.4); // 8/20, da semana de referência
+  });
+
+  it("names no reference week when no week reaches the minimum", async () => {
+    const rows = [
+      { sectorId: "a", sectorName: "UTI", weekStart: WEEK_2, checkIns: 2, concerning: 1 },
+    ];
+    const useCase = makeUseCase(rows);
+
+    const result = await useCase.execute("inst-1", ["a"]);
+
+    expect(result.referenceWeekStart).toBeNull();
   });
 });
 

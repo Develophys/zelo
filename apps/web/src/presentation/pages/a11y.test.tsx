@@ -23,6 +23,7 @@ import { ManagerDashboardPage } from './ManagerDashboardPage';
 import { ManagerLoginPage } from './ManagerLoginPage';
 import { YouPage } from './YouPage';
 import { ManagerInsightHistoryPage } from './ManagerInsightHistoryPage';
+import { ManagerMethodologyPage } from './ManagerMethodologyPage';
 import { ManagerNotificationsPage } from './ManagerNotificationsPage';
 import { ManagerSettingsPage } from './ManagerSettingsPage';
 import { ManagerAdminManagersPage } from './ManagerAdminManagersPage';
@@ -63,6 +64,7 @@ const SCREENS: { name: string; Component: ComponentType; path: string; state?: u
   { name: 'ManagerDashboard', Component: ManagerDashboardPage, path: '/manager' },
   { name: 'You', Component: YouPage, path: '/you' },
   { name: 'ManagerInsightHistory', Component: ManagerInsightHistoryPage, path: '/manager/history' },
+  { name: 'ManagerMethodology', Component: ManagerMethodologyPage, path: '/manager/methodology' },
   { name: 'ManagerNotifications', Component: ManagerNotificationsPage, path: '/manager/notifications' },
   { name: 'ManagerSettings', Component: ManagerSettingsPage, path: '/manager/settings' },
   { name: 'ManagerAdminManagers', Component: ManagerAdminManagersPage, path: '/manager/admin/managers' },

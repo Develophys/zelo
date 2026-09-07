@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { BarChart3, Bell, Brain, Building2, Settings, User, Users } from 'lucide-react';
+import { BarChart3, Bell, BookOpen, Brain, Building2, Settings, User, Users } from 'lucide-react';
 import type { ManagerRole } from '@/stores/manager-session.store';
 import { routes } from '@/presentation/lib/routes';
 
@@ -18,6 +18,7 @@ export const MANAGER_PRIMARY_NAV: readonly ManagerNavItem[] = [
   { id: 'trends', label: 'Tendências', icon: BarChart3, route: routes.manager },
   { id: 'notifications', label: 'Notificações', icon: Bell, route: routes.managerNotifications },
   { id: 'insights', label: 'Análises com IA', icon: Brain, route: routes.managerHistory },
+  { id: 'methodology', label: 'Como calculamos', icon: BookOpen, route: routes.managerMethodology },
 ];
 
 // Gestores before Setores on purpose: a sector is assigned to a manager, so the

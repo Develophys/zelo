@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
+import { MANAGER_METRICS, sectorCoverageReading } from "@zelo/domain";
 import { GetManagerSignalsUseCase, type ManagerSignalsResponse } from "./get-manager-signals.use-case.ts";
 import { AI_INSIGHT_PORT, type AiInsightPort, type ManagerInsightResponse } from "../ports/ai-insight.port.ts";
 import { MANAGER_INSIGHT_SYSTEM_PROMPT } from "../prompts/manager-insight-system-prompt.ts";
@@ -47,16 +48,23 @@ export class GenerateManagerInsightUseCase {
   }
 
   private formatSummary(signals: ManagerSignalsResponse): string {
-    const trendLine = signals.weeklyTrend.map((point) => `${Math.round(point.concerningRate * 100)}%`).join(", ");
+    // O denominador viaja junto de cada ponto: sem ele o modelo lê
+    // "40%, 42%, 44%" sem saber se cada semana tem 8 ou 180 respostas, e
+    // afirma tendência onde há ruído de amostra.
+    const trendLine = signals.weeklyTrend
+      .map((point) => `${Math.round(point.concerningRate * 100)}% (n=${point.checkIns})`)
+      .join(", ");
     const segmentLines = signals.segments
       .map((segment) => `  - ${segment.label}: ${segment.value}% (n=${segment.n})`)
       .join("\n");
 
     return [
-      "Dados agregados da equipe (última semana visível, últimas 6 semanas de tendência):",
-      `- Taxa geral de sinais preocupantes: ${Math.round(signals.overallConcerningRate * 100)}%`,
-      `- Check-ins nas últimas 4 semanas: ${signals.checkInsLast4Weeks}`,
-      `- Tendência semanal (taxa de sinais preocupantes por semana, ${signals.weeklyTrend.length} semanas): ${trendLine}`,
+      `Dados agregados da equipe (última semana visível, últimas ${signals.weeklyTrend.length} semanas de tendência):`,
+      `- ${MANAGER_METRICS.sectorCoverage.label}: ${sectorCoverageReading(signals.sectorCoverage)}`,
+      `- ${MANAGER_METRICS.concerningRate.label}: ${Math.round(signals.overallConcerningRate * 100)}%`,
+      `- ${MANAGER_METRICS.checkIns.label} (4 semanas): ${signals.checkInsLast4Weeks}`,
+      `- Tendência semanal (taxa e base por semana, ${signals.weeklyTrend.length} semanas): ${trendLine}`,
+      `- ${MANAGER_METRICS.followUpRate.label}: ${Math.round(signals.followUpResponseRate * 100)}% — dado de demonstração, não reflete esta instituição; não baseie nenhuma recomendação nele.`,
       "- Por setor (apenas setores com 5+ respostas, por privacidade):",
       segmentLines,
     ].join("\n");

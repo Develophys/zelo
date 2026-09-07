@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { MANAGER_METRICS, sectorCoverageReading } from "@zelo/domain";
 import { GenerateManagerInsightUseCase } from "./generate-manager-insight.use-case.ts";
 import { GetManagerSignalsUseCase } from "./get-manager-signals.use-case.ts";
 import type { SignalRepository, SignalRow, WeeklySignalRow } from "../ports/signal-repository.port.ts";
@@ -93,14 +94,52 @@ describe("GenerateManagerInsightUseCase", () => {
 
     expect(result).toEqual({ interpretation: "texto", suggestedActions: ["ação 1"] });
     expect(aiInsight.lastParams?.systemPrompt).toBe(MANAGER_INSIGHT_SYSTEM_PROMPT);
-    expect(aiInsight.lastParams?.summary).toContain("Taxa geral de sinais preocupantes: 60%");
+    expect(aiInsight.lastParams?.summary).toContain("Respostas com sinal de sofrimento relevante: 60%");
     expect(aiInsight.lastParams?.summary).toContain("UTI: 60% (n=10)");
     expect(aiInsight.lastParams?.summary).toContain(
-      "Tendência semanal (taxa de sinais preocupantes por semana, 2 semanas): 30%, 60%",
+      "Tendência semanal (taxa e base por semana, 2 semanas): 30% (n=10), 60% (n=10)",
+    );
+    // A mesma frase que o card de cobertura, o CSV e o PDF imprimem — o prompt
+    // não pode descrever a cobertura com palavras próprias.
+    expect(aiInsight.lastParams?.summary).toContain(
+      `${MANAGER_METRICS.sectorCoverage.label}: ${sectorCoverageReading({ visible: 1, total: 2 })}`,
+    );
+    expect(aiInsight.lastParams?.summary).toContain(
+      "1 de 2 setores · 1 oculto por ter menos de 5 respostas",
+    );
+    expect(aiInsight.lastParams?.summary).toContain(
+      "Taxa de resposta do follow-up: 0% — dado de demonstração, não reflete esta instituição",
     );
     // Institution-wide, not scoped to any one manager's accessible sectors:
     // every active sector id gets resolved and forwarded unconditionally.
     expect(signalsRepository.lastSectorIds).toEqual(["sector-uti", "sector-er"]);
+  });
+
+  it("keeps a sub-threshold sector out of every number in the summary, but still reports it was suppressed", async () => {
+    const signalsRepository = new FakeSignalRepository([
+      { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 4 },
+      { sectorId: "sector-peq", sectorName: "Pediatria", weekStart: WEEK_2, checkIns: 3, concerning: 1 },
+    ]);
+    const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository, new FakeSimulatedFollowUpRepository());
+    const aiInsight = new FakeAiInsightPort({ interpretation: "texto", suggestedActions: [] });
+    const insightRepository = new FakeManagerInsightRepository();
+    const sectorRepository = new FakeSectorRepository([
+      { id: "sector-uti", name: "UTI" },
+      { id: "sector-peq", name: "Pediatria" },
+    ]);
+    const useCase = new GenerateManagerInsightUseCase(getManagerSignals, aiInsight, insightRepository, sectorRepository as never);
+
+    await useCase.execute("Ana Konder", "institution-1");
+
+    const summary = aiInsight.lastParams?.summary ?? "";
+    // 3 check-ins fica abaixo do limiar de 5: o setor nunca deveria contribuir
+    // para nenhum agregado, nem sequer para o denominador da tendência.
+    expect(summary).toContain(
+      `${MANAGER_METRICS.sectorCoverage.label}: ${sectorCoverageReading({ visible: 1, total: 2 })}`,
+    );
+    expect(summary).toContain("Respostas com sinal de sofrimento relevante: 40%");
+    expect(summary).toContain("Tendência semanal (taxa e base por semana, 1 semanas): 40% (n=10)");
+    expect(summary).not.toContain("Pediatria");
   });
 
   it("propagates whatever the AiInsightPort throws (e.g. InsightGenerationFailedError from the adapter)", async () => {

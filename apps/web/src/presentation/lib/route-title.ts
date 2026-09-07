@@ -23,6 +23,7 @@ export const ROUTE_TITLES: Record<string, string> = {
   [routes.you]: 'Você',
   [routes.settings]: 'Configurações',
   [routes.managerHistory]: 'Análises com IA',
+  [routes.managerMethodology]: 'Como calculamos',
   [routes.linkInstitution]: 'Vincular ao hospital',
   [routes.adminLogin]: 'Acesso administrativo',
   [routes.admin]: 'Instituições',

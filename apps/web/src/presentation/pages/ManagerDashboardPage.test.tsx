@@ -24,6 +24,7 @@ function renderManager(initialEntry = "/manager") {
           <Route path="/manager" element={<ManagerDashboardPage />} />
           <Route path="/manager/login" element={<div>Login screen</div>} />
           <Route path="/manager/history" element={<div>History screen</div>} />
+          <Route path="/manager/methodology" element={<div>Methodology screen</div>} />
           <Route path="/home" element={<div>Home screen</div>} />
         </Routes>
       </MemoryRouter>
@@ -35,8 +36,8 @@ const SIGNALS_RESPONSE = {
   overallConcerningRate: 0.41,
   checkInsLast4Weeks: 111,
   weeklyTrend: [
-    { weekStart: "2026-06-01T00:00:00.000Z", concerningRate: 0.3 },
-    { weekStart: "2026-06-08T00:00:00.000Z", concerningRate: 0.5 },
+    { weekStart: "2026-06-01T00:00:00.000Z", concerningRate: 0.3, checkIns: 20, concerning: 6 },
+    { weekStart: "2026-06-08T00:00:00.000Z", concerningRate: 0.5, checkIns: 24, concerning: 12 },
   ],
   segments: [
     { label: "Plantão noturno", value: 52, n: 18 },
@@ -44,6 +45,8 @@ const SIGNALS_RESPONSE = {
     { label: "UTI", value: 44, n: 9 },
   ],
   followUpResponseRate: 0.7,
+  sectorCoverage: { visible: 3, total: 4 },
+  referenceWeekStart: "2026-06-08T00:00:00.000Z",
 };
 
 describe("ManagerDashboardPage", () => {
@@ -107,6 +110,18 @@ describe("ManagerDashboardPage", () => {
     expect(screen.getByText("History screen")).toBeInTheDocument();
   });
 
+  it("navigates to /manager/methodology via the footer link", async () => {
+    const user = userEvent.setup();
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("link", { name: "Como calculamos estes números" }));
+
+    expect(screen.getByText("Methodology screen")).toBeInTheDocument();
+  });
+
   it("generates and displays the AI insight when the manager clicks the button", async () => {
     vi.spyOn(container.generateManagerInsightUseCase, "execute").mockResolvedValue({
       interpretation: "A UTI mostra um padrão de aumento gradual nos sinais preocupantes.",
@@ -150,7 +165,7 @@ describe("ManagerDashboardPage", () => {
       expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
     });
     expect(screen.getByText("70%")).toBeInTheDocument();
-    expect(screen.getByText("taxa de resposta do follow-up")).toBeInTheDocument();
+    expect(screen.getByText("Taxa de resposta do follow-up")).toBeInTheDocument();
   });
 
   it("withholds the KPI numerals instead of printing a fabricated 0% and a hospital-wide follow-up rate beside it", async () => {
@@ -160,6 +175,8 @@ describe("ManagerDashboardPage", () => {
       weeklyTrend: [],
       segments: [],
       followUpResponseRate: 0.7,
+      sectorCoverage: { visible: 0, total: 0 },
+      referenceWeekStart: null,
     });
 
     renderManager();
@@ -186,7 +203,75 @@ describe("ManagerDashboardPage", () => {
     await waitFor(() => {
       expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
     });
-    expect(screen.getByText("questionários respondidos (4 semanas)")).toBeInTheDocument();
+    expect(screen.getByText("Questionários respondidos")).toBeInTheDocument();
+  });
+
+  it("labels the main indicator by what it measures, never as burnout", async () => {
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("Respostas com sinal de sofrimento relevante")).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/burnout/i)).not.toBeInTheDocument();
+  });
+
+  it("states the base and the week under the main number", async () => {
+    renderManager();
+
+    // 41% de 24 respostas — a última semana da série, não a média das seis.
+    await waitFor(() => {
+      expect(screen.getByText("41% das 24 respostas na semana de 8 de jun.")).toBeInTheDocument();
+    });
+  });
+
+  it("reads the base and the date from the week the API named, not from the last one in the array", async () => {
+    // A semana de 8 de jun. é a semana em curso: 3 respostas, abaixo do mínimo
+    // de 5, presente na tendência só porque o setor já era visível. A leitura
+    // tem que ser da semana de 1 de jun., de onde os 41% saíram — senão a
+    // frase pareia a porcentagem de uma semana com o denominador e a data de
+    // outra e se contradiz sozinha.
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
+      ...SIGNALS_RESPONSE,
+      weeklyTrend: [
+        { weekStart: "2026-06-01T00:00:00.000Z", concerningRate: 0.41, checkIns: 20, concerning: 8 },
+        { weekStart: "2026-06-08T00:00:00.000Z", concerningRate: 0.33, checkIns: 3, concerning: 1 },
+      ],
+      referenceWeekStart: "2026-06-01T00:00:00.000Z",
+    });
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("41% das 20 respostas na semana de 1 de jun.")).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/das 3 respostas na semana de 8 de jun\./)).not.toBeInTheDocument();
+  });
+
+  it("says how many sectors the check-in total spans", async () => {
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("111 respostas em 3 setores visíveis, nas últimas 4 semanas")).toBeInTheDocument();
+    });
+  });
+
+  it("marks the follow-up rate as demonstration data and bands it", async () => {
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("Dado de demonstração — não reflete esta instituição")).toBeInTheDocument();
+    });
+    // 70% cai em "Média": a regra é "abaixo de 70 é baixa".
+    expect(screen.getByText("Média")).toBeInTheDocument();
+  });
+
+  it("offers a help trigger for every KPI card", async () => {
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Sobre: Respostas com sinal de sofrimento relevante" })).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Sobre: Questionários respondidos" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sobre: Taxa de resposta do follow-up" })).toBeInTheDocument();
   });
 
   it("shows skeleton placeholders while signals are loading, then replaces them with real content", async () => {
@@ -226,16 +311,46 @@ describe("ManagerDashboardPage", () => {
     });
   });
 
-  it("gives the trend chart an accessible description, as the médico's chart has", async () => {
+  it("gives each trend week an accessible name carrying its full detail", async () => {
     renderManager();
-    await waitFor(() => {
-      expect(screen.getByTestId("trend-description")).toBeInTheDocument();
-    });
-    const items = within(screen.getByTestId("trend-description")).getAllByRole("listitem");
-    expect(items.map((item) => item.textContent)).toEqual([
-      "Semana de 1 de jun.: 30%",
-      "Semana de 8 de jun.: 50% (mais recente)",
+    const bars = await screen.findAllByTestId("trend-bar");
+    expect(bars.map((bar) => bar.getAttribute("aria-label"))).toEqual([
+      "Semana de 1 de jun.: 30%, 6 de 20 respostas, primeira semana da série",
+      "Semana de 8 de jun.: 50%, 12 de 24 respostas, 20 pontos acima da semana anterior (pico, mais recente)",
     ]);
+  });
+
+  it("exposes each trend week as a focusable button naming its base", async () => {
+    renderManager();
+
+    // Both the desktop bar and the mobile row are buttons carrying this same
+    // accessible name — Tailwind's `hidden md:flex` / `flex md:hidden` split
+    // is CSS-only, so jsdom (no stylesheet applied) renders both at once.
+    // `findAllBy` accounts for that; the point under test is that at least
+    // one focusable trend-week button exists with the full detail as its name.
+    const bars = await screen.findAllByRole("button", {
+      name: "Semana de 8 de jun.: 50%, 12 de 24 respostas, 20 pontos acima da semana anterior (pico, mais recente)",
+    });
+    expect(bars.length).toBeGreaterThan(0);
+  });
+
+  it("shows the week detail on focus", async () => {
+    renderManager();
+
+    const [bar] = await screen.findAllByRole("button", { name: /Semana de 8 de jun\./ });
+    bar!.focus();
+
+    const bubble = await screen.findByTestId("tooltip");
+    expect(bubble).toHaveTextContent("50%");
+    expect(bubble).toHaveTextContent("12 de 24 respostas");
+  });
+
+  it("keeps no focusable element inside aria-hidden content", async () => {
+    const { container } = renderManager();
+    await screen.findAllByRole("button", { name: /Semana de 8 de jun\./ });
+
+    const hidden = container.querySelectorAll('[aria-hidden="true"] button, [aria-hidden="true"] a');
+    expect(hidden).toHaveLength(0);
   });
 
   it("gives the segments card an accessible description too", async () => {
@@ -264,8 +379,8 @@ describe("ManagerDashboardPage", () => {
     vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
       ...SIGNALS_RESPONSE,
       weeklyTrend: [
-        { weekStart: "2026-06-01T00:00:00.000Z", concerningRate: 0 },
-        { weekStart: "2026-06-08T00:00:00.000Z", concerningRate: 0.08 },
+        { weekStart: "2026-06-01T00:00:00.000Z", concerningRate: 0, checkIns: 20, concerning: 0 },
+        { weekStart: "2026-06-08T00:00:00.000Z", concerningRate: 0.08, checkIns: 25, concerning: 2 },
       ],
     });
     renderManager();
@@ -673,8 +788,8 @@ describe("ManagerDashboardPage", () => {
     const [trendCard] = within(grid).getAllByTestId('manager-card');
     expect(trendCard!.className).toContain('flex');
     expect(trendCard!.className).toContain('flex-col');
-    const barsRow = screen.getAllByTestId('trend-bar')[0]!.parentElement;
-    expect(barsRow?.className).toContain('mt-auto');
+    const barsRow = screen.getAllByTestId('trend-bar')[0]!.closest('.mt-auto');
+    expect(barsRow).not.toBeNull();
   });
 
   it('puts the sector filter in a plain row above the KPIs, with no rule drawn across the page', async () => {
@@ -689,6 +804,17 @@ describe("ManagerDashboardPage", () => {
     ).toBeTruthy();
     expect(row.querySelector('hr')).toBeNull();
     expect(screen.queryByTestId('manager-action-bar')).not.toBeInTheDocument();
+  });
+
+  it("says how much of the institution this reading covers", async () => {
+    renderManager();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("3 de 4 setores · 1 oculto por ter menos de 5 respostas"),
+      ).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Sobre: Cobertura desta leitura" })).toBeInTheDocument();
   });
 
   it('does not render the filter row when only one sector is accessible, since the filter itself is hidden', async () => {
@@ -816,5 +942,37 @@ describe("ManagerDashboardPage", () => {
     const desktopRow = values[0]!.parentElement;
     expect(desktopRow?.className).toContain("md:flex");
     expect(desktopRow?.className).not.toContain("md:hidden");
+  });
+
+  // A API não filtra por data: a tendência traz quantas semanas existirem.
+  // "últimas 6 semanas" era uma janela que ninguém aplica.
+  it("labels the trend window with the number of weeks it actually drew", async () => {
+    renderManager();
+
+    await waitFor(() => expect(screen.getAllByTestId("trend-bar")).toHaveLength(2));
+    expect(screen.getByText("últimas 2 semanas")).toBeInTheDocument();
+    expect(screen.queryByText("últimas 6 semanas")).not.toBeInTheDocument();
+  });
+
+  it("says 'última semana' rather than 'últimas 1 semanas' for a single week", async () => {
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
+      ...SIGNALS_RESPONSE,
+      weeklyTrend: [
+        { weekStart: "2026-06-08T00:00:00.000Z", concerningRate: 0.5, checkIns: 24, concerning: 12 },
+      ],
+    });
+    renderManager();
+
+    await waitFor(() => expect(screen.getByText("última semana")).toBeInTheDocument());
+  });
+
+  it("explains that the peak marker is relative to the series, not an alert threshold", async () => {
+    renderManager();
+
+    const help = await screen.findByRole("button", { name: "Sobre: Pico" });
+    help.focus();
+
+    const bubble = await screen.findByTestId("tooltip");
+    expect(bubble).toHaveTextContent("não é um limite de alerta");
   });
 });

@@ -1,4 +1,14 @@
+import type { ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
+import {
+  MANAGER_METRICS,
+  checkInsReading,
+  concerningRateReading,
+  followUpBandFor,
+  followUpReading,
+  sectorCoverageReading,
+  type MetricDefinition,
+} from "@zelo/domain";
 import { SectionLabel } from "@/presentation/ui/SectionLabel";
 import { Card } from "@/presentation/ui/Card";
 import { Button } from "@/presentation/ui/Button";
@@ -6,6 +16,9 @@ import { Skeleton } from "@/presentation/ui/Skeleton";
 import { CardTitle } from "@/presentation/ui/CardTitle";
 import { SectorMultiSelect } from "@/presentation/ui/SectorMultiSelect";
 import { SectorPillPicker, SECTOR_PILL_CLASS } from "@/presentation/ui/SectorPillPicker";
+import { MetricHelp } from "@/presentation/ui/MetricHelp";
+import { Pill } from "@/presentation/ui/Pill";
+import { Tooltip } from "@/presentation/ui/Tooltip";
 import { routes } from "@/presentation/lib/routes";
 import { useManagerSignals } from "@/presentation/hooks/useManagerSignals";
 import { useManagerSectors } from "@/presentation/hooks/useManagerSectors";
@@ -19,9 +32,11 @@ import {
   peakTrendIndex,
   describeSegment,
   describeTrendWeek,
+  trendWeekDetail,
   toTrendBarHeights,
   toTrendBars,
   weekLabel,
+  type TrendWeekDetail,
 } from "@/presentation/lib/manager-trend-chart";
 
 const TREND_SKELETON_BAR_COUNT = 6;
@@ -59,8 +74,7 @@ function parseSectorParam(raw: string | null, sectors: { id: string }[] | undefi
   return valid;
 }
 
-const DASHBOARD_DISCLOSURE =
-  "Nenhum dado individual é exibido; segmentos com menos de 5 respostas ficam ocultos.";
+const DASHBOARD_DISCLOSURE = "Nenhum dado individual é exibido.";
 
 const TREND_EMPTY =
   "Sem dados nas últimas 6 semanas. O gráfico aparece assim que houver check-ins.";
@@ -81,6 +95,12 @@ const KPI_EMPTY = "Sem dados suficientes para os indicadores desta seleção.";
 
 const INSIGHT_EMPTY_EXPLANATION =
   "Interpreta os indicadores agregados e anônimos desta página e sugere ações para a liderança, sem acesso a dados individuais de nenhum profissional.";
+
+const PEAK_LEGEND_HELP =
+  "A semana com a maior proporção de sinais dentro deste período. É uma comparação relativa à própria série e não é um limite de alerta: a barra fica marcada mesmo que o valor seja baixo, porque indica o ponto mais alto do período, não que ele seja preocupante.";
+
+const LATEST_LEGEND_HELP =
+  "A última semana com dados. Aparece separada porque é a que reflete a situação atual; quando ela também é o pico, prevalece a marcação de pico.";
 
 function KpiCardSkeleton({ className = "" }: { className?: string }) {
   return (
@@ -181,6 +201,61 @@ function SectorFilter({ sectors, selectedSectorIds, onChange }: SectorFilterProp
   );
 }
 
+function metricHelpContent(metric: MetricDefinition, extra?: string) {
+  return (
+    <span className="flex flex-col gap-1.5">
+      <span>{metric.method}</span>
+      <span>{metric.window}</span>
+      <span>{metric.suppression}</span>
+      {extra && <span>{extra}</span>}
+    </span>
+  );
+}
+
+interface KpiCardProps {
+  metric: MetricDefinition;
+  value: string;
+  valueClass: string;
+  reading: string;
+  /** Acrescentado ao fim do tooltip — o significado da faixa, quando há uma. */
+  extraHelp?: string;
+  badge?: ReactNode;
+}
+
+function KpiCard({ metric, value, valueClass, reading, extraHelp, badge }: KpiCardProps) {
+  return (
+    <Card className="flex h-full flex-col text-center" data-testid="kpi-card">
+      <p className={`font-serif text-stat ${valueClass}`}>{value}</p>
+      <p className="mt-0.5 flex items-center justify-center gap-1 text-caption text-muted">
+        <span>{metric.label}</span>
+        <MetricHelp label={metric.label} content={metricHelpContent(metric, extraHelp)} />
+      </p>
+      <p className="mt-1.5 text-pretty text-label text-muted-2">{reading}</p>
+      {badge && <div className="mt-2">{badge}</div>}
+    </Card>
+  );
+}
+
+function TrendWeekBubble({ detail }: { detail: TrendWeekDetail }) {
+  const move =
+    detail.deltaPoints === null
+      ? "Primeira semana da série"
+      : detail.deltaPoints === 0
+        ? "Sem variação vs. a semana anterior"
+        : `${detail.deltaPoints > 0 ? "+" : "−"}${Math.abs(detail.deltaPoints)} pontos vs. a semana anterior`;
+
+  return (
+    <span className="flex flex-col gap-0.5">
+      <span className="font-semibold">Semana de {detail.weekLabel}</span>
+      <span>
+        {detail.percent}% — {detail.concerning} de {detail.checkIns}{" "}
+        {detail.checkIns === 1 ? "resposta" : "respostas"}
+      </span>
+      <span>{move}</span>
+    </span>
+  );
+}
+
 export function ManagerDashboardPage() {
   const sectorsQuery = useManagerSectors();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -219,6 +294,25 @@ export function ManagerDashboardPage() {
   const overallConcerningRate = data?.overallConcerningRate ?? 0;
   const checkInsLast4Weeks = data?.checkInsLast4Weeks ?? 0;
   const followUpResponseRate = data?.followUpResponseRate ?? 0;
+  const sectorCoverage = data?.sectorCoverage ?? { visible: 0, total: 0 };
+  const concerningPercent = Math.round(overallConcerningRate * 100);
+  const followUpPercent = Math.round(followUpResponseRate * 100);
+  // A faixa lê o mesmo inteiro que o card imprime: classificar a fração crua
+  // faria 0,804 e 0,7996 exibirem ambos "80%" em faixas diferentes.
+  const followUpBand = followUpBandFor(followUpPercent);
+  // O KPI principal é da semana de referência, que a API nomeia — não uma
+  // média da série e não necessariamente a última entrada: uma semana em curso
+  // entra na tendência sem ter atingido o mínimo por conta própria, e lê-la
+  // aqui pareava a porcentagem de uma semana com o denominador e a data de
+  // outra.
+  const referenceWeek =
+    weeklyTrend.find((point) => point.weekStart === data?.referenceWeekStart) ??
+    weeklyTrend[weeklyTrend.length - 1];
+  const referenceWeekResponses = referenceWeek?.checkIns ?? 0;
+  const referenceWeekLabel = referenceWeek ? weekLabel(referenceWeek.weekStart) : "—";
+  // A API não recorta janela nenhuma: a tendência traz quantas semanas houver.
+  const trendWindowLabel =
+    weeklyTrend.length === 1 ? "última semana" : `últimas ${weeklyTrend.length} semanas`;
 
   return (
     <div>
@@ -228,7 +322,18 @@ export function ManagerDashboardPage() {
         </div>
       )}
 
-      <p className="mt-3 max-w-[62ch] text-label text-muted">{DASHBOARD_DISCLOSURE}</p>
+      <div className="mt-3 flex max-w-[62ch] flex-wrap items-center gap-x-1.5 gap-y-1">
+        <p className="text-label text-muted">{DASHBOARD_DISCLOSURE}</p>
+        {data && (
+          <p className="flex items-center gap-1 text-label text-ink-2" data-testid="sector-coverage">
+            <span>{sectorCoverageReading(sectorCoverage)}</span>
+            <MetricHelp
+              label={MANAGER_METRICS.sectorCoverage.label}
+              content={metricHelpContent(MANAGER_METRICS.sectorCoverage)}
+            />
+          </p>
+        )}
+      </div>
 
       {loadFailed && (
         <div className="mt-5 rounded-card border border-danger-border bg-danger-bg p-4.5">
@@ -263,21 +368,45 @@ export function ManagerDashboardPage() {
             </Card>
           ) : (
             <>
-              <Card className="h-full text-center" data-testid="kpi-card">
-                {/* Deliberately not tone-coded. What counts as a concerning rate is
-                    an open product question (PRODUCT.md), and an unconditional
-                    amber reads as a warning even at 0%. */}
-                <p className="font-serif text-stat text-ink">{Math.round(overallConcerningRate * 100)}%</p>
-                <p className="text-caption text-muted">sinais de burnout na equipe</p>
-              </Card>
-              <Card className="h-full text-center" data-testid="kpi-card">
-                <p className="font-serif text-stat text-brand">{checkInsLast4Weeks}</p>
-                <p className="text-caption text-muted">questionários respondidos (4 semanas)</p>
-              </Card>
-              <Card className="h-full text-center" data-testid="kpi-card">
-                <p className="font-serif text-stat text-brand">{Math.round(followUpResponseRate * 100)}%</p>
-                <p className="text-caption text-muted">taxa de resposta do follow-up</p>
-              </Card>
+              {/* Deliberadamente sem tom. O que conta como taxa preocupante é
+                  questão de produto em aberto, e um âmbar incondicional lê
+                  como alerta até a 0%. O follow-up abaixo ganha tom porque
+                  "qual taxa de resposta é boa" é metodologia de survey, não
+                  questão clínica em aberto. */}
+              <KpiCard
+                metric={MANAGER_METRICS.concerningRate}
+                value={`${concerningPercent}%`}
+                valueClass="text-ink"
+                reading={concerningRateReading({
+                  percent: concerningPercent,
+                  responses: referenceWeekResponses,
+                  weekLabel: referenceWeekLabel,
+                })}
+              />
+              <KpiCard
+                metric={MANAGER_METRICS.checkIns}
+                value={String(checkInsLast4Weeks)}
+                valueClass="text-brand"
+                reading={checkInsReading({
+                  total: checkInsLast4Weeks,
+                  visibleSectors: sectorCoverage.visible,
+                })}
+              />
+              <KpiCard
+                metric={MANAGER_METRICS.followUpRate}
+                value={`${followUpPercent}%`}
+                valueClass="text-muted"
+                reading={followUpReading()}
+                extraHelp={followUpBand.meaning}
+                badge={
+                  <span className="flex items-center justify-center gap-2">
+                    <Pill tone="neutral">demonstração</Pill>
+                    <Pill tone={followUpBand.tone === "poor" ? "warning" : "neutral"}>
+                      {followUpBand.label}
+                    </Pill>
+                  </span>
+                }
+              />
             </>
           )}
         </div>
@@ -290,13 +419,10 @@ export function ManagerDashboardPage() {
               <Card className="flex h-full flex-col" data-testid="manager-card">
                 <div className="flex items-center justify-between">
                   <CardTitle>Tendência geral</CardTitle>
-                  <p className="font-mono text-mono-data text-muted-2">últimas 6 semanas</p>
+                  {weeklyTrend.length > 0 && (
+                    <p className="font-mono text-mono-data text-muted-2">{trendWindowLabel}</p>
+                  )}
                 </div>
-                <ul data-testid="trend-description" className="sr-only">
-                  {weeklyTrend.map((point, index) => (
-                    <li key={index}>{describeTrendWeek(point, index, weeklyTrend.length - 1)}</li>
-                  ))}
-                </ul>
                 {weeklyTrend.length === 0 ? (
                   <div className="mt-auto flex h-14 items-end gap-2" aria-hidden="true">
                     {Array.from({ length: TREND_SKELETON_BAR_COUNT }, (_, index) => (
@@ -316,23 +442,35 @@ export function ManagerDashboardPage() {
                         </span>
                       ))}
                     </div>
-                    <div className="mt-auto hidden h-14 items-end gap-2 md:flex" aria-hidden="true">
-                      {bars.map((bar, index) => (
-                        <div
-                          key={index}
-                          data-testid="trend-bar"
-                          className={`w-full rounded-md ${
-                            bar.isZero
-                              ? "bg-control-edge"
-                              : index === peakWeek
-                                ? "bg-warn"
-                                : index === weeklyTrend.length - 1
-                                  ? "bg-brand"
-                                  : "bg-control-edge"
-                          }`}
-                          style={{ height: `${trendBarProportions[index]}%` }}
-                        />
-                      ))}
+                    <div className="mt-auto hidden h-14 items-end gap-2 md:flex">
+                      {bars.map((bar, index) => {
+                        const detail = trendWeekDetail(weeklyTrend, index, peakWeek);
+                        return (
+                          <Tooltip
+                            key={index}
+                            align="start"
+                            content={<TrendWeekBubble detail={detail} />}
+                            redundantWithName
+                            wrapperClassName="flex h-full w-full items-end"
+                          >
+                            <button
+                              type="button"
+                              data-testid="trend-bar"
+                              aria-label={describeTrendWeek(detail)}
+                              className={`w-full rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                                bar.isZero
+                                  ? "bg-control-edge"
+                                  : index === peakWeek
+                                    ? "bg-warn"
+                                    : index === weeklyTrend.length - 1
+                                      ? "bg-brand"
+                                      : "bg-control-edge"
+                              }`}
+                              style={{ height: `${trendBarProportions[index]}%` }}
+                            />
+                          </Tooltip>
+                        );
+                      })}
                     </div>
                     <div className="mt-1.5 hidden gap-2 md:flex" aria-hidden="true">
                       {weeklyTrend.map((point, index) => (
@@ -344,33 +482,45 @@ export function ManagerDashboardPage() {
                         </span>
                       ))}
                     </div>
-                    <div className="mt-auto flex flex-col gap-2 md:hidden" aria-hidden="true">
+                    <div className="mt-auto flex flex-col gap-2 md:hidden">
                       {weeklyTrend.map((point, index) => {
                         const bar = bars[index]!;
+                        const detail = trendWeekDetail(weeklyTrend, index, peakWeek);
                         return (
-                          <div key={index} className="flex items-center gap-2">
-                            <span className="w-19 shrink-0 whitespace-nowrap font-mono text-mono-data text-muted-2">
-                              {weekLabel(point.weekStart)}
-                            </span>
-                            <div className="h-2 flex-1 overflow-hidden rounded-pill bg-canvas-alt">
-                              <div
-                                data-testid="trend-bar-mobile"
-                                className={`h-full rounded-pill ${
-                                  bar.isZero
-                                    ? "bg-control-edge"
-                                    : index === peakWeek
-                                      ? "bg-warn"
-                                      : index === weeklyTrend.length - 1
-                                        ? "bg-brand"
-                                        : "bg-control-edge"
-                                }`}
-                                style={{ width: `${trendBarProportions[index]}%` }}
-                              />
-                            </div>
-                            <span className="w-9 shrink-0 text-right font-mono text-mono-data text-muted-2">
-                              {Math.round(point.concerningRate * 100)}%
-                            </span>
-                          </div>
+                          <Tooltip
+                            key={index}
+                            align="start"
+                            content={<TrendWeekBubble detail={detail} />}
+                            redundantWithName
+                          >
+                            <button
+                              type="button"
+                              aria-label={describeTrendWeek(detail)}
+                              className="flex w-full items-center gap-2 rounded-control text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                            >
+                              <span aria-hidden="true" className="w-19 shrink-0 whitespace-nowrap font-mono text-mono-data text-muted-2">
+                                {weekLabel(point.weekStart)}
+                              </span>
+                              <span aria-hidden="true" className="h-2 flex-1 overflow-hidden rounded-pill bg-canvas-alt">
+                                <span
+                                  data-testid="trend-bar-mobile"
+                                  className={`block h-full rounded-pill ${
+                                    bar.isZero
+                                      ? "bg-control-edge"
+                                      : index === peakWeek
+                                        ? "bg-warn"
+                                        : index === weeklyTrend.length - 1
+                                          ? "bg-brand"
+                                          : "bg-control-edge"
+                                  }`}
+                                  style={{ width: `${trendBarProportions[index]}%` }}
+                                />
+                              </span>
+                              <span aria-hidden="true" className="w-9 shrink-0 text-right font-mono text-mono-data text-muted-2">
+                                {Math.round(point.concerningRate * 100)}%
+                              </span>
+                            </button>
+                          </Tooltip>
                         );
                       })}
                     </div>
@@ -379,19 +529,21 @@ export function ManagerDashboardPage() {
                         shows when a bar actually uses that colour — peak and
                         latest coincide on a rising series, and this bar
                         renders bg-warn, not bg-brand, when they do. */}
-                    <div className="mt-2 flex gap-3" aria-hidden="true">
+                    <div className="mt-2 flex gap-3">
                       {peakWeek !== -1 && (
                         <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
-                          <span className="h-2 w-2 rounded-full bg-warn" />
+                          <span aria-hidden="true" className="h-2 w-2 rounded-full bg-warn" />
                           Pico
+                          <MetricHelp label="Pico" content={PEAK_LEGEND_HELP} />
                         </span>
                       )}
                       {weeklyTrend.length > 0 &&
                         !bars[weeklyTrend.length - 1]!.isZero &&
                         peakWeek !== weeklyTrend.length - 1 && (
                           <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
-                            <span className="h-2 w-2 rounded-full bg-brand" />
+                            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-brand" />
                             Mais recente
+                            <MetricHelp label="Mais recente" content={LATEST_LEGEND_HELP} />
                           </span>
                         )}
                     </div>
@@ -530,6 +682,15 @@ export function ManagerDashboardPage() {
           </Card>
         )}
       </div>
+
+      <p className="mt-4 text-label text-muted">
+        <Link
+          to={routes.managerMethodology}
+          className="rounded-control font-bold text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        >
+          Como calculamos estes números
+        </Link>
+      </p>
     </div>
   );
 }

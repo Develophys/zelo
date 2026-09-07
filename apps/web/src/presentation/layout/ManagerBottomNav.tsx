@@ -19,10 +19,10 @@ interface ManagerBottomNavProps {
 }
 
 /**
- * Four slots and nothing more, because a fifth would push every tap target
- * under the touch minimum on a 375px screen. Everything that does not fit —
- * the Administração group, Configurações and Sair — lives one tap away in the
- * "Mais" sheet. Sair in particular had no mobile route at all before this.
+ * One slot per MANAGER_PRIMARY_NAV entry, plus "Mais". Everything that does
+ * not fit in the primary nav — the Administração group, Configurações and
+ * Sair — lives one tap away in the "Mais" sheet. Sair in particular had no
+ * mobile route at all before this.
  */
 export function ManagerBottomNav({ className = '' }: ManagerBottomNavProps) {
   const navigate = useNavigate();

@@ -23,6 +23,7 @@ import { ManagerShell } from "@/presentation/layout/ManagerShell";
 import { ManagerLoginPage } from "@/presentation/pages/ManagerLoginPage";
 import { ManagerFinishSetupPage } from "@/presentation/pages/ManagerFinishSetupPage";
 import { ManagerInsightHistoryPage } from "@/presentation/pages/ManagerInsightHistoryPage";
+import { ManagerMethodologyPage } from "@/presentation/pages/ManagerMethodologyPage";
 import { YouPage } from "@/presentation/pages/YouPage";
 import { SettingsPage } from "@/presentation/pages/SettingsPage";
 import { LinkInstitutionPage } from "@/presentation/pages/LinkInstitutionPage";
@@ -131,6 +132,7 @@ export const routeChildren: RouteObject[] = [
       { path: "manager", Component: ManagerDashboardPage },
       { path: "manager/notifications", Component: ManagerNotificationsPage },
       { path: "manager/history", Component: ManagerInsightHistoryPage },
+      { path: "manager/methodology", Component: ManagerMethodologyPage },
       { path: "manager/settings", Component: ManagerSettingsPage },
       {
         path: "manager/admin",

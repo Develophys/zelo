@@ -28,6 +28,7 @@ the existing use-cases on submit.
 | `/manager/login` | `ManagerLoginPage` | Individual manager-account gate for the manager dashboard (see §5) |
 | `/manager` | `ManagerDashboardPage` | Aggregated, k-anonymized; gated by `/manager/login`'s session (see §5) |
 | `/manager/history` | `ManagerInsightHistoryPage` | Past AI-generated analyses, newest first; each downloadable as PDF or plain text (see `2026-07-12-manager-insight-history-design.md`) |
+| `/manager/methodology` | `ManagerMethodologyPage` | Citable methodology page, generated from the shared metric glossary (`MANAGER_METRICS` in `@zelo/domain`) |
 | `/manager/notifications` | `ManagerNotificationsPage` | System alerts about aggregate signals, invites and integrations; unread count feeds the nav badge |
 | `/manager/settings` | `ManagerSettingsPage` | Per-manager accent, density and corner preferences, persisted client-side |
 | `/manager/admin` | — | Redirect to `/manager/admin/managers`; the tabbed Administração page it used to serve is gone |
