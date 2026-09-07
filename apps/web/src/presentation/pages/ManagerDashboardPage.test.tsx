@@ -153,6 +153,34 @@ describe("ManagerDashboardPage", () => {
     expect(screen.getByText("taxa de resposta do follow-up")).toBeInTheDocument();
   });
 
+  it("withholds the KPI numerals instead of printing a fabricated 0% and a hospital-wide follow-up rate beside it", async () => {
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
+      overallConcerningRate: 0,
+      checkInsLast4Weeks: 0,
+      weeklyTrend: [],
+      segments: [],
+      followUpResponseRate: 0.7,
+    });
+
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("Sem dados nas últimas 6 semanas. O gráfico aparece assim que houver check-ins.")).toBeInTheDocument();
+    });
+
+    // 0% burnout signals reads as a real all-clear, and 70% follow-up beside
+    // "0 questionários respondidos" contradicts itself — a filtered sector
+    // with too few responses gets the same "not enough data" treatment as
+    // the trend and segments cards already do, not fabricated-looking zeros.
+    expect(screen.queryByText("0%")).not.toBeInTheDocument();
+    expect(screen.queryByText("70%")).not.toBeInTheDocument();
+    expect(screen.queryByText("sinais de burnout na equipe")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("kpi-card")).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Sem dados suficientes para os indicadores desta seleção."),
+    ).toBeInTheDocument();
+  });
+
   it("labels the existing check-ins card as questionários respondidos", async () => {
     renderManager();
     await waitFor(() => {

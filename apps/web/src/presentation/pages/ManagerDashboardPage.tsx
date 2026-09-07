@@ -71,6 +71,14 @@ const TREND_EMPTY =
 const SEGMENTS_EMPTY =
   "Nenhum setor com 5 respostas ou mais ainda. Setores abaixo desse limite ficam ocultos.";
 
+// checkInsLast4Weeks === 0 covers both a genuinely empty institution and a
+// sector filter narrow enough that k-anonymity hid everything — either way,
+// 0% burnout signals reads as a real all-clear, and the hospital-wide
+// follow-up rate (uncomputed per sector) beside "0 questionários
+// respondidos" contradicts itself. Withheld like the load-failure branch,
+// not printed as if it were a measurement.
+const KPI_EMPTY = "Sem dados suficientes para os indicadores desta seleção.";
+
 const INSIGHT_EMPTY_EXPLANATION =
   "Interpreta os indicadores agregados e anônimos desta página e sugere ações para a liderança, sem acesso a dados individuais de nenhum profissional.";
 
@@ -249,6 +257,10 @@ export function ManagerDashboardPage() {
               <KpiCardSkeleton />
               <KpiCardSkeleton />
             </>
+          ) : checkInsLast4Weeks === 0 ? (
+            <Card className="h-full text-center md:col-span-2 lg:col-span-3" data-testid="kpi-empty">
+              <p className="text-pretty text-label text-muted">{KPI_EMPTY}</p>
+            </Card>
           ) : (
             <>
               <Card className="h-full text-center" data-testid="kpi-card">

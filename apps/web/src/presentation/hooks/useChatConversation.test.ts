@@ -52,8 +52,9 @@ describe('useChatConversation', () => {
     });
 
     await waitFor(() => expect(result.current.messages).toHaveLength(2));
-    expect(result.current.messages[0]?.content).toBe('Sou o Dr. Fulano, [CRM]');
+    expect(result.current.messages[0]?.content).toBe('Sou o Dr. [NOME], [CRM]');
     expect(result.current.messages[0]?.content).not.toContain('123456');
+    expect(result.current.messages[0]?.content).not.toContain('Fulano');
   });
 
   it('still streams a reply under StrictMode, whose double-invoked effects must not leave the abort flag stuck on', async () => {

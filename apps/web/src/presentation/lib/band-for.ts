@@ -52,3 +52,17 @@ export function bandFor(scaleType: 'PHQ-9' | 'GAD-7', score: number): ScoreBand 
   const match = bands.find((entry) => score <= entry.max);
   return (match ?? bands[bands.length - 1]!).band;
 }
+
+const PHQ9_MAX = 27;
+
+/**
+ * A history chart plots PHQ-9 and GAD-7 readings on one shared 0-1 axis
+ * (score / scale max) so weeks from either scale can sit on the same chart —
+ * by the time a reading gets here, which scale it came from is already lost.
+ * Reading a band off that fraction directly, via PHQ-9's own ramp as the
+ * shared approximation, keeps a severe week from ever landing in the same
+ * tone as a minimal one.
+ */
+export function bandForSeverityFraction(fraction: number): ScoreBand {
+  return bandFor('PHQ-9', fraction * PHQ9_MAX);
+}

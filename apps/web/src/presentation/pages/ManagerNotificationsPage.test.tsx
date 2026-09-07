@@ -100,6 +100,39 @@ describe("ManagerNotificationsPage", () => {
     expect(badRow.className).toContain("border-warn");
   });
 
+  it("tones a sector burnout breach differently from routine invite/account housekeeping, not the same amber", async () => {
+    const sectorRisk = {
+      id: "n-risk",
+      type: "SECTOR_RISK_THRESHOLD" as const,
+      payload: { trigger: "threshold", rate: 0.6 },
+      sectorName: "UTI",
+      readAt: null,
+      createdAt: "2026-08-20T10:00:00.000Z",
+    };
+    const expiredInvite = {
+      id: "n-expired",
+      type: "INVITE_EXPIRED" as const,
+      payload: { name: "Fernando Costa" },
+      sectorName: null,
+      readAt: null,
+      createdAt: "2026-08-19T10:00:00.000Z",
+    };
+    vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
+      items: [sectorRisk, expiredInvite],
+      nextCursor: null,
+      total: 2,
+    });
+    vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(2);
+
+    renderPage();
+
+    const riskRow = await screen.findByRole("button", { name: /Setor acima do limiar/ });
+    const housekeepingRow = screen.getByRole("button", { name: /Convite expirado/ });
+    expect(riskRow.className).toContain("border-danger-border");
+    expect(riskRow.className).not.toContain("border-warn");
+    expect(housekeepingRow.className).toContain("border-warn");
+  });
+
   it("lets a manager resend a failed invite straight from the notification, instead of hunting for the row in the admin table", async () => {
     const failedInvite = {
       id: "n-bad",

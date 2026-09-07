@@ -32,13 +32,14 @@ export function toTrendBars(trend: TrendPoint[]): TrendBar[] {
 const CHART_DOMAIN_PADDING = 10;
 
 /**
- * Desktop-only heights, scaled to a padded version of the series' own range
- * rather than the fixed 0-100 axis `toTrendBars` draws. A realistic 40%-46%
- * swing is real movement, but on a literal scale it is a few pixels of an
- * already-short bar — the printed percentage above each bar states the
- * number, the shape still has to show the trend. Real zero weeks keep the
- * same floor `toTrendBars` uses, since a zero reading is true regardless of
- * the rest of the series.
+ * Bar proportions for both breakpoints, scaled to a padded version of the
+ * series' own range rather than the fixed 0-100 axis `toTrendBars` draws
+ * (kept only for its `isZero` flag now that mobile shares this scale too). A
+ * realistic 40%-46% swing is real movement, but on a literal scale it is a
+ * few pixels of an already-short bar — the printed percentage above each bar
+ * states the number, the shape still has to show the trend. Real zero weeks
+ * keep the same floor `toTrendBars` uses, since a zero reading is true
+ * regardless of the rest of the series.
  */
 export function toTrendBarHeights(trend: TrendPoint[]): number[] {
   const percents = trend.map((point) => Math.round(point.concerningRate * 100));

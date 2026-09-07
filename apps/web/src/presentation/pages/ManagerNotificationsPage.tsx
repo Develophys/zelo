@@ -128,11 +128,19 @@ export function ManagerNotificationsPage() {
           const { evento, detalhe } = notificationCopy(notification);
           const unread = group.unread;
           const goodNews = GOOD_NEWS_TYPES.has(notification.type);
+          // A sector actually crossing its risk threshold is not routine
+          // housekeeping (an expired invite, a bounced email) — the same
+          // amber for both means the two rows that are actually about a team
+          // burning out sit at equal visual weight with fourteen invite
+          // reminders.
+          const isSectorRisk = notification.type === "SECTOR_RISK_THRESHOLD";
           const rowClass = `flex w-full flex-col gap-2 rounded-card border px-cell-x py-cell-y text-left motion-safe:transition-colors motion-safe:duration-150 md:flex-row md:items-center md:justify-between ${
             unread
               ? goodNews
                 ? "cursor-pointer border-brand bg-brand/5 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
-                : "cursor-pointer border-warn bg-warn-bg/40 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
+                : isSectorRisk
+                  ? "cursor-pointer border-danger-border bg-danger-bg focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
+                  : "cursor-pointer border-warn bg-warn-bg/40 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
               : "border-line bg-surface"
           }`;
 

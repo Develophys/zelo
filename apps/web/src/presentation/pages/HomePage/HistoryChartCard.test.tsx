@@ -105,11 +105,12 @@ describe('HistoryChartCard', () => {
     renderCard();
     await waitFor(() => expect(screen.queryAllByTestId('history-bar')).toHaveLength(6));
 
-    // A single real reading is both the latest week and the peak; this
-    // component draws that bar bg-brand ("Mais recente"), not bg-warn — so
-    // "Pico" must not claim a colour nothing on screen uses.
-    expect(screen.getByText('Mais recente')).toBeInTheDocument();
-    expect(screen.queryByText('Pico')).not.toBeInTheDocument();
+    // A single real reading is both the latest week and the peak; peak wins
+    // the bar's colour (so a severe latest reading is never painted the same
+    // "good news" colour as a minimal one), so "Mais recente" must not claim
+    // a colour that bar doesn't use.
+    expect(screen.getByText('Pico')).toBeInTheDocument();
+    expect(screen.queryByText('Mais recente')).not.toBeInTheDocument();
     expect(
       screen.queryByText('Faça seu primeiro check-in para ver sua tendência aqui.'),
     ).not.toBeInTheDocument();
@@ -141,6 +142,69 @@ describe('HistoryChartCard', () => {
 
     const values = screen.getAllByTestId('history-bar-value');
     expect(values.map((el) => el.textContent)).toEqual(['', '', '', '', '40%', '67%']);
+  });
+
+  it('never paints a severe latest reading the same brand-green as a minimal one', async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, 'execute').mockResolvedValue([
+      { weekStart: '2026-07-01T00:00:00.000Z', severityFraction: 1 },
+      ...SIX_NULL_POINTS.slice(0, 4),
+      { weekStart: '2026-08-01T00:00:00.000Z', severityFraction: 1 },
+    ]);
+
+    renderCard();
+    await waitFor(() => expect(screen.queryAllByTestId('history-bar')).toHaveLength(6));
+
+    const bars = screen.getAllByTestId('history-bar');
+    // The latest week is also the maximal-possible reading (peak): the bar
+    // must read as an alarm, not as good news.
+    expect(bars[5]!.className).not.toContain('bg-brand');
+  });
+
+  it('colors each non-peak bar by its own severity band, not a fixed good-news color', async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, 'execute').mockResolvedValue([
+      { weekStart: '2026-07-01T00:00:00.000Z', severityFraction: 1 },
+      ...SIX_NULL_POINTS.slice(0, 4),
+      { weekStart: '2026-08-01T00:00:00.000Z', severityFraction: 0.5 },
+    ]);
+
+    renderCard();
+    await waitFor(() => expect(screen.queryAllByTestId('history-bar')).toHaveLength(6));
+
+    const bars = screen.getAllByTestId('history-bar');
+    expect(bars[0]!.className).toContain('bg-warn'); // peak
+    // 0.5 * 27 ≈ 14, the top of the "Moderado" band — not a minimal/mild
+    // reading, so it must not render the brand's affirmative green.
+    expect(bars[5]!.className).not.toContain('bg-brand');
+    expect(bars[5]!.className).toContain('bg-band-moderate');
+  });
+
+  it('still paints a genuinely minimal, non-peak latest reading brand-green', async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, 'execute').mockResolvedValue([
+      { weekStart: '2026-07-01T00:00:00.000Z', severityFraction: 0.9 },
+      ...SIX_NULL_POINTS.slice(0, 4),
+      { weekStart: '2026-08-01T00:00:00.000Z', severityFraction: 0.05 },
+    ]);
+
+    renderCard();
+    await waitFor(() => expect(screen.queryAllByTestId('history-bar')).toHaveLength(6));
+
+    const bars = screen.getAllByTestId('history-bar');
+    expect(bars[5]!.className).toContain('bg-brand');
+  });
+
+  it("colors the Mais recente legend dot to match what the latest bar actually renders", async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, 'execute').mockResolvedValue([
+      { weekStart: '2026-07-01T00:00:00.000Z', severityFraction: 0.9 },
+      ...SIX_NULL_POINTS.slice(0, 4),
+      { weekStart: '2026-08-01T00:00:00.000Z', severityFraction: 0.5 },
+    ]);
+
+    renderCard();
+    await waitFor(() => expect(screen.queryAllByTestId('history-bar')).toHaveLength(6));
+
+    const dot = screen.getByText('Mais recente').firstElementChild!;
+    expect(dot.className).toContain('bg-band-moderate');
+    expect(dot.className).not.toContain('bg-brand');
   });
 
   it('drops "Mais recente" when the latest week itself has no check-in, even though an earlier week is the peak', async () => {

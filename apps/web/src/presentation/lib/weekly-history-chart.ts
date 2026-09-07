@@ -1,4 +1,5 @@
 import type { WeeklyHistoryPoint } from '@/use-cases/get-assessment-history.usecase';
+import { bandForSeverityFraction } from './band-for';
 
 const MIN_BAR_HEIGHT = 8;
 const EMPTY_BAR_HEIGHT = 6;
@@ -50,5 +51,6 @@ export function describeHistoryWeek(
   if (point.severityFraction === null) return `Semana de ${label}: sem check-in`;
 
   const status = index === latestIndex ? ' (mais recente)' : index === peakIndex ? ' (pico)' : '';
-  return `Semana de ${label}: ${Math.round(point.severityFraction * 100)}%${status}`;
+  const band = bandForSeverityFraction(point.severityFraction).label;
+  return `Semana de ${label}: ${Math.round(point.severityFraction * 100)}% — ${band}${status}`;
 }

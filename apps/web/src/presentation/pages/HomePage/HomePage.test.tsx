@@ -126,8 +126,12 @@ describe("HomePage", () => {
     expect(bars).toHaveLength(6);
     expect(bars.filter((bar) => bar.className.includes("bg-warn"))).toHaveLength(1);
     expect(bars[2]?.className).toContain("bg-warn");
-    expect(bars.filter((bar) => bar.className.includes("bg-brand"))).toHaveLength(1);
-    expect(bars[5]?.className).toContain("bg-brand");
+    // The latest week (0.5, "Moderado") is colored by its own severity band,
+    // not an unconditional brand-green — bg-brand is reserved for a
+    // genuinely minimal/mild reading, which weeks 1 and 4 (0.2, 0.3) still are.
+    expect(bars[5]?.className).toContain("bg-band-moderate");
+    expect(bars[5]?.className).not.toContain("bg-brand");
+    expect(bars.filter((bar) => bar.className.includes("bg-brand"))).toHaveLength(2);
     expect(bars.filter((bar) => bar.className.includes("bg-line"))).toHaveLength(2);
   });
 

@@ -3,11 +3,26 @@ import { Card } from '@/presentation/ui/Card';
 import { Skeleton } from '@/presentation/ui/Skeleton';
 import { useAssessmentHistory } from '@/presentation/hooks/useAssessmentHistory';
 import { EMPTY_POINTS } from '@/presentation/lib/home.constants';
+import { bandForSeverityFraction, type ScoreBandTone } from '@/presentation/lib/band-for';
+import type { WeeklyHistoryPoint } from '@/use-cases/get-assessment-history.usecase';
 import {
   describeHistoryWeek,
   findPeakIndex,
   toBarHeights,
 } from '@/presentation/lib/weekly-history-chart';
+
+// bg-brand is the user's chosen accent color, not a stable clinical signal —
+// reserved for genuinely good news (minimal/mild). Everything past that uses
+// the same fixed band tokens the assessment result screen scores against, so
+// a severe reading is never painted the same color as a minimal one just
+// because it happens to be the most recent bar.
+const BAND_BAR_CLASS: Record<ScoreBandTone, string> = {
+  minimal: 'bg-brand',
+  mild: 'bg-brand',
+  moderate: 'bg-band-moderate',
+  high: 'bg-band-high',
+  severe: 'bg-band-severe',
+};
 
 function ChartHeader() {
   return (
@@ -26,6 +41,15 @@ export function HistoryChartCard() {
   const bars = toBarHeights(points);
   const latestIndex = points.length - 1;
   const peakIndex = findPeakIndex(points);
+
+  // Peak wins the color: a bar that is also the worst reading in the window
+  // stays an alarm color even when it's the most recent one, instead of
+  // defaulting to "good news" green just for being newest.
+  const barColorClass = (index: number, point: WeeklyHistoryPoint): string => {
+    if (point.severityFraction === null) return 'bg-line';
+    if (index === peakIndex) return 'bg-warn';
+    return BAND_BAR_CLASS[bandForSeverityFraction(point.severityFraction).tone];
+  };
 
   return (
     <div className="mt-3.5">
@@ -76,15 +100,7 @@ export function HistoryChartCard() {
                 <div
                   key={index}
                   data-testid="history-bar"
-                  className={`w-full rounded-md ${
-                    !bar.hasData
-                      ? 'bg-line'
-                      : index === latestIndex
-                        ? 'bg-brand'
-                        : index === peakIndex
-                          ? 'bg-warn'
-                          : 'bg-control-edge'
-                  }`}
+                  className={`w-full rounded-md ${barColorClass(index, points[index]!)}`}
                   style={{ height: `${bar.height}%` }}
                 />
               ))}
@@ -95,16 +111,16 @@ export function HistoryChartCard() {
               </p>
             ) : (
               <div className="mt-2 flex gap-3" aria-hidden="true">
-                {bars[latestIndex]!.hasData && (
+                <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
+                  <span className="h-2 w-2 rounded-full bg-warn" />
+                  Pico
+                </span>
+                {bars[latestIndex]!.hasData && peakIndex !== latestIndex && (
                   <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
-                    <span className="h-2 w-2 rounded-full bg-brand" />
+                    <span
+                      className={`h-2 w-2 rounded-full ${barColorClass(latestIndex, points[latestIndex]!)}`}
+                    />
                     Mais recente
-                  </span>
-                )}
-                {peakIndex !== latestIndex && (
-                  <span className="flex items-center gap-1 font-mono text-mono-data text-muted-2">
-                    <span className="h-2 w-2 rounded-full bg-warn" />
-                    Pico
                   </span>
                 )}
               </div>
