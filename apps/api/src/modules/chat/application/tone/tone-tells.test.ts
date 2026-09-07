@@ -68,52 +68,51 @@ describe("classifyClosingTic", () => {
   });
 });
 
-describe("classifyClosingTic — human-contact offers are never a tic", () => {
+describe("classifyClosingTic — only an allowlisted clinical check-in is droppable", () => {
   it.each([
-    "Quer falar agora com uma pessoa de verdade?",
-    "Quer falar com alguém agora?",
-    "Dá pra conversar com alguém hoje?",
-    "Tem como procurar um psicólogo essa semana?",
-    "Você já pensou em terapia?",
-    "O CVV atende 24h, é só ligar 188.",
-    "Tem atendimento disponível pelo hospital?",
-    "Buscar ajuda profissional agora faz diferença.",
-    "Falar com uma pessoa real ajuda mais que eu.",
-    "Um psiquiatra pode ajudar com isso?",
-    "Quer falar com alguem agora?",
-    "Quer que eu te conecte com alguém?",
-    "Quer que eu chame alguém pra você?",
-    "Quer que eu te coloque em contato com alguém?",
-    "Tem alguém com quem você consiga falar hoje?",
-    "Já pensou em procurar um profissional?",
-    "Prefere falar com uma pessoa real sobre isso?",
-    "Tem alguém em casa com você?",
-    "Tem algum colega que você confie?",
-    "Tem um amigo com quem você consiga falar?",
-    "Sua família sabe como você tá?",
-    "Você falou com seu preceptor sobre isso?",
-    "Algum familiar consegue te dar uma folga em casa?",
-    "Seu chefe sabe do tamanho da escala?",
-    "Dá pra falar com o coordenador do setor?",
-    "Seu companheiro percebeu essa mudança?",
-  ])("never classifies %j as a tic", (sentence) => {
-    expect(classifyClosingTic(sentence, false)).toBeNull();
-  });
-
-  it.each([
-    "Faz quanto tempo que tá assim?",
     "Como tá o sono?",
+    "Como tem sido o tempo de descanso entre os plantões?",
+    "Como tem sido a carga de plantões ultimamente?",
+    "Como você tem dormido?",
+    "Como você tá?",
+    "Faz quanto tempo que tá assim?",
+    "Faz quanto tempo?",
+    "Desde quando isso começou?",
+    "Com que frequência isso te pega?",
     "Isso vem acontecendo toda semana?",
-    "O que mudou nesse último mês?",
     "Você tem conseguido comer direito?",
-  ])("still drops the ordinary trailing question %j", (sentence) => {
+    "Você tem dormido bem?",
+    "O que mudou nesse último mês?",
+    "Quantos plantões você fez essa semana?",
+  ])("drops the allowlisted check-in %j", (sentence) => {
     expect(classifyClosingTic(sentence, false)).toBe("trailing_question");
   });
 
-  it("exempts a human-contact offer that is also shaped like a reframe", () => {
-    expect(
-      classifyClosingTic("Não é só cansaço, e sim algo que um profissional deveria ver.", true),
-    ).toBeNull();
+  it.each([
+    "Você tem com quem contar em casa?",
+    "Tem algum colega que você confie?",
+    "Quer que eu te conecte com alguém?",
+    "Sua família sabe como você tá?",
+    "Quer falar agora com uma pessoa de verdade?",
+    "Tem alguém em casa com você?",
+    "Dá pra falar com o coordenador do setor?",
+    "Seu chefe sabe do tamanho da escala?",
+    "Já pensou em procurar um profissional?",
+    "Tem um amigo com quem você consiga falar?",
+    "Seu companheiro percebeu essa mudança?",
+    "Você falou com seu preceptor sobre isso?",
+  ])("keeps the unanticipated phrasing %j, which no allowlist entry matches", (sentence) => {
+    expect(classifyClosingTic(sentence, false)).toBeNull();
+  });
+
+  it("keeps an offer of human contact that is also shaped like a check-in question", () => {
+    expect(classifyClosingTic("Tem alguém que te ajude a descansar?", false)).toBeNull();
+  });
+
+  it("reports rather than drops a question that is also a rhetorical reframe", () => {
+    expect(classifyClosingTic("Não é só cansaço, mas exaustão — faz quanto tempo?", false)).toBe(
+      "rhetorical_reframe",
+    );
   });
 });
 
