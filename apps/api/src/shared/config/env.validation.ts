@@ -18,7 +18,7 @@ const envSchema = z
     // constructor is never instantiated when AI_PROVIDER=mock (see chat.module.ts
     // and manager/manager.module.ts's provider-selection comment).
     GROQ_API_KEY: z.string().optional(),
-    GROQ_MODEL: z.string().default("llama-3.3-70b-versatile"),
+    GROQ_MODEL: z.string().default("openai/gpt-oss-120b"),
     MANAGER_TOKEN_SECRET: z.string({ required_error: "MANAGER_TOKEN_SECRET is required" }).min(1, "MANAGER_TOKEN_SECRET is required"),
     ADMIN_TOKEN_SECRET: z.string({ required_error: "ADMIN_TOKEN_SECRET is required" }).min(1, "ADMIN_TOKEN_SECRET is required"),
     PEER_PARTNER_TOKEN_SECRET: z.string({ required_error: "PEER_PARTNER_TOKEN_SECRET is required" }).min(1, "PEER_PARTNER_TOKEN_SECRET is required"),

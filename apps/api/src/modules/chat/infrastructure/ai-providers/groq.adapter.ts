@@ -16,7 +16,7 @@ export class GroqAdapter implements AiChatPort {
 
   constructor(@Inject(ConfigService) config: ConfigService) {
     this.client = new Groq({ apiKey: config.getOrThrow<string>("GROQ_API_KEY") });
-    this.model = config.get<string>("GROQ_MODEL") ?? "llama-3.3-70b-versatile";
+    this.model = config.get<string>("GROQ_MODEL") ?? "openai/gpt-oss-120b";
   }
 
   async *streamReply(params: {
@@ -27,13 +27,13 @@ export class GroqAdapter implements AiChatPort {
     const stream = await this.client.chat.completions.create({
       model: this.model,
       max_tokens: 512,
-      // Llama-family models on Groq default to low-variance completions that
-      // loop the same handful of stock phrasings turn after turn — a direct
-      // contributor to the "feels like a robot" tell this project's user
-      // research flagged (ENT-01, persona.md). 0.8 keeps replies coherent
-      // while giving enough sampling variety that responses don't read as
-      // scripted. Paired with chat-system-prompt.ts's tone rules — this alone
-      // doesn't fix stock openers, the prompt does that.
+      // 0.8 was chosen to break the low-variance phrase looping that feeds the
+      // "feels like a robot" tell this project's user research flagged (ENT-01,
+      // persona.md). It was calibrated against Llama-family models, which Groq
+      // has since discontinued; the 2026-09-07 tell inventory re-measured the
+      // three replacement candidates at this same temperature and found stock
+      // openers at 1/14 but replies ending in a question at 79-100%. Temperature
+      // does not fix the latter — see application/tone/ for the guard that does.
       temperature: 0.8,
       stream: true,
       messages: [

@@ -23,7 +23,7 @@ export class GroqInsightAdapter implements AiInsightPort {
 
   constructor(@Inject(ConfigService) config: ConfigService) {
     this.client = new Groq({ apiKey: config.getOrThrow<string>("GROQ_API_KEY") });
-    this.model = config.get<string>("GROQ_MODEL") ?? "llama-3.3-70b-versatile";
+    this.model = config.get<string>("GROQ_MODEL") ?? "openai/gpt-oss-120b";
   }
 
   async generateInsight(params: { summary: string; systemPrompt: string }): Promise<ManagerInsightResponse> {

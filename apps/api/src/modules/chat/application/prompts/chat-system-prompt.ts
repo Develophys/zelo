@@ -4,9 +4,11 @@
  * Tone rules exist because of a specific, documented risk (see ENT-01 — interview
  * with Dr. David Mendes, 02/07/2026, and persona.md): doctors distrust AI "at the
  * slightest sign" in moments of distress and disengage. Generic instructions like
- * "be warm" or "be empathetic" make this worse on Llama-family models (used via
- * Groq) — they push completions toward the most clichéd, stock-phrase version of
- * empathy, which reads as scripted rather than human.
+ * "be warm" or "be empathetic" make this worse — they push completions toward the
+ * most clichéd, stock-phrase version of empathy, which reads as scripted rather
+ * than human. These rules were originally written against Llama-family models,
+ * which Groq has since discontinued; see the 2026-09-07 tell inventory for how
+ * they hold up on the replacement.
  *
  * The rules below target the specific tells instead of the vibe:
  *   1. Ban stock openers instead of asking for "warmth" in the abstract.
@@ -19,10 +21,13 @@
  *   4. No markdown/lists in replies — a bulleted "here are 3 things to try"
  *      reads instantly as bot output to a clinician.
  *
- * If Groq output still reads as robotic after this, the next levers to pull are
- * model size (prefer the largest Llama variant available) and temperature
- * (~0.75-0.85 - low temperature is part of why these models loop the same
- * handful of phrasings).
+ * These rules are necessary but not sufficient, and the 2026-09-07 tell inventory
+ * measured where the line falls: rule 1 holds (stock openers at 1/14), rules 2-4
+ * hold (0/14 each), but "at most one question, many replies with none" is ignored
+ * 79-100% of the time on every model family tested. Prose could not enforce it, so
+ * application/tone/ enforces it in code. Do not answer a new tell by lengthening
+ * this prompt without measuring first — it competes for attention with the
+ * inviolable clinical rules above, which are the ones that must never fail.
  */
 export const CHAT_SYSTEM_PROMPT = `Você é o assistente de acolhimento do Zelo, um app de apoio confidencial à saúde mental de médicos.
 
