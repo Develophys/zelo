@@ -1,0 +1,145 @@
+import { describe, expect, it, vi } from "vitest";
+import type { ChatToken } from "@zelo/domain";
+import { guardTone, type ReplyStreamFactory, type ToneGuardContext } from "./guard-tone.ts";
+
+const CONVERSATION_ID = "b3f1c2b0-1234-4a5b-9c6d-000000000001";
+
+function streamOf(text: string): AsyncGenerator<ChatToken> {
+  async function* generate(): AsyncGenerator<ChatToken> {
+    for (const word of text.split(" ")) {
+      yield { conversationId: CONVERSATION_ID, delta: `${word} `, done: false };
+    }
+    yield { conversationId: CONVERSATION_ID, delta: "", done: true };
+  }
+  return generate();
+}
+
+function scriptedFactory(...replies: string[]): ReplyStreamFactory & { calls: (string | undefined)[] } {
+  const calls: (string | undefined)[] = [];
+  const factory = ((nudge?: string) => {
+    calls.push(nudge);
+    return streamOf(replies[calls.length - 1] ?? replies.at(-1) ?? "");
+  }) as ReplyStreamFactory & { calls: (string | undefined)[] };
+  factory.calls = calls;
+  return factory;
+}
+
+function contextWith(overrides: Partial<ToneGuardContext> = {}): ToneGuardContext {
+  return {
+    conversationId: CONVERSATION_ID,
+    hasActiveRiskSignal: false,
+    priorAssistantReplies: [],
+    buildNudge: (opening) => `NUDGE:${opening}`,
+    ...overrides,
+  };
+}
+
+async function textOf(stream: AsyncGenerator<ChatToken>): Promise<string> {
+  let text = "";
+  for await (const token of stream) {
+    text += token.delta;
+  }
+  return text;
+}
+
+describe("guardTone — opening sentinel", () => {
+  it("passes a clean opening straight through, losing nothing", async () => {
+    const factory = scriptedFactory("Terceira vez essa semana é muito. O corpo não recupera.");
+
+    const text = await textOf(guardTone(factory, contextWith()));
+
+    expect(text.trim()).toBe("Terceira vez essa semana é muito. O corpo não recupera.");
+    expect(factory.calls).toHaveLength(1);
+  });
+
+  it("emits nothing from an attempt whose opening is a cliché", async () => {
+    const factory = scriptedFactory(
+      "Entendo que isso pesa. Deve ser difícil.",
+      "Isso pesa mesmo. Faz tempo.",
+    );
+
+    const text = await textOf(guardTone(factory, contextWith()));
+
+    expect(text).not.toContain("Entendo");
+    expect(text.trim()).toBe("Isso pesa mesmo. Faz tempo.");
+  });
+
+  it("regenerates once, passing the offending opening into the nudge", async () => {
+    const factory = scriptedFactory(
+      "Sinto muito que você esteja assim. Deve ser difícil.",
+      "Isso pesa mesmo. Faz tempo.",
+    );
+
+    await textOf(guardTone(factory, contextWith()));
+
+    expect(factory.calls).toHaveLength(2);
+    expect(factory.calls[0]).toBeUndefined();
+    expect(factory.calls[1]).toMatch(/^NUDGE:Sinto muito que você esteja assim\./);
+  });
+
+  it("emits the second attempt verbatim even when its opening is also a cliché", async () => {
+    const factory = scriptedFactory(
+      "Entendo que isso pesa. Deve ser difícil.",
+      "Sinto muito por isso. Deve ser difícil.",
+    );
+
+    const text = await textOf(guardTone(factory, contextWith()));
+
+    expect(factory.calls).toHaveLength(2);
+    expect(text.trim()).toBe("Sinto muito por isso. Deve ser difícil.");
+  });
+
+  it("closes the abandoned stream so the provider connection is not leaked", async () => {
+    const closed = vi.fn();
+    async function* abandonable(): AsyncGenerator<ChatToken> {
+      try {
+        yield { conversationId: CONVERSATION_ID, delta: "Entendo que isso pesa. ", done: false };
+        yield { conversationId: CONVERSATION_ID, delta: "Mais texto.", done: false };
+        yield { conversationId: CONVERSATION_ID, delta: "", done: true };
+      } finally {
+        closed();
+      }
+    }
+    let call = 0;
+    const factory: ReplyStreamFactory = () => {
+      call += 1;
+      return call === 1 ? abandonable() : streamOf("Isso pesa mesmo.");
+    };
+
+    await textOf(guardTone(factory, contextWith()));
+
+    expect(closed).toHaveBeenCalled();
+  });
+
+  it("validates the opening against the cap when the reply has no sentence boundary", async () => {
+    const runOn = `Entendo que ${"muito ".repeat(40)}`;
+    const factory = scriptedFactory(runOn, "Isso pesa mesmo.");
+
+    await textOf(guardTone(factory, contextWith()));
+
+    expect(factory.calls).toHaveLength(2);
+  });
+
+  it("is inert under an active risk signal", async () => {
+    const factory = scriptedFactory("Entendo que isso pesa. Quer falar com alguém agora?");
+
+    const text = await textOf(
+      guardTone(factory, contextWith({ hasActiveRiskSignal: true })),
+    );
+
+    expect(text.trim()).toBe("Entendo que isso pesa. Quer falar com alguém agora?");
+    expect(factory.calls).toHaveLength(1);
+  });
+
+  it("always terminates with a single done token", async () => {
+    const factory = scriptedFactory("Isso pesa mesmo.");
+    const tokens: ChatToken[] = [];
+
+    for await (const token of guardTone(factory, contextWith())) {
+      tokens.push(token);
+    }
+
+    expect(tokens.filter((token) => token.done)).toHaveLength(1);
+    expect(tokens.at(-1)?.done).toBe(true);
+  });
+});

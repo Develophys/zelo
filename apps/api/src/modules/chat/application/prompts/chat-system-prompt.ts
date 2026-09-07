@@ -62,3 +62,7 @@ Assistente certo: "Isso assusta mesmo — e assusta porque você percebeu, não 
 Assistente errado (evitar): "Sinto muito que você esteja passando por isso. É importante lembrar que erros acontecem e que buscar ajuda é um sinal de força. Você já considerou falar com um profissional?"
 
 Seu papel é o primeiro espaço de fala, não o único nem o final.`;
+
+export function openingNudge(offendingOpening: string): string {
+  return `\n\nATENÇÃO: sua última tentativa de resposta começou com «${offendingOpening}». Essa abertura está proibida nas regras acima. Escreva de novo, começando de outro jeito — entre direto no assunto, sem preâmbulo e sem parafrasear o que a pessoa disse.`;
+}
