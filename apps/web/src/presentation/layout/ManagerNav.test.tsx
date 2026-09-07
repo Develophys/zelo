@@ -7,13 +7,23 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ManagerSidebar } from './ManagerSidebar';
 import { ManagerBottomNav } from './ManagerBottomNav';
 import { managerNavFor } from './manager-nav';
-import { MANAGER_ADMIN_NAV, MANAGER_PRIMARY_NAV, MANAGER_SETTINGS_NAV } from './manager-nav';
+import {
+  MANAGER_ADMIN_NAV,
+  MANAGER_METHODOLOGY_NAV,
+  MANAGER_PRIMARY_NAV,
+  MANAGER_SETTINGS_NAV,
+} from './manager-nav';
 import { useManagerPrefsStore } from '@/stores/manager-prefs.store';
 import { useManagerSessionStore } from '@/stores/manager-session.store';
 import { routes } from '@/presentation/lib/routes';
 import * as container from '@/app/container';
 
-const ALL_DESTINATIONS = [...MANAGER_PRIMARY_NAV, ...MANAGER_ADMIN_NAV, MANAGER_SETTINGS_NAV];
+const ALL_DESTINATIONS = [
+  ...MANAGER_PRIMARY_NAV,
+  MANAGER_METHODOLOGY_NAV,
+  ...MANAGER_ADMIN_NAV,
+  MANAGER_SETTINGS_NAV,
+];
 
 function unread(count: number) {
   vi.spyOn(container.listManagerNotificationsUseCase, 'unreadCount').mockResolvedValue(count);
@@ -169,11 +179,11 @@ describe('ManagerSidebar', () => {
 });
 
 describe('ManagerBottomNav', () => {
-  it('now carries five slots, since the primary nav grew a fourth destination', () => {
+  it('carries four slots: the three primary destinations, plus "Mais"', () => {
     mount(<ManagerBottomNav />);
     const nav = screen.getByTestId('manager-bottom-nav');
     const slots = within(nav).getAllByRole('link').length + 1; // + "Mais"
-    expect(slots).toBe(5);
+    expect(slots).toBe(4);
   });
 
   it('reaches Sair in two taps: Mais, then Sair', async () => {
@@ -191,7 +201,7 @@ describe('ManagerBottomNav', () => {
     await user.click(screen.getByRole('button', { name: /Mais/ }));
 
     const sheet = screen.getByRole('dialog');
-    for (const { label, route } of [...MANAGER_ADMIN_NAV, MANAGER_SETTINGS_NAV]) {
+    for (const { label, route } of [MANAGER_METHODOLOGY_NAV, ...MANAGER_ADMIN_NAV, MANAGER_SETTINGS_NAV]) {
       expect(within(sheet).getByRole('link', { name: label })).toHaveAttribute('href', route);
     }
   });

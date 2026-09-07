@@ -10,6 +10,7 @@ import { NAV_SLOT_CLASS, NavSlotLink, navSlotToneClass } from './nav-slot';
 import {
   MANAGER_ADMIN_GROUP_LABEL,
   managerNavFor,
+  MANAGER_METHODOLOGY_NAV,
   MANAGER_PRIMARY_NAV,
   MANAGER_SETTINGS_NAV,
 } from './manager-nav';
@@ -20,9 +21,9 @@ interface ManagerBottomNavProps {
 
 /**
  * One slot per MANAGER_PRIMARY_NAV entry, plus "Mais". Everything that does
- * not fit in the primary nav — the Administração group, Configurações and
- * Sair — lives one tap away in the "Mais" sheet. Sair in particular had no
- * mobile route at all before this.
+ * not fit in the primary nav — Como calculamos, the Administração group,
+ * Configurações and Sair — lives one tap away in the "Mais" sheet. Sair in
+ * particular had no mobile route at all before this.
  */
 export function ManagerBottomNav({ className = '' }: ManagerBottomNavProps) {
   const navigate = useNavigate();
@@ -33,14 +34,17 @@ export function ManagerBottomNav({ className = '' }: ManagerBottomNavProps) {
   const clearSession = useManagerSessionStore((state) => state.clearSession);
   const role = useManagerSessionStore((state) => state.role);
   const nav = managerNavFor(role);
-  const isMoreActive = [...nav.admin.map((item) => item.route), MANAGER_SETTINGS_NAV.route].some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`),
-  );
+  const isMoreActive = [
+    MANAGER_METHODOLOGY_NAV.route,
+    ...nav.admin.map((item) => item.route),
+    MANAGER_SETTINGS_NAV.route,
+  ].some((route) => pathname === route || pathname.startsWith(`${route}/`));
 
   const groups: BottomSheetMenuGroup[] = [
     { label: nav.showAdminGroup ? MANAGER_ADMIN_GROUP_LABEL : undefined, items: nav.admin },
     {
       items: [
+        MANAGER_METHODOLOGY_NAV,
         MANAGER_SETTINGS_NAV,
         {
           id: 'logout',

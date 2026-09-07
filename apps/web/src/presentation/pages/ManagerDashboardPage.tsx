@@ -683,12 +683,13 @@ export function ManagerDashboardPage() {
         )}
       </div>
 
-      <p className="mt-4 text-label text-muted">
+      <p className="mt-4 mb-6 text-label text-muted">
         <Link
           to={routes.managerMethodology}
-          className="rounded-control font-bold text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className="flex w-fit items-center gap-0.5 rounded-control font-bold text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
           Como calculamos estes números
+          <ArrowRight size={16} aria-hidden="true" />
         </Link>
       </p>
     </div>

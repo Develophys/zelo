@@ -10,6 +10,7 @@ import { ManagerUnreadBadge } from './ManagerUnreadBadge';
 import {
   MANAGER_ADMIN_GROUP_LABEL,
   managerNavFor,
+  MANAGER_METHODOLOGY_NAV,
   MANAGER_PRIMARY_NAV,
   MANAGER_SETTINGS_NAV,
   type ManagerNavItem,
@@ -114,6 +115,8 @@ export function ManagerSidebar({ className = '' }: ManagerSidebarProps) {
             unreadCount={item.id === 'notifications' ? unread : 0}
           />
         ))}
+
+        <Item item={MANAGER_METHODOLOGY_NAV} collapsed={collapsed} />
 
         {nav.showAdminGroup && (
           <>

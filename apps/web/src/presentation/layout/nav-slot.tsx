@@ -28,7 +28,7 @@ export function NavSlotLink({ to, end, label, icon: Icon, badge }: NavSlotLinkPr
       className={({ isActive }) => `${NAV_SLOT_CLASS} ${navSlotToneClass(isActive)}`}
     >
       <Icon size={22} aria-hidden="true" />
-      <span>{label}</span>
+      <span className="text-center">{label}</span>
       {badge}
     </NavLink>
   );

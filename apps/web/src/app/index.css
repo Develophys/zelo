@@ -329,6 +329,21 @@ html[data-corners='rounded'] {
 @custom-variant short-wide (@media (max-height: 640px) and (min-width: 480px));
 
 @layer base {
+  /* Every screen manages its own scroll region (a shell's `main` with
+     `overflow-y-auto`, clamped between a sticky header and a fixed bottom
+     nav). Without this, once that inner region hits its scroll boundary the
+     same touch gesture keeps going and rubber-bands the outer document too —
+     on iOS Safari this drags the whole `h-dvh` layout up with it, so the
+     sticky header appears to vanish and a blank strip of the real page
+     background shows below the fixed nav until the bounce settles. Locking
+     html/body to the viewport and refusing to chain overscroll into them
+     stops the leak at its source, for every shell, not just one screen. */
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior-y: none;
+  }
   html {
     -webkit-tap-highlight-color: transparent;
   }

@@ -1,7 +1,6 @@
 import { MANAGER_METRICS, MANAGER_METHODOLOGY_VERSION } from "@zelo/domain";
 import { Card } from "@/presentation/ui/Card";
 import { CardTitle } from "@/presentation/ui/CardTitle";
-import { SectionLabel } from "@/presentation/ui/SectionLabel";
 import { MANAGER_INSIGHT_DISCLAIMER } from "@/presentation/lib/manager-insight-disclaimer";
 
 const SECTIONS: { title: string; body: string }[] = [
@@ -30,11 +29,9 @@ const SECTIONS: { title: string; body: string }[] = [
 export function ManagerMethodologyPage() {
   return (
     <div className="max-w-[80ch] print:max-w-none [&_*]:print:shadow-none [&_*]:print:bg-transparent">
-      <SectionLabel>Transparência</SectionLabel>
-      <h1 className="mt-1 text-h1 text-ink">Como calculamos estes números</h1>
-      <p className="mt-2 text-label text-muted">Versão {MANAGER_METHODOLOGY_VERSION}</p>
+      <p className="text-label text-muted">Versão {MANAGER_METHODOLOGY_VERSION}</p>
 
-      <div className="mt-5 flex flex-col gap-3.5">
+      <div className="mt-3 flex flex-col gap-3.5">
         {SECTIONS.map((section) => (
           <Card key={section.title}>
             <CardTitle>{section.title}</CardTitle>

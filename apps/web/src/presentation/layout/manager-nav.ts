@@ -14,12 +14,27 @@ export interface ManagerNavItem {
 // and the mobile nav both read it, so the two can never offer different
 // destinations. Replaces the old "Administração" button, which was a dead end
 // that hid three quarters of what a manager can actually do.
+//
+// Capped at 3: a 4th entry here means a 4th icon in the mobile bottom bar,
+// where the row is already tight enough that "Análises com IA" wraps to two
+// lines — a longer label pushes every slot narrower still. Anything beyond
+// these three is one tap away instead: through "Mais" on mobile, and listed
+// directly below this group on the desktop sidebar, which has the vertical
+// room the bottom bar doesn't.
 export const MANAGER_PRIMARY_NAV: readonly ManagerNavItem[] = [
   { id: 'trends', label: 'Tendências', icon: BarChart3, route: routes.manager },
   { id: 'notifications', label: 'Notificações', icon: Bell, route: routes.managerNotifications },
   { id: 'insights', label: 'Análises com IA', icon: Brain, route: routes.managerHistory },
-  { id: 'methodology', label: 'Como calculamos', icon: BookOpen, route: routes.managerMethodology },
 ];
+
+// Not admin-gated — every manager can read it. Sits below the primary group on
+// the sidebar and inside "Mais" on mobile, rather than in the bottom bar itself.
+export const MANAGER_METHODOLOGY_NAV: ManagerNavItem = {
+  id: 'methodology',
+  label: 'Como calculamos',
+  icon: BookOpen,
+  route: routes.managerMethodology,
+};
 
 // Gestores before Setores on purpose: a sector is assigned to a manager, so the
 // manager list is the prerequisite task, not the other way around.

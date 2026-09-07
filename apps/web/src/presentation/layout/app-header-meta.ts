@@ -54,6 +54,10 @@ export const APP_HEADER_META: Record<string, AppHeaderMeta> = {
     title: 'Pares anônimos',
     subtitle: 'Profissionais disponíveis para acolhimento.',
   },
+  [routes.managerMethodology]: {
+    title: 'Transparência',
+    subtitle: 'Como calculamos estes números.',
+  },
   [routes.peerPartnerInbox]: {
     title: 'Pares anônimos',
     subtitle: 'Quem pede ajuda nunca se identifica.',
