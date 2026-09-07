@@ -334,4 +334,139 @@ describe("ManagerNotificationsPage", () => {
     expect(screen.getByTestId("notifications-loading")).toBeInTheDocument();
     expect(screen.queryByText("Nenhuma notificação por aqui.")).not.toBeInTheDocument();
   });
+
+  it("collapses a repeated failure into one row with a count, instead of four identical-looking rows", async () => {
+    const repeatedFailure = Array.from({ length: 4 }, (_, index) => ({
+      id: `n-fail-${index}`,
+      type: "INVITE_EMAIL_FAILED" as const,
+      payload: { kind: "manager", id: `manager-${index}`, name: "Fernando Costa", email: "fernando@zelo-demo.local" },
+      sectorName: null,
+      readAt: index === 0 ? null : "2026-08-19T00:00:00.000Z",
+      createdAt: `2026-08-2${index}T10:00:00.000Z`,
+    }));
+    vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
+      items: repeatedFailure,
+      nextCursor: null,
+      total: 4,
+    });
+    vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(1);
+    const markRead = vi
+      .spyOn(container.markManagerNotificationReadUseCase, "execute")
+      .mockResolvedValue(undefined);
+    vi.spyOn(container.sendManagerSetPasswordEmailUseCase, "execute").mockResolvedValue(undefined);
+    const user = userEvent.setup();
+
+    renderPage();
+
+    const rows = await screen.findAllByText("Falha no envio do convite");
+    expect(rows).toHaveLength(1);
+    expect(screen.getByText(/×4/)).toBeInTheDocument();
+
+    // A resendable group's row is a resend button, not a click-to-read row
+    // (same as a single resendable notification today) — resending is the
+    // action that settles the whole streak, so it marks every id in the
+    // group read, not just the one it displays.
+    await user.click(screen.getByRole("button", { name: "Reenviar convite" }));
+
+    await waitFor(() => {
+      for (const item of repeatedFailure) {
+        expect(markRead).toHaveBeenCalledWith("token", item.id);
+      }
+    });
+  });
+
+  it("marks every notification in a non-resendable repeated group read from one click on the row", async () => {
+    const repeated = Array.from({ length: 3 }, (_, index) => ({
+      id: `n-legacy-${index}`,
+      type: "INVITE_EMAIL_FAILED" as const,
+      // No payload.id: a legacy row with no resend action, same as today's
+      // "predates the id being tracked" case — the whole row is the button.
+      payload: { kind: "manager", name: "Fernando Costa", email: "fernando@zelo-demo.local" },
+      sectorName: null,
+      readAt: index === 0 ? null : "2026-08-19T00:00:00.000Z",
+      createdAt: `2026-08-2${index}T10:00:00.000Z`,
+    }));
+    vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
+      items: repeated,
+      nextCursor: null,
+      total: 3,
+    });
+    vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(1);
+    const markRead = vi
+      .spyOn(container.markManagerNotificationReadUseCase, "execute")
+      .mockResolvedValue(undefined);
+    const user = userEvent.setup();
+
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: /Falha no envio do convite/ }));
+
+    await waitFor(() => {
+      for (const item of repeated) {
+        expect(markRead).toHaveBeenCalledWith("token", item.id);
+      }
+    });
+  });
+
+  it("does not collapse notifications of the same type for different recipients", async () => {
+    vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
+      items: [
+        {
+          id: "n-a",
+          type: "INVITE_EMAIL_FAILED" as const,
+          payload: { email: "a@zelo-demo.local" },
+          sectorName: null,
+          readAt: null,
+          createdAt: "2026-08-20T10:00:00.000Z",
+        },
+        {
+          id: "n-b",
+          type: "INVITE_EMAIL_FAILED" as const,
+          payload: { email: "b@zelo-demo.local" },
+          sectorName: null,
+          readAt: null,
+          createdAt: "2026-08-20T09:00:00.000Z",
+        },
+      ],
+      nextCursor: null,
+      total: 2,
+    });
+    vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(2);
+
+    renderPage();
+
+    expect(await screen.findAllByText("Falha no envio do convite")).toHaveLength(2);
+    expect(screen.queryByText(/×/)).not.toBeInTheDocument();
+  });
+
+  it("filters the list by notification type, only offering types actually present", async () => {
+    vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
+      items: [UNREAD, { ...READ, id: "n-fail", type: "INVITE_EMAIL_FAILED" as const, payload: { email: "x@zelo-demo.local" } }],
+      nextCursor: null,
+      total: 2,
+    });
+    vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(1);
+    const user = userEvent.setup();
+
+    renderPage();
+
+    await screen.findAllByText("Convite aceito");
+    expect(screen.getByText("Falha no envio do convite")).toBeInTheDocument();
+    // Only types present in this manager's notifications get a filter pill —
+    // no empty category clutters the row.
+    expect(screen.queryByRole("radio", { name: "Conta desativada" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: "Falha no envio" }));
+
+    // The pill itself still reads "Convite aceito" even while that type is
+    // filtered out — only the row for it should be gone.
+    expect(within(screen.getByTestId("notifications-type-filter")).getByText("Convite aceito")).toBeInTheDocument();
+    expect(screen.queryAllByText("Convite aceito")).toHaveLength(1);
+    expect(screen.getByText("Falha no envio do convite")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: "Todos" }));
+
+    expect(screen.getAllByText("Convite aceito")).toHaveLength(2);
+    expect(screen.getByText("Falha no envio do convite")).toBeInTheDocument();
+  });
 });

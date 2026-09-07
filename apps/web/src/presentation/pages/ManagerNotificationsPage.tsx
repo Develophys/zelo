@@ -1,18 +1,24 @@
+import { useState } from "react";
 import { CheckCheck, RefreshCw } from "lucide-react";
 import { Button } from "@/presentation/ui/Button";
 import { Skeleton } from "@/presentation/ui/Skeleton";
 import { Pill } from "@/presentation/ui/Pill";
+import { SECTOR_PILL_CLASS } from "@/presentation/ui/SectorPillPicker";
 import { useManagerNotifications, useManagerUnreadCount } from "@/presentation/hooks/useManagerNotifications";
 import { useSendManagerSetPasswordEmail } from "@/presentation/hooks/useSendManagerSetPasswordEmail";
 import { useSendPeerPartnerSetPasswordEmail } from "@/presentation/hooks/useSendPeerPartnerSetPasswordEmail";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
+import type { ManagerNotification } from "@/ports/manager-notifications.port";
 import { toast } from "@/stores/toast.store";
-import { notificationCopy } from "./manager-notification-copy";
+import { groupConsecutiveNotifications, notificationCopy, NOTIFICATION_TYPE_LABEL } from "./manager-notification-copy";
 
 const DATE_FORMAT: Intl.DateTimeFormatOptions = { day: "2-digit", month: "2-digit", year: "numeric" };
 
 const GOOD_NEWS_TYPES = new Set(["INVITE_ACCEPTED", "ACCOUNT_REACTIVATED", "SECTOR_BECAME_VISIBLE"]);
 const RESENDABLE_TYPES = new Set(["INVITE_EMAIL_FAILED", "INVITE_EXPIRED"]);
+
+// Fixed order so the filter row doesn't reshuffle as new notifications arrive.
+const TYPE_ORDER = Object.keys(NOTIFICATION_TYPE_LABEL) as ManagerNotification["type"][];
 
 export function ManagerNotificationsPage() {
   const { notifications, isLoading, error, refresh, isRefreshing, markRead, markAllRead } =
@@ -20,18 +26,23 @@ export function ManagerNotificationsPage() {
   const unreadCount = useManagerUnreadCount();
   const sendManagerSetPasswordEmail = useSendManagerSetPasswordEmail();
   const sendPeerPartnerSetPasswordEmail = useSendPeerPartnerSetPasswordEmail();
+  const [typeFilter, setTypeFilter] = useState<ManagerNotification["type"] | null>(null);
 
-  const resendInvite = (notificationId: string, kind: unknown, id: string, email: unknown) => {
+  const resendInvite = (notificationIds: string[], kind: unknown, id: string, email: unknown) => {
     const mutation = kind === "manager" ? sendManagerSetPasswordEmail : sendPeerPartnerSetPasswordEmail;
     mutation.mutate(id, {
       onSuccess: () => {
         toast.success(
           typeof email === "string" ? `Convite reenviado para ${email}.` : "Convite reenviado.",
         );
-        markRead(notificationId);
+        notificationIds.forEach(markRead);
       },
     });
   };
+
+  const presentTypes = TYPE_ORDER.filter((type) => notifications.some((n) => n.type === type));
+  const filtered = typeFilter ? notifications.filter((n) => n.type === typeFilter) : notifications;
+  const groups = groupConsecutiveNotifications(filtered);
 
   return (
     <div className="flex flex-col gap-5">
@@ -47,6 +58,43 @@ export function ManagerNotificationsPage() {
           Atualizar
         </Button>
       </div>
+
+      {presentTypes.length > 1 && (
+        <div
+          data-testid="notifications-type-filter"
+          role="radiogroup"
+          aria-label="Filtrar por tipo"
+          className="flex flex-wrap gap-2"
+        >
+          {/* role="radio" instead of the plain button every other pill row in
+              this app uses: a filter pill's own label text is identical to a
+              matching row's event name (e.g. "Convite aceito" names both),
+              and a button role here would be indistinguishable by accessible
+              name from the row it filters — a radiogroup is also the more
+              correct pattern for "pick exactly one" than a set of buttons. */}
+          <button
+            type="button"
+            role="radio"
+            aria-checked={typeFilter === null}
+            onClick={() => setTypeFilter(null)}
+            className={SECTOR_PILL_CLASS(typeFilter === null)}
+          >
+            Todos
+          </button>
+          {presentTypes.map((type) => (
+            <button
+              key={type}
+              type="button"
+              role="radio"
+              aria-checked={typeFilter === type}
+              onClick={() => setTypeFilter(type)}
+              className={SECTOR_PILL_CLASS(typeFilter === type)}
+            >
+              {NOTIFICATION_TYPE_LABEL[type]}
+            </button>
+          ))}
+        </div>
+      )}
 
       {error && !(error instanceof UnauthorizedManagerError) && (
         <p role="alert" className="text-label text-danger">
@@ -75,9 +123,10 @@ export function ManagerNotificationsPage() {
       )}
 
       <ul className="flex flex-col gap-2">
-        {notifications.map((notification) => {
+        {groups.map((group) => {
+          const notification = group.latest;
           const { evento, detalhe } = notificationCopy(notification);
-          const unread = notification.readAt === null;
+          const unread = group.unread;
           const goodNews = GOOD_NEWS_TYPES.has(notification.type);
           const rowClass = `flex w-full flex-col gap-2 rounded-card border px-cell-x py-cell-y text-left motion-safe:transition-colors motion-safe:duration-150 md:flex-row md:items-center md:justify-between ${
             unread
@@ -95,7 +144,13 @@ export function ManagerNotificationsPage() {
           const body = (
             <>
               <span className="min-w-0">
-                <span className="block font-sans text-body-strong text-ink">{evento}</span>
+                <span className="block font-sans text-body-strong text-ink">
+                  {evento}
+                  {/* A repeated failure for the same recipient is a real event each
+                      time, not a duplicate to hide — but a run of identical rows
+                      is still clutter, so it collapses to one row with a count. */}
+                  {group.count > 1 && <span className="text-muted"> ×{group.count}</span>}
+                </span>
                 <span className="block text-label text-muted">{detalhe}</span>
               </span>
               <span className="flex flex-none items-center gap-3">
@@ -110,7 +165,7 @@ export function ManagerNotificationsPage() {
                     full={false}
                     isLoading={sendManagerSetPasswordEmail.isPending || sendPeerPartnerSetPasswordEmail.isPending}
                     onClick={() =>
-                      resendInvite(notification.id, notification.payload.kind, resendId, notification.payload.email)
+                      resendInvite(group.ids, notification.payload.kind, resendId, notification.payload.email)
                     }
                   >
                     Reenviar convite
@@ -128,7 +183,11 @@ export function ManagerNotificationsPage() {
               // button. Leaving read ones focusable made a keyboard user tab
               // through every archived notification to reach what is below.
               unread ? (
-                <button type="button" onClick={() => markRead(notification.id)} className={rowClass}>
+                <button
+                  type="button"
+                  onClick={() => group.ids.forEach(markRead)}
+                  className={rowClass}
+                >
                   {body}
                 </button>
               ) : (
