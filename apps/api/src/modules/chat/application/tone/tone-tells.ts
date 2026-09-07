@@ -16,6 +16,9 @@ const OPENING_TELLS: RegExp[] = [
 const RHETORICAL_REFRAME =
   /\bnão (é|se trata de)(?![\p{L}\p{N}_])(?! pouca)[^.!?]{3,80}?,\s*(mas|e sim|é sobre|é que)(?![\p{L}\p{N}_])/iu;
 
+const HUMAN_CONTACT_OFFER =
+  /psic[óo]log|psiquiatr|terapeuta|terapia|terap[êe]ut|profissiona|(?<![\p{L}\p{N}_])(pessoa de verdade|pessoa real|algu[ée]m de verdade|falar com algu[ée]m|falar com uma pessoa|conversar com algu[ée]m|conversar com uma pessoa|atendimento|cvv|188)(?![\p{L}\p{N}_])/iu;
+
 export function matchOpeningTell(opening: string): string | null {
   const trimmed = opening.trim();
   return OPENING_TELLS.some((tell) => tell.test(trimmed)) ? trimmed : null;
@@ -29,6 +32,10 @@ export function classifyClosingTic(
 ): ClosingTic | null {
   const trimmed = sentence.trim();
 
+  if (HUMAN_CONTACT_OFFER.test(trimmed)) {
+    return null;
+  }
+
   if (RHETORICAL_REFRAME.test(trimmed)) {
     return "rhetorical_reframe";
   }
@@ -38,8 +45,4 @@ export function classifyClosingTic(
   }
 
   return null;
-}
-
-export function isClosingTic(sentence: string, allowTrailingQuestion: boolean): boolean {
-  return classifyClosingTic(sentence, allowTrailingQuestion) !== null;
 }

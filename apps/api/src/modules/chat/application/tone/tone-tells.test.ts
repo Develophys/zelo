@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyClosingTic, isClosingTic, matchOpeningTell } from "./tone-tells.ts";
+import { classifyClosingTic, matchOpeningTell } from "./tone-tells.ts";
 
 describe("matchOpeningTell", () => {
   it.each([
@@ -38,44 +38,67 @@ describe("matchOpeningTell", () => {
   });
 });
 
-describe("isClosingTic", () => {
-  it("drops a trailing question when the cadence forbids one", () => {
-    expect(isClosingTic("Como tá o sono?", false)).toBe(true);
-  });
-
-  it("keeps a trailing question when the cadence permits one", () => {
-    expect(isClosingTic("Como tá o sono?", true)).toBe(false);
-  });
-
-  it("drops a rhetorical reframe even when questions are permitted", () => {
-    expect(isClosingTic("Não é sobre o plantão, é sobre não ter pausa.", true)).toBe(true);
-  });
-
-  it("drops the 'não se trata de X, mas Y' variant", () => {
-    expect(isClosingTic("Não se trata de fraqueza, mas de limite.", true)).toBe(true);
-  });
-
-  it("keeps an ordinary closing statement", () => {
-    expect(isClosingTic("Isso é pesado mesmo.", false)).toBe(false);
-  });
-
-  it("keeps a sentence that merely contains 'não é'", () => {
-    expect(isClosingTic("Isso não é pouca coisa.", false)).toBe(false);
-  });
-});
-
 describe("classifyClosingTic", () => {
   it("labels a dropped trailing question", () => {
     expect(classifyClosingTic("Como tá o sono?", false)).toBe("trailing_question");
   });
 
-  it("labels a dropped rhetorical reframe", () => {
+  it("keeps a trailing question when the cadence permits one", () => {
+    expect(classifyClosingTic("Como tá o sono?", true)).toBeNull();
+  });
+
+  it("labels a rhetorical reframe for reporting only", () => {
     expect(classifyClosingTic("Não é sobre o plantão, é sobre não ter pausa.", true)).toBe(
+      "rhetorical_reframe",
+    );
+  });
+
+  it("labels the 'não se trata de X, mas Y' variant", () => {
+    expect(classifyClosingTic("Não se trata de fraqueza, mas de limite.", true)).toBe(
       "rhetorical_reframe",
     );
   });
 
   it("returns null for an ordinary closing statement", () => {
     expect(classifyClosingTic("Isso é pesado mesmo.", false)).toBeNull();
+  });
+
+  it("returns null for a sentence that merely contains 'não é'", () => {
+    expect(classifyClosingTic("Isso não é pouca coisa.", false)).toBeNull();
+  });
+});
+
+describe("classifyClosingTic — human-contact offers are never a tic", () => {
+  it.each([
+    "Quer falar agora com uma pessoa de verdade?",
+    "Quer falar com alguém agora?",
+    "Dá pra conversar com alguém hoje?",
+    "Tem como procurar um psicólogo essa semana?",
+    "Você já pensou em terapia?",
+    "O CVV atende 24h, é só ligar 188.",
+    "Tem atendimento disponível pelo hospital?",
+    "Buscar ajuda profissional agora faz diferença.",
+    "Falar com uma pessoa real ajuda mais que eu.",
+    "Um psiquiatra pode ajudar com isso?",
+    "Quer falar com alguem agora?",
+  ])("never classifies %j as a tic", (sentence) => {
+    expect(classifyClosingTic(sentence, false)).toBeNull();
+  });
+
+  it("exempts a human-contact offer that is also shaped like a reframe", () => {
+    expect(
+      classifyClosingTic("Não é só cansaço, e sim algo que um profissional deveria ver.", true),
+    ).toBeNull();
+  });
+});
+
+describe("classifyClosingTic — ordinary consoling reframes are reported, never dropped", () => {
+  it.each([
+    "Não é fácil, mas dá pra pedir ajuda.",
+    "Isso não é frescura, mas cansaço acumulado.",
+    "Você não é fraco, mas tá no limite.",
+    "Não é só cansaço, e sim exaustão.",
+  ])("reports %j as rhetorical_reframe rather than a droppable tic", (sentence) => {
+    expect(classifyClosingTic(sentence, true)).toBe("rhetorical_reframe");
   });
 });

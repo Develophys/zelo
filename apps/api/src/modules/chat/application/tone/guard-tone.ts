@@ -77,6 +77,19 @@ async function* runAttempt(
     throw error;
   }
 
+  if (!openingChecked && pending.length > 0) {
+    const boundaries = boundaryIndices(pending);
+    const end = boundaries.length > 0 ? boundaries[0]! + 1 : pending.length;
+    const tell = matchOpeningTell(pending.slice(0, end));
+    if (tell !== null) {
+      if (openingMode === "enforce") {
+        await stream.return(undefined);
+        return { rejectedOpening: tell };
+      }
+      onTell?.("opening_cliche_persisted");
+    }
+  }
+
   const heldTail = pending.trim();
   const tic =
     emittedAny && heldTail.length > 0 && /[.!?…]$/.test(heldTail)
@@ -85,7 +98,9 @@ async function* runAttempt(
 
   if (tic !== null) {
     onTell?.(tic);
-  } else if (pending.length > 0) {
+  }
+
+  if (tic !== "trailing_question" && pending.length > 0) {
     yield { conversationId, delta: pending, done: false };
   }
 

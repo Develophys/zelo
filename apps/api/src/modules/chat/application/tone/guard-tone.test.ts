@@ -24,6 +24,31 @@ function scriptedFactory(...replies: string[]): ReplyStreamFactory & { calls: (s
   return factory;
 }
 
+function chunkedStreamOf(text: string, size: number): AsyncGenerator<ChatToken> {
+  async function* generate(): AsyncGenerator<ChatToken> {
+    for (let index = 0; index < text.length; index += size) {
+      yield {
+        conversationId: CONVERSATION_ID,
+        delta: text.slice(index, index + size),
+        done: false,
+      };
+    }
+    yield { conversationId: CONVERSATION_ID, delta: "", done: true };
+  }
+  return generate();
+}
+
+function factoryOver(
+  attempts: string[],
+  toStream: (text: string) => AsyncGenerator<ChatToken>,
+): ReplyStreamFactory {
+  let call = 0;
+  return () => {
+    call += 1;
+    return toStream(attempts[call - 1] ?? attempts.at(-1) ?? "");
+  };
+}
+
 function contextWith(overrides: Partial<ToneGuardContext> = {}): ToneGuardContext {
   return {
     conversationId: CONVERSATION_ID,
@@ -120,6 +145,16 @@ describe("guardTone — opening sentinel", () => {
     expect(factory.calls).toHaveLength(2);
   });
 
+  it("checks the opening of a short reply that never reaches a terminator or the cap", async () => {
+    const factory = scriptedFactory("Entendo que isso pesa", "Isso pesa mesmo.");
+
+    const text = await textOf(guardTone(factory, contextWith()));
+
+    expect(factory.calls).toHaveLength(2);
+    expect(text).not.toContain("Entendo");
+    expect(text.trim()).toBe("Isso pesa mesmo.");
+  });
+
   it("is inert under an active risk signal", async () => {
     const factory = scriptedFactory("Entendo que isso pesa. Quer falar com alguém agora?");
 
@@ -173,14 +208,56 @@ describe("guardTone — tail sentinel", () => {
     expect(text.trim()).toBe("Isso pesa mesmo. Faz tempo?");
   });
 
-  it("drops a closing rhetorical reframe even when a question would be allowed", async () => {
+  it("keeps a closing rhetorical reframe and only reports it", async () => {
+    const rules: string[] = [];
     const factory = scriptedFactory(
       "O corpo não recupera. Não é sobre o plantão, é sobre não ter pausa.",
     );
 
-    const text = await textOf(guardTone(factory, contextWith()));
+    const text = await textOf(
+      guardTone(factory, contextWith({ onTell: (rule) => rules.push(rule) })),
+    );
 
-    expect(text.trim()).toBe("O corpo não recupera.");
+    expect(text.trim()).toBe("O corpo não recupera. Não é sobre o plantão, é sobre não ter pausa.");
+    expect(rules).toEqual(["rhetorical_reframe"]);
+  });
+
+  it("keeps a closing reassurance that reframes the doctor's self-blame", async () => {
+    const factory = scriptedFactory("O turno foi brutal. Você não é fraco, mas tá no limite.");
+
+    const text = await textOf(
+      guardTone(factory, contextWith({ priorAssistantReplies: ["Como tá o sono?"] })),
+    );
+
+    expect(text.trim()).toBe("O turno foi brutal. Você não é fraco, mas tá no limite.");
+  });
+
+  it("keeps a closing offer of human contact even without an active risk signal", async () => {
+    const factory = scriptedFactory(
+      "Isso assusta mesmo. Quer falar agora com uma pessoa de verdade?",
+    );
+
+    const text = await textOf(
+      guardTone(factory, contextWith({ priorAssistantReplies: ["Como tá o sono?"] })),
+    );
+
+    expect(text.trim()).toBe("Isso assusta mesmo. Quer falar agora com uma pessoa de verdade?");
+  });
+
+  it.each([
+    "Isso pesa mesmo. Quer falar com alguém agora?",
+    "Isso pesa mesmo. Dá pra conversar com alguém hoje?",
+    "Isso pesa mesmo. Tem como procurar um psicólogo essa semana?",
+    "Isso pesa mesmo. O CVV atende 24h no 188, quer o número?",
+    "Isso pesa mesmo. Buscar ajuda profissional agora ajudaria?",
+  ])("keeps the closing human-contact offer in %j", async (reply) => {
+    const factory = scriptedFactory(reply);
+
+    const text = await textOf(
+      guardTone(factory, contextWith({ priorAssistantReplies: ["Como tá o sono?"] })),
+    );
+
+    expect(text.trim()).toBe(reply);
   });
 
   it("keeps a single-sentence question rather than emptying the reply", async () => {
@@ -245,6 +322,38 @@ describe("guardTone — tail sentinel", () => {
 
     expect(text.trim()).toBe(truncated);
   });
+});
+
+describe("guardTone — chunks that split words mid-token", () => {
+  const ATTEMPTS: string[][] = [
+    ["Isso pesa mesmo. Faz quanto tempo que tá assim?"],
+    ["Isso assusta mesmo. Quer falar agora com uma pessoa de verdade?"],
+    ["O corpo não recupera. Não é sobre o plantão, é sobre não ter pausa."],
+    ["Entendo que isso pesa. Deve ser difícil.", "Isso pesa mesmo. Faz tempo."],
+    ["Isso pesa mesmo. O corpo não recupera. Faz sentido."],
+  ];
+
+  it.each([1, 3, 7])(
+    "emits at %i-character chunks exactly what a word-split stream emits",
+    async (size) => {
+      for (const attempts of ATTEMPTS) {
+        const overrides = { priorAssistantReplies: ["Como tá o sono?"] };
+
+        const wordSplit = await textOf(
+          guardTone(factoryOver(attempts, streamOf), contextWith(overrides)),
+        );
+        const chunked = await textOf(
+          guardTone(
+            factoryOver(attempts, (text) => chunkedStreamOf(text, size)),
+            contextWith(overrides),
+          ),
+        );
+
+        expect(chunked.trim()).toBe(wordSplit.trim());
+        expect(chunked.trim().length).toBeGreaterThan(0);
+      }
+    },
+  );
 });
 
 describe("guardTone — violation reporting", () => {
