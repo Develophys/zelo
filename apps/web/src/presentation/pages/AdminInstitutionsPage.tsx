@@ -9,6 +9,7 @@ import { useCreateInstitution } from "@/presentation/hooks/useCreateInstitution"
 import { useAdminSessionStore } from "@/stores/admin-session.store";
 import type { CreateInstitutionResult } from "@/ports/admin-institution.port";
 import { TextField } from "@/presentation/ui/TextField";
+import { isValidEmail } from "@/presentation/lib/validate-email";
 
 export function AdminInstitutionsPage() {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ export function AdminInstitutionsPage() {
   const [inviteCode, setInviteCode] = useState("");
   const [hospitalAdminName, setHospitalAdminName] = useState("");
   const [hospitalAdminEmail, setHospitalAdminEmail] = useState("");
+  const [hospitalAdminEmailTouched, setHospitalAdminEmailTouched] = useState(false);
   const [lastCreated, setLastCreated] = useState<CreateInstitutionResult | null>(null);
 
   const handleSubmit = (event: SubmitEvent) => {
@@ -32,10 +34,16 @@ export function AdminInstitutionsPage() {
           setInviteCode("");
           setHospitalAdminName("");
           setHospitalAdminEmail("");
+          setHospitalAdminEmailTouched(false);
         },
       },
     );
   };
+
+  const hospitalAdminEmailError =
+    hospitalAdminEmailTouched && hospitalAdminEmail.length > 0 && !isValidEmail(hospitalAdminEmail)
+      ? "Digite um email válido."
+      : null;
 
   return (
     <PhoneShell centered>
@@ -46,7 +54,7 @@ export function AdminInstitutionsPage() {
             type="button"
             onClick={() => {
               clearSession();
-              navigate(routes.adminLogin, { replace: true });
+              navigate(routes.home, { replace: true });
             }}
             className="inline-flex min-h-11 cursor-pointer items-center rounded-control text-label font-bold text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           >
@@ -109,10 +117,22 @@ export function AdminInstitutionsPage() {
               required
               value={hospitalAdminEmail}
               onChange={(event) => setHospitalAdminEmail(event.target.value)}
+              onBlur={() => setHospitalAdminEmailTouched(true)}
               className="mt-2"
-              aria-invalid={createInstitution.isError ? true : undefined}
-              aria-describedby={createInstitution.isError ? "create-institution-error" : undefined}
+              aria-invalid={hospitalAdminEmailError || createInstitution.isError ? true : undefined}
+              aria-describedby={
+                hospitalAdminEmailError
+                  ? "hospital-admin-email-error"
+                  : createInstitution.isError
+                    ? "create-institution-error"
+                    : undefined
+              }
             />
+            {hospitalAdminEmailError && (
+              <p id="hospital-admin-email-error" role="alert" className="mt-2 text-label text-danger">
+                {hospitalAdminEmailError}
+              </p>
+            )}
 
             {createInstitution.isError && (
               <p id="create-institution-error" role="alert" className="mt-2 text-label text-danger">
@@ -130,7 +150,7 @@ export function AdminInstitutionsPage() {
                 institutionName.trim().length === 0 ||
                 inviteCode.trim().length === 0 ||
                 hospitalAdminName.trim().length === 0 ||
-                hospitalAdminEmail.trim().length === 0
+                !isValidEmail(hospitalAdminEmail)
               }
             >
               Criar instituição

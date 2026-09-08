@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AdminInstitutionsPage } from "./AdminInstitutionsPage";
 import * as container from "@/app/container";
 import { useAdminSessionStore } from "@/stores/admin-session.store";
+import { routes } from "@/presentation/lib/routes";
 
 function renderPage() {
   const queryClient = new QueryClient();
@@ -14,6 +15,7 @@ function renderPage() {
       <MemoryRouter initialEntries={["/admin"]}>
         <Routes>
           <Route path="/admin" element={<AdminInstitutionsPage />} />
+          <Route path={routes.home} element={<p>Início do médico</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -76,5 +78,34 @@ describe("AdminInstitutionsPage", () => {
 
     expect(await screen.findByText(/Nenhuma instituição cadastrada/i)).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("rejects a malformed hospital admin email, keeping the submit button disabled", async () => {
+    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([]);
+    const createInstitution = vi.spyOn(container.createInstitutionUseCase, "execute");
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(screen.getByLabelText("Nome do hospital"), "Hospital Teste");
+    await user.type(screen.getByLabelText("Código de convite"), "teste-2026");
+    await user.type(screen.getByLabelText("Nome do gestor do hospital"), "Mauricio");
+    const emailField = screen.getByLabelText("Email do gestor do hospital");
+    await user.type(emailField, "not-an-email");
+    await user.tab();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Digite um email válido.");
+    expect(emailField).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("button", { name: "Criar instituição" })).toBeDisabled();
+    expect(createInstitution).not.toHaveBeenCalled();
+  });
+
+  it("sends Sair to the doctor Home, not back to the admin login screen", async () => {
+    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([]);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: "Sair" }));
+
+    expect(await screen.findByText("Início do médico")).toBeInTheDocument();
   });
 });

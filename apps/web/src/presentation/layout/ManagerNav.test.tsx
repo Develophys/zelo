@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, Route, Routes } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ManagerSidebar } from './ManagerSidebar';
 import { ManagerBottomNav } from './ManagerBottomNav';
@@ -34,6 +34,23 @@ function mount(node: React.ReactNode, at = '/manager') {
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[at]}>{node}</MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+// Sair only calls navigate() — with no <Routes> to match against, that leaves
+// no visible trace, so the redirect-target tests route "/home" to a marker
+// and everything else back to the component under test.
+function mountWithHomeRoute(node: React.ReactNode, at = '/manager') {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[at]}>
+        <Routes>
+          <Route path={routes.home} element={<p>Início do médico</p>} />
+          <Route path="*" element={node} />
+        </Routes>
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -81,6 +98,13 @@ describe('ManagerSidebar', () => {
   it('reaches Sair without leaving the sidebar — it was missing from the panel entirely', () => {
     mount(<ManagerSidebar />);
     expect(screen.getByRole('button', { name: 'Sair' })).toBeInTheDocument();
+  });
+
+  it('sends Sair to the doctor Home, not back to the manager login screen', async () => {
+    const user = userEvent.setup();
+    mountWithHomeRoute(<ManagerSidebar />);
+    await user.click(screen.getByRole('button', { name: 'Sair' }));
+    expect(screen.getByText('Início do médico')).toBeInTheDocument();
   });
 
   it('puts the collapse toggle in the sidebar header, beside the Zelo mark', () => {
@@ -193,6 +217,14 @@ describe('ManagerBottomNav', () => {
     expect(screen.queryByRole('button', { name: 'Sair' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Mais/ }));
     expect(screen.getByRole('button', { name: 'Sair' })).toBeInTheDocument();
+  });
+
+  it('sends Sair to the doctor Home, not back to the manager login screen', async () => {
+    const user = userEvent.setup();
+    mountWithHomeRoute(<ManagerBottomNav />);
+    await user.click(screen.getByRole('button', { name: /Mais/ }));
+    await user.click(screen.getByRole('button', { name: 'Sair' }));
+    expect(screen.getByText('Início do médico')).toBeInTheDocument();
   });
 
   it('puts every destination the bottom slots cannot hold inside the sheet', async () => {

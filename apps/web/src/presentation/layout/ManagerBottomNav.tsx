@@ -53,7 +53,7 @@ export function ManagerBottomNav({ className = '' }: ManagerBottomNavProps) {
           danger: true,
           onSelect: () => {
             clearSession();
-            navigate(routes.managerLogin, { replace: true });
+            navigate(routes.home, { replace: true });
           },
         },
       ],

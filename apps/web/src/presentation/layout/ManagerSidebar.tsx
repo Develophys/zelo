@@ -162,7 +162,7 @@ export function ManagerSidebar({ className = '' }: ManagerSidebarProps) {
           collapsed={collapsed}
           onSignOut={() => {
             clearSession();
-            navigate(routes.managerLogin, { replace: true });
+            navigate(routes.home, { replace: true });
           }}
         />
       </div>
