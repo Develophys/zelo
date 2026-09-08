@@ -10,6 +10,7 @@ import { DataTableEmpty } from "@/presentation/ui/DataTable/DataTableEmpty";
 import { DataTableError } from "@/presentation/ui/DataTable/DataTableError";
 import { useManagerInsightHistory } from "@/presentation/hooks/useManagerInsightHistory";
 import { useManagerInsight } from "@/presentation/hooks/useManagerInsight";
+import { useHotkey } from "@/presentation/hooks/useHotkey";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 import { downloadInsightAsPdf, downloadInsightAsText } from "@/presentation/lib/download-manager-insight";
 import { MANAGER_INSIGHT_DISCLAIMER } from "@/presentation/lib/manager-insight-disclaimer";
@@ -216,6 +217,9 @@ export function ManagerInsightHistoryPage() {
       Carregar mais
     </Button>
   ) : null;
+
+  useHotkey("r", () => insight.mutate(), "Gerar análise");
+  useHotkey("l", () => fetchNextPage(), "Carregar mais", { enabled: Boolean(hasNextPage) });
 
   return (
     <div className="flex flex-col gap-5 md:h-full md:min-h-0">

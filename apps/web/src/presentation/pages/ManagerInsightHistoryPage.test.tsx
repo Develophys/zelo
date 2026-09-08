@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -8,6 +8,8 @@ import { useManagerSessionStore } from "@/stores/manager-session.store";
 import * as container from "@/app/container";
 import * as downloadHelper from "@/presentation/lib/download-manager-insight";
 import type { ManagerInsightHistoryPage as InsightHistoryPage, StoredManagerInsight } from "@/ports/manager-insight-history.port";
+import { HotkeyListener } from "@/presentation/layout/HotkeyListener";
+import { useHotkeyStore } from "@/stores/hotkey.store";
 
 function formatDate(generatedAt: string): string {
   return new Date(generatedAt).toLocaleDateString("pt-BR", { year: "numeric", month: "long", day: "numeric" });
@@ -23,7 +25,15 @@ function renderHistory() {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={["/manager/history"]}>
         <Routes>
-          <Route path="/manager/history" element={<ManagerInsightHistoryPage />} />
+          <Route
+            path="/manager/history"
+            element={
+              <>
+                <ManagerInsightHistoryPage />
+                <HotkeyListener />
+              </>
+            }
+          />
           <Route path="/manager" element={<div>Manager dashboard screen</div>} />
           <Route path="/manager/login" element={<div>Login screen</div>} />
         </Routes>
@@ -55,6 +65,7 @@ describe("ManagerInsightHistoryPage", () => {
   beforeEach(() => {
     sessionStorage.clear();
     useManagerSessionStore.setState({ token: "abc.def", expiresAt: new Date(Date.now() + 60_000).toISOString() });
+    useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
     vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockResolvedValue(page(HISTORY_RESPONSE));
   });
 
@@ -374,5 +385,55 @@ describe("ManagerInsightHistoryPage", () => {
       });
       expect(screen.queryByRole("button", { name: "Carregar mais" })).not.toBeInTheDocument();
     });
+  });
+});
+
+describe("hotkeys", () => {
+  it("generates an analysis on 'r'", async () => {
+    vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockResolvedValue(page([]));
+    const generate = vi
+      .spyOn(container.generateManagerInsightUseCase, "execute")
+      .mockResolvedValue({ interpretation: "Nova interpretação.", suggestedActions: ["Ação nova"] });
+    renderHistory();
+    await screen.findByRole("button", { name: "Gerar análise" });
+
+    fireEvent.keyDown(document, { key: "r" });
+
+    await waitFor(() => expect(generate).toHaveBeenCalled());
+  });
+
+  it("offers no 'l' Carregar mais hotkey when there is nothing more to load", async () => {
+    vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockResolvedValue(page([]));
+    renderHistory();
+    await screen.findByRole("button", { name: "Gerar análise" });
+
+    fireEvent.keyDown(document, { key: "l" });
+
+    expect(container.getManagerInsightHistoryUseCase.execute).toHaveBeenCalledTimes(1);
+  });
+
+  it("loads the next page on 'l' when Carregar mais is available", async () => {
+    const historySpy = vi.spyOn(container.getManagerInsightHistoryUseCase, "execute");
+    historySpy.mockResolvedValueOnce(
+      page(
+        [
+          { id: "1", interpretation: "texto 1", suggestedActions: [], summary: "resumo 1", generatedAt: "2026-07-01T00:00:00.000Z", createdByManagerName: null },
+        ],
+        "cursor-1",
+      ),
+    );
+    historySpy.mockResolvedValueOnce(
+      page([
+        { id: "2", interpretation: "texto 2", suggestedActions: [], summary: "resumo 2", generatedAt: "2026-06-01T00:00:00.000Z", createdByManagerName: null },
+      ]),
+    );
+    renderHistory();
+    const rows = await screen.findByTestId("insight-row-list");
+    await waitFor(() => expect(within(rows).getByText("resumo 1")).toBeInTheDocument());
+
+    fireEvent.keyDown(document, { key: "l" });
+
+    await waitFor(() => expect(historySpy).toHaveBeenCalledWith("abc.def", { cursor: "cursor-1" }));
+    await waitFor(() => expect(within(rows).getByText("resumo 2")).toBeInTheDocument());
   });
 });
