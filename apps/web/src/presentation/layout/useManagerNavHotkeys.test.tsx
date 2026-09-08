@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { useManagerNavHotkeys } from "./useManagerNavHotkeys";
 import { useHotkeyStore } from "@/stores/hotkey.store";
