@@ -70,8 +70,8 @@ class FakeManagerInsightRepository implements ManagerInsightRepository {
     }
     this.savedEntries.push(entry);
   }
-  async findAll(): Promise<StoredManagerInsight[]> {
-    return [];
+  async findPage(): Promise<{ items: StoredManagerInsight[]; nextCursor: string | null; total: number | null }> {
+    return { items: [], nextCursor: null, total: 0 };
   }
 }
 

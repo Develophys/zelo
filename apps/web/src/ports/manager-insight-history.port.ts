@@ -10,6 +10,13 @@ export const StoredManagerInsightSchema = z.object({
 });
 export type StoredManagerInsight = z.infer<typeof StoredManagerInsightSchema>;
 
+export const ManagerInsightHistoryPageSchema = z.object({
+  items: z.array(StoredManagerInsightSchema),
+  nextCursor: z.string().nullable(),
+  total: z.number().nullable(),
+});
+export type ManagerInsightHistoryPage = z.infer<typeof ManagerInsightHistoryPageSchema>;
+
 export interface ManagerInsightHistoryPort {
-  fetchHistory(token: string): Promise<StoredManagerInsight[]>;
+  fetchPage(token: string, query: { cursor?: string | null; limit?: number }): Promise<ManagerInsightHistoryPage>;
 }

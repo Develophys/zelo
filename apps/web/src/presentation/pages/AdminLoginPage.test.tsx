@@ -70,4 +70,9 @@ describe("AdminLoginPage", () => {
     await user.click(screen.getByRole("button", { name: "Entrar" }));
     expect(login).not.toHaveBeenCalled();
   });
+
+  it("offers the theme toggle before the admin has even logged in", () => {
+    renderPage();
+    expect(screen.getByTestId("theme-switch")).toBeInTheDocument();
+  });
 });

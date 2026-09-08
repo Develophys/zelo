@@ -130,4 +130,9 @@ describe("ManagerLoginPage", () => {
     renderPage();
     expect(screen.getByText(/administrador/i)).toBeInTheDocument();
   });
+
+  it("offers the theme toggle before the manager has even logged in", () => {
+    renderPage();
+    expect(screen.getByTestId("theme-switch")).toBeInTheDocument();
+  });
 });

@@ -6,6 +6,7 @@ import { Button } from "@/presentation/ui/Button";
 import { IconButton } from "@/presentation/ui/IconButton";
 import { Modal } from "@/presentation/ui/Modal";
 import { Pill } from "@/presentation/ui/Pill";
+import { ThemeSwitchButton } from "@/presentation/ui/ThemeSwitchButton";
 import { DataTable, type DataTableColumn } from "@/presentation/ui/DataTable/DataTable";
 import { DataTableEmpty } from "@/presentation/ui/DataTable/DataTableEmpty";
 import { DataTableError } from "@/presentation/ui/DataTable/DataTableError";
@@ -217,16 +218,19 @@ export function AdminInstitutionsPage() {
       <div className="pt-7.5">
         <div className="mt-4 flex items-center justify-between">
           <h1 className="text-h1 text-ink">Instituições</h1>
-          <button
-            type="button"
-            onClick={() => {
-              clearSession();
-              navigate(routes.home, { replace: true });
-            }}
-            className="inline-flex min-h-11 cursor-pointer items-center rounded-control text-label font-bold text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-          >
-            Sair
-          </button>
+          <div className="flex items-center gap-1">
+            <ThemeSwitchButton />
+            <button
+              type="button"
+              onClick={() => {
+                clearSession();
+                navigate(routes.home, { replace: true });
+              }}
+              className="inline-flex min-h-11 cursor-pointer items-center rounded-control text-label font-bold text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            >
+              Sair
+            </button>
+          </div>
         </div>
         <p className="mt-1.5 text-caption text-muted">Cadastre e administre os hospitais parceiros.</p>
 

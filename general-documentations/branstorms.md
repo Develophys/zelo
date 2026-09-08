@@ -46,16 +46,11 @@ Legenda de escopo: `[Global]` `[Médico]` `[Chat]` `[Autoavaliação]` `[Admin]`
 
 ### 1.3 Fluxos e funcionalidades
 
-- **`[Médico]` Vincular uma instituição via leitor d]e QR Code**
-
-- **`[Chat]` Opção de reiniciar a conversa com a IA**
-
-- **`[Admin]` Editar e excluir instituições**
-
-- **`[Admin]` Tabela de "Instituições cadastradas" com busca**
+- **`[Admin]` Tabela de "Instituições cadastradas" com busca** — *parcial*
   Transformar a listagem em tabela com input de busca.
-  - Dados paginados no backend.
-  - Tabela do frontend deve lidar com dados paginados.
+  - **Já existe**: virou `DataTable` com busca local (nome, código, gestores).
+  - **Falta**: paginação — `findAll()` no backend continua trazendo tudo numa
+    requisição só; sem `page`/`limit` nem no backend nem no frontend.
 
 - Tela do Gestor poderia ter ordem dos items de menu customizaveis?
 
@@ -72,17 +67,8 @@ Legenda de escopo: `[Global]` `[Médico]` `[Chat]` `[Autoavaliação]` `[Admin]`
 
 ## 2. Ajustes no que já existe
 
-### 2.1 `[Gestor]`
-
-- **Paginar "Histórico de análises"** — *parcial*
-  - **Já existe**: tabela com linhas colapsáveis e busca local. **Falta**: paginação — hoje
-    `fetchHistory(token)` traz o histórico inteiro numa requisição só, sem `page`/`limit`.
-
-### 2.2 `[Admin]`
-
-- **Theme toggle na tela de login do admin e na página de admin**
-  As duas telas usam `PhoneShell` sem título registrado em `app-header-meta`, então o `AppHeader`
-  — e junto dele o `ThemeSwitchButton` — não renderiza.
+*Nenhum ajuste pendente no momento — os dois últimos (paginação do histórico de análises e theme
+toggle nas telas de login/admin) estão em **5. Concluído**.*
 
 ---
 
@@ -131,6 +117,33 @@ Legenda de escopo: `[Global]` `[Médico]` `[Chat]` `[Autoavaliação]` `[Admin]`
 - [x] **`[Global]`** PWA: ícone real do Zelo como favicon, ícone de app (manifest/apple-touch) e
   botão "Adicionar à tela inicial" nas Configurações — prompt nativo no Chromium, instruções
   passo a passo no iOS e no Android, e nada exibido onde não há caminho de instalação.
+- [x] **`[Chat]`** Opção de reiniciar a conversa com a IA — botão "Nova conversa" no topo (só
+  aparece com transcrição não vazia), atrás de confirmação, já que a conversa só existe em
+  memória e não tem como desfazer depois de apagada.
+- [x] **`[Médico]`** Vincular instituição via leitor de QR Code — escanear com a câmera preenche e
+  busca a instituição automaticamente; nada exibido em navegador/aparelho sem câmera.
+  - **Bônus**: o admin agora também gera e baixa o QR Code de cada instituição (não estava
+    pedido no item original, que só falava do lado do leitor).
+- [x] **`[Admin]`** Editar e desativar instituições — nome editável, código de convite permanece
+  imutável (já distribuído em QR Codes/links). Desativar bloqueia login de gestores e pares e o
+  lookup do médico pelo código, e derruba sessões de gestor já abertas na hora.
+  - **Ressalva registrada:** o item pedia "excluir", mas a exclusão de verdade foi trocada por
+    desativação reversível — a instituição tem gestores, setores, pares e histórico de check-in
+    vinculados, e um `delete` de verdade ou apaga tudo isso ou fica bloqueado assim que a
+    instituição estiver em uso de verdade. Decisão tomada em conjunto durante o brainstorm da
+    feature, não uma dedução unilateral.
+- [x] **`[Gestor]`** Paginar "Histórico de análises" — paginação por keyset (`generatedAt desc, id
+  desc`, mesmo padrão do módulo de notificações) no backend, botão "Carregar mais" no frontend
+  (tabela desktop e lista de cards mobile). A busca por texto continua local, sobre o que já foi
+  carregado.
+- [x] **`[Admin]`** Theme toggle nas telas de login (admin, gestor, par anônimo) e no painel do
+  admin. Como essas 4 páginas já desenham seu próprio título/subtítulo no corpo, o toggle foi
+  colocado direto na página em vez de cadastrar a rota em `app-header-meta` — isso duplicaria o
+  cabeçalho e, no admin, mostraria o `PrivacyBadge` de médico anônimo indevidamente.
+  - **Escopo ampliado:** o item original só citava as duas telas do admin; o mesmo problema
+    (nenhuma tela de login pré-autenticação tinha o toggle) existia também no login do gestor e do
+    par anônimo, então as três foram corrigidas juntas — decisão consultada e aprovada, não
+    unilateral.
 
 ### Já estava implementado (verificado em 2026-09-08, doc estava desatualizado)
 

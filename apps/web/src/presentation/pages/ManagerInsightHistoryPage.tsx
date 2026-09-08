@@ -178,13 +178,14 @@ function InsightCard({ entry, isDefaultOpen }: { entry: StoredManagerInsight; is
 }
 
 export function ManagerInsightHistoryPage() {
-  const { data, error, isError, refetch } = useManagerInsightHistory();
+  const { data, error, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useManagerInsightHistory();
   const insight = useManagerInsight();
   const [search, setSearch] = useState("");
 
   const loadFailed = isError && !(error instanceof UnauthorizedManagerError);
   const isLoading = !data && !isError;
-  const entries = data ?? [];
+  const entries = useMemo(() => data?.pages.flatMap((page) => page.items) ?? [], [data]);
   const term = search.trim().toLowerCase();
   const filtered = useMemo(
     () => (term.length === 0 ? entries : entries.filter((entry) => matches(entry, term))),
@@ -203,6 +204,18 @@ export function ManagerInsightHistoryPage() {
       Gerar análise
     </Button>
   );
+
+  const loadMore = hasNextPage ? (
+    <Button
+      variant="outline"
+      size="sm"
+      full={false}
+      isLoading={isFetchingNextPage}
+      onClick={() => fetchNextPage()}
+    >
+      Carregar mais
+    </Button>
+  ) : null;
 
   return (
     <div className="flex flex-col gap-5 md:h-full md:min-h-0">
@@ -242,14 +255,19 @@ export function ManagerInsightHistoryPage() {
             />
           )
         ) : (
-          <table data-testid="insight-row-list" className="hidden w-full table-fixed md:table">
-            <caption className="sr-only">Histórico de análises com IA</caption>
-            <tbody>
-              {filtered.map((entry) => (
-                <InsightRow key={entry.id} entry={entry} />
-              ))}
-            </tbody>
-          </table>
+          <>
+            <table data-testid="insight-row-list" className="hidden w-full table-fixed md:table">
+              <caption className="sr-only">Histórico de análises com IA</caption>
+              <tbody>
+                {filtered.map((entry) => (
+                  <InsightRow key={entry.id} entry={entry} />
+                ))}
+              </tbody>
+            </table>
+            {loadMore && (
+              <div className="hidden justify-center border-t border-line p-3 md:flex">{loadMore}</div>
+            )}
+          </>
         )}
       </DataTableShell>
 
@@ -266,6 +284,10 @@ export function ManagerInsightHistoryPage() {
             </li>
           ))}
         </ul>
+      )}
+
+      {filtered.length > 0 && loadMore && (
+        <div className="flex justify-center md:hidden">{loadMore}</div>
       )}
     </div>
   );

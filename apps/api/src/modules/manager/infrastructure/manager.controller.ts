@@ -17,17 +17,37 @@ import { z } from "zod";
 import { LoginManagerUseCase, InvalidManagerCredentialsError } from "../application/use-cases/login-manager.use-case.ts";
 import { GetManagerSignalsUseCase, type ManagerSignalsResponse } from "../application/use-cases/get-manager-signals.use-case.ts";
 import { GenerateManagerInsightUseCase } from "../application/use-cases/generate-manager-insight.use-case.ts";
-import { GetManagerInsightHistoryUseCase } from "../application/use-cases/get-manager-insight-history.use-case.ts";
+import { DEFAULT_LIMIT, GetManagerInsightHistoryUseCase, MAX_LIMIT } from "../application/use-cases/get-manager-insight-history.use-case.ts";
 import { ResolveAccessibleSectorIdsUseCase } from "../application/use-cases/resolve-accessible-sector-ids.use-case.ts";
 import { GetAccessibleSectorsUseCase } from "../application/use-cases/get-accessible-sectors.use-case.ts";
 import { FinishManagerSetupUseCase, InvalidOrExpiredManagerSetupTokenError } from "../application/use-cases/finish-manager-setup.use-case.ts";
 import { InsightGenerationFailedError, type ManagerInsightResponse } from "../application/ports/ai-insight.port.ts";
-import type { StoredManagerInsight } from "../application/ports/manager-insight-repository.port.ts";
 import type { IssuedManagerToken } from "../application/services/manager-token.service.ts";
 import { ManagerAuthGuard } from "./manager-auth.guard.ts";
 
 const LoginRequestSchema = z.object({ email: z.string().email().max(200), password: z.string().min(1).max(200) });
 const FinishSetupRequestSchema = z.object({ token: z.string().min(1), password: z.string().min(8).max(200) });
+
+interface StoredManagerInsightDto {
+  id: string;
+  interpretation: string;
+  suggestedActions: string[];
+  summary: string;
+  generatedAt: string;
+  createdByManagerName: string | null;
+}
+
+interface ManagerInsightHistoryPageDto {
+  items: StoredManagerInsightDto[];
+  nextCursor: string | null;
+  total: number | null;
+}
+
+function parseLimit(raw: string | undefined): number {
+  const parsed = Number.parseInt(raw ?? "", 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_LIMIT;
+  return Math.min(parsed, MAX_LIMIT);
+}
 
 @Controller("manager")
 export class ManagerController {
@@ -116,7 +136,27 @@ export class ManagerController {
 
   @Get("insights/history")
   @UseGuards(ManagerAuthGuard)
-  async insightsHistory(@Req() request: Request): Promise<StoredManagerInsight[]> {
-    return this.getManagerInsightHistory.execute(request.manager!.institutionId);
+  async insightsHistory(
+    @Req() request: Request,
+    @Query("cursor") cursor?: string,
+    @Query("limit") limit?: string,
+  ): Promise<ManagerInsightHistoryPageDto> {
+    const page = await this.getManagerInsightHistory.execute(request.manager!.institutionId, {
+      cursor: cursor ?? null,
+      limit: parseLimit(limit),
+    });
+
+    return {
+      items: page.items.map((row) => ({
+        id: row.id,
+        interpretation: row.interpretation,
+        suggestedActions: row.suggestedActions,
+        summary: row.summary,
+        generatedAt: row.generatedAt.toISOString(),
+        createdByManagerName: row.createdByManagerName,
+      })),
+      nextCursor: page.nextCursor,
+      total: page.total,
+    };
   }
 }

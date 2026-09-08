@@ -207,6 +207,13 @@ describe("AdminInstitutionsPage", () => {
     expect(createInstitution).not.toHaveBeenCalled();
   });
 
+  it("offers the theme toggle next to Sair", async () => {
+    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([]);
+    renderPage();
+
+    expect(await screen.findByTestId("theme-switch")).toBeInTheDocument();
+  });
+
   it("sends Sair to the doctor Home, not back to the admin login screen", async () => {
     vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([]);
     const user = userEvent.setup();

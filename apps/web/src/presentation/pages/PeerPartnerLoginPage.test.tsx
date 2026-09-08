@@ -71,4 +71,9 @@ describe("PeerPartnerLoginPage", () => {
     await user.click(screen.getByRole("button", { name: "Entrar" }));
     expect(login).not.toHaveBeenCalled();
   });
+
+  it("offers the theme toggle before the peer partner has even logged in", () => {
+    renderPage();
+    expect(screen.getByTestId("theme-switch")).toBeInTheDocument();
+  });
 });

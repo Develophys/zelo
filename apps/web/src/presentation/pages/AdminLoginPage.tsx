@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { Button } from "@/presentation/ui/Button";
 import { Card } from "@/presentation/ui/Card";
+import { ThemeSwitchButton } from "@/presentation/ui/ThemeSwitchButton";
 import { routes } from "@/presentation/lib/routes";
 import { useAdminLogin } from "@/presentation/hooks/useAdminLogin";
 import { InvalidAdminCredentialsError } from "@/ports/admin-auth.port";
@@ -32,6 +33,9 @@ export function AdminLoginPage() {
   return (
     <PhoneShell centered>
       <div className="pt-7.5">
+        <div className="flex justify-end">
+          <ThemeSwitchButton />
+        </div>
         <h1 className="mb-1.5 mt-4 text-h1 text-ink">Acesso administrativo</h1>
         <p className="text-caption text-muted">Entre com seu email e senha de administrador da plataforma.</p>
 

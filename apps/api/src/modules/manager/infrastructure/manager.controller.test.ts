@@ -157,6 +157,7 @@ class FakeAiInsightPort implements AiInsightPort {
 
 class FakeManagerInsightRepository implements ManagerInsightRepository {
   public rows: StoredManagerInsight[] = [];
+  public lastQuery: { institutionId: string; cursor: string | null; limit: number } | null = null;
   async save(entry: {
     interpretation: string;
     suggestedActions: string[];
@@ -166,8 +167,13 @@ class FakeManagerInsightRepository implements ManagerInsightRepository {
   }): Promise<void> {
     this.rows.unshift({ id: `id-${this.rows.length + 1}`, generatedAt: new Date(), ...entry });
   }
-  async findAll(institutionId: string): Promise<StoredManagerInsight[]> {
-    return this.rows.filter((row) => row.institutionId === institutionId);
+  async findPage(
+    institutionId: string,
+    query: { cursor: string | null; limit: number },
+  ): Promise<{ items: StoredManagerInsight[]; nextCursor: string | null; total: number | null }> {
+    this.lastQuery = { institutionId, ...query };
+    const items = this.rows.filter((row) => row.institutionId === institutionId);
+    return { items, nextCursor: null, total: items.length };
   }
 }
 
@@ -515,19 +521,54 @@ describe("manager controller", () => {
       .get("/manager/insights/history")
       .set("Authorization", `Bearer ${tokenA}`);
     expect(historyForA.status).toBe(200);
-    expect(historyForA.body).toEqual([
+    expect(historyForA.body.items).toEqual([
       expect.objectContaining({
         interpretation: "análise de teste",
         suggestedActions: ["ação de teste"],
         createdByManagerName: "Ana Konder",
       }),
     ]);
+    expect(historyForA.body.total).toBe(1);
 
     const tokenB = await getToken("beatriz@zelo-demo.local", "test-password-2");
     const historyForB = await request(app.getHttpServer())
       .get("/manager/insights/history")
       .set("Authorization", `Bearer ${tokenB}`);
     expect(historyForB.status).toBe(200);
-    expect(historyForB.body).toEqual([]); // institution-a's insight never leaks to institution-b
+    expect(historyForB.body.items).toEqual([]); // institution-a's insight never leaks to institution-b
+  });
+
+  it("GET /manager/insights/history scopes the query to the authenticated manager's institution, never to a parameter", async () => {
+    const token = await getToken("ana@zelo-demo.local", "test-password");
+
+    await request(app.getHttpServer())
+      .get("/manager/insights/history?cursor=id-9&limit=5")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(insightRepository.lastQuery).toEqual({ institutionId: "institution-a", cursor: "id-9", limit: 5 });
+  });
+
+  it("GET /manager/insights/history clamps an absurd limit rather than letting a caller pull the whole table", async () => {
+    const token = await getToken("ana@zelo-demo.local", "test-password");
+
+    await request(app.getHttpServer())
+      .get("/manager/insights/history?limit=5000")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(insightRepository.lastQuery!.limit).toBe(50);
+  });
+
+  it("GET /manager/insights/history falls back to the default limit for a non-numeric or non-positive limit", async () => {
+    const token = await getToken("ana@zelo-demo.local", "test-password");
+
+    await request(app.getHttpServer())
+      .get("/manager/insights/history?limit=abc")
+      .set("Authorization", `Bearer ${token}`);
+    expect(insightRepository.lastQuery!.limit).toBe(20);
+
+    await request(app.getHttpServer())
+      .get("/manager/insights/history?limit=0")
+      .set("Authorization", `Bearer ${token}`);
+    expect(insightRepository.lastQuery!.limit).toBe(20);
   });
 });

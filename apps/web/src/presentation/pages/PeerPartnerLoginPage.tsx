@@ -4,6 +4,7 @@ import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BackButton } from "@/presentation/ui/BackButton";
 import { Button } from "@/presentation/ui/Button";
 import { Card } from "@/presentation/ui/Card";
+import { ThemeSwitchButton } from "@/presentation/ui/ThemeSwitchButton";
 import { routes } from "@/presentation/lib/routes";
 import { usePeerPartnerLogin } from "@/presentation/hooks/usePeerPartnerLogin";
 import { InvalidPeerPartnerCredentialsError } from "@/ports/peer-partner-auth.port";
@@ -33,7 +34,10 @@ export function PeerPartnerLoginPage() {
   return (
     <PhoneShell centered>
       <div className="pt-7.5">
-        <BackButton label="Início" onClick={() => navigate(routes.home)} />
+        <div className="flex items-center justify-between">
+          <BackButton label="Início" onClick={() => navigate(routes.home)} />
+          <ThemeSwitchButton />
+        </div>
         <h1 className="mb-1.5 mt-4 text-h1 text-ink">Acesso do par anônimo</h1>
         <p className="text-caption text-muted">Entre com seu email e senha de par anônimo.</p>
 

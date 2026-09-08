@@ -5,6 +5,7 @@ import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BackButton } from "@/presentation/ui/BackButton";
 import { Button } from "@/presentation/ui/Button";
 import { Card } from "@/presentation/ui/Card";
+import { ThemeSwitchButton } from "@/presentation/ui/ThemeSwitchButton";
 import { routes } from "@/presentation/lib/routes";
 import { useManagerLogin } from "@/presentation/hooks/useManagerLogin";
 import { InvalidManagerCredentialsError } from "@/ports/manager-auth.port";
@@ -36,7 +37,10 @@ export function ManagerLoginPage() {
   return (
     <PhoneShell centered>
       <div className="pt-7.5">
-        <BackButton label="Início" onClick={() => navigate(routes.home)} />
+        <div className="flex items-center justify-between">
+          <BackButton label="Início" onClick={() => navigate(routes.home)} />
+          <ThemeSwitchButton />
+        </div>
         <h1 className="mb-1.5 mt-4 text-h1 text-ink">Acesso do gestor</h1>
         <p className="text-caption text-muted">Entre com seu email e senha de gestor.</p>
 

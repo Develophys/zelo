@@ -7,9 +7,14 @@ import { ManagerInsightHistoryPage } from "./ManagerInsightHistoryPage";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import * as container from "@/app/container";
 import * as downloadHelper from "@/presentation/lib/download-manager-insight";
+import type { ManagerInsightHistoryPage as InsightHistoryPage, StoredManagerInsight } from "@/ports/manager-insight-history.port";
 
 function formatDate(generatedAt: string): string {
   return new Date(generatedAt).toLocaleDateString("pt-BR", { year: "numeric", month: "long", day: "numeric" });
+}
+
+function page(items: StoredManagerInsight[], nextCursor: string | null = null): InsightHistoryPage {
+  return { items, nextCursor, total: items.length };
 }
 
 function renderHistory() {
@@ -27,7 +32,7 @@ function renderHistory() {
   );
 }
 
-const HISTORY_RESPONSE = [
+const HISTORY_RESPONSE: StoredManagerInsight[] = [
   {
     id: "1",
     interpretation: "A UTI mostra um padrão de aumento nos sinais.",
@@ -50,7 +55,7 @@ describe("ManagerInsightHistoryPage", () => {
   beforeEach(() => {
     sessionStorage.clear();
     useManagerSessionStore.setState({ token: "abc.def", expiresAt: new Date(Date.now() + 60_000).toISOString() });
-    vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockResolvedValue(HISTORY_RESPONSE);
+    vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockResolvedValue(page(HISTORY_RESPONSE));
   });
 
   it("renders past analyses newest-first", async () => {
@@ -113,7 +118,7 @@ describe("ManagerInsightHistoryPage", () => {
   });
 
   it("collapses each analysis, expanding on demand", async () => {
-    vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockResolvedValue([HISTORY_RESPONSE[0]!]);
+    vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockResolvedValue(page([HISTORY_RESPONSE[0]!]));
     const user = userEvent.setup();
     renderHistory();
 
@@ -138,7 +143,7 @@ describe("ManagerInsightHistoryPage", () => {
   });
 
   it("shows an empty state when no analysis has been generated", async () => {
-    vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockResolvedValue(page([]));
     renderHistory();
     expect(await screen.findByText("Nenhuma análise gerada ainda.")).toBeInTheDocument();
   });
@@ -199,7 +204,7 @@ describe("ManagerInsightHistoryPage", () => {
   });
 
   it("offers the generate action from the empty state, not just a link to another page", async () => {
-    vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockResolvedValue(page([]));
     renderHistory();
 
     expect(await screen.findByText("Nenhuma análise gerada ainda.")).toBeInTheDocument();
@@ -244,18 +249,20 @@ describe("ManagerInsightHistoryPage", () => {
 
   it("opens only the newest mobile card after generating, collapsing the previously-first card rather than stacking it open", async () => {
     const historySpy = vi.spyOn(container.getManagerInsightHistoryUseCase, "execute");
-    historySpy.mockResolvedValueOnce(HISTORY_RESPONSE);
-    historySpy.mockResolvedValueOnce([
-      {
-        id: "3",
-        interpretation: "Interpretação recém-gerada.",
-        suggestedActions: ["Ação nova"],
-        summary: "resumo novo",
-        generatedAt: "2026-08-10T00:00:00.000Z",
-        createdByManagerName: "Ana Konder",
-      },
-      ...HISTORY_RESPONSE,
-    ]);
+    historySpy.mockResolvedValueOnce(page(HISTORY_RESPONSE));
+    historySpy.mockResolvedValueOnce(
+      page([
+        {
+          id: "3",
+          interpretation: "Interpretação recém-gerada.",
+          suggestedActions: ["Ação nova"],
+          summary: "resumo novo",
+          generatedAt: "2026-08-10T00:00:00.000Z",
+          createdByManagerName: "Ana Konder",
+        },
+        ...HISTORY_RESPONSE,
+      ]),
+    );
     vi.spyOn(container.generateManagerInsightUseCase, "execute").mockResolvedValue({
       interpretation: "Interpretação recém-gerada.",
       suggestedActions: ["Ação nova"],
@@ -281,18 +288,20 @@ describe("ManagerInsightHistoryPage", () => {
 
   it("refetches the history so a newly generated analysis appears without a manual reload", async () => {
     const historySpy = vi.spyOn(container.getManagerInsightHistoryUseCase, "execute");
-    historySpy.mockResolvedValueOnce(HISTORY_RESPONSE);
-    historySpy.mockResolvedValueOnce([
-      {
-        id: "3",
-        interpretation: "Interpretação recém-gerada.",
-        suggestedActions: ["Ação nova"],
-        summary: "resumo novo",
-        generatedAt: "2026-08-10T00:00:00.000Z",
-        createdByManagerName: "Ana Konder",
-      },
-      ...HISTORY_RESPONSE,
-    ]);
+    historySpy.mockResolvedValueOnce(page(HISTORY_RESPONSE));
+    historySpy.mockResolvedValueOnce(
+      page([
+        {
+          id: "3",
+          interpretation: "Interpretação recém-gerada.",
+          suggestedActions: ["Ação nova"],
+          summary: "resumo novo",
+          generatedAt: "2026-08-10T00:00:00.000Z",
+          createdByManagerName: "Ana Konder",
+        },
+        ...HISTORY_RESPONSE,
+      ]),
+    );
     vi.spyOn(container.generateManagerInsightUseCase, "execute").mockResolvedValue({
       interpretation: "Interpretação recém-gerada.",
       suggestedActions: ["Ação nova"],
@@ -319,5 +328,51 @@ describe("ManagerInsightHistoryPage", () => {
 
     expect(screen.getByTestId("insight-history-loading")).toBeInTheDocument();
     expect(screen.queryByText("Nenhuma análise gerada ainda.")).not.toBeInTheDocument();
+  });
+
+  describe("pagination", () => {
+    it("offers no Carregar mais button when there is nothing more to load", async () => {
+      renderHistory();
+
+      await waitFor(() => {
+        expect(screen.getByText("A UTI mostra um padrão de aumento nos sinais.")).toBeInTheDocument();
+      });
+      expect(screen.queryByRole("button", { name: "Carregar mais" })).not.toBeInTheDocument();
+    });
+
+    it("offers Carregar mais when the repository reports more pages, and loads the next one on click", async () => {
+      const historySpy = vi.spyOn(container.getManagerInsightHistoryUseCase, "execute");
+      historySpy.mockResolvedValueOnce(page(HISTORY_RESPONSE, "cursor-2"));
+      historySpy.mockResolvedValueOnce(
+        page(
+          [
+            {
+              id: "3",
+              interpretation: "Interpretação mais antiga.",
+              suggestedActions: ["Ação antiga"],
+              summary: "resumo 3",
+              generatedAt: "2026-06-01T00:00:00.000Z",
+              createdByManagerName: null,
+            },
+          ],
+          null,
+        ),
+      );
+      const user = userEvent.setup();
+      renderHistory();
+
+      const loadMoreButtons = await screen.findAllByRole("button", { name: "Carregar mais" });
+      expect(loadMoreButtons.length).toBeGreaterThan(0);
+      await user.click(loadMoreButtons[0]!);
+
+      await waitFor(() => {
+        expect(historySpy).toHaveBeenCalledWith("abc.def", { cursor: "cursor-2" });
+      });
+      const rows = await screen.findByTestId("insight-row-list");
+      await waitFor(() => {
+        expect(within(rows).getByText("resumo 3")).toBeInTheDocument();
+      });
+      expect(screen.queryByRole("button", { name: "Carregar mais" })).not.toBeInTheDocument();
+    });
   });
 });

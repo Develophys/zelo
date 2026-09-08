@@ -8,6 +8,12 @@ export interface StoredManagerInsight {
   institutionId: string;
 }
 
+export interface ManagerInsightPage {
+  items: StoredManagerInsight[];
+  nextCursor: string | null;
+  total: number | null;
+}
+
 export interface ManagerInsightRepository {
   save(entry: {
     interpretation: string;
@@ -16,7 +22,7 @@ export interface ManagerInsightRepository {
     createdByManagerName: string | null;
     institutionId: string;
   }): Promise<void>;
-  findAll(institutionId: string): Promise<StoredManagerInsight[]>;
+  findPage(institutionId: string, query: { cursor: string | null; limit: number }): Promise<ManagerInsightPage>;
 }
 
 export const MANAGER_INSIGHT_REPOSITORY = Symbol("MANAGER_INSIGHT_REPOSITORY");
