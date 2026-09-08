@@ -28,9 +28,5 @@ export function useHotkey(
     });
     if (!registered) return;
     return () => unregister(key);
-    // handlerRef absorbs handler changes; re-registering on every render
-    // would thrash the registry for a prop that changes on every keystroke
-    // in a caller with local state.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, label, scope, enabled, register, unregister]);
 }
