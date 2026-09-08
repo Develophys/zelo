@@ -87,7 +87,10 @@ export function AdminInstitutionsPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const institutionList = useMemo(() => institutions.data ?? [], [institutions.data]);
+  const institutionList = useMemo(
+    () => institutions.data?.pages.flatMap((page) => page.items) ?? [],
+    [institutions.data],
+  );
 
   const filteredInstitutions = useMemo(() => {
     const query = normalize(debouncedSearch.trim());
@@ -328,6 +331,19 @@ export function AdminInstitutionsPage() {
               </ul>
             }
           />
+          {institutions.hasNextPage && (
+            <div className="flex justify-center p-3">
+              <Button
+                variant="outline"
+                size="sm"
+                full={false}
+                isLoading={institutions.isFetchingNextPage}
+                onClick={() => institutions.fetchNextPage()}
+              >
+                Carregar mais
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 

@@ -24,11 +24,17 @@ export interface UpdateInstitutionParams {
   isActive?: boolean;
 }
 
+export interface AdminInstitutionPage {
+  items: AdminInstitutionRow[];
+  nextCursor: string | null;
+  total: number | null;
+}
+
 export interface AdminInstitutionRepository {
   createWithHospitalAdmin(
     params: CreateInstitutionParams,
   ): Promise<{ institution: { id: string; name: string; inviteCode: string }; hospitalAdmin: { id: string; name: string; email: string } }>;
-  findAll(): Promise<AdminInstitutionRow[]>;
+  findPage(query: { cursor: string | null; limit: number }): Promise<AdminInstitutionPage>;
   findById(id: string): Promise<AdminInstitutionRow | null>;
   update(id: string, patch: UpdateInstitutionParams): Promise<void>;
 }

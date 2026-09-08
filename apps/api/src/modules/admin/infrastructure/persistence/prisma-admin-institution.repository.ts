@@ -1,6 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { Prisma } from "../../../../../generated/prisma/client.ts";
 import type {
+  AdminInstitutionPage,
   AdminInstitutionRepository,
   AdminInstitutionRow,
   CreateInstitutionParams,
@@ -46,19 +47,32 @@ export class PrismaAdminInstitutionRepository implements AdminInstitutionReposit
     }
   }
 
-  async findAll(): Promise<AdminInstitutionRow[]> {
+  // Keyset pagination on (createdAt desc, id desc): an offset would re-serve
+  // or skip a row whenever a new institution is created mid-scroll.
+  async findPage(query: { cursor: string | null; limit: number }): Promise<AdminInstitutionPage> {
     const institutions = await this.prisma.institution.findMany({
       include: { managers: { where: { role: "HOSPITAL_ADMIN" }, select: { name: true } } },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: query.limit + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
     });
-    return institutions.map((institution) => ({
-      id: institution.id,
-      name: institution.name,
-      inviteCode: institution.inviteCode,
-      isActive: institution.isActive,
-      createdAt: institution.createdAt,
-      hospitalAdminNames: institution.managers.map((manager) => manager.name),
-    }));
+
+    const hasMore = institutions.length > query.limit;
+    const page = hasMore ? institutions.slice(0, query.limit) : institutions;
+    const total = await this.prisma.institution.count();
+
+    return {
+      items: page.map((institution) => ({
+        id: institution.id,
+        name: institution.name,
+        inviteCode: institution.inviteCode,
+        isActive: institution.isActive,
+        createdAt: institution.createdAt,
+        hospitalAdminNames: institution.managers.map((manager) => manager.name),
+      })),
+      nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null,
+      total,
+    };
   }
 
   async findById(id: string): Promise<AdminInstitutionRow | null> {

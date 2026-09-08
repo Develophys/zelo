@@ -17,6 +17,7 @@ import {
   DuplicateInstitutionOrManagerError,
 } from "../application/ports/admin-institution-repository.port.ts";
 import type {
+  AdminInstitutionPage,
   AdminInstitutionRepository,
   AdminInstitutionRow,
   UpdateInstitutionParams,
@@ -37,6 +38,7 @@ class FakeAdminInstitutionRepository implements AdminInstitutionRepository {
   public shouldThrowDuplicateOnUpdate = false;
   public lastCreateParams: { hospitalAdminEmail: string; setPasswordToken: string } | null = null;
   public lastUpdate: { id: string; patch: UpdateInstitutionParams } | null = null;
+  public lastQuery: { cursor: string | null; limit: number } | null = null;
   async createWithHospitalAdmin(params: {
     institutionName: string;
     inviteCode: string;
@@ -52,8 +54,9 @@ class FakeAdminInstitutionRepository implements AdminInstitutionRepository {
       hospitalAdmin: { id: "manager-1", name: params.hospitalAdminName, email: params.hospitalAdminEmail },
     };
   }
-  async findAll(): Promise<AdminInstitutionRow[]> {
-    return this.rows;
+  async findPage(query: { cursor: string | null; limit: number }): Promise<AdminInstitutionPage> {
+    this.lastQuery = query;
+    return { items: this.rows, nextCursor: null, total: this.rows.length };
   }
   async findById(id: string): Promise<AdminInstitutionRow | null> {
     return this.rows.find((row) => row.id === id) ?? null;
@@ -174,7 +177,7 @@ describe("admin controller", () => {
     expect(response.status).toBe(401);
   });
 
-  it("GET /admin/institutions returns the repository's rows", async () => {
+  it("GET /admin/institutions returns a page shaped like every other list in the panel", async () => {
     institutionRepository.rows = [
       { id: "institution-1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: new Date("2026-08-01T00:00:00.000Z"), hospitalAdminNames: ["Mauricio"] },
     ];
@@ -184,9 +187,22 @@ describe("admin controller", () => {
     const response = await request(app.getHttpServer()).get("/admin/institutions").set("Authorization", `Bearer ${token}`);
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual([
+    expect(response.body.items).toEqual([
       expect.objectContaining({ id: "institution-1", name: "Hospital Teste", hospitalAdminNames: ["Mauricio"] }),
     ]);
+    expect(response.body.total).toBe(1);
+  });
+
+  it("GET /admin/institutions scopes cursor and limit through to the repository, clamping an absurd limit", async () => {
+    institutionRepository.rows = [];
+    const login = await request(app.getHttpServer()).post("/admin/login").send({ email: "ops@zelo-demo.local", password: "test-password" });
+    const token = login.body.token;
+
+    await request(app.getHttpServer())
+      .get("/admin/institutions?cursor=institution-9&limit=5000")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(institutionRepository.lastQuery).toEqual({ cursor: "institution-9", limit: 50 });
   });
 
   describe("PATCH /admin/institutions/:id", () => {

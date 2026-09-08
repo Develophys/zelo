@@ -8,6 +8,7 @@ import * as container from "@/app/container";
 import { useAdminSessionStore } from "@/stores/admin-session.store";
 import { routes } from "@/presentation/lib/routes";
 import { DuplicateInstitutionError } from "@/ports/admin-institution.port";
+import type { AdminInstitutionListItem, AdminInstitutionPage as InstitutionPage } from "@/ports/admin-institution.port";
 import { useToastStore } from "@/stores/toast.store";
 
 const { toCanvasMock } = vi.hoisted(() => ({
@@ -19,6 +20,10 @@ const { toCanvasMock } = vi.hoisted(() => ({
 vi.mock("qrcode", () => ({
   default: { toCanvas: toCanvasMock },
 }));
+
+function page(items: AdminInstitutionListItem[], nextCursor: string | null = null): InstitutionPage {
+  return { items, nextCursor, total: items.length };
+}
 
 function renderPage() {
   const queryClient = new QueryClient();
@@ -46,9 +51,11 @@ describe("AdminInstitutionsPage", () => {
   }
 
   it("lists existing institutions", async () => {
-    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([
-      { id: "1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: ["Mauricio"] },
-    ]);
+    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(
+      page([
+        { id: "1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: ["Mauricio"] },
+      ]),
+    );
     renderPage();
 
     const table = within(await screen.findByRole("table"));
@@ -56,10 +63,12 @@ describe("AdminInstitutionsPage", () => {
   });
 
   it("shows an institution's active/inactive status as a pill", async () => {
-    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([
-      { id: "1", name: "Hospital Ativo", inviteCode: "ativo-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
-      { id: "2", name: "Hospital Inativo", inviteCode: "inativo-2026", isActive: false, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
-    ]);
+    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(
+      page([
+        { id: "1", name: "Hospital Ativo", inviteCode: "ativo-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
+        { id: "2", name: "Hospital Inativo", inviteCode: "inativo-2026", isActive: false, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
+      ]),
+    );
     renderPage();
 
     const table = within(await screen.findByRole("table"));
@@ -74,9 +83,11 @@ describe("AdminInstitutionsPage", () => {
     });
 
     it("renders the invite code as a QR code once opened", async () => {
-      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([
-        { id: "1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: ["Mauricio"] },
-      ]);
+      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(
+        page([
+          { id: "1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: ["Mauricio"] },
+        ]),
+      );
       const user = userEvent.setup();
       renderPage();
 
@@ -94,9 +105,11 @@ describe("AdminInstitutionsPage", () => {
           resolveDraw = resolve;
         }),
       );
-      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([
-        { id: "1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: ["Mauricio"] },
-      ]);
+      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(
+        page([
+          { id: "1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: ["Mauricio"] },
+        ]),
+      );
       const user = userEvent.setup();
       renderPage();
 
@@ -128,9 +141,11 @@ describe("AdminInstitutionsPage", () => {
         callback(new Blob(["fake-png"], { type: "image/png" }));
       });
 
-      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([
-        { id: "1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: ["Mauricio"] },
-      ]);
+      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(
+        page([
+          { id: "1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: ["Mauricio"] },
+        ]),
+      );
       const user = userEvent.setup();
       renderPage();
 
@@ -145,7 +160,7 @@ describe("AdminInstitutionsPage", () => {
   });
 
   it("creates an institution via the Adicionar instituição modal, confirming with a toast", async () => {
-    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(page([]));
     vi.spyOn(container.createInstitutionUseCase, "execute").mockResolvedValue({
       institution: { id: "1", name: "Hospital Teste", inviteCode: "teste-2026" },
       hospitalAdmin: { id: "m1", name: "Mauricio", email: "mauricio@zelo-demo.local" },
@@ -179,7 +194,7 @@ describe("AdminInstitutionsPage", () => {
   });
 
   it("says the register is empty when it genuinely is", async () => {
-    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(page([]));
     renderPage();
 
     expect(await screen.findByText(/Nenhuma instituição cadastrada/i)).toBeInTheDocument();
@@ -187,7 +202,7 @@ describe("AdminInstitutionsPage", () => {
   });
 
   it("rejects a malformed hospital admin email, keeping the submit button disabled", async () => {
-    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(page([]));
     const createInstitution = vi.spyOn(container.createInstitutionUseCase, "execute");
     const user = userEvent.setup();
     renderPage();
@@ -208,14 +223,14 @@ describe("AdminInstitutionsPage", () => {
   });
 
   it("offers the theme toggle next to Sair", async () => {
-    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(page([]));
     renderPage();
 
     expect(await screen.findByTestId("theme-switch")).toBeInTheDocument();
   });
 
   it("sends Sair to the doctor Home, not back to the admin login screen", async () => {
-    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(page([]));
     const user = userEvent.setup();
     renderPage();
 
@@ -226,9 +241,11 @@ describe("AdminInstitutionsPage", () => {
 
   describe("editing and deactivating an institution", () => {
     it("renames the institution", async () => {
-      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([
-        { id: "1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: ["Mauricio"] },
-      ]);
+      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(
+        page([
+          { id: "1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: ["Mauricio"] },
+        ]),
+      );
       const updateInstitution = vi.spyOn(container.updateInstitutionUseCase, "execute").mockResolvedValue(undefined);
       const user = userEvent.setup();
       renderPage();
@@ -249,9 +266,11 @@ describe("AdminInstitutionsPage", () => {
     });
 
     it("shows a conflict message when the new name is already taken, keeping the modal open", async () => {
-      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([
-        { id: "1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
-      ]);
+      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(
+        page([
+          { id: "1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
+        ]),
+      );
       vi.spyOn(container.updateInstitutionUseCase, "execute").mockRejectedValue(new DuplicateInstitutionError());
       const user = userEvent.setup();
       renderPage();
@@ -268,9 +287,11 @@ describe("AdminInstitutionsPage", () => {
     });
 
     it("deactivates a selected institution through the bulk toolbar action", async () => {
-      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([
-        { id: "1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
-      ]);
+      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(
+        page([
+          { id: "1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
+        ]),
+      );
       const updateInstitution = vi.spyOn(container.updateInstitutionUseCase, "execute").mockResolvedValue(undefined);
       const user = userEvent.setup();
       renderPage();
@@ -284,9 +305,11 @@ describe("AdminInstitutionsPage", () => {
     });
 
     it("reactivates a selected inactive institution through the bulk toolbar action", async () => {
-      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([
-        { id: "1", name: "Hospital Pausado", inviteCode: "pausado-2026", isActive: false, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
-      ]);
+      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(
+        page([
+          { id: "1", name: "Hospital Pausado", inviteCode: "pausado-2026", isActive: false, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
+        ]),
+      );
       const updateInstitution = vi.spyOn(container.updateInstitutionUseCase, "execute").mockResolvedValue(undefined);
       const user = userEvent.setup();
       renderPage();
@@ -301,10 +324,12 @@ describe("AdminInstitutionsPage", () => {
   });
 
   it("filters the list by name, invite code, or hospital admin name", async () => {
-    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue([
-      { id: "1", name: "Hospital São Lucas", inviteCode: "sao-lucas-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: ["Ana"] },
-      { id: "2", name: "Hospital Vida Nova", inviteCode: "vida-nova-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: ["Bruno"] },
-    ]);
+    vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(
+      page([
+        { id: "1", name: "Hospital São Lucas", inviteCode: "sao-lucas-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: ["Ana"] },
+        { id: "2", name: "Hospital Vida Nova", inviteCode: "vida-nova-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: ["Bruno"] },
+      ]),
+    );
     const user = userEvent.setup();
     renderPage();
 
@@ -316,5 +341,48 @@ describe("AdminInstitutionsPage", () => {
 
     await waitFor(() => expect(table.queryByText("Hospital São Lucas")).not.toBeInTheDocument());
     expect(table.getByText("Hospital Vida Nova")).toBeInTheDocument();
+  });
+
+  describe("pagination", () => {
+    it("offers no Carregar mais button when there is nothing more to load", async () => {
+      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(
+        page([
+          { id: "1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
+        ]),
+      );
+      renderPage();
+
+      await screen.findByRole("table");
+      expect(screen.queryByRole("button", { name: "Carregar mais" })).not.toBeInTheDocument();
+    });
+
+    it("offers Carregar mais when the repository reports more pages, and loads the next one on click", async () => {
+      const listSpy = vi.spyOn(container.listInstitutionsUseCase, "execute");
+      listSpy.mockResolvedValueOnce(
+        page(
+          [
+            { id: "1", name: "Hospital São Lucas", inviteCode: "sao-lucas-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
+          ],
+          "cursor-1",
+        ),
+      );
+      listSpy.mockResolvedValueOnce(
+        page([
+          { id: "2", name: "Hospital Vida Nova", inviteCode: "vida-nova-2026", isActive: true, createdAt: "2026-08-02T00:00:00.000Z", hospitalAdminNames: [] },
+        ]),
+      );
+      const user = userEvent.setup();
+      renderPage();
+
+      const loadMoreButton = await screen.findByRole("button", { name: "Carregar mais" });
+      await user.click(loadMoreButton);
+
+      await waitFor(() => {
+        expect(listSpy).toHaveBeenCalledWith("token", { cursor: "cursor-1" });
+      });
+      const table = within(await screen.findByRole("table"));
+      await waitFor(() => expect(table.getByText("Hospital Vida Nova")).toBeInTheDocument());
+      expect(screen.queryByRole("button", { name: "Carregar mais" })).not.toBeInTheDocument();
+    });
   });
 });

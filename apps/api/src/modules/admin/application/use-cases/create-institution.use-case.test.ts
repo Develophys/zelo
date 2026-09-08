@@ -3,6 +3,7 @@ import { CreateInstitutionUseCase } from "./create-institution.use-case.ts";
 import { EmailDeliveryError, type EmailPort, type EmailTemplate, type SendEmailParams } from "@/shared/email/email.port.js";
 import {
   DuplicateInstitutionOrManagerError,
+  type AdminInstitutionPage,
   type AdminInstitutionRepository,
   type AdminInstitutionRow,
 } from "../ports/admin-institution-repository.port.ts";
@@ -22,7 +23,7 @@ class FakeAdminInstitutionRepository implements AdminInstitutionRepository {
     };
   }
 
-  async findAll(): Promise<AdminInstitutionRow[]> {
+  async findPage(): Promise<AdminInstitutionPage> {
     throw new Error("not used in this test");
   }
 

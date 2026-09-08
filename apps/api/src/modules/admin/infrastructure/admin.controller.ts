@@ -10,13 +10,14 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
 import { z } from "zod";
 import { LoginAdminUseCase, InvalidAdminCredentialsError } from "../application/use-cases/login-admin.use-case.ts";
 import { CreateInstitutionUseCase, type CreateInstitutionResult } from "../application/use-cases/create-institution.use-case.ts";
-import { ListInstitutionsUseCase } from "../application/use-cases/list-institutions.use-case.ts";
+import { DEFAULT_LIMIT, ListInstitutionsUseCase, MAX_LIMIT } from "../application/use-cases/list-institutions.use-case.ts";
 import { ADMIN_INSTITUTION_REPOSITORY } from "../application/ports/admin-institution-repository.port.ts";
 import type { AdminInstitutionRepository, AdminInstitutionRow } from "../application/ports/admin-institution-repository.port.ts";
 import { DuplicateInstitutionOrManagerError } from "../application/ports/admin-institution-repository.port.ts";
@@ -34,6 +35,16 @@ const UpdateInstitutionSchema = z.object({
   name: z.string().trim().min(1).max(200).optional(),
   isActive: z.boolean().optional(),
 });
+
+interface AdminInstitutionDto extends Omit<AdminInstitutionRow, "createdAt"> {
+  createdAt: string;
+}
+
+function parseLimit(raw: string | undefined): number {
+  const parsed = Number.parseInt(raw ?? "", 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_LIMIT;
+  return Math.min(parsed, MAX_LIMIT);
+}
 
 @Controller("admin")
 export class AdminController {
@@ -83,8 +94,17 @@ export class AdminController {
 
   @Get("institutions")
   @UseGuards(AdminAuthGuard)
-  async listInstitutionsHandler(): Promise<AdminInstitutionRow[]> {
-    return this.listInstitutions.execute();
+  async listInstitutionsHandler(
+    @Query("cursor") cursor?: string,
+    @Query("limit") limit?: string,
+  ): Promise<{ items: AdminInstitutionDto[]; nextCursor: string | null; total: number | null }> {
+    const page = await this.listInstitutions.execute({ cursor: cursor ?? null, limit: parseLimit(limit) });
+
+    return {
+      items: page.items.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() })),
+      nextCursor: page.nextCursor,
+      total: page.total,
+    };
   }
 
   @Patch("institutions/:id")

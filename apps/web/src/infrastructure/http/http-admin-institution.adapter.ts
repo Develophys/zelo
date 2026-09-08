@@ -1,18 +1,17 @@
 import type {
   AdminInstitutionPort,
-  AdminInstitutionListItem,
+  AdminInstitutionPage,
   CreateInstitutionParams,
   CreateInstitutionResult,
   UpdateInstitutionParams,
 } from "@/ports/admin-institution.port";
 import {
-  AdminInstitutionListItemSchema,
   AdminInstitutionNotFoundError,
+  AdminInstitutionPageSchema,
   CreateInstitutionResultSchema,
   DuplicateInstitutionError,
   UnauthorizedAdminError,
 } from "@/ports/admin-institution.port";
-import { z } from "zod";
 import { API_BASE_URL } from './api-base-url';
 
 
@@ -31,15 +30,20 @@ export class HttpAdminInstitutionAdapter implements AdminInstitutionPort {
     return CreateInstitutionResultSchema.parse(await response.json());
   }
 
-  async list(token: string): Promise<AdminInstitutionListItem[]> {
-    const response = await fetch(`${API_BASE_URL}/admin/institutions`, {
+  async list(token: string, query: { cursor?: string | null; limit?: number }): Promise<AdminInstitutionPage> {
+    const params = new URLSearchParams();
+    if (query.cursor) params.set("cursor", query.cursor);
+    if (query.limit !== undefined) params.set("limit", String(query.limit));
+    const suffix = params.size > 0 ? `?${params.toString()}` : "";
+
+    const response = await fetch(`${API_BASE_URL}/admin/institutions${suffix}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
     if (response.status === 401) throw new UnauthorizedAdminError();
     if (!response.ok) throw new Error(`list institutions failed with status ${response.status}`);
 
-    return z.array(AdminInstitutionListItemSchema).parse(await response.json());
+    return AdminInstitutionPageSchema.parse(await response.json());
   }
 
   async update(token: string, id: string, patch: UpdateInstitutionParams): Promise<void> {
