@@ -21,6 +21,7 @@ import { useCreatePeerPartner } from "@/presentation/hooks/useCreatePeerPartner"
 import { useUpdatePeerPartner } from "@/presentation/hooks/useUpdatePeerPartner";
 import { useSendPeerPartnerSetPasswordEmail } from "@/presentation/hooks/useSendPeerPartnerSetPasswordEmail";
 import { useDeletePeerPartner } from "@/presentation/hooks/useDeletePeerPartner";
+import { useHotkey } from "@/presentation/hooks/useHotkey";
 import { updateConflictMessage } from "@/ports/manager-admin.port";
 import type { PeerPartnerSummary } from "@/ports/manager-admin.port";
 import { Pencil, Mail, KeyRound, Trash2 } from "lucide-react";
@@ -97,6 +98,8 @@ export function ManagerAdminPeersPage() {
     noun: { singular: "par" },
   });
 
+  const isAnyModalOpen = formMode !== null || bulkDelete.deleteTarget !== null;
+
   const openCreate = () => {
     setName("");
     setEmail("");
@@ -160,6 +163,17 @@ export function ManagerAdminPeersPage() {
     const { failedIds } = await bulkStatus.run(selection.selectedIds, true);
     if (failedIds.length === 0) selection.clear();
   };
+
+  useHotkey("a", openCreate, "Adicionar par", { enabled: !isAnyModalOpen });
+  useHotkey("e", () => selection.selectedRows[0] && openEdit(selection.selectedRows[0]), "Editar", {
+    enabled: !isAnyModalOpen && selection.edit.enabled,
+  });
+  useHotkey("v", handleSaveEdit, "Salvar", { enabled: formMode === "edit" });
+  useHotkey("u", handleBulkPause, "Pausar", { enabled: !isAnyModalOpen && selection.pause.enabled });
+  useHotkey("i", handleBulkActivate, "Ativar", { enabled: !isAnyModalOpen && selection.activate.enabled });
+  useHotkey("x", () => bulkDelete.openDeleteConfirm(selection.selectedIds), "Excluir", {
+    enabled: !isAnyModalOpen && selection.remove.enabled,
+  });
 
   const emailFormatError = emailTouched && email.length > 0 && !isValidEmail(email) ? "Digite um email válido." : null;
   const editEmailFormatError =

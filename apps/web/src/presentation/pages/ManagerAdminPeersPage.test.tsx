@@ -8,6 +8,8 @@ import * as container from "@/app/container";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { useToastStore } from "@/stores/toast.store";
 import { AdminDeleteConflictError, PeerPartnerEmailConflictError } from "@/ports/manager-admin.port";
+import { HotkeyListener } from "@/presentation/layout/HotkeyListener";
+import { useHotkeyStore } from "@/stores/hotkey.store";
 
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -15,7 +17,15 @@ function renderPage() {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={["/manager/admin/peers"]}>
         <Routes>
-          <Route path="/manager/admin/peers" element={<ManagerAdminPeersPage />} />
+          <Route
+            path="/manager/admin/peers"
+            element={
+              <>
+                <ManagerAdminPeersPage />
+                <HotkeyListener />
+              </>
+            }
+          />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -27,6 +37,7 @@ describe("ManagerAdminPeersPage", () => {
     sessionStorage.clear();
     useManagerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString(), "HOSPITAL_ADMIN");
     useToastStore.getState().clear();
+    useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
   });
 
   it("creates a peer partner", async () => {
@@ -485,5 +496,116 @@ describe("ManagerAdminPeersPage", () => {
 
     await waitFor(() => expect(listSpy).toHaveBeenCalledTimes(2));
     expect(within(await screen.findByRole('table')).getByText('Ana')).toBeInTheDocument();
+  });
+
+  describe("hotkeys", () => {
+    it("opens the create modal on 'a'", async () => {
+      vi.spyOn(container.listPeerPartnersUseCase, "execute").mockResolvedValue([]);
+      renderPage();
+      await screen.findByRole("button", { name: "+ Adicionar par" });
+
+      fireEvent.keyDown(document, { key: "a" });
+
+      expect(await screen.findByRole("dialog", { name: "Adicionar par" })).toBeInTheDocument();
+    });
+
+    it("opens the edit modal on 'e' once exactly one row is selected", async () => {
+      vi.spyOn(container.listPeerPartnersUseCase, "execute").mockResolvedValue([
+        { id: "1", name: "Dra. Ana", email: "ana@zelo-demo.local", specialty: "Psiquiatria", isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+      ]);
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar Dra. Ana" }));
+
+      fireEvent.keyDown(document, { key: "e" });
+
+      expect(await screen.findByRole("dialog", { name: "Editar Dra. Ana" })).toBeInTheDocument();
+    });
+
+    it("saves the edit on 'v' while the edit modal is open", async () => {
+      vi.spyOn(container.listPeerPartnersUseCase, "execute").mockResolvedValue([
+        { id: "1", name: "Dra. Ana", email: "ana@zelo-demo.local", specialty: "Psiquiatria", isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+      ]);
+      const updatePeerPartner = vi.spyOn(container.updatePeerPartnerUseCase, "execute").mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      renderPage();
+      const table = await screen.findByRole("table");
+      await user.click(within(table).getByRole("button", { name: "Editar Dra. Ana" }));
+      const dialog = within(await screen.findByRole("dialog", { name: "Editar Dra. Ana" }));
+      dialog.getByRole("button", { name: "Salvar" }).focus();
+
+      fireEvent.keyDown(document, { key: "v" });
+
+      await waitFor(() =>
+        expect(updatePeerPartner).toHaveBeenCalledWith("token", "1", {
+          name: "Dra. Ana",
+          email: "ana@zelo-demo.local",
+          specialty: "Psiquiatria",
+        }),
+      );
+    });
+
+    it("pauses the selection on 'u'", async () => {
+      vi.spyOn(container.listPeerPartnersUseCase, "execute").mockResolvedValue([
+        { id: "1", name: "Dra. Ana", email: "ana@zelo-demo.local", specialty: "Psiquiatria", isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+      ]);
+      const updatePeerPartner = vi.spyOn(container.updatePeerPartnerUseCase, "execute").mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar Dra. Ana" }));
+
+      fireEvent.keyDown(document, { key: "u" });
+
+      await waitFor(() =>
+        expect(updatePeerPartner).toHaveBeenCalledWith("token", "1", { isActive: false }),
+      );
+    });
+
+    it("activates the selection on 'i'", async () => {
+      vi.spyOn(container.listPeerPartnersUseCase, "execute").mockResolvedValue([
+        { id: "1", name: "Dra. Ana", email: "ana@zelo-demo.local", specialty: "Psiquiatria", isActive: false, hasPassword: true, setPasswordTokenExpiresAt: null },
+      ]);
+      const updatePeerPartner = vi.spyOn(container.updatePeerPartnerUseCase, "execute").mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar Dra. Ana" }));
+
+      fireEvent.keyDown(document, { key: "i" });
+
+      await waitFor(() =>
+        expect(updatePeerPartner).toHaveBeenCalledWith("token", "1", { isActive: true }),
+      );
+    });
+
+    it("opens the delete-confirmation modal on 'x', without deleting directly", async () => {
+      vi.spyOn(container.listPeerPartnersUseCase, "execute").mockResolvedValue([
+        { id: "1", name: "Dra. Ana", email: "ana@zelo-demo.local", specialty: "Psiquiatria", isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+      ]);
+      const deletePeerPartner = vi.spyOn(container.deletePeerPartnerAdminUseCase, "execute");
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar Dra. Ana" }));
+
+      fireEvent.keyDown(document, { key: "x" });
+
+      expect(await screen.findByRole("dialog", { name: "Excluir Dra. Ana?" })).toBeInTheDocument();
+      expect(deletePeerPartner).not.toHaveBeenCalled();
+    });
+
+    it("does nothing on 'u' while the create modal sits on top", async () => {
+      vi.spyOn(container.listPeerPartnersUseCase, "execute").mockResolvedValue([
+        { id: "1", name: "Dra. Ana", email: "ana@zelo-demo.local", specialty: "Psiquiatria", isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+      ]);
+      const updatePeerPartner = vi.spyOn(container.updatePeerPartnerUseCase, "execute");
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar Dra. Ana" }));
+      await user.click(screen.getByRole("button", { name: "+ Adicionar par" }));
+      await screen.findByRole("dialog", { name: "Adicionar par" });
+
+      fireEvent.keyDown(document, { key: "u" });
+
+      expect(updatePeerPartner).not.toHaveBeenCalled();
+    });
   });
 });
