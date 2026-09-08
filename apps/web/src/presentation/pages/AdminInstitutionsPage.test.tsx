@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -10,6 +10,8 @@ import { routes } from "@/presentation/lib/routes";
 import { DuplicateInstitutionError } from "@/ports/admin-institution.port";
 import type { AdminInstitutionListItem, AdminInstitutionPage as InstitutionPage } from "@/ports/admin-institution.port";
 import { useToastStore } from "@/stores/toast.store";
+import { HotkeyListener } from "@/presentation/layout/HotkeyListener";
+import { useHotkeyStore } from "@/stores/hotkey.store";
 
 const { toCanvasMock } = vi.hoisted(() => ({
   toCanvasMock: vi.fn().mockResolvedValue(undefined),
@@ -31,7 +33,15 @@ function renderPage() {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={["/admin"]}>
         <Routes>
-          <Route path="/admin" element={<AdminInstitutionsPage />} />
+          <Route
+            path="/admin"
+            element={
+              <>
+                <AdminInstitutionsPage />
+                <HotkeyListener />
+              </>
+            }
+          />
           <Route path={routes.home} element={<p>Início do médico</p>} />
         </Routes>
       </MemoryRouter>
@@ -44,6 +54,7 @@ describe("AdminInstitutionsPage", () => {
     sessionStorage.clear();
     useAdminSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString());
     useToastStore.getState().clear();
+    useHotkeyStore.setState({ entries: new Map() });
   });
 
   async function openCreateModal(user: ReturnType<typeof userEvent.setup>) {
@@ -383,6 +394,122 @@ describe("AdminInstitutionsPage", () => {
       const table = within(await screen.findByRole("table"));
       await waitFor(() => expect(table.getByText("Hospital Vida Nova")).toBeInTheDocument());
       expect(screen.queryByRole("button", { name: "Carregar mais" })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("hotkeys", () => {
+    it("opens the create modal on 'a'", async () => {
+      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(page([]));
+      renderPage();
+      await screen.findByRole("button", { name: "+ Adicionar instituição" });
+
+      fireEvent.keyDown(document, { key: "a" });
+
+      expect(await screen.findByRole("dialog", { name: "Adicionar instituição" })).toBeInTheDocument();
+    });
+
+    it("opens the edit modal on 'e' once exactly one row is selected", async () => {
+      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(
+        page([
+          { id: "1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
+        ]),
+      );
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar Hospital Teste" }));
+
+      fireEvent.keyDown(document, { key: "e" });
+
+      expect(await screen.findByRole("dialog", { name: "Editar Hospital Teste" })).toBeInTheDocument();
+    });
+
+    it("does nothing on 'e' with nothing selected", async () => {
+      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(page([]));
+      renderPage();
+      await screen.findByRole("button", { name: "+ Adicionar instituição" });
+
+      fireEvent.keyDown(document, { key: "e" });
+
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("saves the edit on 's' while the edit modal is open", async () => {
+      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(
+        page([
+          { id: "1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
+        ]),
+      );
+      const updateInstitution = vi.spyOn(container.updateInstitutionUseCase, "execute").mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      renderPage();
+      const table = within(await screen.findByRole("table"));
+      await user.click(table.getByRole("button", { name: "Editar Hospital Teste" }));
+      const dialog = within(await screen.findByRole("dialog", { name: "Editar Hospital Teste" }));
+      dialog.getByRole("button", { name: "Salvar" }).focus();
+
+      fireEvent.keyDown(document, { key: "s" });
+
+      await waitFor(() => expect(updateInstitution).toHaveBeenCalledWith("token", "1", { name: "Hospital Teste" }));
+    });
+
+    it("does nothing on 's' while no modal is open", async () => {
+      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(page([]));
+      const updateInstitution = vi.spyOn(container.updateInstitutionUseCase, "execute");
+      renderPage();
+      await screen.findByRole("button", { name: "+ Adicionar instituição" });
+
+      fireEvent.keyDown(document, { key: "s" });
+
+      expect(updateInstitution).not.toHaveBeenCalled();
+    });
+
+    it("deactivates the selection on 'd'", async () => {
+      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(
+        page([
+          { id: "1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
+        ]),
+      );
+      const updateInstitution = vi.spyOn(container.updateInstitutionUseCase, "execute").mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar Hospital Teste" }));
+
+      fireEvent.keyDown(document, { key: "d" });
+
+      await waitFor(() => expect(updateInstitution).toHaveBeenCalledWith("token", "1", { isActive: false }));
+    });
+
+    it("activates the selection on 't'", async () => {
+      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(
+        page([
+          { id: "1", name: "Hospital Pausado", inviteCode: "pausado-2026", isActive: false, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
+        ]),
+      );
+      const updateInstitution = vi.spyOn(container.updateInstitutionUseCase, "execute").mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar Hospital Pausado" }));
+
+      fireEvent.keyDown(document, { key: "t" });
+
+      await waitFor(() => expect(updateInstitution).toHaveBeenCalledWith("token", "1", { isActive: true }));
+    });
+
+    it("does nothing on 'd' — a different page hotkey — while the create modal sits on top", async () => {
+      // Proves modal-scoped suppression applies to every page hotkey, not only
+      // the one belonging to whichever modal happens to be open.
+      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(page([]));
+      const createInstitution = vi.spyOn(container.createInstitutionUseCase, "execute");
+      const updateInstitution = vi.spyOn(container.updateInstitutionUseCase, "execute");
+      const user = userEvent.setup();
+      renderPage();
+      await openCreateModal(user);
+
+      fireEvent.keyDown(document, { key: "d" });
+
+      expect(createInstitution).not.toHaveBeenCalled();
+      expect(updateInstitution).not.toHaveBeenCalled();
+      expect(screen.getByRole("dialog", { name: "Adicionar instituição" })).toBeInTheDocument();
     });
   });
 });

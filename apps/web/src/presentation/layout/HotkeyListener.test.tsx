@@ -40,6 +40,23 @@ describe("HotkeyListener", () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
+  it("fires a matching key while the focused element is a checkbox", () => {
+    const handler = vi.fn();
+    useHotkeyStore.getState().register("a", { handler, label: "Adicionar", scope: "page" });
+    render(
+      <>
+        <input type="checkbox" data-testid="checkbox" />
+        <HotkeyListener />
+      </>,
+    );
+    const checkbox = screen.getByTestId("checkbox");
+    checkbox.focus();
+
+    fireEvent.keyDown(checkbox, { key: "a" });
+
+    expect(handler).toHaveBeenCalledOnce();
+  });
+
   it("ignores a matching key while the focused element is a textarea", () => {
     const handler = vi.fn();
     useHotkeyStore.getState().register("a", { handler, label: "Adicionar", scope: "page" });

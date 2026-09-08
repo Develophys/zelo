@@ -1,10 +1,26 @@
 import { useEffect } from "react";
 import { useHotkeyStore } from "@/stores/hotkey.store";
 
+const NON_TEXT_INPUT_TYPES = new Set([
+  "checkbox",
+  "radio",
+  "button",
+  "submit",
+  "reset",
+  "range",
+  "color",
+  "file",
+  "image",
+]);
+
 function isEditableElement(element: Element | null): boolean {
   if (!element) return false;
   const tag = element.tagName;
-  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+  if (tag === "INPUT") {
+    const type = (element as HTMLInputElement).type.toLowerCase();
+    return !NON_TEXT_INPUT_TYPES.has(type);
+  }
+  if (tag === "TEXTAREA" || tag === "SELECT") return true;
   return (element as HTMLElement).isContentEditable;
 }
 

@@ -18,6 +18,7 @@ import { routes } from "@/presentation/lib/routes";
 import { useAdminInstitutions } from "@/presentation/hooks/useAdminInstitutions";
 import { useCreateInstitution } from "@/presentation/hooks/useCreateInstitution";
 import { useUpdateInstitution } from "@/presentation/hooks/useUpdateInstitution";
+import { useHotkey } from "@/presentation/hooks/useHotkey";
 import { useAdminSessionStore } from "@/stores/admin-session.store";
 import type { AdminInstitutionListItem } from "@/ports/admin-institution.port";
 import { DuplicateInstitutionError } from "@/ports/admin-institution.port";
@@ -105,6 +106,8 @@ export function AdminInstitutionsPage() {
 
   const selection = useDataTableSelection(filteredInstitutions, { singular: "instituição", article: "uma" });
 
+  const isAnyModalOpen = formMode !== null || qrInstitution !== null;
+
   const openCreate = () => {
     setInstitutionName("");
     setInviteCode("");
@@ -186,6 +189,14 @@ export function AdminInstitutionsPage() {
     const { failedIds } = await runStatusUpdate(selection.selectedIds, true);
     if (failedIds.length === 0) selection.clear();
   };
+
+  useHotkey("a", openCreate, "Adicionar instituição", { enabled: !isAnyModalOpen });
+  useHotkey("e", () => selection.selectedRows[0] && openEdit(selection.selectedRows[0]), "Editar", {
+    enabled: !isAnyModalOpen && selection.edit.enabled,
+  });
+  useHotkey("s", handleSaveEdit, "Salvar", { enabled: formMode === "edit" });
+  useHotkey("d", handleBulkDeactivate, "Desativar", { enabled: !isAnyModalOpen && selection.pause.enabled });
+  useHotkey("t", handleBulkActivate, "Ativar", { enabled: !isAnyModalOpen && selection.activate.enabled });
 
   const hospitalAdminEmailError =
     hospitalAdminEmailTouched && hospitalAdminEmail.length > 0 && !isValidEmail(hospitalAdminEmail)
