@@ -4,11 +4,15 @@ export interface MetricDefinition {
   id: ManagerMetricId;
   /** Rótulo curto. A mesma string na tela, no CSV, no PDF e na metodologia. */
   label: string;
-  /** Como o número é calculado, palavra por palavra. Tooltip e rota de metodologia. */
+  /**
+   * Como o número é calculado. É o único campo que o tooltip do painel mostra,
+   * então precisa se sustentar sozinho: quem só lê ele não pode sair com uma
+   * leitura errada do indicador.
+   */
   method: string;
-  /** Janela temporal, dita explicitamente porque os cards usam janelas diferentes. */
+  /** Janela temporal, dita explicitamente porque os cards usam janelas diferentes. Só na metodologia. */
   window: string;
-  /** Como a supressão por k-anonimato afeta este indicador especificamente. */
+  /** Como a supressão por k-anonimato afeta este indicador especificamente. Só na metodologia. */
   suppression: string;
   /** Presente só quando o indicador não é dado real de produção. */
   provenance?: "demonstration";
@@ -22,24 +26,25 @@ export const MANAGER_METRICS: Record<ManagerMetricId, MetricDefinition> = {
     id: "concerningRate",
     label: "Respostas com sinal de sofrimento relevante",
     method:
-      "Proporção de autoavaliações cujo escore total de PHQ-9 ou GAD-7 ficou acima de 9 — o teto da faixa \"leve\" das duas escalas. Um escore acima disso indica sintomas de depressão ou ansiedade em intensidade ao menos moderada, condição que a literatura associa a maior risco de esgotamento profissional. Não é um diagnóstico de burnout nem de nenhuma outra condição.",
-    window: "Apenas a semana mais recente com dados suficientes — não é média das 6 semanas.",
+      "A parte das respostas que pontuou acima de 9 no PHQ-9 ou no GAD-7. Acima de 9 as duas escalas saem da faixa \"leve\": são sintomas de depressão ou ansiedade em intensidade ao menos moderada. Não é diagnóstico de nada, e não é uma medida de burnout.",
+    window:
+      "Apenas a semana mais recente com dados suficientes — não é a média do período mostrado no gráfico.",
     suppression:
-      "Soma somente os setores com 5 respostas ou mais na semana de referência. Setores abaixo desse limite não entram nem no numerador nem no denominador. A visibilidade é decidida por setor, não semana a semana: uma vez que o setor atinge o mínimo na semana de referência, todas as semanas dele aparecem no gráfico com a contagem real, inclusive as semanas em que essa contagem ficou abaixo de 5.",
+      "Uma vez que um setor atinge 5 respostas na semana de referência, o gráfico passa a mostrar todas as semanas dele com a contagem real — inclusive as semanas em que essa contagem ficou abaixo de 5. A visibilidade é decidida uma vez, por setor, e não semana a semana. Setores que nunca atingem o mínimo ficam fora do numerador e do denominador.",
   },
   checkIns: {
     id: "checkIns",
-    label: "Questionários respondidos",
+    label: "Respostas",
     method:
-      "Soma das autoavaliações respondidas. Uma mesma pessoa que responde em duas semanas diferentes conta duas vezes; dentro da mesma semana, conta uma única vez, mesmo que refaça o questionário.",
+      "Soma das respostas enviadas. Uma mesma pessoa que responde em duas semanas diferentes conta duas vezes; dentro da mesma semana, conta uma única vez, mesmo que refaça o questionário.",
     window: "As 4 semanas mais recentes que têm dados — não necessariamente os últimos 28 dias corridos.",
-    suppression: "Conta apenas setores visíveis.",
+    suppression: "Conta apenas os setores com 5 respostas ou mais.",
   },
   followUpRate: {
     id: "followUpRate",
     label: "Taxa de resposta do follow-up",
     method:
-      "Proporção de contatos de reengajamento respondidos, na semana mais recente. O mecanismo de follow-up ainda não coleta dado real por instituição: este valor vem de um conjunto de demonstração, igual para todas as instituições, e não deve ser usado em relatório, apresentação ou documento de conformidade.",
+      "A parte dos contatos de reengajamento que foi respondida, na semana mais recente. O mecanismo de follow-up ainda não coleta dado real por instituição: este valor vem de um conjunto de demonstração, igual para todas as instituições, e não deve ser usado em relatório, apresentação ou documento de conformidade.",
     window: "Semana mais recente do conjunto de demonstração.",
     suppression:
       "Este indicador ainda não aplica o mínimo de 5 respostas que os demais aplicam. Enquanto for dado de demonstração isso não descreve ninguém; quando passar a ser real, o mínimo entra junto.",
@@ -49,10 +54,10 @@ export const MANAGER_METRICS: Record<ManagerMetricId, MetricDefinition> = {
     id: "sectorCoverage",
     label: "Cobertura desta leitura",
     method:
-      "Conta, entre os setores que você selecionou no filtro, quantos têm 5 respostas ou mais na semana de referência — só esses entram nos números desta página.",
+      "Conta, entre os setores que você selecionou no filtro, quantos têm 5 respostas ou mais na semana de referência — só esses entram nos números desta página. Em \"3 de 8 setores\", tudo aqui descreve apenas esses 3: os outros 5 podem estar melhor ou pior, e nada nesta página mostraria isso.",
     window: "Usa a mesma semana de referência do indicador de sofrimento relevante, no topo da página.",
     suppression:
-      "Quanto maior a diferença entre os dois números, menor a parte da instituição que os outros indicadores desta página conseguem representar. Por exemplo, em \"3 de 8 setores\": tudo nesta página descreve apenas esses 3. Os outros 5 podem estar melhor ou pior, e nada aqui mostraria isso.",
+      "Quanto maior a diferença entre os dois números, menor a parte da instituição que os outros indicadores desta página conseguem representar.",
   },
 };
 

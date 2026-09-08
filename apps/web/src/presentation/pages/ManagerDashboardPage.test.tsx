@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MANAGER_METRICS } from "@zelo/domain";
 import { ManagerDashboardPage } from "./ManagerDashboardPage";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import * as container from "@/app/container";
@@ -182,7 +183,7 @@ describe("ManagerDashboardPage", () => {
     renderManager();
 
     await waitFor(() => {
-      expect(screen.getByText("Sem dados nas últimas 6 semanas. O gráfico aparece assim que houver check-ins.")).toBeInTheDocument();
+      expect(screen.getByText("Ainda não há respostas para montar o gráfico. Ele aparece assim que houver.")).toBeInTheDocument();
     });
 
     // 0% burnout signals reads as a real all-clear, and 70% follow-up beside
@@ -198,12 +199,17 @@ describe("ManagerDashboardPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("labels the existing check-ins card as questionários respondidos", async () => {
+  // "Respostas" é a palavra única para a unidade contada no painel do gestor.
+  // Antes a mesma coisa aparecia como "questionários respondidos" no rótulo,
+  // "respostas" na leitura abaixo e "check-ins" no estado vazio da tendência.
+  it("labels the response-count card with the one word the panel uses for it", async () => {
     renderManager();
     await waitFor(() => {
       expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
     });
-    expect(screen.getByText("Questionários respondidos")).toBeInTheDocument();
+    expect(screen.getByText("Respostas")).toBeInTheDocument();
+    expect(screen.queryByText(/questionários respondidos/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/check-ins/i)).not.toBeInTheDocument();
   });
 
   it("labels the main indicator by what it measures, never as burnout", async () => {
@@ -254,14 +260,20 @@ describe("ManagerDashboardPage", () => {
     });
   });
 
-  it("marks the follow-up rate as demonstration data and bands it", async () => {
+  // A faixa julga o número ("boa parte respondeu", "vale acompanhar se cai nas
+  // próximas semanas") sobre um valor fixo, igual para toda instituição, que
+  // nunca vai cair. Enquanto o follow-up for demonstração, o card diz que é
+  // demonstração e para por aí.
+  it("does not band the follow-up rate while it is demonstration data", async () => {
     renderManager();
 
     await waitFor(() => {
       expect(screen.getByText("Dado de demonstração — não reflete esta instituição")).toBeInTheDocument();
     });
-    // 70% cai em "Média": a regra é "abaixo de 70 é baixa".
-    expect(screen.getByText("Média")).toBeInTheDocument();
+    expect(screen.getByText("demonstração")).toBeInTheDocument();
+    // 70% cairia em "Média": a regra é "abaixo de 70 é baixa".
+    expect(screen.queryByText("Média")).not.toBeInTheDocument();
+    expect(screen.queryByText(/vale acompanhar se a taxa cai/i)).not.toBeInTheDocument();
   });
 
   it("offers a help trigger for every KPI card", async () => {
@@ -270,8 +282,23 @@ describe("ManagerDashboardPage", () => {
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Sobre: Respostas com sinal de sofrimento relevante" })).toBeInTheDocument();
     });
-    expect(screen.getByRole("button", { name: "Sobre: Questionários respondidos" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sobre: Respostas" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sobre: Taxa de resposta do follow-up" })).toBeInTheDocument();
+  });
+
+  // Empilhar method/window/suppression sem rótulo dava quatro blocos de peso
+  // idêntico e nenhum ponto de entrada. A janela e a supressão continuam
+  // acessíveis na Transparência, onde já vêm rotuladas.
+  it("keeps the help bubble to how the number is calculated, not the full glossary entry", async () => {
+    renderManager();
+
+    const help = await screen.findByRole("button", { name: "Sobre: Respostas" });
+    await userEvent.click(help);
+
+    const bubble = await screen.findByTestId("tooltip");
+    expect(bubble).toHaveTextContent(MANAGER_METRICS.checkIns.method);
+    expect(bubble).not.toHaveTextContent(MANAGER_METRICS.checkIns.window);
+    expect(bubble).not.toHaveTextContent(MANAGER_METRICS.checkIns.suppression);
   });
 
   it("shows skeleton placeholders while signals are loading, then replaces them with real content", async () => {
@@ -832,7 +859,7 @@ describe("ManagerDashboardPage", () => {
     });
     renderManager();
 
-    expect(await screen.findByTestId("trend-empty")).toHaveTextContent(/sem dados/i);
+    expect(await screen.findByTestId("trend-empty")).toHaveTextContent(/ainda não há respostas/i);
     expect(screen.queryAllByTestId("trend-bar")).toHaveLength(0);
   });
 
@@ -973,6 +1000,6 @@ describe("ManagerDashboardPage", () => {
     await userEvent.click(help);
 
     const bubble = await screen.findByTestId("tooltip");
-    expect(bubble).toHaveTextContent("não é um limite de alerta");
+    expect(bubble).toHaveTextContent("não um limite de alerta");
   });
 });

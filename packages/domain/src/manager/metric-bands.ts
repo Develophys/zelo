@@ -24,8 +24,10 @@ const GOOD: FollowUpBand = {
 const FAIR: FollowUpBand = {
   tone: "fair",
   label: "Média",
+  // A faixa vai de 70% a 80%: fixar "um em cada quatro" só era verdade no
+  // meio dela.
   meaning:
-    "Boa parte respondeu, mas cerca de um em cada quatro contatos ficou sem retorno. Vale acompanhar se a taxa cai nas próximas semanas.",
+    "Boa parte respondeu, mas uma fatia relevante dos contatos ficou sem retorno. Vale acompanhar se a taxa cai nas próximas semanas.",
 };
 
 const POOR: FollowUpBand = {

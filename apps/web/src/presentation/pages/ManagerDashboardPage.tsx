@@ -76,8 +76,9 @@ function parseSectorParam(raw: string | null, sectors: { id: string }[] | undefi
 
 const DASHBOARD_DISCLOSURE = "Nenhum dado individual é exibido.";
 
-const TREND_EMPTY =
-  "Sem dados nas últimas 6 semanas. O gráfico aparece assim que houver check-ins.";
+// Sem "6 semanas": esta mensagem só aparece quando não há série nenhuma, então
+// não existe período a citar.
+const TREND_EMPTY = "Ainda não há respostas para montar o gráfico. Ele aparece assim que houver.";
 
 // An empty segment list usually means k-anonymity suppressed every one of them,
 // not that nothing happened. Saying so is the difference between a dashboard
@@ -97,7 +98,7 @@ const INSIGHT_EMPTY_EXPLANATION =
   "Interpreta os indicadores agregados e anônimos desta página e sugere ações para a liderança, sem acesso a dados individuais de nenhum profissional.";
 
 const PEAK_LEGEND_HELP =
-  "A semana com a maior proporção de sinais dentro deste período. É uma comparação relativa à própria série e não é um limite de alerta: a barra fica marcada mesmo que o valor seja baixo, porque indica o ponto mais alto do período, não que ele seja preocupante.";
+  "A semana mais alta do período mostrado. É só o topo desta lista, não um limite de alerta: se o período todo estiver baixo, o pico também está.";
 
 const LATEST_LEGEND_HELP =
   "A última semana com dados. Aparece separada porque é a que reflete a situação atual; quando ela também é o pico, prevalece a marcação de pico.";
@@ -208,12 +209,15 @@ function SectorFilter({ sectors, selectedSectorIds, onChange }: SectorFilterProp
   );
 }
 
+/**
+ * Só o `method`. Empilhar method/window/suppression sem rótulo dava quatro
+ * blocos de peso idêntico e nenhum ponto de entrada — e os três já aparecem
+ * rotulados na Transparência, que é onde o gestor vai quando quer auditar.
+ */
 function metricHelpContent(metric: MetricDefinition, extra?: string) {
   return (
     <span className="flex flex-col gap-1.5">
       <span>{metric.method}</span>
-      <span>{metric.window}</span>
-      <span>{metric.suppression}</span>
       {extra && <span>{extra}</span>}
     </span>
   );
@@ -307,6 +311,11 @@ export function ManagerDashboardPage() {
   // A faixa lê o mesmo inteiro que o card imprime: classificar a fração crua
   // faria 0,804 e 0,7996 exibirem ambos "80%" em faixas diferentes.
   const followUpBand = followUpBandFor(followUpPercent);
+  // A faixa lia o número como se fosse real: dizia "vale acompanhar se a taxa
+  // cai nas próximas semanas" sobre um valor fixo, igual para toda
+  // instituição, que nunca vai cair. Volta sozinha quando o follow-up passar
+  // a coletar dado de verdade.
+  const followUpBandApplies = MANAGER_METRICS.followUpRate.provenance !== "demonstration";
   // O KPI principal é da semana de referência, que a API nomeia — não uma
   // média da série e não necessariamente a última entrada: uma semana em curso
   // entra na tendência sem ter atingido o mínimo por conta própria, e lê-la
@@ -404,13 +413,15 @@ export function ManagerDashboardPage() {
                 value={`${followUpPercent}%`}
                 valueClass="text-muted"
                 reading={followUpReading()}
-                extraHelp={followUpBand.meaning}
+                extraHelp={followUpBandApplies ? followUpBand.meaning : undefined}
                 badge={
                   <span className="flex items-center justify-center gap-2">
                     <Pill tone="neutral">demonstração</Pill>
-                    <Pill tone={followUpBand.tone === "poor" ? "warning" : "neutral"}>
-                      {followUpBand.label}
-                    </Pill>
+                    {followUpBandApplies && (
+                      <Pill tone={followUpBand.tone === "poor" ? "warning" : "neutral"}>
+                        {followUpBand.label}
+                      </Pill>
+                    )}
                   </span>
                 }
               />

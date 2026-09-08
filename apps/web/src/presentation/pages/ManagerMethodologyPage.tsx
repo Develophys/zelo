@@ -6,11 +6,11 @@ import { MANAGER_INSIGHT_DISCLAIMER } from "@/presentation/lib/manager-insight-d
 const SECTIONS: { title: string; body: string }[] = [
   {
     title: "O que o Zelo mede",
-    body: "As autoavaliações usam PHQ-9 (sintomas de depressão) e GAD-7 (sintomas de ansiedade), aplicadas em duas etapas: uma triagem curta e, em caso de pontuação positiva, o questionário completo. Nenhuma delas mede burnout diretamente — o que o painel chama de sinal de sofrimento relevante é um escore acima da faixa leve, condição associada na literatura a maior risco de esgotamento profissional.",
+    body: "Os questionários usam PHQ-9 (sintomas de depressão) e GAD-7 (sintomas de ansiedade), aplicados em duas etapas: uma triagem curta e, para quem pontua acima do corte, o questionário completo. Nenhum dos dois mede burnout diretamente — o que o painel chama de sinal de sofrimento relevante é um escore acima da faixa leve, condição associada a maior risco de esgotamento profissional.",
   },
   {
     title: "Como um sinal vira um número",
-    body: "A resposta é cifrada no aparelho antes de qualquer envio. O que chega ao servidor é um incremento em um contador por setor e por semana — não existe registro individual no banco, apenas contadores. A deduplicação é por dispositivo e semana, e um dispositivo não é uma pessoa: dois profissionais que compartilham um tablet contam como um, e um profissional com dois aparelhos conta como dois. É uma imprecisão inevitável sob anonimato, e ela precisa ser considerada ao ler \"respostas\" como se fosse \"pessoas\".",
+    body: "A resposta é cifrada no aparelho antes de qualquer envio. O que chega ao servidor é um incremento em um contador por setor e por semana — não existe registro individual no banco, apenas contadores. A deduplicação é por dispositivo e semana, e um dispositivo não é uma pessoa: dois profissionais que compartilham um tablet contam como um, e um profissional com dois aparelhos conta como dois. É o preço do anonimato. Na prática: leia \"respostas\", não \"pessoas\".",
   },
   {
     title: "A regra de privacidade",
@@ -18,7 +18,7 @@ const SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: "Como ler o gráfico de tendência",
-    body: "As barras são desenhadas em escala relativa à própria série, com uma folga de 10 pontos em cada extremo — ou seja, elas comparam as semanas entre si, e não contra 0% a 100%. Uma variação de 40% para 47% ocupa boa parte da altura por esse motivo. O percentual impresso acima de cada barra é sempre o valor literal, e é ele que deve ser citado.",
+    body: "As barras comparam as semanas entre si, não contra uma escala de 0% a 100%. É por isso que uma variação de 40% para 47% ocupa boa parte da altura. O percentual impresso acima de cada barra é sempre o valor literal, e é ele que deve ser citado.",
   },
   {
     title: "O que este painel não é",

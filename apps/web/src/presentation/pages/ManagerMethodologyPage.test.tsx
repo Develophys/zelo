@@ -38,6 +38,6 @@ describe("ManagerMethodologyPage", () => {
 
   it("discloses that the chart uses a relative scale, not 0 to 100", () => {
     renderPage();
-    expect(screen.getByText(/não contra 0% a 100%/i)).toBeInTheDocument();
+    expect(screen.getByText(/não contra uma escala de 0% a 100%/i)).toBeInTheDocument();
   });
 });

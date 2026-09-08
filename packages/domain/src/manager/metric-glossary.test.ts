@@ -45,7 +45,7 @@ describe("MANAGER_METRICS", () => {
   // contagem real, inclusive as que sozinhas ficariam abaixo de 5. Quem audita
   // a supressão precisa ler isso na metodologia, não deduzir do código.
   it("discloses that a visible sector shows its sub-threshold weeks with their real counts", () => {
-    expect(MANAGER_METRICS.concerningRate.suppression).toMatch(/decidida por setor/i);
+    expect(MANAGER_METRICS.concerningRate.suppression).toMatch(/por setor,? e não semana a semana/i);
     expect(MANAGER_METRICS.concerningRate.suppression).toMatch(/abaixo de 5/i);
   });
 });
