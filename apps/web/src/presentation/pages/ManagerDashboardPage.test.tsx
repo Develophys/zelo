@@ -650,6 +650,54 @@ describe("ManagerDashboardPage", () => {
     await waitFor(() => expect(screen.getByTestId("location-search").textContent).toBe(""));
   });
 
+  it("coalesces a rapid run of sector toggles into a single request for the final selection", async () => {
+    const execute = vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue(SIGNALS_RESPONSE);
+    const user = userEvent.setup();
+    renderManager();
+
+    await waitFor(() =>
+      expect(within(screen.getByTestId("sector-filter-pills")).getByRole("button", { name: "Enfermagem" })).toBeInTheDocument(),
+    );
+    const pills = within(screen.getByTestId("sector-filter-pills"));
+    const callsBeforeToggling = execute.mock.calls.length;
+
+    // Todos -> ["sector-a"] -> Todos -> ["sector-a"], three clicks landing
+    // well inside the debounce window. Only the settled selection should
+    // reach the backend, not one request per click.
+    await user.click(pills.getByRole("button", { name: "Enfermagem" }));
+    await user.click(pills.getByRole("button", { name: "Enfermagem" }));
+    await user.click(pills.getByRole("button", { name: "Enfermagem" }));
+
+    await waitFor(() => expect(execute).toHaveBeenLastCalledWith("abc.def", ["sector-a"]));
+    expect(execute.mock.calls.length).toBe(callsBeforeToggling + 1);
+  });
+
+  it("keeps the last result on screen while a debounced sector change refetches, instead of flashing skeletons", async () => {
+    const user = userEvent.setup();
+    renderManager();
+
+    await waitFor(() => expect(screen.getByText("Plantão noturno")).toBeInTheDocument());
+    const pills = within(screen.getByTestId("sector-filter-pills"));
+
+    let resolveNext!: (value: typeof SIGNALS_RESPONSE) => void;
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockReturnValue(
+      new Promise((resolve) => {
+        resolveNext = resolve;
+      }),
+    );
+
+    await user.click(pills.getByRole("button", { name: "Enfermagem" }));
+    // Past the debounce window, the request is in flight but unresolved.
+    await new Promise((resolve) => setTimeout(resolve, 350));
+
+    expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+    expect(screen.queryAllByTestId("skeleton")).toHaveLength(0);
+
+    resolveNext({ ...SIGNALS_RESPONSE, segments: [{ label: "Ambulatório", value: 10, n: 6 }] });
+    await waitFor(() => expect(screen.queryByText("Plantão noturno")).not.toBeInTheDocument());
+    expect(screen.getByText("Ambulatório")).toBeInTheDocument();
+  });
+
   it("restores the selection from the URL on load, so a reload or a shared link keeps the filter", async () => {
     renderManager("/manager?sectorIds=sector-b");
 

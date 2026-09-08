@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
 import {
   MANAGER_METRICS,
@@ -271,8 +271,21 @@ export function ManagerDashboardPage() {
   const sectorsQuery = useManagerSectors();
   const [searchParams, setSearchParams] = useSearchParams();
   const sectors = sectorsQuery.data;
-  const selectedSectorIds = parseSectorParam(searchParams.get(SECTOR_PARAM), sectors);
-  const { data, error, isError, isLoading, refetch } = useManagerSignals(selectedSectorIds);
+  const rawSectorParam = searchParams.get(SECTOR_PARAM);
+  const selectedSectorIds = parseSectorParam(rawSectorParam, sectors);
+
+  // The pills/dropdown reflect `selectedSectorIds` (and the URL) on every
+  // click, but the request that recomputes the k-anonymity aggregation on the
+  // backend only fires once the selection settles — otherwise a quick run of
+  // toggles fires one request per click instead of one for the final choice.
+  const [debouncedSectorParam, setDebouncedSectorParam] = useState(rawSectorParam);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSectorParam(rawSectorParam), 300);
+    return () => clearTimeout(timer);
+  }, [rawSectorParam]);
+  const debouncedSectorIds = parseSectorParam(debouncedSectorParam, sectors);
+
+  const { data, error, isError, isLoading, refetch } = useManagerSignals(debouncedSectorIds);
 
   // The URL is the filter's only state, so a reload, the back button and a
   // link pasted into a message all land on the same view.
