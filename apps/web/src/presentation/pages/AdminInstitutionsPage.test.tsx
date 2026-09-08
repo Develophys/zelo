@@ -497,15 +497,33 @@ describe("AdminInstitutionsPage", () => {
 
     it("does nothing on 'd' — a different page hotkey — while the create modal sits on top", async () => {
       // Proves modal-scoped suppression applies to every page hotkey, not only
-      // the one belonging to whichever modal happens to be open.
-      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(page([]));
+      // the one belonging to whichever modal happens to be open. The selected
+      // row here is active, so selection.pause.enabled is true on its own —
+      // if !isAnyModalOpen were ever dropped from "d"'s enabled condition,
+      // this would catch it by seeing updateInstitution get called. Focus is
+      // moved off the modal's auto-focused Nome field onto its close button so
+      // HotkeyListener's separate typing-safety guard (any focused text input
+      // blocks every hotkey) can't itself account for "d" doing nothing here —
+      // only the enabled condition can.
+      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(
+        page([
+          { id: "1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
+        ]),
+      );
       const createInstitution = vi.spyOn(container.createInstitutionUseCase, "execute");
-      const updateInstitution = vi.spyOn(container.updateInstitutionUseCase, "execute");
+      const updateInstitution = vi.spyOn(container.updateInstitutionUseCase, "execute").mockResolvedValue(undefined);
       const user = userEvent.setup();
       renderPage();
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar Hospital Teste" }));
       await openCreateModal(user);
+      const dialog = within(screen.getByRole("dialog", { name: "Adicionar instituição" }));
+      dialog.getByRole("button", { name: "Fechar" }).focus();
 
       fireEvent.keyDown(document, { key: "d" });
+
+      // handleBulkDeactivate is async — give any (incorrectly) triggered call
+      // a full tick to reach the spy before asserting it never did.
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       expect(createInstitution).not.toHaveBeenCalled();
       expect(updateInstitution).not.toHaveBeenCalled();
