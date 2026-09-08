@@ -15,6 +15,7 @@ import { useDataTableSelection } from "@/presentation/ui/DataTable/useDataTableS
 import { useBulkDelete } from "@/presentation/ui/DataTable/useBulkDelete";
 import { useBulkStatusUpdate } from "@/presentation/ui/DataTable/useBulkStatusUpdate";
 import { normalize } from "@/presentation/lib/normalize-search";
+import { isValidEmail } from "@/presentation/lib/validate-email";
 import { accountStatusPill } from "@/presentation/lib/account-status-pill";
 import { updateConflictMessage } from "@/ports/manager-admin.port";
 import { toast } from "@/stores/toast.store";
@@ -165,6 +166,7 @@ export function ManagerAdminManagersPage() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
   const [role, setRole] = useState<ManagerRole>("SECTOR_MANAGER");
   const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
 
@@ -221,6 +223,7 @@ export function ManagerAdminManagersPage() {
   const openCreate = () => {
     setName("");
     setEmail("");
+    setEmailTouched(false);
     setRole("SECTOR_MANAGER");
     setSelectedSectorIds([]);
     setFormMode("create");
@@ -274,8 +277,9 @@ export function ManagerAdminManagersPage() {
     if (failedIds.length === 0) selection.clear();
   };
 
+  const emailFormatError = emailTouched && email.length > 0 && !isValidEmail(email) ? "Digite um email válido." : null;
   const isSubmitDisabled =
-    name.trim().length === 0 || email.trim().length === 0 || (role === "SECTOR_MANAGER" && selectedSectorIds.length === 0);
+    name.trim().length === 0 || !isValidEmail(email) || (role === "SECTOR_MANAGER" && selectedSectorIds.length === 0);
   // Saving a SECTOR_MANAGER replaces their whole sector set, so it must not be
   // possible while the list those sectors come from is unknown.
   const sectorsUnknown = sectors.isPending || sectors.isError;
@@ -466,8 +470,16 @@ export function ManagerAdminManagersPage() {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              onBlur={() => setEmailTouched(true)}
               className="mt-2"
+              aria-invalid={emailFormatError ? true : undefined}
+              aria-describedby={emailFormatError ? "manager-email-input-error" : undefined}
             />
+            {emailFormatError && (
+              <p id="manager-email-input-error" role="alert" className="mt-2 text-label text-danger">
+                {emailFormatError}
+              </p>
+            )}
 
             <RoleAndSectorFields
               idPrefix="create"

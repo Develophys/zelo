@@ -8,10 +8,12 @@ import { useAdminLogin } from "@/presentation/hooks/useAdminLogin";
 import { InvalidAdminCredentialsError } from "@/ports/admin-auth.port";
 import { TextField } from "@/presentation/ui/TextField";
 import { PasswordField } from "@/presentation/ui/PasswordField";
+import { isValidEmail } from "@/presentation/lib/validate-email";
 
 export function AdminLoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
   const [password, setPassword] = useState("");
   const login = useAdminLogin();
 
@@ -25,6 +27,7 @@ export function AdminLoginPage() {
       ? "Email ou senha incorretos."
       : "Não foi possível entrar agora. Tente novamente."
     : null;
+  const emailFormatError = emailTouched && email.length > 0 && !isValidEmail(email) ? "Digite um email válido." : null;
 
   return (
     <PhoneShell centered>
@@ -43,11 +46,17 @@ export function AdminLoginPage() {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              onBlur={() => setEmailTouched(true)}
               placeholder="Digite seu email"
               className="mt-2"
-              aria-invalid={errorMessage ? true : undefined}
-              aria-describedby={errorMessage ? "admin-login-error" : undefined}
+              aria-invalid={emailFormatError || errorMessage ? true : undefined}
+              aria-describedby={emailFormatError ? "admin-email-error" : errorMessage ? "admin-login-error" : undefined}
             />
+            {emailFormatError && (
+              <p id="admin-email-error" role="alert" className="mt-2 text-label text-danger">
+                {emailFormatError}
+              </p>
+            )}
 
             <label htmlFor="admin-password" className="mt-4 block text-label font-semibold text-ink-2">
               Senha
@@ -75,7 +84,7 @@ export function AdminLoginPage() {
               type="submit"
               variant="primary"
               isLoading={login.isPending}
-              disabled={email.trim().length === 0 || password.trim().length === 0}
+              disabled={!isValidEmail(email) || password.trim().length === 0}
             >
               Entrar
             </Button>

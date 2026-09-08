@@ -66,6 +66,23 @@ describe("ManagerLoginPage", () => {
     expect(screen.getByLabelText("Senha")).toHaveAttribute("aria-describedby", alert.id);
   });
 
+  it("rejects a malformed email once the field is left, without ever calling the API", async () => {
+    const login = vi.spyOn(container.loginManagerUseCase, "execute");
+    const user = userEvent.setup();
+    renderPage();
+
+    const emailField = screen.getByLabelText("Email");
+    await user.type(emailField, "not-an-email");
+    await user.tab();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Digite um email válido.");
+    expect(emailField).toHaveAttribute("aria-invalid", "true");
+
+    await user.type(screen.getByLabelText("Senha"), "senha-correta");
+    await user.click(screen.getByRole("button", { name: "Entrar" }));
+    expect(login).not.toHaveBeenCalled();
+  });
+
   it("marks neither field invalid before a login attempt fails", () => {
     renderPage();
     expect(screen.getByLabelText("Email")).not.toHaveAttribute("aria-invalid");

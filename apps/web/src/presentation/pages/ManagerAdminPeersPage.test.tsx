@@ -57,6 +57,25 @@ describe("ManagerAdminPeersPage", () => {
     );
   });
 
+  it("rejects a malformed email on the create form, keeping Adicionar par disabled", async () => {
+    vi.spyOn(container.listPeerPartnersUseCase, "execute").mockResolvedValue([]);
+    const createPeerPartner = vi.spyOn(container.createPeerPartnerUseCase, "execute");
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "+ Adicionar par" }));
+    await user.type(screen.getByLabelText("Nome do par"), "Dra. Ana");
+    const emailField = screen.getByLabelText("Email do par");
+    await user.type(emailField, "not-an-email");
+    await user.tab();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Digite um email válido.");
+    expect(emailField).toHaveAttribute("aria-invalid", "true");
+    await user.type(screen.getByLabelText("Especialidade"), "Clínica médica");
+    expect(screen.getByRole("button", { name: "Adicionar par" })).toBeDisabled();
+    expect(createPeerPartner).not.toHaveBeenCalled();
+  });
+
   it("resends a set-password email for an active peer partner", async () => {
     vi.spyOn(container.listPeerPartnersUseCase, "execute").mockResolvedValue([
       { id: "peer-5", name: "Dr. Paulo", email: "paulo@zelo-demo.local", specialty: "Clínica médica", isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
@@ -128,6 +147,27 @@ describe("ManagerAdminPeersPage", () => {
       }),
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('rejects a malformed email on the edit form, keeping Salvar disabled', async () => {
+    vi.spyOn(container.listPeerPartnersUseCase, 'execute').mockResolvedValue([
+      { id: 'peer-5', name: 'Dr. Paulo', email: 'paulo@zelo-demo.local', specialty: 'Clínica médica', isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    const updatePeerPartner = vi.spyOn(container.updatePeerPartnerUseCase, 'execute');
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(within(await screen.findByRole('table')).getByRole('button', { name: 'Editar Dr. Paulo' }));
+    const editForm = within(screen.getByRole('dialog'));
+    const emailField = editForm.getByLabelText('Email do par');
+    await user.clear(emailField);
+    await user.type(emailField, 'not-an-email');
+    await user.tab();
+
+    expect(await editForm.findByRole('alert')).toHaveTextContent('Digite um email válido.');
+    expect(emailField).toHaveAttribute('aria-invalid', 'true');
+    expect(editForm.getByRole('button', { name: 'Salvar' })).toBeDisabled();
+    expect(updatePeerPartner).not.toHaveBeenCalled();
   });
 
   it('shows a friendly message and keeps the modal open when the new email is already in use', async () => {

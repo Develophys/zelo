@@ -62,6 +62,29 @@ describe("ManagerAdminManagersPage", () => {
     );
   });
 
+  it("rejects a malformed manager email, keeping Adicionar gestor disabled", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
+    ]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+    const createManager = vi.spyOn(container.createManagerAdminUseCase, "execute");
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "+ Adicionar gestor" }));
+    await user.type(await screen.findByLabelText("Nome do gestor"), "Paulo");
+    const emailField = screen.getByLabelText("Email do gestor");
+    await user.type(emailField, "not-an-email");
+    await user.tab();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Digite um email válido.");
+    expect(emailField).toHaveAttribute("aria-invalid", "true");
+    await user.click(screen.getByLabelText("Gestor de setor"));
+    await user.click(await screen.findByRole("button", { name: "UTI" }));
+    expect(screen.getByRole("button", { name: "Adicionar gestor" })).toBeDisabled();
+    expect(createManager).not.toHaveBeenCalled();
+  });
+
   // An admin onboarding a dozen ward leads on a Friday accepts the default. It
   // must not be the role that grants hospital-wide aggregates plus the ability
   // to create more admins.

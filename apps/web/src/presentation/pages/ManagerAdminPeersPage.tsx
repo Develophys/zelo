@@ -13,6 +13,7 @@ import { useDataTableSelection } from "@/presentation/ui/DataTable/useDataTableS
 import { useBulkDelete } from "@/presentation/ui/DataTable/useBulkDelete";
 import { useBulkStatusUpdate } from "@/presentation/ui/DataTable/useBulkStatusUpdate";
 import { normalize } from "@/presentation/lib/normalize-search";
+import { isValidEmail } from "@/presentation/lib/validate-email";
 import { accountStatusPill } from "@/presentation/lib/account-status-pill";
 import { toast } from "@/stores/toast.store";
 import { useAdminPeerPartners } from "@/presentation/hooks/useAdminPeerPartners";
@@ -52,12 +53,14 @@ export function ManagerAdminPeersPage() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
   const [specialty, setSpecialty] = useState("");
 
   const [formMode, setFormMode] = useState<"create" | "edit" | null>(null);
   const [editingPeerPartner, setEditingPeerPartner] = useState<PeerPartnerSummary | null>(null);
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
+  const [editEmailTouched, setEditEmailTouched] = useState(false);
   const [editSpecialty, setEditSpecialty] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -97,6 +100,7 @@ export function ManagerAdminPeersPage() {
   const openCreate = () => {
     setName("");
     setEmail("");
+    setEmailTouched(false);
     setSpecialty("");
     setFormMode("create");
   };
@@ -105,6 +109,7 @@ export function ManagerAdminPeersPage() {
     setEditingPeerPartner(peerPartner);
     setEditName(peerPartner.name);
     setEditEmail(peerPartner.email);
+    setEditEmailTouched(false);
     setEditSpecialty(peerPartner.specialty);
     setEditError(null);
     setFormMode("edit");
@@ -156,9 +161,12 @@ export function ManagerAdminPeersPage() {
     if (failedIds.length === 0) selection.clear();
   };
 
-  const isSubmitDisabled = name.trim().length === 0 || email.trim().length === 0 || specialty.trim().length === 0;
+  const emailFormatError = emailTouched && email.length > 0 && !isValidEmail(email) ? "Digite um email válido." : null;
+  const editEmailFormatError =
+    editEmailTouched && editEmail.length > 0 && !isValidEmail(editEmail) ? "Digite um email válido." : null;
+  const isSubmitDisabled = name.trim().length === 0 || !isValidEmail(email) || specialty.trim().length === 0;
   const isEditSubmitDisabled =
-    editName.trim().length === 0 || editEmail.trim().length === 0 || editSpecialty.trim().length === 0;
+    editName.trim().length === 0 || !isValidEmail(editEmail) || editSpecialty.trim().length === 0;
 
   const renderRowActions = (peerPartner: PeerPartnerSummary) => {
     const status = accountStatusPill(peerPartner);
@@ -352,8 +360,16 @@ export function ManagerAdminPeersPage() {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              onBlur={() => setEmailTouched(true)}
               className="mt-2"
+              aria-invalid={emailFormatError ? true : undefined}
+              aria-describedby={emailFormatError ? "peer-partner-email-input-error" : undefined}
             />
+            {emailFormatError && (
+              <p id="peer-partner-email-input-error" role="alert" className="mt-2 text-label text-danger">
+                {emailFormatError}
+              </p>
+            )}
 
             <label htmlFor="peer-partner-specialty-input" className="mt-4 block text-label font-semibold text-ink-2">
               Especialidade
@@ -390,8 +406,16 @@ export function ManagerAdminPeersPage() {
                 required
                 value={editEmail}
                 onChange={(event) => setEditEmail(event.target.value)}
+                onBlur={() => setEditEmailTouched(true)}
                 className="mt-2"
+                aria-invalid={editEmailFormatError ? true : undefined}
+                aria-describedby={editEmailFormatError ? "peer-partner-edit-email-input-error" : undefined}
               />
+              {editEmailFormatError && (
+                <p id="peer-partner-edit-email-input-error" role="alert" className="mt-2 text-label text-danger">
+                  {editEmailFormatError}
+                </p>
+              )}
 
               <label htmlFor="peer-partner-edit-specialty-input" className="mt-4 block text-label font-semibold text-ink-2">
                 Especialidade

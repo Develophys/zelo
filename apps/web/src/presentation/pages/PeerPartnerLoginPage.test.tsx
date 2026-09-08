@@ -54,4 +54,21 @@ describe("PeerPartnerLoginPage", () => {
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Email ou senha incorretos."));
     expect(screen.queryByText("Peer partner inbox")).not.toBeInTheDocument();
   });
+
+  it("rejects a malformed email once the field is left, without ever calling the API", async () => {
+    const login = vi.spyOn(container.loginPeerPartnerUseCase, "execute");
+    const user = userEvent.setup();
+    renderPage();
+
+    const emailField = screen.getByLabelText("Email");
+    await user.type(emailField, "not-an-email");
+    await user.tab();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Digite um email válido.");
+    expect(emailField).toHaveAttribute("aria-invalid", "true");
+
+    await user.type(screen.getByLabelText("Senha"), "correct-password");
+    await user.click(screen.getByRole("button", { name: "Entrar" }));
+    expect(login).not.toHaveBeenCalled();
+  });
 });
