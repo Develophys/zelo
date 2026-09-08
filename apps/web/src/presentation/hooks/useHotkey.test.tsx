@@ -20,7 +20,7 @@ function Probe({
 
 describe("useHotkey", () => {
   beforeEach(() => {
-    useHotkeyStore.setState({ entries: new Map() });
+    useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
   });
 
   it("registers the key on mount", () => {

@@ -88,7 +88,7 @@ describe("BottomNav settings slot", () => {
 
 describe('BottomNav hotkeys', () => {
   beforeEach(() => {
-    useHotkeyStore.setState({ entries: new Map() });
+    useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
   });
 
   it("navigates to Conversar when its hotkey fires", async () => {

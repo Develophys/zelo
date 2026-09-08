@@ -5,7 +5,7 @@ function noop() {}
 
 describe("useHotkeyStore", () => {
   beforeEach(() => {
-    useHotkeyStore.setState({ entries: new Map() });
+    useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
   });
 
   it("registers a new key and reports success", () => {

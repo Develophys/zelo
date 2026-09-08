@@ -1,14 +1,20 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { HotkeyHelpModal } from "./HotkeyHelpModal";
 import { HotkeyListener } from "@/presentation/layout/HotkeyListener";
+import { useHotkey } from "@/presentation/hooks/useHotkey";
 import { useHotkeyStore } from "@/stores/hotkey.store";
 
 function noop() {}
 
+function Probe({ handler }: { handler: () => void }) {
+  useHotkey("d", handler, "Desativar", { scope: "page" });
+  return null;
+}
+
 describe("HotkeyHelpModal", () => {
   beforeEach(() => {
-    useHotkeyStore.setState({ entries: new Map() });
+    useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
   });
 
   it("renders nothing when closed", () => {
@@ -54,6 +60,24 @@ describe("HotkeyHelpModal", () => {
     expect(within(pageSection).getByText("a")).toBeInTheDocument();
   });
 
+  it("lists entries alphabetized by key (including its own '?'), not by registration order", () => {
+    useHotkeyStore.getState().register("v", { handler: noop, label: "Você", scope: "global" });
+    useHotkeyStore.getState().register("i", { handler: noop, label: "Início", scope: "global" });
+    useHotkeyStore.getState().register("g", { handler: noop, label: "Configurações", scope: "global" });
+    render(
+      <>
+        <HotkeyListener />
+        <HotkeyHelpModal />
+      </>
+    );
+
+    fireEvent.keyDown(document, { key: "?" });
+
+    const globalSection = within(screen.getByRole("dialog")).getByRole("region", { name: "Atalhos globais" });
+    const keys = [...globalSection.querySelectorAll("kbd")].map((kbd) => kbd.textContent);
+    expect(keys).toEqual(["?", "g", "i", "v"]);
+  });
+
   it("says there is nothing page-specific when only global entries are registered", () => {
     useHotkeyStore.getState().register("i", { handler: noop, label: "Início", scope: "global" });
     render(
@@ -83,5 +107,43 @@ describe("HotkeyHelpModal", () => {
     fireEvent.keyDown(dialog, { key: "Escape" });
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("suppresses page hotkeys while it is open, reference-only overlay or not", () => {
+    const handler = vi.fn();
+    render(
+      <>
+        <HotkeyListener />
+        <HotkeyHelpModal />
+        <Probe handler={handler} />
+      </>
+    );
+
+    fireEvent.keyDown(document, { key: "?" });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "d" });
+
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("lets page hotkeys fire again once it closes", () => {
+    const handler = vi.fn();
+    render(
+      <>
+        <HotkeyListener />
+        <HotkeyHelpModal />
+        <Probe handler={handler} />
+      </>
+    );
+
+    fireEvent.keyDown(document, { key: "?" });
+    const dialog = screen.getByRole("dialog");
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "d" });
+
+    expect(handler).toHaveBeenCalledOnce();
   });
 });

@@ -16,14 +16,29 @@ function HotkeyRow({ hotkeyKey, label }: { hotkeyKey: string; label: string }) {
 
 export function HotkeyHelpModal() {
   const [isOpen, setIsOpen] = useState(false);
-  useHotkey("?", () => setIsOpen(true), "Ver atalhos", { scope: "global" });
+  const setHelpOpen = useHotkeyStore((state) => state.setHelpOpen);
+  useHotkey(
+    "?",
+    () => {
+      setIsOpen(true);
+      setHelpOpen(true);
+    },
+    "Ver atalhos",
+    { scope: "global" },
+  );
 
   const entries = useHotkeyStore((state) => state.entries);
-  const globalEntries = [...entries].filter(([, entry]) => entry.scope === "global");
-  const pageEntries = [...entries].filter(([, entry]) => entry.scope === "page");
+  const byKey = ([a]: [string, unknown], [b]: [string, unknown]) => a.localeCompare(b);
+  const globalEntries = [...entries].filter(([, entry]) => entry.scope === "global").sort(byKey);
+  const pageEntries = [...entries].filter(([, entry]) => entry.scope === "page").sort(byKey);
+
+  const handleClose = () => {
+    setIsOpen(false);
+    setHelpOpen(false);
+  };
 
   return (
-    <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Atalhos de teclado" size="sm">
+    <Modal isOpen={isOpen} onClose={handleClose} title="Atalhos de teclado" size="sm">
       <section aria-label="Atalhos globais">
         <h3 className="text-label font-semibold text-ink-2">Atalhos globais</h3>
         <ul className="mt-2">

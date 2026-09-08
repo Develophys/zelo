@@ -28,6 +28,8 @@ function isEditableElement(element: Element | null): boolean {
 export function HotkeyListener() {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      if (useHotkeyStore.getState().helpOpen) return;
+      if (event.repeat) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (isEditableElement(document.activeElement)) return;
 

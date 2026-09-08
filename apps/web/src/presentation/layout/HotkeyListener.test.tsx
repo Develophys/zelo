@@ -5,7 +5,7 @@ import { useHotkeyStore } from "@/stores/hotkey.store";
 
 describe("HotkeyListener", () => {
   beforeEach(() => {
-    useHotkeyStore.setState({ entries: new Map() });
+    useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
   });
 
   it("fires the registered handler for a matching keydown", () => {
@@ -84,6 +84,18 @@ describe("HotkeyListener", () => {
     fireEvent.keyDown(document, { key: "a", altKey: true });
 
     expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("ignores an OS auto-repeat keydown, but fires a fresh keypress for the same key", () => {
+    const handler = vi.fn();
+    useHotkeyStore.getState().register("d", { handler, label: "Desativar", scope: "page" });
+    render(<HotkeyListener />);
+
+    fireEvent.keyDown(document, { key: "d", repeat: true });
+    expect(handler).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(document, { key: "d", repeat: false });
+    expect(handler).toHaveBeenCalledOnce();
   });
 
   it("removes its listener on unmount", () => {

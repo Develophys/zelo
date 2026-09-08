@@ -14,12 +14,15 @@ interface RegisteredHotkey extends HotkeyEntry {
 
 interface HotkeyState {
   entries: Map<string, RegisteredHotkey>;
+  helpOpen: boolean;
   register: (key: string, entry: HotkeyEntry) => boolean;
   unregister: (key: string) => void;
+  setHelpOpen: (open: boolean) => void;
 }
 
 export const useHotkeyStore = create<HotkeyState>()((set, get) => ({
   entries: new Map(),
+  helpOpen: false,
   register: (key, entry) => {
     const { entries } = get();
     const existing = entries.get(key);
@@ -31,6 +34,8 @@ export const useHotkeyStore = create<HotkeyState>()((set, get) => ({
       return true;
     }
 
+    // Identical (key, label, scope) is assumed to mean identical behavior —
+    // only the first registrant's handler is kept, the rest just bump the count.
     if (existing.label === entry.label && existing.scope === entry.scope) {
       const next = new Map(entries);
       next.set(key, { ...existing, count: existing.count + 1 });
@@ -58,4 +63,5 @@ export const useHotkeyStore = create<HotkeyState>()((set, get) => ({
     }
     set({ entries: next });
   },
+  setHelpOpen: (open) => set({ helpOpen: open }),
 }));
