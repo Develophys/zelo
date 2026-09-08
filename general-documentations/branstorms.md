@@ -195,3 +195,15 @@ Tendências) estão em **5. Concluído**.*
 # New - no taged yet
 - Numa reuniao recente surgiu a possibilidade de implementar a Zelo Health para alunos de medicina, pois
 nos foi relatado que a saude mental tambem dessa camada é sensivel, e o grande ganho é dar para os gestores
+  - **Análise em 2026-09-08:** duas personas exploratórias geradas por analogia às já validadas —
+    `documentacao-produto/persona-diretor-escola-medicina.md` (coordenador/diretor, comprador
+    institucional) e `documentacao-produto/persona-aluno-medicina.md` (aluno, usuário final).
+    Confiança **Proto** nas duas — nenhuma entrevista real feita, o sinal desta nota é de segunda
+    mão e o texto original nem termina a frase. Principais tensões levantadas para validar antes de
+    qualquer decisão de investimento: (1) o coordenador tem papel duplo — cuida e também avalia
+    academicamente o mesmo aluno, tensão mais forte que a do gestor hospitalar com o médico; (2) o
+    "par anônimo" de turma convive por anos, o que pode tornar o anonimato mais frágil (risco de
+    reconhecimento) ou mais fácil de confiar — não resolvido; (3) não está claro se o NAE/apoio
+    psicológico da instituição veria a ferramenta como aliado ou concorrência. Próximo passo: não
+    investir engenharia/roadmap ainda — buscar 3-5 conversas reais (coordenação + alunos) antes de
+    qualquer decisão maior.
