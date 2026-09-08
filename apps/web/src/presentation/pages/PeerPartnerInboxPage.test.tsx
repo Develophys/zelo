@@ -1,9 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { PeerPartnerInboxPage } from "./PeerPartnerInboxPage";
 import { usePeerPartnerSessionStore } from "@/stores/peer-partner-session.store";
+import { HotkeyListener } from "@/presentation/layout/HotkeyListener";
+import { useHotkeyStore } from "@/stores/hotkey.store";
 
 const handlers: Record<string, (payload?: unknown) => void> = {};
 const emitSpy = vi.fn();
@@ -23,7 +25,15 @@ function renderPage() {
   return render(
     <MemoryRouter initialEntries={["/peer"]}>
       <Routes>
-        <Route path="/peer" element={<PeerPartnerInboxPage />} />
+        <Route
+          path="/peer"
+          element={
+            <>
+              <PeerPartnerInboxPage />
+              <HotkeyListener />
+            </>
+          }
+        />
         <Route path="/peer/login" element={<div>Peer login screen</div>} />
       </Routes>
     </MemoryRouter>,
@@ -37,6 +47,7 @@ describe("PeerPartnerInboxPage", () => {
     disconnectSpy.mockClear();
     sessionStorage.clear();
     usePeerPartnerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString(), "Dra. Camila Rocha");
+    useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
   });
 
   it("shows the idle connected state once the socket reports it is connected", async () => {
@@ -137,5 +148,50 @@ describe("PeerPartnerInboxPage", () => {
 
     expect(await screen.findByRole("alert")).toBeInTheDocument();
     expect(screen.queryByText(/aguardando solicitações/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("PeerPartnerInboxPage hotkeys", () => {
+  beforeEach(() => {
+    for (const key of Object.keys(handlers)) delete handlers[key];
+    emitSpy.mockClear();
+    disconnectSpy.mockClear();
+    sessionStorage.clear();
+    usePeerPartnerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString(), "Dra. Camila Rocha");
+    useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
+  });
+
+  it("accepts the incoming request on 'a'", async () => {
+    renderPage();
+    handlers["incoming_request"]!({ requestId: "request-1", sectorName: "UTI" });
+    await waitFor(() => screen.getByRole("button", { name: "Aceitar" }));
+
+    fireEvent.keyDown(document, { key: "a" });
+
+    expect(emitSpy).toHaveBeenCalledWith("accept_request", { requestId: "request-1" });
+  });
+
+  it("declines the incoming request on 'r'", async () => {
+    renderPage();
+    handlers["incoming_request"]!({ requestId: "request-1", sectorName: "UTI" });
+    await waitFor(() => screen.getByRole("button", { name: "Recusar" }));
+
+    fireEvent.keyDown(document, { key: "r" });
+
+    expect(emitSpy).toHaveBeenCalledWith("decline_request", { requestId: "request-1" });
+  });
+
+  it("does nothing on 'a' or 'r' while idle, with no incoming request", async () => {
+    renderPage();
+    await act(async () => {
+      handlers["connect"]?.();
+    });
+    await screen.findByText("Conectado, aguardando solicitações.");
+
+    fireEvent.keyDown(document, { key: "a" });
+    fireEvent.keyDown(document, { key: "r" });
+
+    expect(emitSpy).not.toHaveBeenCalledWith("accept_request", expect.anything());
+    expect(emitSpy).not.toHaveBeenCalledWith("decline_request", expect.anything());
   });
 });

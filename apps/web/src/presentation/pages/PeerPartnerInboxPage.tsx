@@ -10,11 +10,16 @@ import { PeerChatRoom } from "@/presentation/components/PeerChatRoom";
 import { routes } from "@/presentation/lib/routes";
 import { usePeerPartnerSessionStore } from "@/stores/peer-partner-session.store";
 import { usePeerPartnerConnection } from "@/presentation/hooks/usePeerPartnerConnection";
+import { useHotkey } from "@/presentation/hooks/useHotkey";
 
 export function PeerPartnerInboxPage() {
   const token = usePeerPartnerSessionStore((state) => state.token);
   const peerPartnerName = usePeerPartnerSessionStore((state) => state.peerPartnerName);
   const { state, incomingRequest, secondsRemaining, messages, peerLeft, accept, decline, sendMessage, leave, reconnect } = usePeerPartnerConnection(token);
+
+  const hasIncomingRequest = state === "incoming_request" && incomingRequest !== undefined;
+  useHotkey("a", accept, "Aceitar", { enabled: hasIncomingRequest });
+  useHotkey("r", decline, "Recusar", { enabled: hasIncomingRequest });
 
   return (
     <PhoneShell
