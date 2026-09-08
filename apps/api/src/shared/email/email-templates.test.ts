@@ -1,7 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, afterEach } from "vitest";
 import { renderEmailTemplate } from "./email-templates.ts";
 
 describe("renderEmailTemplate", () => {
+  afterEach(() => {
+    delete process.env.WEB_APP_BASE_URL;
+  });
+
   it("renders the invite template with the person's name and the set-password link", () => {
     const { subject, html } = renderEmailTemplate("invite", { name: "Dra. Ana", setPasswordUrl: "https://example.com/manager/finish-setup?token=abc" });
 
@@ -9,6 +13,9 @@ describe("renderEmailTemplate", () => {
     expect(html).toContain("Dra. Ana");
     expect(html).toContain("https://example.com/manager/finish-setup?token=abc");
     expect(html).toContain("48 horas");
+    expect(html).toContain('src="http://localhost:5173/zelo_logo.png"');
+    expect(html).toContain("#2f6b5e");
+    expect(html).toContain("Zelo Health");
   });
 
   it("renders the password-reset template with the person's name and the set-password link", () => {
@@ -18,6 +25,16 @@ describe("renderEmailTemplate", () => {
     expect(html).toContain("Dra. Ana");
     expect(html).toContain("https://example.com/manager/finish-setup?token=xyz");
     expect(html).toContain("48 horas");
+    expect(html).toContain('src="http://localhost:5173/zelo_logo.png"');
+    expect(html).toContain("#2f6b5e");
+    expect(html).toContain("Zelo Health");
+  });
+
+  it("builds the logo URL from WEB_APP_BASE_URL when set", () => {
+    process.env.WEB_APP_BASE_URL = "https://zelohealth.app";
+    const { html } = renderEmailTemplate("invite", { name: "Dra. Ana", setPasswordUrl: "https://example.com/x" });
+
+    expect(html).toContain('src="https://zelohealth.app/zelo_logo.png"');
   });
 
   it("escapes HTML in the recipient's name so it can't inject markup into the invite email", () => {
@@ -36,7 +53,7 @@ describe("renderEmailTemplate", () => {
       setPasswordUrl: "https://example.com/manager/finish-setup?token=xyz",
     });
 
-    expect(html).not.toContain("<img");
+    expect(html).not.toContain("<img src=x onerror=alert(1)>");
     expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
   });
 
