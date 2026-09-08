@@ -143,9 +143,16 @@ canvas/download.
 **`AdminInstitutionsPage.tsx`** (peça nova desta entrega — não existe hoje nenhuma visão de setor
 aqui):
 - Cada linha da tabela de instituições ganha um controle de expandir/recolher. Expandido, mostra
-  a lista de setores daquela instituição (reaproveitando o mesmo endpoint `GET
-  /institutions/:id/sectors` já usado no fluxo de vínculo), cada um com a mesma ação "Gerar QR"
-  (mesmo componente `SectorQrCodeModal`).
+  a lista de setores daquela instituição, cada um com a mesma ação "Gerar QR" (mesmo componente
+  `SectorQrCodeModal`).
+- **Correção (feita durante o detalhamento do plano):** não dá para reaproveitar o endpoint
+  público `GET /institutions/:id/sectors` aqui — ele é sem autenticação (usado pelo fluxo de
+  vínculo do médico/aluno) e por isso nunca pode devolver `inviteCode`; devolver o código nesse
+  endpoint deixaria qualquer pessoa enumerar o código de convite de todo setor de qualquer
+  instituição sem nunca precisar escanear um QR. O admin usa um endpoint novo e autenticado,
+  `GET /admin/institutions/:id/sectors` (guarda `AdminAuthGuard`, reaproveita o
+  `SectorRepository.findAllForAdmin` que o gestor já usa), que devolve a linha completa do setor
+  incluindo o código.
 - Sem ação de criar/editar setor aqui — isso continua sendo só do gestor, via
   `ManagerAdminSectorsPage`. O admin só visualiza e gera QR de setores que já têm código.
 
