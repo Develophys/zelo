@@ -20,6 +20,7 @@ import { useAdminManagers } from "@/presentation/hooks/useAdminManagers";
 import { useCreateSector } from "@/presentation/hooks/useCreateSector";
 import { useUpdateSector } from "@/presentation/hooks/useUpdateSector";
 import { useDeleteSector } from "@/presentation/hooks/useDeleteSector";
+import { useHotkey } from "@/presentation/hooks/useHotkey";
 import type { AdminSector, ManagerSummary } from "@/ports/manager-admin.port";
 import { Pencil } from "lucide-react";
 
@@ -185,6 +186,8 @@ export function ManagerAdminSectorsPage() {
     noun: { singular: "setor" },
   });
 
+  const isAnyModalOpen = formMode !== null || bulkDelete.deleteTarget !== null;
+
   const openCreate = () => {
     setName("");
     setManagerId(null);
@@ -243,6 +246,17 @@ export function ManagerAdminSectorsPage() {
     const { failedIds } = await bulkStatus.run(selection.selectedIds, true);
     if (failedIds.length === 0) selection.clear();
   };
+
+  useHotkey("a", openCreate, "Adicionar setor", { enabled: !isAnyModalOpen });
+  useHotkey("e", () => selection.selectedRows[0] && openEdit(selection.selectedRows[0]), "Editar", {
+    enabled: !isAnyModalOpen && selection.edit.enabled,
+  });
+  useHotkey("v", handleSaveEdit, "Salvar", { enabled: formMode === "edit" });
+  useHotkey("u", handleBulkPause, "Pausar", { enabled: !isAnyModalOpen && selection.pause.enabled });
+  useHotkey("i", handleBulkActivate, "Ativar", { enabled: !isAnyModalOpen && selection.activate.enabled });
+  useHotkey("x", () => bulkDelete.openDeleteConfirm(selection.selectedIds), "Excluir", {
+    enabled: !isAnyModalOpen && selection.remove.enabled,
+  });
 
   const isSubmitDisabled = name.trim().length === 0;
 

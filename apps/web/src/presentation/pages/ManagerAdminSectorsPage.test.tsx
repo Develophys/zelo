@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -8,6 +8,8 @@ import * as container from "@/app/container";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { useToastStore } from "@/stores/toast.store";
 import { AdminDeleteConflictError, SectorNameConflictError } from "@/ports/manager-admin.port";
+import { HotkeyListener } from "@/presentation/layout/HotkeyListener";
+import { useHotkeyStore } from "@/stores/hotkey.store";
 
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -15,7 +17,15 @@ function renderPage() {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={["/manager/admin/sectors"]}>
         <Routes>
-          <Route path="/manager/admin/sectors" element={<ManagerAdminSectorsPage />} />
+          <Route
+            path="/manager/admin/sectors"
+            element={
+              <>
+                <ManagerAdminSectorsPage />
+                <HotkeyListener />
+              </>
+            }
+          />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -27,6 +37,7 @@ describe("ManagerAdminSectorsPage", () => {
     sessionStorage.clear();
     useManagerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString(), "HOSPITAL_ADMIN");
     useToastStore.getState().clear();
+    useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
   });
 
   it("lets an admin create a sector", async () => {
@@ -425,5 +436,122 @@ describe("ManagerAdminSectorsPage", () => {
 
     await waitFor(() => expect(listSpy).toHaveBeenCalledTimes(2));
     expect(within(await screen.findByRole('table')).getByText('UTI')).toBeInTheDocument();
+  });
+
+  describe("hotkeys", () => {
+    it("opens the create modal on 'a'", async () => {
+      vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
+      vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+      renderPage();
+      await screen.findByRole("button", { name: "+ Adicionar setor" });
+
+      fireEvent.keyDown(document, { key: "a" });
+
+      expect(await screen.findByRole("dialog", { name: "Adicionar setor" })).toBeInTheDocument();
+    });
+
+    it("opens the edit modal on 'e' once exactly one row is selected", async () => {
+      vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+        { id: "1", name: "UTI", isActive: true, managerId: null, managerName: null },
+      ]);
+      vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar UTI" }));
+
+      fireEvent.keyDown(document, { key: "e" });
+
+      expect(await screen.findByRole("dialog", { name: "Editar UTI" })).toBeInTheDocument();
+    });
+
+    it("saves the edit on 'v' while the edit modal is open", async () => {
+      vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+        { id: "1", name: "UTI", isActive: true, managerId: null, managerName: null },
+      ]);
+      vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
+        { id: "manager-1", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", sectorIds: [], sectorNames: [], isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+      ]);
+      const updateSector = vi.spyOn(container.updateSectorUseCase, "execute").mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      renderPage();
+      const table = await screen.findByRole("table");
+      await user.click(within(table).getByRole("button", { name: "Editar UTI" }));
+      const dialog = within(await screen.findByRole("dialog", { name: "Editar UTI" }));
+      await user.selectOptions(dialog.getByLabelText("Gestor responsável"), "Paulo");
+      dialog.getByRole("button", { name: "Salvar" }).focus();
+
+      fireEvent.keyDown(document, { key: "v" });
+
+      await waitFor(() =>
+        expect(updateSector).toHaveBeenCalledWith("token", "1", { managerId: "manager-1" }),
+      );
+    });
+
+    it("pauses the selection on 'u'", async () => {
+      vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+        { id: "1", name: "UTI", isActive: true, managerId: null, managerName: null },
+      ]);
+      vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+      const updateSector = vi.spyOn(container.updateSectorUseCase, "execute").mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar UTI" }));
+
+      fireEvent.keyDown(document, { key: "u" });
+
+      await waitFor(() =>
+        expect(updateSector).toHaveBeenCalledWith("token", "1", { isActive: false }),
+      );
+    });
+
+    it("activates the selection on 'i'", async () => {
+      vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+        { id: "1", name: "UTI", isActive: false, managerId: null, managerName: null },
+      ]);
+      vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+      const updateSector = vi.spyOn(container.updateSectorUseCase, "execute").mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar UTI" }));
+
+      fireEvent.keyDown(document, { key: "i" });
+
+      await waitFor(() =>
+        expect(updateSector).toHaveBeenCalledWith("token", "1", { isActive: true }),
+      );
+    });
+
+    it("opens the delete-confirmation modal on 'x', without deleting directly", async () => {
+      vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+        { id: "1", name: "UTI", isActive: true, managerId: null, managerName: null },
+      ]);
+      vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+      const deleteSector = vi.spyOn(container.deleteSectorAdminUseCase, "execute");
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar UTI" }));
+
+      fireEvent.keyDown(document, { key: "x" });
+
+      expect(await screen.findByRole("dialog", { name: "Excluir UTI?" })).toBeInTheDocument();
+      expect(deleteSector).not.toHaveBeenCalled();
+    });
+
+    it("does nothing on 'u' while the create modal sits on top", async () => {
+      vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+        { id: "1", name: "UTI", isActive: true, managerId: null, managerName: null },
+      ]);
+      vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+      const updateSector = vi.spyOn(container.updateSectorUseCase, "execute");
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar UTI" }));
+      await user.click(screen.getByRole("button", { name: "+ Adicionar setor" }));
+      await screen.findByRole("dialog", { name: "Adicionar setor" });
+
+      fireEvent.keyDown(document, { key: "u" });
+
+      expect(updateSector).not.toHaveBeenCalled();
+    });
   });
 });
