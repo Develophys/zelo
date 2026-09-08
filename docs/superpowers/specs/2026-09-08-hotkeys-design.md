@@ -85,21 +85,26 @@ Two call sites using the same key **in the same layer** log a dev-only `console.
 both labels — a signal for whoever is wiring up the second one to pick a different letter, not
 a runtime error. Nothing crashes; the second registration simply loses the key to the first.
 
-### Layering
+### Modal-scoped hotkeys
 
-Every `useHotkey` call registers into the **topmost currently-open layer**, not always the same
-flat map. A layer is pushed when a `Modal` opens and popped when it closes (the existing
-`Modal` component gains this as an internal effect — no consumer of `Modal` has to know layers
-exist). While a layer is on top:
+`Modal` (see its own doc comment) keeps its children mounted for its entire lifetime and only
+toggles the native `<dialog>`'s open state — it does not mount/unmount them when `isOpen`
+flips. That rules out an automatic layer stack keyed on Modal's own mount timing: there is no
+reliable "this just opened" signal to hang a push/pop on that a descendant's own effect can
+race against safely.
 
-- Hotkeys registered *before* it opened (the page behind it) do not fire.
-- Hotkeys registered *inside* it (the modal's own Salvar/Cancelar) do.
-- `global`-scope hotkeys always fire regardless of layer, since they are navigation and the
-  discovery modal itself — things that should work even with a modal open.
+Instead, suppression is explicit and lives entirely in `enabled`, which every page already has
+the state for: a `page`-scope hotkey that should go quiet while a modal is open passes
+`enabled: !isModalOpen` (the same boolean already driving that modal's `isOpen` prop), and a
+hotkey that belongs to the modal's own footer passes `enabled: isModalOpen` (or a narrower
+condition — `formMode === "edit"` for a modal reused across two modes, see
+`AdminInstitutionsPage` below). `global`-scope hotkeys are never gated this way; they fire
+regardless of any open modal, since they're navigation and the discovery modal itself.
 
-This is what makes "Salvar only responds while the edit modal is open" true without every
-handler manually checking modal state — the registry already knows nothing from a lower layer
-is reachable right now.
+`Modal.tsx` itself needs no changes for this — the behavior is a property of how each page
+wires its own `enabled` flags, not a hidden mechanism inside `Modal`. `AdminInstitutionsPage`'s
+Salvar hotkey (`enabled: formMode === "edit"`) alongside its Adicionar/Editar/Desativar/Ativar
+hotkeys (`enabled: formMode === null`) is the worked example.
 
 ### Typing safety
 
@@ -148,7 +153,6 @@ hotkey opens that same confirmation; it never deactivates directly.
 - `src/presentation/hooks/useHotkey.ts` — new.
 - `src/presentation/layout/HotkeyListener.tsx` — new. Mounted in `App.tsx`.
 - `src/presentation/components/HotkeyHelpModal.tsx` — new. Opened by its own `useHotkey("?", …, "Ver atalhos", { scope: "global" })`.
-- `src/presentation/ui/Modal.tsx` — gains the layer push/pop effect.
 - `src/presentation/layout/nav-tabs.ts` — `NavDestination` gains a `hotkey` field; `Sidebar`/`BottomNav` (or a shared hook they both call) register one `useHotkey` per visible destination.
 - `src/presentation/pages/AdminInstitutionsPage.tsx` — wires `useHotkey` onto the toolbar's
   Adicionar instituição, the bulk-toolbar Editar (enabled only while exactly one row is
@@ -161,17 +165,20 @@ hotkey opens that same confirmation; it never deactivates directly.
 
 ## Testing
 
-- `hotkey.store` — register/unregister, layer push/pop, duplicate-key dev warning.
+- `hotkey.store` — register/unregister, first-registration-wins with a dev-only duplicate-key
+  warning, unregister only removes an entry it still owns.
 - `useHotkey` — registers on mount, unregisters on unmount, `enabled: false` never registers,
-  changing `key` re-registers under the new key.
+  changing `key` re-registers under the new key, changing `enabled` from true to false
+  unregisters without a fresh registration.
 - `HotkeyListener` — fires the handler for a matching keydown; does nothing while
   `document.activeElement` is an input/textarea; does nothing for an unmapped key.
-- `Modal` — opening pushes a layer (a page hotkey registered before it stops firing while it's
-  open; a hotkey registered inside it does fire); closing pops the layer back.
 - `HotkeyHelpModal` — renders currently-registered global and page entries; opens on `?`.
-- `AdminInstitutionsPage` / `Sidebar` / `BottomNav` — each wired hotkey actually fires its
-  button's existing handler (same assertion the click-driven test already makes, triggered via
-  `fireEvent.keyDown` instead of a click).
+- `AdminInstitutionsPage` — each wired hotkey fires its button's existing handler (same
+  assertion the click-driven test already makes, triggered via `fireEvent.keyDown` instead of a
+  click); the Adicionar/Editar/Desativar/Ativar hotkeys do nothing while the edit modal is
+  open, and Salvar does nothing while it's closed — the concrete case that motivated
+  "Modal-scoped hotkeys" above.
+- `Sidebar` / `BottomNav` — each nav item's hotkey navigates to that destination.
 
 ## Extension points (for Phase 2 and 3)
 
