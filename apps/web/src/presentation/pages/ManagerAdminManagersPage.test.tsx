@@ -8,6 +8,8 @@ import * as container from "@/app/container";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { useToastStore } from "@/stores/toast.store";
 import { AdminDeleteConflictError, LastActiveHospitalAdminError } from "@/ports/manager-admin.port";
+import { HotkeyListener } from "@/presentation/layout/HotkeyListener";
+import { useHotkeyStore } from "@/stores/hotkey.store";
 
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -15,7 +17,15 @@ function renderPage() {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={["/manager/admin/managers"]}>
         <Routes>
-          <Route path="/manager/admin/managers" element={<ManagerAdminManagersPage />} />
+          <Route
+            path="/manager/admin/managers"
+            element={
+              <>
+                <ManagerAdminManagersPage />
+                <HotkeyListener />
+              </>
+            }
+          />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -27,6 +37,7 @@ describe("ManagerAdminManagersPage", () => {
     sessionStorage.clear();
     useManagerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString(), "HOSPITAL_ADMIN");
     useToastStore.getState().clear();
+    useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
   });
 
   it("creates a SECTOR_MANAGER with the selected sectors", async () => {
@@ -725,5 +736,120 @@ describe("ManagerAdminManagersPage", () => {
     // selects the one the manager actually holds.
     const pills = within(screen.getByRole("dialog")).getAllByRole("button", { name: "UTI" });
     expect(pills.map((pill) => pill.getAttribute("aria-pressed"))).toEqual(["false", "true"]);
+  });
+
+  describe("hotkeys", () => {
+    it("opens the create modal on 'a'", async () => {
+      vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
+      vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+      renderPage();
+      await screen.findByRole("button", { name: "+ Adicionar gestor" });
+
+      fireEvent.keyDown(document, { key: "a" });
+
+      expect(await screen.findByRole("dialog", { name: "Adicionar gestor" })).toBeInTheDocument();
+    });
+
+    it("opens the edit modal on 'e' once exactly one row is selected", async () => {
+      vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
+      vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
+        { id: "1", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", sectorIds: [], sectorNames: [], isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+      ]);
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar Paulo" }));
+
+      fireEvent.keyDown(document, { key: "e" });
+
+      expect(await screen.findByRole("dialog", { name: "Editar Paulo" })).toBeInTheDocument();
+    });
+
+    it("saves the edit on 'v' while the edit modal is open", async () => {
+      vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+        { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
+      ]);
+      vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
+        { id: "1", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", sectorIds: ["sector-1"], sectorNames: ["UTI"], isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+      ]);
+      const updateManager = vi.spyOn(container.updateManagerAdminUseCase, "execute").mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      renderPage();
+      const table = await screen.findByRole("table");
+      await user.click(within(table).getByRole("button", { name: "Editar Paulo" }));
+      const dialog = within(await screen.findByRole("dialog", { name: "Editar Paulo" }));
+      dialog.getByRole("button", { name: "Salvar" }).focus();
+
+      fireEvent.keyDown(document, { key: "v" });
+
+      await waitFor(() =>
+        expect(updateManager).toHaveBeenCalledWith("token", "1", {
+          role: "SECTOR_MANAGER",
+          sectorIds: ["sector-1"],
+        }),
+      );
+    });
+
+    it("pauses the selection on 'u'", async () => {
+      vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
+      vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
+        { id: "1", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", sectorIds: [], sectorNames: [], isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+      ]);
+      const updateManager = vi.spyOn(container.updateManagerAdminUseCase, "execute").mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar Paulo" }));
+
+      fireEvent.keyDown(document, { key: "u" });
+
+      await waitFor(() => expect(updateManager).toHaveBeenCalledWith("token", "1", { isActive: false }));
+    });
+
+    it("activates the selection on 'i'", async () => {
+      vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
+      vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
+        { id: "1", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", sectorIds: [], sectorNames: [], isActive: false, hasPassword: true, setPasswordTokenExpiresAt: null },
+      ]);
+      const updateManager = vi.spyOn(container.updateManagerAdminUseCase, "execute").mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar Paulo" }));
+
+      fireEvent.keyDown(document, { key: "i" });
+
+      await waitFor(() => expect(updateManager).toHaveBeenCalledWith("token", "1", { isActive: true }));
+    });
+
+    it("opens the delete-confirmation modal on 'x', without deleting directly", async () => {
+      vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
+      vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
+        { id: "1", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", sectorIds: [], sectorNames: [], isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+      ]);
+      const deleteManager = vi.spyOn(container.deleteManagerAdminUseCase, "execute");
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar Paulo" }));
+
+      fireEvent.keyDown(document, { key: "x" });
+
+      expect(await screen.findByRole("dialog", { name: "Excluir Paulo?" })).toBeInTheDocument();
+      expect(deleteManager).not.toHaveBeenCalled();
+    });
+
+    it("does nothing on 'u' while the create modal sits on top", async () => {
+      vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
+      vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
+        { id: "1", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", sectorIds: [], sectorNames: [], isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
+      ]);
+      const updateManager = vi.spyOn(container.updateManagerAdminUseCase, "execute");
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar Paulo" }));
+      await user.click(screen.getByRole("button", { name: "+ Adicionar gestor" }));
+      await screen.findByRole("dialog", { name: "Adicionar gestor" });
+
+      fireEvent.keyDown(document, { key: "u" });
+
+      expect(updateManager).not.toHaveBeenCalled();
+    });
   });
 });
