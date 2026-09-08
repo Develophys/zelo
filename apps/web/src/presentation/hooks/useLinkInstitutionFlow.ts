@@ -16,15 +16,25 @@ export function useLinkInstitutionFlow() {
   const sectors = useInstitutionSectors(institution?.id ?? null);
   const link = useInstitutionLinkStore((state) => state.link);
 
-  const handleCodeSubmit = (event: SubmitEvent) => {
-    event.preventDefault();
-    lookup.mutate(code.trim(), {
+  const lookupCode = (rawCode: string) => {
+    const trimmed = rawCode.trim();
+    setCode(trimmed);
+    lookup.mutate(trimmed, {
       onSuccess: (result) => {
         setInstitution(result);
         setStep("sector");
       },
     });
   };
+
+  const handleCodeSubmit = (event: SubmitEvent) => {
+    event.preventDefault();
+    lookupCode(code);
+  };
+
+  // A scanned code skips straight to the lookup — the médico already made
+  // the deliberate choice to scan, so there's no "Continuar" left to press.
+  const handleCodeScanned = (scannedCode: string) => lookupCode(scannedCode);
 
   const handleSectorSubmit = (event: SubmitEvent) => {
     event.preventDefault();
@@ -65,6 +75,7 @@ export function useLinkInstitutionFlow() {
     sectorId,
     onSectorSelect: setSectorId,
     handleCodeSubmit,
+    handleCodeScanned,
     handleSectorSubmit,
   };
 }
