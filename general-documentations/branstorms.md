@@ -41,22 +41,22 @@ Legenda de escopo: `[Global]` `[Médico]` `[Chat]` `[Autoavaliação]` `[Admin]`
 
 - **`[Global]` Suporte a múltiplos idiomas (ES / EN / PT)**
 
-- **`[Global]` Hotkeys** — *parcial*
-  Adicionar atalhos de teclado globais e também por interação de tela.
-  - **Já existe**: infraestrutura completa (registro central, hook `useHotkey`, listener único,
-    modal de descoberta em Shift+?, atalho para desativar tudo em Configurações — item exigido
-    por WCAG 2.1 SC 2.1.4, já que teclas soltas de uma letra precisam de um jeito de desligar).
-    Duas aplicações de referência ligadas: navegação principal do médico (Início/Check-in/
-    Conversar/Apoio/Você/Configurações) e as ações da tabela de instituições do admin
-    (Adicionar/Editar/Salvar/Desativar/Ativar).
-  - **Falta**: replicar o mesmo padrão (`useHotkey` + tecla escolhida à mão) nas demais telas do
-    gestor, admin e par anônimo, e nas respectivas navegações — ver `docs/superpowers/specs/
-    2026-09-08-hotkeys-design.md`, seção "Extension points", para o que cada fase seguinte reusa
-    sem precisar de arquitetura nova.
-
 ### 1.3 Fluxos e funcionalidades
 
 - Tela do Gestor poderia ter ordem dos items de menu customizaveis?
+
+- **`[Médico]` `[Admin]` QR code já vinculado a um setor** — investigado em 2026-09-08: hoje o QR
+  code do admin (`InstitutionQrCodeModal`) só codifica o `inviteCode` da instituição, e a escolha
+  de setor no fluxo de vínculo (`useLinkInstitutionFlow` → `LinkInstitutionSectorStep`) é um passo
+  manual separado, sem nenhuma ligação com o que foi escaneado. **Não existe** granularidade de
+  setor em código de convite/QR hoje — nem no schema (`Sector` não tem código próprio), nem no
+  backend, nem no frontend.
+  - **Tamanho:** feature nova de escopo moderado, não um retrofit pequeno — reaproveita bastante do
+    que já existe (endpoint `GET /institutions/:id/sectors`, libs `qrcode`/`qr-scanner`, os modais
+    de scan/geração). O que falta: um campo de código próprio em `Sector` (ou codificar
+    `institutionId:sectorId` no próprio QR), um endpoint de lookup por esse código, uma ação
+    "Gerar QR" por linha em `ManagerAdminSectorsPage`, e um ajuste no hook de vínculo para pular o
+    passo manual de setor quando o código já resolve um.
 
 ### 1.4 Segurança e identidade
 
@@ -151,6 +151,11 @@ toggle nas telas de login/admin) estão em **5. Concluído**.*
 - [x] **`[Admin]`** Paginação da tabela de instituições cadastradas — mesmo padrão keyset
   (`createdAt desc, id desc`) usado no histórico de análises e nas notificações, botão "Carregar
   mais". Fecha o item de busca em tabela que já estava listado como *parcial* só por faltar isso.
+- [x] **`[Global]`** Hotkeys — Phase 2: replicado o padrão (`useHotkey` + tecla escolhida à mão) na
+  navegação do gestor e do par anônimo, nas três páginas de admin do gestor (gestores/setores/
+  pares), no dashboard, notificações e histórico de insights do gestor, e na inbox do par anônimo
+  (Aceitar/Recusar). Fecha o "falta" que restava do item de Hotkeys — ver
+  `docs/superpowers/plans/2026-09-08-hotkeys-phase-2.md`.
 
 ### Já estava implementado (verificado em 2026-09-08, doc estava desatualizado)
 
@@ -164,6 +169,19 @@ toggle nas telas de login/admin) estão em **5. Concluído**.*
   barra já abre um `TrendWeekBubble` com semana, percentual, nº de respostas e variação.
 - [x] **`[Autoavaliação]`** Theme toggle — a rota já tem título em `app-header-meta`, então o
   `AppHeader` (com o `ThemeSwitchButton`) renderiza normalmente.
+- [x] **`[Gestor]`** Segmentação de gestor por setor (verificado em 2026-09-08) — já existe de
+  ponta a ponta: `ManagerRole` (`HOSPITAL_ADMIN` vs `SECTOR_MANAGER`) no schema, `Sector.managerId`
+  atribuível a um ou mais setores, e o acesso é de fato restringido no backend (`GET
+  /manager/sectors` e `/manager/signals` resolvem os setores acessíveis do papel antes de
+  responder; notificações de setor vão só para o gestor daquele setor + admins do hospital). A UI
+  de criação/edição de gestor (`ManagerAdminManagersPage`) já expõe os dois papéis com a cópia
+  "Gestor de setor — Vê apenas os setores atribuídos" vs. "Gestor do hospital — Vê os indicadores
+  de todos os setores", e exige ao menos um setor selecionado para `SECTOR_MANAGER`.
+  - **Ressalva registrada:** geração de insight por IA e o histórico de insights continuam
+    institution-wide para os dois papéis — decisão de produto já documentada no código
+    (`generate-manager-insight.use-case.ts`), não uma lacuna. Se quisermos também escopar isso por
+    setor para `SECTOR_MANAGER`, é um ajuste pequeno e contido (reusar a resolução de setores
+    acessíveis nesse use-case e no histórico).
 
 ---
 
@@ -171,3 +189,9 @@ toggle nas telas de login/admin) estão em **5. Concluído**.*
 
 *Nenhuma nota pendente — as duas anteriores (redirect do "Sair" do gestor e tooltip do gráfico de
 Tendências) estão em **5. Concluído**.*
+
+---
+
+# New - no taged yet
+- Numa reuniao recente surgiu a possibilidade de implementar a Zelo Health para alunos de medicina, pois
+nos foi relatado que a saude mental tambem dessa camada é sensivel, e o grande ganho é dar para os gestores
