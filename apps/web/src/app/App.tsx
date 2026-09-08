@@ -7,6 +7,7 @@ import { watchSystemTheme } from "@/presentation/lib/theme";
 import { useThemeStore } from "@/stores/theme.store";
 import { ToastViewport } from "@/presentation/ui/ToastViewport";
 import { HotkeyListener } from "@/presentation/layout/HotkeyListener";
+import { HotkeyHelpModal } from "@/presentation/components/HotkeyHelpModal";
 import { useApplyAppearancePrefs } from "@/presentation/hooks/useApplyAppearancePrefs";
 
 const queryClient = createQueryClient();
@@ -23,6 +24,7 @@ export function App() {
       <RouterProvider router={router} />
       <ToastViewport />
       <HotkeyListener />
+      <HotkeyHelpModal />
     </QueryClientProvider>
   );
 }
