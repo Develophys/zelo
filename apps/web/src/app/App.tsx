@@ -6,6 +6,7 @@ import { createQueryClient } from "./query-client";
 import { watchSystemTheme } from "@/presentation/lib/theme";
 import { useThemeStore } from "@/stores/theme.store";
 import { ToastViewport } from "@/presentation/ui/ToastViewport";
+import { HotkeyListener } from "@/presentation/layout/HotkeyListener";
 import { useApplyAppearancePrefs } from "@/presentation/hooks/useApplyAppearancePrefs";
 
 const queryClient = createQueryClient();
@@ -21,6 +22,7 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
       <ToastViewport />
+      <HotkeyListener />
     </QueryClientProvider>
   );
 }
