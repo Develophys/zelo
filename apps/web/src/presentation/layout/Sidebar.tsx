@@ -2,6 +2,7 @@ import { memo, useEffect, useState } from 'react';
 import { NavLink } from 'react-router';
 import { NAV_TABS, SECONDARY_NAV_ITEMS, type NavDestination } from './nav-tabs';
 import { SidebarHeader } from './SidebarHeader';
+import { useNavHotkeys } from './useNavHotkeys';
 import { routes } from '@/presentation/lib/routes';
 import {
   readStoredCollapsed,
@@ -45,6 +46,7 @@ function Destination({
 }
 
 export const Sidebar = memo(function Sidebar() {
+  useNavHotkeys();
   const [collapsed, setCollapsed] = useState(readStoredCollapsed);
 
   useEffect(() => {

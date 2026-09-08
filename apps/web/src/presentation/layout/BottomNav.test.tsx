@@ -1,7 +1,9 @@
-import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router";
+import { beforeEach, describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter, Routes, Route } from "react-router";
 import { BottomNav } from "./BottomNav";
+import { HotkeyListener } from "./HotkeyListener";
+import { useHotkeyStore } from "@/stores/hotkey.store";
 import { routes } from "@/presentation/lib/routes";
 
 
@@ -81,5 +83,26 @@ describe("BottomNav settings slot", () => {
     const settings = screen.getByRole("link", { name: "Configurações" });
     expect(settings.className).toContain("flex-1");
     expect(settings.className).toContain("border-t-2");
+  });
+});
+
+describe('BottomNav hotkeys', () => {
+  beforeEach(() => {
+    useHotkeyStore.setState({ entries: new Map() });
+  });
+
+  it("navigates to Conversar when its hotkey fires", async () => {
+    render(
+      <MemoryRouter initialEntries={[routes.home]}>
+        <Routes>
+          <Route path={routes.home} element={<><BottomNav /><HotkeyListener /></>} />
+          <Route path={routes.chat} element={<p>Chat screen</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.keyDown(document, { key: 'c' });
+
+    expect(await screen.findByText('Chat screen')).toBeInTheDocument();
   });
 });

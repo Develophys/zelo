@@ -1,7 +1,9 @@
 import { NAV_TABS, SECONDARY_NAV_ITEMS } from './nav-tabs';
 import { NavSlotLink } from './nav-slot';
+import { useNavHotkeys } from './useNavHotkeys';
 
 export function BottomNav() {
+  useNavHotkeys();
   return (
     <nav
       data-testid="bottom-nav"

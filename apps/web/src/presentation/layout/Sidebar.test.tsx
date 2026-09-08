@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router';
 import { Sidebar } from './Sidebar';
 import { routes } from '@/presentation/lib/routes';
+import { HotkeyListener } from './HotkeyListener';
+import { useHotkeyStore } from '@/stores/hotkey.store';
 
 function renderAt(pathname: string) {
   return render(
@@ -182,5 +184,27 @@ describe('Sidebar secondary section', () => {
 
     expect(links.map((link) => link.getAttribute("aria-label"))).toEqual(["Configurações"]);
     expect(links[0]).toHaveAttribute("href", "/settings");
+  });
+});
+
+describe('Sidebar hotkeys', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    useHotkeyStore.setState({ entries: new Map() });
+  });
+
+  it("navigates to Conversar when its hotkey fires", async () => {
+    render(
+      <MemoryRouter initialEntries={[routes.home]}>
+        <Routes>
+          <Route path={routes.home} element={<><Sidebar /><HotkeyListener /></>} />
+          <Route path={routes.chat} element={<p>Chat screen</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.keyDown(document, { key: 'c' });
+
+    expect(await screen.findByText('Chat screen')).toBeInTheDocument();
   });
 });
