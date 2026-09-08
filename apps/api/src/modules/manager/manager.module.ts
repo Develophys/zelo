@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { SectorModule } from "../sector/sector.module.ts";
 import { PeerPartnerModule } from "../peer-partner/peer-partner.module.ts";
 import { PeerChatModule } from "../peer-chat/peer-chat.module.ts";
+import { InstitutionModule } from "../institution/institution.module.ts";
 import { EmailModule } from "@/shared/email/email.module.js";
 import { NotificationModule } from "../notification/notification.module.ts";
 import { ManagerController } from "./infrastructure/manager.controller.ts";
@@ -46,7 +47,7 @@ const aiInsightPortProvider =
     : { provide: AI_INSIGHT_PORT, useClass: GroqInsightAdapter };
 
 @Module({
-  imports: [SectorModule, PeerPartnerModule, PeerChatModule, EmailModule, NotificationModule],
+  imports: [SectorModule, PeerPartnerModule, PeerChatModule, EmailModule, NotificationModule, InstitutionModule],
   controllers: [ManagerController, ManagerAdminController],
   providers: [
     LoginManagerUseCase,

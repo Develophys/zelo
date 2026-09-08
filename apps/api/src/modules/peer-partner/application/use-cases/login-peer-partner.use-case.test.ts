@@ -4,6 +4,30 @@ import { LoginPeerPartnerUseCase, InvalidPeerPartnerCredentialsError } from "./l
 import { PeerPartnerPasswordService } from "../services/peer-partner-password.service.ts";
 import { PeerPartnerTokenService } from "../services/peer-partner-token.service.ts";
 import type { PeerPartnerRepository, PeerPartnerRow } from "../ports/peer-partner-repository.port.ts";
+import type { InstitutionRepository, InstitutionRow } from "@/modules/institution/application/ports/institution-repository.port.js";
+
+class FakeInstitutionRepository implements InstitutionRepository {
+  rows: InstitutionRow[] = [];
+  async findByInviteCode(): Promise<InstitutionRow | null> {
+    throw new Error("not used in this test");
+  }
+  async findById(id: string): Promise<InstitutionRow | null> {
+    return this.rows.find((row) => row.id === id) ?? null;
+  }
+}
+
+const ACTIVE_INSTITUTION: InstitutionRow = {
+  id: "institution-1",
+  name: "Hospital São Lucas",
+  inviteCode: "sao-lucas-2026",
+  isActive: true,
+};
+
+function activeInstitutionRepository(): FakeInstitutionRepository {
+  const repository = new FakeInstitutionRepository();
+  repository.rows = [ACTIVE_INSTITUTION];
+  return repository;
+}
 
 class FakePeerPartnerRepository implements PeerPartnerRepository {
   rows: PeerPartnerRow[] = [];
@@ -44,7 +68,7 @@ describe("LoginPeerPartnerUseCase", () => {
     const repository = new FakePeerPartnerRepository();
     repository.rows = [{ id: "peer-1", name: "Dra. Ana", email: "ana@zelo-demo.local", passwordHash, setPasswordTokenExpiresAt: null, institutionId: "institution-1", specialty: "Clínica médica", isActive: true }];
     const tokenService = new PeerPartnerTokenService(fakeConfig("token-secret"));
-    const useCase = new LoginPeerPartnerUseCase(repository, passwordService, tokenService);
+    const useCase = new LoginPeerPartnerUseCase(repository, activeInstitutionRepository(), passwordService, tokenService);
 
     const result = await useCase.execute("ana@zelo-demo.local", "correct-password");
 
@@ -55,7 +79,7 @@ describe("LoginPeerPartnerUseCase", () => {
     const passwordService = new PeerPartnerPasswordService();
     const repository = new FakePeerPartnerRepository();
     const tokenService = new PeerPartnerTokenService(fakeConfig("token-secret"));
-    const useCase = new LoginPeerPartnerUseCase(repository, passwordService, tokenService);
+    const useCase = new LoginPeerPartnerUseCase(repository, activeInstitutionRepository(), passwordService, tokenService);
 
     await expect(useCase.execute("unknown@zelo-demo.local", "any-password")).rejects.toThrow(InvalidPeerPartnerCredentialsError);
   });
@@ -66,7 +90,7 @@ describe("LoginPeerPartnerUseCase", () => {
     const repository = new FakePeerPartnerRepository();
     repository.rows = [{ id: "peer-1", name: "Dra. Ana", email: "ana@zelo-demo.local", passwordHash, setPasswordTokenExpiresAt: null, institutionId: "institution-1", specialty: "Clínica médica", isActive: true }];
     const tokenService = new PeerPartnerTokenService(fakeConfig("token-secret"));
-    const useCase = new LoginPeerPartnerUseCase(repository, passwordService, tokenService);
+    const useCase = new LoginPeerPartnerUseCase(repository, activeInstitutionRepository(), passwordService, tokenService);
 
     await expect(useCase.execute("ana@zelo-demo.local", "wrong-password")).rejects.toThrow(InvalidPeerPartnerCredentialsError);
   });
@@ -77,7 +101,20 @@ describe("LoginPeerPartnerUseCase", () => {
     const repository = new FakePeerPartnerRepository();
     repository.rows = [{ id: "peer-1", name: "Dra. Ana", email: "ana@zelo-demo.local", passwordHash, setPasswordTokenExpiresAt: null, institutionId: "institution-1", specialty: "Clínica médica", isActive: false }];
     const tokenService = new PeerPartnerTokenService(fakeConfig("token-secret"));
-    const useCase = new LoginPeerPartnerUseCase(repository, passwordService, tokenService);
+    const useCase = new LoginPeerPartnerUseCase(repository, activeInstitutionRepository(), passwordService, tokenService);
+
+    await expect(useCase.execute("ana@zelo-demo.local", "correct-password")).rejects.toThrow(InvalidPeerPartnerCredentialsError);
+  });
+
+  it("throws InvalidPeerPartnerCredentialsError for a correct password when the peer partner's institution has been deactivated", async () => {
+    const passwordService = new PeerPartnerPasswordService();
+    const passwordHash = await passwordService.hash("correct-password");
+    const repository = new FakePeerPartnerRepository();
+    repository.rows = [{ id: "peer-1", name: "Dra. Ana", email: "ana@zelo-demo.local", passwordHash, setPasswordTokenExpiresAt: null, institutionId: "institution-1", specialty: "Clínica médica", isActive: true }];
+    const institutionRepository = new FakeInstitutionRepository();
+    institutionRepository.rows = [{ ...ACTIVE_INSTITUTION, isActive: false }];
+    const tokenService = new PeerPartnerTokenService(fakeConfig("token-secret"));
+    const useCase = new LoginPeerPartnerUseCase(repository, institutionRepository, passwordService, tokenService);
 
     await expect(useCase.execute("ana@zelo-demo.local", "correct-password")).rejects.toThrow(InvalidPeerPartnerCredentialsError);
   });
@@ -87,7 +124,7 @@ describe("LoginPeerPartnerUseCase", () => {
     const repository = new FakePeerPartnerRepository();
     repository.rows = [{ id: "peer-1", name: "Dra. Ana", email: "ana@zelo-demo.local", passwordHash: null, setPasswordTokenExpiresAt: new Date(Date.now() + 60_000), institutionId: "institution-1", specialty: "Clínica médica", isActive: true }];
     const tokenService = new PeerPartnerTokenService(fakeConfig("token-secret"));
-    const useCase = new LoginPeerPartnerUseCase(repository, passwordService, tokenService);
+    const useCase = new LoginPeerPartnerUseCase(repository, activeInstitutionRepository(), passwordService, tokenService);
 
     await expect(useCase.execute("ana@zelo-demo.local", "any-password")).rejects.toThrow(InvalidPeerPartnerCredentialsError);
   });
@@ -97,7 +134,7 @@ describe("LoginPeerPartnerUseCase", () => {
     const verifySpy = vi.spyOn(passwordService, "verify");
     const repository = new FakePeerPartnerRepository();
     const tokenService = new PeerPartnerTokenService(fakeConfig("token-secret"));
-    const useCase = new LoginPeerPartnerUseCase(repository, passwordService, tokenService);
+    const useCase = new LoginPeerPartnerUseCase(repository, activeInstitutionRepository(), passwordService, tokenService);
 
     await expect(useCase.execute("unknown@zelo-demo.local", "any-password")).rejects.toThrow(InvalidPeerPartnerCredentialsError);
     expect(verifySpy).toHaveBeenCalledTimes(1);

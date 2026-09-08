@@ -18,6 +18,9 @@ class FakeInstitutionRepository implements InstitutionRepository {
   async findByInviteCode(inviteCode: string): Promise<InstitutionRow | null> {
     return this.rows.find((row) => row.inviteCode === inviteCode) ?? null;
   }
+  async findById(id: string): Promise<InstitutionRow | null> {
+    return this.rows.find((row) => row.id === id) ?? null;
+  }
 }
 
 class FakeSectorRepository implements SectorRepository {
@@ -62,7 +65,10 @@ describe("institution controller", () => {
 
   beforeAll(async () => {
     repository = new FakeInstitutionRepository();
-    repository.rows = [{ id: "inst-1", name: "Hospital São Lucas", inviteCode: "sao-lucas-2026" }];
+    repository.rows = [
+      { id: "inst-1", name: "Hospital São Lucas", inviteCode: "sao-lucas-2026", isActive: true },
+      { id: "inst-2", name: "Hospital Encerrado", inviteCode: "encerrado-2026", isActive: false },
+    ];
     sectorRepository = new FakeSectorRepository();
     const moduleRef = await Test.createTestingModule({
       controllers: [InstitutionController],
@@ -90,6 +96,12 @@ describe("institution controller", () => {
 
   it("GET /institutions/by-code/:code returns 404 for an unknown code", async () => {
     const response = await request(app.getHttpServer()).get("/institutions/by-code/unknown-code");
+
+    expect(response.status).toBe(404);
+  });
+
+  it("GET /institutions/by-code/:code returns 404 for a deactivated institution, same as an unknown code", async () => {
+    const response = await request(app.getHttpServer()).get("/institutions/by-code/encerrado-2026");
 
     expect(response.status).toBe(404);
   });

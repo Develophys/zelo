@@ -13,6 +13,18 @@ import { PEER_PARTNER_REPOSITORY } from "../application/ports/peer-partner-repos
 import type { PeerPartnerRepository, PeerPartnerRow } from "../application/ports/peer-partner-repository.port.ts";
 import { NOTIFICATION_PUBLISHER } from "@/modules/notification/application/ports/notification.port.js";
 import type { NotificationEvent, NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
+import { INSTITUTION_REPOSITORY } from "@/modules/institution/application/ports/institution-repository.port.js";
+import type { InstitutionRepository, InstitutionRow } from "@/modules/institution/application/ports/institution-repository.port.js";
+
+class FakeInstitutionRepository implements InstitutionRepository {
+  rows: InstitutionRow[] = [{ id: "institution-1", name: "Hospital São Lucas", inviteCode: "sao-lucas-2026", isActive: true }];
+  async findByInviteCode(): Promise<InstitutionRow | null> {
+    throw new Error("not used in this test");
+  }
+  async findById(id: string): Promise<InstitutionRow | null> {
+    return this.rows.find((row) => row.id === id) ?? null;
+  }
+}
 
 class FakeNotificationPublisher implements NotificationPublisher {
   events: NotificationEvent[] = [];
@@ -75,6 +87,7 @@ describe("peer partner controller", () => {
         PeerPartnerTokenService,
         PeerPartnerPasswordService,
         { provide: PEER_PARTNER_REPOSITORY, useValue: repository },
+        { provide: INSTITUTION_REPOSITORY, useValue: new FakeInstitutionRepository() },
         { provide: NOTIFICATION_PUBLISHER, useValue: new FakeNotificationPublisher() },
         { provide: ConfigService, useValue: fakeConfig() },
       ],

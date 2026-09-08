@@ -9,6 +9,12 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
   async findByInviteCode(inviteCode: string): Promise<InstitutionRow | null> {
     const row = await this.prisma.institution.findUnique({ where: { inviteCode } });
     if (!row) return null;
-    return { id: row.id, name: row.name, inviteCode: row.inviteCode };
+    return { id: row.id, name: row.name, inviteCode: row.inviteCode, isActive: row.isActive };
+  }
+
+  async findById(id: string): Promise<InstitutionRow | null> {
+    const row = await this.prisma.institution.findUnique({ where: { id } });
+    if (!row) return null;
+    return { id: row.id, name: row.name, inviteCode: row.inviteCode, isActive: row.isActive };
   }
 }

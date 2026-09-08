@@ -25,6 +25,14 @@ class FakeAdminInstitutionRepository implements AdminInstitutionRepository {
   async findAll(): Promise<AdminInstitutionRow[]> {
     throw new Error("not used in this test");
   }
+
+  async findById(): Promise<AdminInstitutionRow | null> {
+    throw new Error("not used in this test");
+  }
+
+  async update(): Promise<void> {
+    throw new Error("not used in this test");
+  }
 }
 
 class FakeEmailPort implements EmailPort {

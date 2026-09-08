@@ -10,6 +10,8 @@ export class GetInstitutionByInviteCodeUseCase {
   constructor(@Inject(INSTITUTION_REPOSITORY) private readonly repository: InstitutionRepository) {}
 
   async execute(inviteCode: string): Promise<InstitutionRow | null> {
-    return this.repository.findByInviteCode(inviteCode);
+    const institution = await this.repository.findByInviteCode(inviteCode);
+    if (!institution || !institution.isActive) return null;
+    return institution;
   }
 }

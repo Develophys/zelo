@@ -8,6 +8,8 @@ import { SIGNAL_REPOSITORY } from "../manager/application/ports/signal-repositor
 import { PrismaSignalRepository } from "../manager/infrastructure/persistence/prisma-signal.repository.ts";
 import { ManagerAuthGuard } from "../manager/infrastructure/manager-auth.guard.ts";
 import { ManagerTokenService } from "../manager/application/services/manager-token.service.ts";
+import { INSTITUTION_REPOSITORY } from "../institution/application/ports/institution-repository.port.ts";
+import { PrismaInstitutionRepository } from "../institution/infrastructure/persistence/prisma-institution.repository.ts";
 import { NOTIFICATION_PUBLISHER } from "./application/ports/notification.port.ts";
 import { NOTIFICATION_REPOSITORY } from "./application/ports/notification-repository.port.ts";
 import { PublishNotificationUseCase } from "./application/use-cases/publish-notification.use-case.ts";
@@ -22,12 +24,14 @@ import { NotificationScheduler } from "./infrastructure/notification-scheduler.t
 import { NotificationController } from "./infrastructure/notification.controller.ts";
 
 // SectorModule exports SECTOR_REPOSITORY, so it can simply be imported.
-// MANAGER_REPOSITORY, PEER_PARTNER_REPOSITORY and SIGNAL_REPOSITORY are
-// provided directly instead: neither ManagerModule nor PeerPartnerModule can
-// be imported here without creating a cycle — ManagerModule imports this
-// module (Task 3), and PeerPartnerModule imports it too. Both bind the same
-// Prisma classes their owning modules do, so there is one implementation with
-// two registrations, not two behaviours.
+// MANAGER_REPOSITORY, PEER_PARTNER_REPOSITORY, SIGNAL_REPOSITORY and
+// INSTITUTION_REPOSITORY are provided directly instead: neither ManagerModule
+// nor PeerPartnerModule can be imported here without creating a cycle —
+// ManagerModule imports this module (Task 3), and PeerPartnerModule imports
+// it too. Both bind the same Prisma classes their owning modules do, so
+// there is one implementation with two registrations, not two behaviours.
+// INSTITUTION_REPOSITORY follows the same rule for consistency, even though
+// InstitutionModule itself would not actually cycle back here.
 @Module({
   imports: [SectorModule],
   controllers: [NotificationController],
@@ -45,6 +49,7 @@ import { NotificationController } from "./infrastructure/notification.controller
     { provide: MANAGER_REPOSITORY, useClass: PrismaManagerRepository },
     { provide: PEER_PARTNER_REPOSITORY, useClass: PrismaPeerPartnerRepository },
     { provide: SIGNAL_REPOSITORY, useClass: PrismaSignalRepository },
+    { provide: INSTITUTION_REPOSITORY, useClass: PrismaInstitutionRepository },
     { provide: NOTIFICATION_REPOSITORY, useClass: PrismaNotificationRepository },
     { provide: NOTIFICATION_PUBLISHER, useExisting: PublishNotificationUseCase },
   ],

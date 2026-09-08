@@ -1,6 +1,13 @@
-import type { AdminInstitutionPort, AdminInstitutionListItem, CreateInstitutionParams, CreateInstitutionResult } from "@/ports/admin-institution.port";
+import type {
+  AdminInstitutionPort,
+  AdminInstitutionListItem,
+  CreateInstitutionParams,
+  CreateInstitutionResult,
+  UpdateInstitutionParams,
+} from "@/ports/admin-institution.port";
 import {
   AdminInstitutionListItemSchema,
+  AdminInstitutionNotFoundError,
   CreateInstitutionResultSchema,
   DuplicateInstitutionError,
   UnauthorizedAdminError,
@@ -33,5 +40,18 @@ export class HttpAdminInstitutionAdapter implements AdminInstitutionPort {
     if (!response.ok) throw new Error(`list institutions failed with status ${response.status}`);
 
     return z.array(AdminInstitutionListItemSchema).parse(await response.json());
+  }
+
+  async update(token: string, id: string, patch: UpdateInstitutionParams): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/admin/institutions/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(patch),
+    });
+
+    if (response.status === 401) throw new UnauthorizedAdminError();
+    if (response.status === 404) throw new AdminInstitutionNotFoundError();
+    if (response.status === 409) throw new DuplicateInstitutionError();
+    if (!response.ok) throw new Error(`update institution failed with status ${response.status}`);
   }
 }

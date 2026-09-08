@@ -16,7 +16,11 @@ import {
   ADMIN_INSTITUTION_REPOSITORY,
   DuplicateInstitutionOrManagerError,
 } from "../application/ports/admin-institution-repository.port.ts";
-import type { AdminInstitutionRepository, AdminInstitutionRow } from "../application/ports/admin-institution-repository.port.ts";
+import type {
+  AdminInstitutionRepository,
+  AdminInstitutionRow,
+  UpdateInstitutionParams,
+} from "../application/ports/admin-institution-repository.port.ts";
 import { EMAIL_PORT } from "@/shared/email/email.port.js";
 import type { EmailPort, EmailTemplate, SendEmailParams } from "@/shared/email/email.port.js";
 
@@ -30,7 +34,9 @@ class FakeAdminRepository implements AdminRepository {
 class FakeAdminInstitutionRepository implements AdminInstitutionRepository {
   public rows: AdminInstitutionRow[] = [];
   public shouldThrowDuplicate = false;
+  public shouldThrowDuplicateOnUpdate = false;
   public lastCreateParams: { hospitalAdminEmail: string; setPasswordToken: string } | null = null;
+  public lastUpdate: { id: string; patch: UpdateInstitutionParams } | null = null;
   async createWithHospitalAdmin(params: {
     institutionName: string;
     inviteCode: string;
@@ -48,6 +54,17 @@ class FakeAdminInstitutionRepository implements AdminInstitutionRepository {
   }
   async findAll(): Promise<AdminInstitutionRow[]> {
     return this.rows;
+  }
+  async findById(id: string): Promise<AdminInstitutionRow | null> {
+    return this.rows.find((row) => row.id === id) ?? null;
+  }
+  async update(id: string, patch: UpdateInstitutionParams): Promise<void> {
+    this.lastUpdate = { id, patch };
+    if (this.shouldThrowDuplicateOnUpdate) throw new DuplicateInstitutionOrManagerError();
+    const row = this.rows.find((r) => r.id === id);
+    if (!row) return;
+    if (patch.name !== undefined) row.name = patch.name;
+    if (patch.isActive !== undefined) row.isActive = patch.isActive;
   }
 }
 
@@ -159,7 +176,7 @@ describe("admin controller", () => {
 
   it("GET /admin/institutions returns the repository's rows", async () => {
     institutionRepository.rows = [
-      { id: "institution-1", name: "Hospital Teste", inviteCode: "teste-2026", createdAt: new Date("2026-08-01T00:00:00.000Z"), hospitalAdminNames: ["Mauricio"] },
+      { id: "institution-1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: new Date("2026-08-01T00:00:00.000Z"), hospitalAdminNames: ["Mauricio"] },
     ];
     const login = await request(app.getHttpServer()).post("/admin/login").send({ email: "ops@zelo-demo.local", password: "test-password" });
     const token = login.body.token;
@@ -170,5 +187,98 @@ describe("admin controller", () => {
     expect(response.body).toEqual([
       expect.objectContaining({ id: "institution-1", name: "Hospital Teste", hospitalAdminNames: ["Mauricio"] }),
     ]);
+  });
+
+  describe("PATCH /admin/institutions/:id", () => {
+    async function loginToken(): Promise<string> {
+      const login = await request(app.getHttpServer()).post("/admin/login").send({ email: "ops@zelo-demo.local", password: "test-password" });
+      return login.body.token;
+    }
+
+    beforeAll(() => {
+      institutionRepository.rows = [
+        { id: "institution-1", name: "Hospital Teste", inviteCode: "teste-2026", isActive: true, createdAt: new Date("2026-08-01T00:00:00.000Z"), hospitalAdminNames: ["Mauricio"] },
+      ];
+    });
+
+    it("rejects a request with no token", async () => {
+      const response = await request(app.getHttpServer()).patch("/admin/institutions/institution-1").send({ name: "Novo Nome" });
+      expect(response.status).toBe(401);
+    });
+
+    it("renames the institution", async () => {
+      const token = await loginToken();
+      const response = await request(app.getHttpServer())
+        .patch("/admin/institutions/institution-1")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ name: "Novo Nome" });
+
+      expect(response.status).toBe(204);
+      expect(institutionRepository.lastUpdate).toEqual({ id: "institution-1", patch: { name: "Novo Nome" } });
+    });
+
+    it("deactivates and reactivates the institution", async () => {
+      const token = await loginToken();
+
+      const deactivate = await request(app.getHttpServer())
+        .patch("/admin/institutions/institution-1")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ isActive: false });
+      expect(deactivate.status).toBe(204);
+      expect(institutionRepository.rows[0]!.isActive).toBe(false);
+
+      const reactivate = await request(app.getHttpServer())
+        .patch("/admin/institutions/institution-1")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ isActive: true });
+      expect(reactivate.status).toBe(204);
+      expect(institutionRepository.rows[0]!.isActive).toBe(true);
+    });
+
+    it("never accepts an inviteCode change — the field does not exist on the schema", async () => {
+      const token = await loginToken();
+      const response = await request(app.getHttpServer())
+        .patch("/admin/institutions/institution-1")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ inviteCode: "novo-codigo" });
+
+      // Zod strips unknown keys by default, so this succeeds — but the
+      // repository never receives inviteCode, which is the actual guarantee.
+      expect(response.status).toBe(204);
+      expect(institutionRepository.lastUpdate?.patch).not.toHaveProperty("inviteCode");
+    });
+
+    it("returns 404 for an institution that does not exist", async () => {
+      const token = await loginToken();
+      const response = await request(app.getHttpServer())
+        .patch("/admin/institutions/unknown-id")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ name: "Novo Nome" });
+
+      expect(response.status).toBe(404);
+    });
+
+    it("returns 409 when the new name collides with another institution", async () => {
+      institutionRepository.shouldThrowDuplicateOnUpdate = true;
+      const token = await loginToken();
+
+      const response = await request(app.getHttpServer())
+        .patch("/admin/institutions/institution-1")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ name: "Nome Já Usado" });
+
+      expect(response.status).toBe(409);
+      institutionRepository.shouldThrowDuplicateOnUpdate = false;
+    });
+
+    it("rejects a malformed body with 400", async () => {
+      const token = await loginToken();
+      const response = await request(app.getHttpServer())
+        .patch("/admin/institutions/institution-1")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ name: "" });
+
+      expect(response.status).toBe(400);
+    });
   });
 });

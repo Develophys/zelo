@@ -4,6 +4,30 @@ import { LoginManagerUseCase, InvalidManagerCredentialsError } from "./login-man
 import { ManagerPasswordService } from "../services/manager-password.service.ts";
 import { ManagerTokenService } from "../services/manager-token.service.ts";
 import type { ManagerRepository, ManagerRow } from "../ports/manager-repository.port.ts";
+import type { InstitutionRepository, InstitutionRow } from "@/modules/institution/application/ports/institution-repository.port.js";
+
+class FakeInstitutionRepository implements InstitutionRepository {
+  rows: InstitutionRow[] = [];
+  async findByInviteCode(): Promise<InstitutionRow | null> {
+    throw new Error("not used in this test");
+  }
+  async findById(id: string): Promise<InstitutionRow | null> {
+    return this.rows.find((row) => row.id === id) ?? null;
+  }
+}
+
+const ACTIVE_INSTITUTION: InstitutionRow = {
+  id: "institution-1",
+  name: "Hospital São Lucas",
+  inviteCode: "sao-lucas-2026",
+  isActive: true,
+};
+
+function activeInstitutionRepository(): FakeInstitutionRepository {
+  const repository = new FakeInstitutionRepository();
+  repository.rows = [ACTIVE_INSTITUTION];
+  return repository;
+}
 
 class FakeManagerRepository implements ManagerRepository {
   rows: ManagerRow[] = [];
@@ -52,7 +76,7 @@ describe("LoginManagerUseCase", () => {
       { id: "manager-1", name: "Ana Konder", email: "ana@zelo-demo.local", passwordHash, setPasswordTokenExpiresAt: null, institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: true },
     ];
     const tokenService = new ManagerTokenService(fakeConfig("token-secret"));
-    const useCase = new LoginManagerUseCase(repository, passwordService, tokenService);
+    const useCase = new LoginManagerUseCase(repository, activeInstitutionRepository(), passwordService, tokenService);
 
     const result = await useCase.execute("ana@zelo-demo.local", "correct-password");
 
@@ -69,7 +93,7 @@ describe("LoginManagerUseCase", () => {
     const passwordService = new ManagerPasswordService();
     const repository = new FakeManagerRepository();
     const tokenService = new ManagerTokenService(fakeConfig("token-secret"));
-    const useCase = new LoginManagerUseCase(repository, passwordService, tokenService);
+    const useCase = new LoginManagerUseCase(repository, activeInstitutionRepository(), passwordService, tokenService);
 
     await expect(useCase.execute("unknown@zelo-demo.local", "any-password")).rejects.toThrow(InvalidManagerCredentialsError);
   });
@@ -82,7 +106,7 @@ describe("LoginManagerUseCase", () => {
       { id: "manager-1", name: "Ana Konder", email: "ana@zelo-demo.local", passwordHash, setPasswordTokenExpiresAt: null, institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: true },
     ];
     const tokenService = new ManagerTokenService(fakeConfig("token-secret"));
-    const useCase = new LoginManagerUseCase(repository, passwordService, tokenService);
+    const useCase = new LoginManagerUseCase(repository, activeInstitutionRepository(), passwordService, tokenService);
 
     await expect(useCase.execute("ana@zelo-demo.local", "wrong-password")).rejects.toThrow(InvalidManagerCredentialsError);
   });
@@ -95,7 +119,22 @@ describe("LoginManagerUseCase", () => {
       { id: "manager-1", name: "Ana Konder", email: "ana@zelo-demo.local", passwordHash, setPasswordTokenExpiresAt: null, institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: false },
     ];
     const tokenService = new ManagerTokenService(fakeConfig("token-secret"));
-    const useCase = new LoginManagerUseCase(repository, passwordService, tokenService);
+    const useCase = new LoginManagerUseCase(repository, activeInstitutionRepository(), passwordService, tokenService);
+
+    await expect(useCase.execute("ana@zelo-demo.local", "correct-password")).rejects.toThrow(InvalidManagerCredentialsError);
+  });
+
+  it("throws InvalidManagerCredentialsError for a correct password when the manager's institution has been deactivated, same as any other failure (no disclosure)", async () => {
+    const passwordService = new ManagerPasswordService();
+    const passwordHash = await passwordService.hash("correct-password");
+    const repository = new FakeManagerRepository();
+    repository.rows = [
+      { id: "manager-1", name: "Ana Konder", email: "ana@zelo-demo.local", passwordHash, setPasswordTokenExpiresAt: null, institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: true },
+    ];
+    const institutionRepository = new FakeInstitutionRepository();
+    institutionRepository.rows = [{ ...ACTIVE_INSTITUTION, isActive: false }];
+    const tokenService = new ManagerTokenService(fakeConfig("token-secret"));
+    const useCase = new LoginManagerUseCase(repository, institutionRepository, passwordService, tokenService);
 
     await expect(useCase.execute("ana@zelo-demo.local", "correct-password")).rejects.toThrow(InvalidManagerCredentialsError);
   });
@@ -107,7 +146,7 @@ describe("LoginManagerUseCase", () => {
       { id: "manager-1", name: "Ana Konder", email: "ana@zelo-demo.local", passwordHash: null, setPasswordTokenExpiresAt: new Date(Date.now() + 60_000), institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: true },
     ];
     const tokenService = new ManagerTokenService(fakeConfig("token-secret"));
-    const useCase = new LoginManagerUseCase(repository, passwordService, tokenService);
+    const useCase = new LoginManagerUseCase(repository, activeInstitutionRepository(), passwordService, tokenService);
 
     await expect(useCase.execute("ana@zelo-demo.local", "any-password")).rejects.toThrow(InvalidManagerCredentialsError);
   });
@@ -121,7 +160,7 @@ describe("LoginManagerUseCase", () => {
       { id: "manager-1", name: "Ana Konder", email: "ana@zelo-demo.local", passwordHash, setPasswordTokenExpiresAt: null, institutionId: "institution-1", role: "HOSPITAL_ADMIN", isActive: true },
     ];
     const tokenService = new ManagerTokenService(fakeConfig("token-secret"));
-    const useCase = new LoginManagerUseCase(repository, passwordService, tokenService);
+    const useCase = new LoginManagerUseCase(repository, activeInstitutionRepository(), passwordService, tokenService);
 
     await expect(useCase.execute("unknown@zelo-demo.local", "any-password")).rejects.toThrow(InvalidManagerCredentialsError);
     expect(verifySpy).toHaveBeenCalledTimes(1);

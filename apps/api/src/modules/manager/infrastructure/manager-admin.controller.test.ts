@@ -31,6 +31,21 @@ import { EMAIL_PORT } from "@/shared/email/email.port.js";
 import type { EmailPort, EmailTemplate, SendEmailParams } from "@/shared/email/email.port.js";
 import { NOTIFICATION_PUBLISHER } from "@/modules/notification/application/ports/notification.port.js";
 import type { NotificationEvent, NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
+import { INSTITUTION_REPOSITORY } from "@/modules/institution/application/ports/institution-repository.port.js";
+import type { InstitutionRepository, InstitutionRow } from "@/modules/institution/application/ports/institution-repository.port.js";
+
+class FakeInstitutionRepository implements InstitutionRepository {
+  public rows: InstitutionRow[] = [
+    { id: "institution-1", name: "Hospital 1", inviteCode: "hospital-1-2026", isActive: true },
+    { id: "institution-2", name: "Hospital 2", inviteCode: "hospital-2-2026", isActive: true },
+  ];
+  async findByInviteCode(): Promise<InstitutionRow | null> {
+    throw new Error("not used in this test");
+  }
+  async findById(id: string): Promise<InstitutionRow | null> {
+    return this.rows.find((row) => row.id === id) ?? null;
+  }
+}
 
 class FakeNotificationPublisher implements NotificationPublisher {
   events: NotificationEvent[] = [];
@@ -265,6 +280,7 @@ describe("manager admin controller — sectors", () => {
         { provide: ManagerTokenService, useValue: tokenService },
         { provide: SECTOR_REPOSITORY, useValue: sectorRepository },
         { provide: MANAGER_REPOSITORY, useValue: managerRepository },
+        { provide: INSTITUTION_REPOSITORY, useValue: new FakeInstitutionRepository() },
         { provide: PEER_PARTNER_REPOSITORY, useValue: peerPartnerRepository },
         { provide: SIGNAL_REPOSITORY, useValue: signalRepository },
         { provide: PeerChatGateway, useValue: peerChatGateway },

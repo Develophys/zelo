@@ -29,6 +29,18 @@ import { SECTOR_REPOSITORY } from "@/modules/sector/application/ports/sector-rep
 import type { SectorRepository, AdminSectorRow, UpdateSectorParams } from "@/modules/sector/application/ports/sector-repository.port.js";
 import { NOTIFICATION_PUBLISHER } from "@/modules/notification/application/ports/notification.port.js";
 import type { NotificationEvent, NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
+import { INSTITUTION_REPOSITORY } from "@/modules/institution/application/ports/institution-repository.port.js";
+import type { InstitutionRepository, InstitutionRow } from "@/modules/institution/application/ports/institution-repository.port.js";
+
+class FakeInstitutionRepository implements InstitutionRepository {
+  public rows: InstitutionRow[] = [];
+  async findByInviteCode(): Promise<InstitutionRow | null> {
+    throw new Error("not used in this test");
+  }
+  async findById(id: string): Promise<InstitutionRow | null> {
+    return this.rows.find((row) => row.id === id) ?? null;
+  }
+}
 
 class FakeNotificationPublisher implements NotificationPublisher {
   events: NotificationEvent[] = [];
@@ -167,6 +179,7 @@ function fakeConfig(): ConfigService {
 describe("manager controller", () => {
   let app: INestApplication;
   let managerRepository: FakeManagerRepository;
+  let institutionRepository: FakeInstitutionRepository;
   let signalRepository: FakeSignalRepository;
   let sectorRepository: FakeSectorRepository;
   let followUpRepository: FakeSimulatedFollowUpRepository;
@@ -198,6 +211,11 @@ describe("manager controller", () => {
         isActive: true,
       },
     ];
+    institutionRepository = new FakeInstitutionRepository();
+    institutionRepository.rows = [
+      { id: "institution-a", name: "Hospital A", inviteCode: "hospital-a-2026", isActive: true },
+      { id: "institution-b", name: "Hospital B", inviteCode: "hospital-b-2026", isActive: true },
+    ];
     signalRepository = new FakeSignalRepository();
     sectorRepository = new FakeSectorRepository();
     followUpRepository = new FakeSimulatedFollowUpRepository();
@@ -217,6 +235,7 @@ describe("manager controller", () => {
         ManagerPasswordService,
         ManagerAuthGuard,
         { provide: MANAGER_REPOSITORY, useValue: managerRepository },
+        { provide: INSTITUTION_REPOSITORY, useValue: institutionRepository },
         { provide: SIGNAL_REPOSITORY, useValue: signalRepository },
         { provide: SECTOR_REPOSITORY, useValue: sectorRepository },
         { provide: SIMULATED_FOLLOW_UP_REPOSITORY, useValue: followUpRepository },
@@ -420,6 +439,36 @@ describe("manager controller", () => {
       expect(after.status).toBe(401);
     } finally {
       beatriz.isActive = true;
+    }
+  });
+
+  it("GET /manager/signals rejects a still-valid token once its institution has been deactivated", async () => {
+    const token = await getToken("beatriz@zelo-demo.local", "test-password-2");
+    const institutionB = institutionRepository.rows.find((row) => row.id === "institution-b")!;
+
+    const before = await request(app.getHttpServer()).get("/manager/signals").set("Authorization", `Bearer ${token}`);
+    expect(before.status).toBe(200);
+
+    institutionB.isActive = false;
+    try {
+      const after = await request(app.getHttpServer()).get("/manager/signals").set("Authorization", `Bearer ${token}`);
+      expect(after.status).toBe(401);
+    } finally {
+      institutionB.isActive = true;
+    }
+  });
+
+  it("POST /manager/login rejects a correct password once the manager's institution has been deactivated", async () => {
+    const institutionA = institutionRepository.rows.find((row) => row.id === "institution-a")!;
+
+    institutionA.isActive = false;
+    try {
+      const response = await request(app.getHttpServer())
+        .post("/manager/login")
+        .send({ email: "ana@zelo-demo.local", password: "test-password" });
+      expect(response.status).toBe(401);
+    } finally {
+      institutionA.isActive = true;
     }
   });
 

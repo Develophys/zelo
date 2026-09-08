@@ -9,9 +9,10 @@ import { PeerPartnerPasswordService } from "./application/services/peer-partner-
 import { PEER_PARTNER_REPOSITORY } from "./application/ports/peer-partner-repository.port.ts";
 import { EmailModule } from "@/shared/email/email.module.js";
 import { NotificationModule } from "../notification/notification.module.ts";
+import { InstitutionModule } from "../institution/institution.module.ts";
 
 @Module({
-  imports: [EmailModule, NotificationModule],
+  imports: [EmailModule, NotificationModule, InstitutionModule],
   controllers: [PeerPartnerController],
   providers: [
     LoginPeerPartnerUseCase,

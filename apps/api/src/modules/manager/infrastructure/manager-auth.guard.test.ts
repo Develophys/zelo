@@ -6,6 +6,7 @@ import type { Request } from "express";
 import { ManagerAuthGuard } from "./manager-auth.guard.ts";
 import { ManagerTokenService } from "../application/services/manager-token.service.ts";
 import type { ManagerRepository, ManagerRow } from "../application/ports/manager-repository.port.ts";
+import type { InstitutionRepository, InstitutionRow } from "@/modules/institution/application/ports/institution-repository.port.js";
 
 class FakeManagerRepository implements ManagerRepository {
   public rows: ManagerRow[] = [];
@@ -41,6 +42,16 @@ class FakeManagerRepository implements ManagerRepository {
   }
 }
 
+class FakeInstitutionRepository implements InstitutionRepository {
+  public rows: InstitutionRow[] = [];
+  async findByInviteCode(): Promise<InstitutionRow | null> {
+    throw new Error("not used in this test");
+  }
+  async findById(id: string): Promise<InstitutionRow | null> {
+    return this.rows.find((row) => row.id === id) ?? null;
+  }
+}
+
 function fakeConfig(secret: string): ConfigService {
   return { getOrThrow: () => secret, get: () => undefined } as unknown as ConfigService;
 }
@@ -67,13 +78,25 @@ function managerRow(overrides: Partial<ManagerRow> = {}): ManagerRow {
   };
 }
 
+function institutionRow(overrides: Partial<InstitutionRow> = {}): InstitutionRow {
+  return {
+    id: "institution-1",
+    name: "Hospital São Lucas",
+    inviteCode: "sao-lucas-2026",
+    isActive: true,
+    ...overrides,
+  };
+}
+
 describe("ManagerAuthGuard", () => {
   const tokenService = new ManagerTokenService(fakeConfig("test-secret"));
 
-  function buildGuard(rows: ManagerRow[]): ManagerAuthGuard {
+  function buildGuard(rows: ManagerRow[], institutionRows: InstitutionRow[] = [institutionRow()]): ManagerAuthGuard {
     const repository = new FakeManagerRepository();
     repository.rows = rows;
-    return new ManagerAuthGuard(tokenService, repository);
+    const institutionRepository = new FakeInstitutionRepository();
+    institutionRepository.rows = institutionRows;
+    return new ManagerAuthGuard(tokenService, repository, institutionRepository);
   }
 
   it("allows a request with a valid Bearer token and attaches the decoded manager, including role, to the request", async () => {
@@ -107,6 +130,22 @@ describe("ManagerAuthGuard", () => {
 
   it("rejects a still-valid token whose manager row no longer exists", async () => {
     const guard = buildGuard([]);
+    const { token } = tokenService.issue("manager-1", "Ana Konder", "institution-1", "SECTOR_MANAGER");
+    const { context } = contextWithHeader(`Bearer ${token}`);
+
+    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
+  });
+
+  it("rejects a still-valid token whose institution has since been deactivated, killing the live session immediately", async () => {
+    const guard = buildGuard([managerRow()], [institutionRow({ isActive: false })]);
+    const { token } = tokenService.issue("manager-1", "Ana Konder", "institution-1", "SECTOR_MANAGER");
+    const { context } = contextWithHeader(`Bearer ${token}`);
+
+    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
+  });
+
+  it("rejects a still-valid token whose institution no longer exists", async () => {
+    const guard = buildGuard([managerRow()], []);
     const { token } = tokenService.issue("manager-1", "Ana Konder", "institution-1", "SECTOR_MANAGER");
     const { context } = contextWithHeader(`Bearer ${token}`);
 

@@ -7,4 +7,8 @@ describe('plural', () => {
     expect(plural('setor')).toBe('setores');
     expect(plural('par')).toBe('pares');
   });
+
+  it('swaps a "-ção" ending for "-ções" instead of appending "es"', () => {
+    expect(plural('instituição')).toBe('instituições');
+  });
 });

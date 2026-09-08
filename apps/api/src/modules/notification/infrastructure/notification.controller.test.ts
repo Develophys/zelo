@@ -11,6 +11,18 @@ import { ManagerAuthGuard } from "@/modules/manager/infrastructure/manager-auth.
 import { ManagerTokenService } from "@/modules/manager/application/services/manager-token.service.js";
 import { MANAGER_REPOSITORY } from "@/modules/manager/application/ports/manager-repository.port.js";
 import type { ManagerRepository, ManagerRow } from "@/modules/manager/application/ports/manager-repository.port.js";
+import { INSTITUTION_REPOSITORY } from "@/modules/institution/application/ports/institution-repository.port.js";
+import type { InstitutionRepository, InstitutionRow } from "@/modules/institution/application/ports/institution-repository.port.js";
+
+class FakeInstitutionRepository implements InstitutionRepository {
+  rows: InstitutionRow[] = [{ id: "institution-1", name: "Hospital São Lucas", inviteCode: "sao-lucas-2026", isActive: true }];
+  async findByInviteCode(): Promise<InstitutionRow | null> {
+    throw new Error("not used in this test");
+  }
+  async findById(id: string): Promise<InstitutionRow | null> {
+    return this.rows.find((row) => row.id === id) ?? null;
+  }
+}
 
 class FakeManagerRepository implements ManagerRepository {
   rows: ManagerRow[] = [];
@@ -127,6 +139,7 @@ describe("notification controller", () => {
         ManagerAuthGuard,
         { provide: ManagerTokenService, useValue: tokenService },
         { provide: MANAGER_REPOSITORY, useValue: managerRepository },
+        { provide: INSTITUTION_REPOSITORY, useValue: new FakeInstitutionRepository() },
         { provide: NOTIFICATION_REPOSITORY, useValue: repository },
       ],
     }).compile();

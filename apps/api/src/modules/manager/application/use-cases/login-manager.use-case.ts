@@ -1,5 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { MANAGER_REPOSITORY, type ManagerRepository } from "../ports/manager-repository.port.ts";
+import { INSTITUTION_REPOSITORY, type InstitutionRepository } from "@/modules/institution/application/ports/institution-repository.port.js";
 import { ManagerPasswordService } from "../services/manager-password.service.ts";
 import { ManagerTokenService, type IssuedManagerToken } from "../services/manager-token.service.ts";
 
@@ -15,6 +16,7 @@ const DUMMY_PASSWORD_HASH = `${"0".repeat(32)}:${"0".repeat(128)}`;
 export class LoginManagerUseCase {
   constructor(
     @Inject(MANAGER_REPOSITORY) private readonly managerRepository: ManagerRepository,
+    @Inject(INSTITUTION_REPOSITORY) private readonly institutionRepository: InstitutionRepository,
     @Inject(ManagerPasswordService) private readonly passwordService: ManagerPasswordService,
     @Inject(ManagerTokenService) private readonly tokenService: ManagerTokenService,
   ) {}
@@ -23,7 +25,11 @@ export class LoginManagerUseCase {
     const manager = await this.managerRepository.findByEmail(email);
 
     const isValid = await this.passwordService.verify(password, manager?.passwordHash ?? DUMMY_PASSWORD_HASH);
-    if (!manager || !manager.passwordHash || !isValid || !manager.isActive) {
+    // Folded into the same non-disclosing error as every other failure mode
+    // here: a deactivated institution must not read any differently from a
+    // wrong password.
+    const institution = manager ? await this.institutionRepository.findById(manager.institutionId) : null;
+    if (!manager || !manager.passwordHash || !isValid || !manager.isActive || !institution?.isActive) {
       throw new InvalidManagerCredentialsError();
     }
 

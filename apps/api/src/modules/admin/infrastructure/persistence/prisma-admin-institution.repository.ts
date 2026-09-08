@@ -4,6 +4,7 @@ import type {
   AdminInstitutionRepository,
   AdminInstitutionRow,
   CreateInstitutionParams,
+  UpdateInstitutionParams,
 } from "@/modules/admin/application/ports/admin-institution-repository.port.js";
 import { DuplicateInstitutionOrManagerError } from "@/modules/admin/application/ports/admin-institution-repository.port.js";
 import { PrismaService } from "@/shared/prisma/prisma.service.js";
@@ -54,8 +55,36 @@ export class PrismaAdminInstitutionRepository implements AdminInstitutionReposit
       id: institution.id,
       name: institution.name,
       inviteCode: institution.inviteCode,
+      isActive: institution.isActive,
       createdAt: institution.createdAt,
       hospitalAdminNames: institution.managers.map((manager) => manager.name),
     }));
+  }
+
+  async findById(id: string): Promise<AdminInstitutionRow | null> {
+    const institution = await this.prisma.institution.findUnique({
+      where: { id },
+      include: { managers: { where: { role: "HOSPITAL_ADMIN" }, select: { name: true } } },
+    });
+    if (!institution) return null;
+    return {
+      id: institution.id,
+      name: institution.name,
+      inviteCode: institution.inviteCode,
+      isActive: institution.isActive,
+      createdAt: institution.createdAt,
+      hospitalAdminNames: institution.managers.map((manager) => manager.name),
+    };
+  }
+
+  async update(id: string, patch: UpdateInstitutionParams): Promise<void> {
+    try {
+      await this.prisma.institution.update({ where: { id }, data: patch });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === UNIQUE_CONSTRAINT_VIOLATION) {
+        throw new DuplicateInstitutionOrManagerError();
+      }
+      throw error;
+    }
   }
 }
