@@ -53,6 +53,7 @@ function classifyStreamError(): ChatStreamError {
 export function useChatConversation(conversationId: string) {
   const messages = useChatConversationStore((state) => state.messages);
   const setMessages = useChatConversationStore((state) => state.setMessages);
+  const clearMessages = useChatConversationStore((state) => state.clear);
   const [isStreaming, setIsStreaming] = useState(false);
   const [crisisFallback, setCrisisFallback] = useState(false);
   const [streamError, setStreamError] = useState<ChatStreamError | null>(null);
@@ -218,6 +219,17 @@ export function useChatConversation(conversationId: string) {
     cancelRef.current?.();
   }, []);
 
+  // Cancelling first, then wiping: the cancelled stream's own `finally` still
+  // runs its filter/map over `messages` once the race settles, but by then
+  // the transcript is already empty, so that cleanup is a no-op instead of a
+  // race against the reset.
+  const resetConversation = useCallback(() => {
+    cancelRef.current?.();
+    clearMessages();
+    setStreamError(null);
+    setCrisisFallback(false);
+  }, [clearMessages]);
+
   return {
     messages,
     isStreaming,
@@ -226,5 +238,6 @@ export function useChatConversation(conversationId: string) {
     sendMessage,
     retryLastMessage,
     cancelStream,
+    resetConversation,
   };
 }

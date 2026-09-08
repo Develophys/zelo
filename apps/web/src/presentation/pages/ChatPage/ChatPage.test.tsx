@@ -1363,4 +1363,97 @@ describe('ChatPage', () => {
     expect(subtitle.className).not.toContain('truncate');
     expect(subtitle).not.toHaveAttribute('title');
   });
+
+  describe('restarting the conversation', () => {
+    it('offers nothing to restart on an empty transcript', () => {
+      renderChat();
+      expect(screen.queryByRole('button', { name: 'Nova conversa' })).not.toBeInTheDocument();
+    });
+
+    it('offers Nova conversa once there is a transcript, behind a confirmation', async () => {
+      vi.spyOn(container.sendChatMessageUseCase, 'execute').mockImplementation(() => fakeAssistantStream());
+      const user = userEvent.setup();
+      renderChat();
+
+      await user.type(screen.getByLabelText('Mensagem'), 'Estou exausto');
+      await user.click(screen.getByRole('button', { name: 'Enviar' }));
+      await screen.findByText('Oi, tudo bem?');
+
+      await user.click(screen.getByRole('button', { name: 'Nova conversa' }));
+      expect(screen.getByRole('dialog', { name: 'Começar uma nova conversa?' })).toBeInTheDocument();
+      expect(screen.getByText(/não poderá ser recuperada/i)).toBeInTheDocument();
+    });
+
+    it('keeps the transcript when the restart is cancelled', async () => {
+      vi.spyOn(container.sendChatMessageUseCase, 'execute').mockImplementation(() => fakeAssistantStream());
+      const user = userEvent.setup();
+      renderChat();
+
+      await user.type(screen.getByLabelText('Mensagem'), 'Estou exausto');
+      await user.click(screen.getByRole('button', { name: 'Enviar' }));
+      await screen.findByText('Oi, tudo bem?');
+
+      await user.click(screen.getByRole('button', { name: 'Nova conversa' }));
+      await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.getByText('Oi, tudo bem?')).toBeInTheDocument();
+      expect(screen.getByText('Estou exausto')).toBeInTheDocument();
+    });
+
+    it('wipes the transcript and returns to the empty state once the restart is confirmed', async () => {
+      vi.spyOn(container.sendChatMessageUseCase, 'execute').mockImplementation(() => fakeAssistantStream());
+      const user = userEvent.setup();
+      renderChat();
+
+      await user.type(screen.getByLabelText('Mensagem'), 'Estou exausto');
+      await user.click(screen.getByRole('button', { name: 'Enviar' }));
+      await screen.findByText('Oi, tudo bem?');
+
+      await user.click(screen.getByRole('button', { name: 'Nova conversa' }));
+      await user.click(screen.getByRole('button', { name: 'Apagar e recomeçar' }));
+
+      expect(await screen.findByText('Comece por onde quiser')).toBeInTheDocument();
+      expect(screen.queryByText('Oi, tudo bem?')).not.toBeInTheDocument();
+      expect(screen.queryByText('Estou exausto')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Nova conversa' })).not.toBeInTheDocument();
+    });
+
+    it('returns focus to the composer once the restart is confirmed', async () => {
+      vi.spyOn(container.sendChatMessageUseCase, 'execute').mockImplementation(() => fakeAssistantStream());
+      const user = userEvent.setup();
+      renderChat();
+
+      await user.type(screen.getByLabelText('Mensagem'), 'Estou exausto');
+      await user.click(screen.getByRole('button', { name: 'Enviar' }));
+      await screen.findByText('Oi, tudo bem?');
+
+      await user.click(screen.getByRole('button', { name: 'Nova conversa' }));
+      await user.click(screen.getByRole('button', { name: 'Apagar e recomeçar' }));
+
+      await screen.findByText('Comece por onde quiser');
+      expect(screen.getByLabelText('Mensagem')).toHaveFocus();
+    });
+
+    it('cancels a reply in progress when the restart is confirmed mid-stream, instead of letting it land in an empty transcript', async () => {
+      const { stream, release } = gatedAssistantStream();
+      vi.spyOn(container.sendChatMessageUseCase, 'execute').mockImplementation(() => stream);
+      const user = userEvent.setup();
+      renderChat();
+
+      await user.type(screen.getByLabelText('Mensagem'), 'Estou exausto');
+      await user.click(screen.getByRole('button', { name: 'Enviar' }));
+      await screen.findByText('Primeira parte.');
+
+      await user.click(screen.getByRole('button', { name: 'Nova conversa' }));
+      await user.click(screen.getByRole('button', { name: 'Apagar e recomeçar' }));
+
+      await screen.findByText('Comece por onde quiser');
+      release();
+      await Promise.resolve();
+
+      expect(screen.queryByText(/Primeira parte|Segunda parte/)).not.toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+  });
 });

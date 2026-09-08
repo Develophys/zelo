@@ -15,6 +15,7 @@ import { ChatComposer } from './ChatComposer';
 import { ChatDisclaimerBanner } from './ChatDisclaimerBanner';
 import { ChatEmptyState } from './ChatEmptyState';
 import { ChatMessageBubble } from './ChatMessageBubble';
+import { ChatRestartAction } from './ChatRestartAction';
 import { CHAT_COLUMN } from './chat-column';
 
 const CONVERSATION_ID = '00000000-0000-4000-8000-000000000001';
@@ -28,6 +29,7 @@ export function ChatPage() {
     sendMessage,
     retryLastMessage,
     cancelStream,
+    resetConversation,
   } = useChatConversation(CONVERSATION_ID);
   const { scrollerRef, handleScroll, hasUnseenContent, jumpToBottom, resumeFollowing } =
     useStickToBottom(messages);
@@ -46,6 +48,7 @@ export function ChatPage() {
   const [trayCollapsed, setTrayCollapsed] = useState(false);
   const composerFieldRef = useRef<HTMLTextAreaElement>(null);
   const awaitingRetryFocusRef = useRef(false);
+  const awaitingRestartFocusRef = useRef(false);
 
   const handleSend = useCallback(
     (text: string) => {
@@ -68,6 +71,22 @@ export function ChatPage() {
     composerFieldRef.current?.focus();
   }, [showsRetryButton]);
 
+  const handleRestart = useCallback(() => {
+    awaitingRestartFocusRef.current = true;
+    setTrayCollapsed(false);
+    resetConversation();
+  }, [resetConversation]);
+
+  // Deferred to an effect rather than focused right in handleRestart: the
+  // confirm modal is still mid-close at that point, and its own native
+  // dialog.close() would fight an immediate focus() call for where focus
+  // ends up.
+  useEffect(() => {
+    if (!isEmpty || !awaitingRestartFocusRef.current) return;
+    awaitingRestartFocusRef.current = false;
+    composerFieldRef.current?.focus();
+  }, [isEmpty]);
+
   const transcriptRetriedRef = useRef(false);
 
   const handleTranscriptRetry = useCallback((retry: () => void) => {
@@ -86,6 +105,7 @@ export function ChatPage() {
     <PhoneShell sidebar bleed fill bg="canvas" headerColumn={CHAT_COLUMN}>
       <div className="flex min-h-0 flex-1 flex-col">
         <ChatDisclaimerBanner />
+        <ChatRestartAction hasMessages={!isEmpty} onConfirm={handleRestart} />
 
         <div className="relative flex min-h-0 flex-1 flex-col">
           <p role="status" aria-live="polite" className="sr-only">

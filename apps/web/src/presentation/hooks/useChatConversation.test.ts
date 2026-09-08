@@ -339,4 +339,64 @@ describe('useChatConversation', () => {
       'primeira resposta',
     ]);
   });
+
+  it('resets the conversation: wipes the transcript and turns off crisis fallback and stream error', async () => {
+    vi.spyOn(container.sendChatMessageUseCase, 'execute').mockImplementationOnce(async function* () {
+      yield { error: 'crisis_fallback_required' as const };
+    });
+
+    const { result } = renderHook(() => useChatConversation(CONVERSATION_ID));
+    await act(async () => {
+      await result.current.sendMessage('Estou exausto', false);
+    });
+    expect(result.current.crisisFallback).toBe(true);
+    expect(result.current.messages.length).toBeGreaterThan(0);
+
+    act(() => {
+      result.current.resetConversation();
+    });
+
+    expect(result.current.messages).toEqual([]);
+    expect(result.current.crisisFallback).toBe(false);
+    expect(result.current.streamError).toBeNull();
+  });
+
+  it('cancels an in-flight stream on reset, and the stream\'s own cleanup does not resurrect the transcript afterwards', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    vi.spyOn(container.sendChatMessageUseCase, 'execute').mockImplementation(
+      () =>
+        ({
+          next: async () => {
+            await gate;
+            return { done: false, value: { conversationId: 'c', delta: 'oi', done: false } };
+          },
+          return: async () => ({ done: true, value: undefined }),
+          [Symbol.asyncIterator]() {
+            return this;
+          },
+        }) as never,
+    );
+
+    const { result } = renderHook(() => useChatConversation(CONVERSATION_ID));
+    act(() => {
+      void result.current.sendMessage('Estou exausto', false);
+    });
+
+    act(() => {
+      result.current.resetConversation();
+    });
+    expect(result.current.messages).toEqual([]);
+
+    await act(async () => {
+      release();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(result.current.isStreaming).toBe(false));
+    expect(result.current.messages).toEqual([]);
+  });
 });
