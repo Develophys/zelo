@@ -54,7 +54,7 @@ describe("AdminInstitutionsPage", () => {
     sessionStorage.clear();
     useAdminSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString());
     useToastStore.getState().clear();
-    useHotkeyStore.setState({ entries: new Map() });
+    useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
   });
 
   async function openCreateModal(user: ReturnType<typeof userEvent.setup>) {
@@ -493,6 +493,33 @@ describe("AdminInstitutionsPage", () => {
       fireEvent.keyDown(document, { key: "t" });
 
       await waitFor(() => expect(updateInstitution).toHaveBeenCalledWith("token", "1", { isActive: true }));
+    });
+
+    it("gates 'e' on edit.enabled and 'd' on pause.enabled independently, even though a single-row selection makes them agree everywhere else in this file", async () => {
+      // Every other hotkey test here selects exactly one row, so edit.enabled,
+      // pause.enabled, and activate.enabled all happen to agree — swapping
+      // which condition gates which hotkey would still pass them. Selecting
+      // two active institutions pulls them apart: edit.enabled requires
+      // count === 1 (false here), while pause.enabled only requires every
+      // selected row to be active (true here).
+      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(
+        page([
+          { id: "1", name: "Hospital Um", inviteCode: "um-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
+          { id: "2", name: "Hospital Dois", inviteCode: "dois-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
+        ]),
+      );
+      const updateInstitution = vi.spyOn(container.updateInstitutionUseCase, "execute").mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar Hospital Um" }));
+      await user.click(await screen.findByRole("checkbox", { name: "Selecionar Hospital Dois" }));
+
+      fireEvent.keyDown(document, { key: "e" });
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+      fireEvent.keyDown(document, { key: "d" });
+      await waitFor(() => expect(updateInstitution).toHaveBeenCalledWith("token", "1", { isActive: false }));
+      await waitFor(() => expect(updateInstitution).toHaveBeenCalledWith("token", "2", { isActive: false }));
     });
 
     it("does nothing on 'd' — a different page hotkey — while the create modal sits on top", async () => {
