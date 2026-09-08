@@ -9,7 +9,42 @@ describe('describeHistoryWeek', () => {
       5,
       -1,
     );
-    expect(description).toBe('Semana de 31 de jul.: sem check-in');
+    expect(description).toBe('Semana de 1 de ago.: sem check-in');
+  });
+
+  // O rótulo saía do fuso do aparelho, então esta suíte passava em
+  // America/Sao_Paulo e quebrava no runner em UTC — e, pior, um médico no
+  // Brasil lia a semana com um dia a menos. A data tem que ser a mesma em
+  // qualquer fuso.
+  it('names the week by its UTC start, not by the reader time zone', () => {
+    const tz = process.env.TZ;
+    try {
+      const inUtc = describeHistoryWeek(
+        { weekStart: '2026-08-01T00:00:00.000Z', severityFraction: null },
+        0,
+        5,
+        -1,
+      );
+      process.env.TZ = 'Pacific/Kiritimati';
+      const farEast = describeHistoryWeek(
+        { weekStart: '2026-08-01T00:00:00.000Z', severityFraction: null },
+        0,
+        5,
+        -1,
+      );
+      process.env.TZ = 'Pacific/Midway';
+      const farWest = describeHistoryWeek(
+        { weekStart: '2026-08-01T00:00:00.000Z', severityFraction: null },
+        0,
+        5,
+        -1,
+      );
+      expect(farEast).toBe(inUtc);
+      expect(farWest).toBe(inUtc);
+      expect(inUtc).toContain('1 de ago.');
+    } finally {
+      process.env.TZ = tz;
+    }
   });
 
   // A sighted reader sees the bar's colour name the severity (band-severe,

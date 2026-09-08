@@ -43,9 +43,15 @@ export function describeHistoryWeek(
 ): string {
   if (!point.weekStart) return 'Semana sem dado';
 
+  // `weekStart` nomeia uma semana, não um instante: vem como meia-noite UTC do
+  // início da semana ISO. Formatar no fuso do aparelho joga o rótulo um dia
+  // para trás em qualquer fuso a oeste de Greenwich — no Brasil, todos — e
+  // fazia o mesmo weekStart aparecer com datas diferentes aqui e no painel do
+  // gestor, que já formata em UTC.
   const label = new Date(point.weekStart).toLocaleDateString('pt-BR', {
     day: 'numeric',
     month: 'short',
+    timeZone: 'UTC',
   });
 
   if (point.severityFraction === null) return `Semana de ${label}: sem check-in`;
