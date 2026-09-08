@@ -7,6 +7,7 @@ import { useManagerUnreadCount } from '@/presentation/hooks/useManagerNotificati
 import { ManagerUnreadBadge } from './ManagerUnreadBadge';
 import { BottomSheetMenu, type BottomSheetMenuGroup } from './BottomSheetMenu';
 import { NAV_SLOT_CLASS, NavSlotLink, navSlotToneClass } from './nav-slot';
+import { useManagerNavHotkeys } from './useManagerNavHotkeys';
 import {
   MANAGER_ADMIN_GROUP_LABEL,
   managerNavFor,
@@ -26,6 +27,7 @@ interface ManagerBottomNavProps {
  * particular had no mobile route at all before this.
  */
 export function ManagerBottomNav({ className = '' }: ManagerBottomNavProps) {
+  useManagerNavHotkeys();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);

@@ -8,6 +8,7 @@ export interface ManagerNavItem {
   label: string;
   icon: ComponentType<{ size?: number }>;
   route: string;
+  hotkey?: string;
 }
 
 // Single source of truth for the panel's information architecture: the sidebar
@@ -22,9 +23,9 @@ export interface ManagerNavItem {
 // directly below this group on the desktop sidebar, which has the vertical
 // room the bottom bar doesn't.
 export const MANAGER_PRIMARY_NAV: readonly ManagerNavItem[] = [
-  { id: 'trends', label: 'Tendências', icon: BarChart3, route: routes.manager },
-  { id: 'notifications', label: 'Notificações', icon: Bell, route: routes.managerNotifications },
-  { id: 'insights', label: 'Análises com IA', icon: Brain, route: routes.managerHistory },
+  { id: 'trends', label: 'Tendências', icon: BarChart3, route: routes.manager, hotkey: 't' },
+  { id: 'notifications', label: 'Notificações', icon: Bell, route: routes.managerNotifications, hotkey: 'n' },
+  { id: 'insights', label: 'Análises com IA', icon: Brain, route: routes.managerHistory, hotkey: 'h' },
 ];
 
 // Not admin-gated — every manager can read it. Sits below the primary group on
@@ -34,14 +35,15 @@ export const MANAGER_METHODOLOGY_NAV: ManagerNavItem = {
   label: 'Como calculamos',
   icon: BookOpen,
   route: routes.managerMethodology,
+  hotkey: 'm',
 };
 
 // Gestores before Setores on purpose: a sector is assigned to a manager, so the
 // manager list is the prerequisite task, not the other way around.
 export const MANAGER_ADMIN_NAV: readonly ManagerNavItem[] = [
-  { id: 'managers', label: 'Gestores', icon: User, route: routes.managerAdminManagers },
-  { id: 'sectors', label: 'Setores', icon: Building2, route: routes.managerAdminSectors },
-  { id: 'peers', label: 'Pares anônimos', icon: Users, route: routes.managerAdminPeers },
+  { id: 'managers', label: 'Gestores', icon: User, route: routes.managerAdminManagers, hotkey: 'g' },
+  { id: 'sectors', label: 'Setores', icon: Building2, route: routes.managerAdminSectors, hotkey: 's' },
+  { id: 'peers', label: 'Pares anônimos', icon: Users, route: routes.managerAdminPeers, hotkey: 'p' },
 ];
 
 export const MANAGER_ADMIN_GROUP_LABEL = 'Administração';
@@ -51,6 +53,7 @@ export const MANAGER_SETTINGS_NAV: ManagerNavItem = {
   label: 'Configurações',
   icon: Settings,
   route: routes.managerSettings,
+  hotkey: 'c',
 };
 
 /**

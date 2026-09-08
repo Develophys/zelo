@@ -7,6 +7,7 @@ import { useManagerPrefsStore } from '@/stores/manager-prefs.store';
 import { useManagerSessionStore } from '@/stores/manager-session.store';
 import { useManagerUnreadCount } from '@/presentation/hooks/useManagerNotifications';
 import { ManagerUnreadBadge } from './ManagerUnreadBadge';
+import { useManagerNavHotkeys } from './useManagerNavHotkeys';
 import {
   MANAGER_ADMIN_GROUP_LABEL,
   managerNavFor,
@@ -69,6 +70,7 @@ interface ManagerSidebarProps {
 }
 
 export function ManagerSidebar({ className = '' }: ManagerSidebarProps) {
+  useManagerNavHotkeys();
   const navigate = useNavigate();
   const collapsed = useManagerPrefsStore((state) => state.sidebarCollapsed);
   const toggleSidebar = useManagerPrefsStore((state) => state.toggleSidebar);
