@@ -970,7 +970,7 @@ describe("ManagerDashboardPage", () => {
     renderManager();
 
     const help = await screen.findByRole("button", { name: "Sobre: Pico" });
-    help.focus();
+    await userEvent.click(help);
 
     const bubble = await screen.findByTestId("tooltip");
     expect(bubble).toHaveTextContent("não é um limite de alerta");

@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   type FocusEvent,
+  type MouseEvent,
   type PointerEvent,
   type ReactElement,
   type ReactNode,
@@ -45,6 +46,15 @@ interface TooltipProps {
    * mesma informação duas vezes.
    */
   redundantWithName?: boolean;
+  /**
+   * `click` troca o modelo inteiro: um toque abre e a bolha fica aberta até o
+   * usuário fechá-la. É o modo para explicação longa, que o usuário precisa
+   * ler com calma e que no celular era praticamente inalcançável sob o
+   * long-press — o `pointerup` de um toque normal cancelava o timer antes dos
+   * 450ms. Nesse modo o hover não abre nada: manter as duas coisas faria o
+   * clique do mouse *fechar* uma bolha que o hover tinha acabado de abrir.
+   */
+  trigger?: 'hover' | 'click';
   children: ReactElement<Record<string, unknown>>;
 }
 
@@ -74,9 +84,11 @@ function mergeRefs<T>(refs: Array<Ref<T> | null | undefined>) {
 }
 
 /**
- * Hover, focus and touch long-press all reveal the same bubble. Long-press is
- * not a nicety here: row actions are icon-only, and on a phone there is no
- * hover to fall back on, so without it their labels are unreachable.
+ * Two trigger models share one bubble. The default, `hover`, reveals it on
+ * hover, focus and touch long-press — long-press is not a nicety there: row
+ * actions are icon-only, and on a phone there is no hover to fall back on, so
+ * without it their labels are unreachable. `click` is the disclosure model for
+ * explanations too long to read while holding a finger down.
  *
  * When the trigger's accessible name already *is* the tooltip text — every
  * `IconButton` — the bubble is left out of the accessibility tree instead of
@@ -94,6 +106,7 @@ export function Tooltip({
   align = 'center',
   wrapperClassName,
   redundantWithName,
+  trigger: triggerMode = 'hover',
   children,
 }: TooltipProps) {
   const id = useId();
@@ -114,11 +127,28 @@ export function Tooltip({
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key !== 'Escape') return;
+      setOpen(false);
+      // Só o modo click devolve o foco: nele a bolha foi aberta por uma ação
+      // deliberada do usuário, que fica sem âncora se o foco não voltar.
+      if (triggerMode === 'click') triggerRef.current?.focus();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [open]);
+  }, [open, triggerMode]);
+
+  useEffect(() => {
+    if (!open || triggerMode !== 'click') return;
+    const onPointerDown = (event: Event) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (triggerRef.current?.contains(target)) return;
+      if (bubbleRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [open, triggerMode]);
 
   const measure = useCallback(() => {
     const trigger = triggerRef.current;
@@ -166,9 +196,18 @@ export function Tooltip({
   const childRef = children.props.ref as Ref<HTMLElement> | undefined;
   const mergedRef = useMemo(() => mergeRefs<HTMLElement>([childRef, triggerRef]), [childRef]);
 
-  const trigger = cloneElement(children, {
+  const describedBy = open && !restatesTheName ? id : children.props['aria-describedby'];
+
+  const clickTrigger = cloneElement(children, {
     ref: mergedRef,
-    'aria-describedby': open && !restatesTheName ? id : children.props['aria-describedby'],
+    'aria-describedby': describedBy,
+    'aria-expanded': open,
+    onClick: chain<MouseEvent>(children.props.onClick, () => setOpen((wasOpen) => !wasOpen)),
+  });
+
+  const hoverTrigger = cloneElement(children, {
+    ref: mergedRef,
+    'aria-describedby': describedBy,
     onPointerEnter: chain<PointerEvent>(children.props.onPointerEnter, (event) => {
       if (event.pointerType !== 'touch') setOpen(true);
     }),
@@ -199,7 +238,10 @@ export function Tooltip({
       aria-hidden={restatesTheName || undefined}
       style={{ top: `${position.top}px`, left: `${position.left}px` }}
       className={[
-        'pointer-events-none fixed z-50 w-max rounded-control bg-ink px-2.5 py-1.5 font-sans text-caption text-surface shadow-lift',
+        'fixed z-50 w-max rounded-control bg-ink px-2.5 py-1.5 font-sans text-caption text-surface shadow-lift',
+        // No modo click a bolha fica; deixá-la clicável permite selecionar o
+        // texto e evita que encostar nela conte como "toque fora".
+        triggerMode === 'click' ? '' : 'pointer-events-none',
         align === 'start' ? 'max-w-[22rem] text-left font-normal' : 'max-w-[16rem] text-center font-semibold',
       ].join(' ')}
     >
@@ -209,7 +251,7 @@ export function Tooltip({
 
   return (
     <span className={wrapperClassName ?? 'inline-flex'}>
-      {trigger}
+      {triggerMode === 'click' ? clickTrigger : hoverTrigger}
       {bubble && typeof document !== 'undefined' ? createPortal(bubble, document.body) : bubble}
     </span>
   );

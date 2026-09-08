@@ -8,16 +8,17 @@ interface MetricHelpProps {
 }
 
 /**
- * 24px é o alvo mínimo do WCAG 2.5.8 e o maior que cabe ao lado de um rótulo
- * de card sem empurrar a linha.
+ * O alvo é 44×44, o piso que o PRODUCT.md assume — o ícone continua em 14px e
+ * a margem negativa devolve os 20px extras, então a linha do rótulo do card
+ * mantém a mesma altura de antes.
  */
 export function MetricHelp({ label, content }: MetricHelpProps) {
   return (
-    <Tooltip content={content} align="start">
+    <Tooltip content={content} align="start" trigger="click">
       <button
         type="button"
         aria-label={`Sobre: ${label}`}
-        className="inline-flex h-6 w-6 items-center justify-center rounded-control text-muted-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        className="-m-2.5 inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-control text-muted-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
         <HelpCircle size={14} aria-hidden="true" />
       </button>
