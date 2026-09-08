@@ -41,8 +41,18 @@ Legenda de escopo: `[Global]` `[Médico]` `[Chat]` `[Autoavaliação]` `[Admin]`
 
 - **`[Global]` Suporte a múltiplos idiomas (ES / EN / PT)**
 
-- **`[Global]` Hotkeys**
+- **`[Global]` Hotkeys** — *parcial*
   Adicionar atalhos de teclado globais e também por interação de tela.
+  - **Já existe**: infraestrutura completa (registro central, hook `useHotkey`, listener único,
+    modal de descoberta em Shift+?, atalho para desativar tudo em Configurações — item exigido
+    por WCAG 2.1 SC 2.1.4, já que teclas soltas de uma letra precisam de um jeito de desligar).
+    Duas aplicações de referência ligadas: navegação principal do médico (Início/Check-in/
+    Conversar/Apoio/Você/Configurações) e as ações da tabela de instituições do admin
+    (Adicionar/Editar/Salvar/Desativar/Ativar).
+  - **Falta**: replicar o mesmo padrão (`useHotkey` + tecla escolhida à mão) nas demais telas do
+    gestor, admin e par anônimo, e nas respectivas navegações — ver `docs/superpowers/specs/
+    2026-09-08-hotkeys-design.md`, seção "Extension points", para o que cada fase seguinte reusa
+    sem precisar de arquitetura nova.
 
 ### 1.3 Fluxos e funcionalidades
 
