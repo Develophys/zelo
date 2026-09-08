@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { PeerPartnerBottomNav } from "./PeerPartnerBottomNav";
+import { HotkeyListener } from "./HotkeyListener";
+import { useHotkeyStore } from "@/stores/hotkey.store";
 import { routes } from "@/presentation/lib/routes";
 import { usePeerPartnerSessionStore } from "@/stores/peer-partner-session.store";
 
@@ -57,5 +59,26 @@ describe("PeerPartnerBottomNav", () => {
 
     expect(usePeerPartnerSessionStore.getState().token).toBeNull();
     expect(await screen.findByText("Login do parceiro")).toBeInTheDocument();
+  });
+});
+
+describe("PeerPartnerBottomNav hotkeys", () => {
+  beforeEach(() => {
+    useHotkeyStore.setState({ entries: new Map() });
+  });
+
+  it("navigates to Configurações when its hotkey fires", async () => {
+    render(
+      <MemoryRouter initialEntries={[routes.peerPartnerInbox]}>
+        <Routes>
+          <Route path={routes.peerPartnerInbox} element={<><PeerPartnerBottomNav /><HotkeyListener /></>} />
+          <Route path={routes.peerPartnerSettings} element={<p>Settings screen</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.keyDown(document, { key: "c" });
+
+    expect(await screen.findByText("Settings screen")).toBeInTheDocument();
   });
 });

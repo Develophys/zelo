@@ -2,6 +2,7 @@ import { Home, LogOut, Settings } from "lucide-react";
 import { NavLink, useNavigate } from "react-router";
 import { routes } from "@/presentation/lib/routes";
 import { usePeerPartnerSessionStore } from "@/stores/peer-partner-session.store";
+import { usePeerPartnerNavHotkeys } from "./usePeerPartnerNavHotkeys";
 
 const SLOT_CLASS =
   "flex min-h-11 min-w-11 flex-col items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand";
@@ -15,6 +16,7 @@ const SLOT_CLASS =
  * nothing else on that screen points back.
  */
 export function PeerPartnerBottomNav() {
+  usePeerPartnerNavHotkeys();
   const navigate = useNavigate();
   const clearSession = usePeerPartnerSessionStore((state) => state.clearSession);
 
