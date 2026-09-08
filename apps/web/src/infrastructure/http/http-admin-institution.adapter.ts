@@ -6,8 +6,8 @@ import {
   UnauthorizedAdminError,
 } from "@/ports/admin-institution.port";
 import { z } from "zod";
+import { API_BASE_URL } from './api-base-url';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
 export class HttpAdminInstitutionAdapter implements AdminInstitutionPort {
   async create(token: string, params: CreateInstitutionParams): Promise<CreateInstitutionResult> {

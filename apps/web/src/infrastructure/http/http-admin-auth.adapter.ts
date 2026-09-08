@@ -1,7 +1,7 @@
 import type { AdminAuthPort, AdminLoginResult } from "@/ports/admin-auth.port";
 import { AdminLoginResultSchema, InvalidAdminCredentialsError } from "@/ports/admin-auth.port";
+import { API_BASE_URL } from './api-base-url';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
 export class HttpAdminAuthAdapter implements AdminAuthPort {
   async login(email: string, password: string): Promise<AdminLoginResult> {

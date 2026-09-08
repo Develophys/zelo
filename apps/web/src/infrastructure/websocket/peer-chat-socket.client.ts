@@ -1,6 +1,6 @@
 import { io, type Socket } from "socket.io-client";
+import { API_BASE_URL } from '../http/api-base-url';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
 export class PeerChatSocketClient {
   private socket: Socket | null = null;

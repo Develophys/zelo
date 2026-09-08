@@ -12,6 +12,18 @@ import { VitePWA } from "vite-plugin-pwa";
 const rawBasePath = process.env.VITE_BASE_PATH ?? "/";
 const basePath = rawBasePath.endsWith("/") ? rawBasePath : `${rawBasePath}/`;
 
+// Uma VITE_API_BASE_URL sem esquema ("api.exemplo.app") compila, sobe e só
+// falha quando o usuário tenta entrar: sem esquema ela vira caminho relativo
+// e as chamadas de API batem no próprio site. Quebrar o build é o único
+// momento em que esse erro custa segundos em vez de um deploy em produção.
+// Mesma regra de src/infrastructure/http/api-base-url.ts.
+const rawApiBaseUrl = process.env.VITE_API_BASE_URL?.trim();
+if (rawApiBaseUrl && !/^https?:\/\//i.test(rawApiBaseUrl)) {
+  throw new Error(
+    `VITE_API_BASE_URL precisa começar com http:// ou https://. Recebido: "${rawApiBaseUrl}".`,
+  );
+}
+
 export default defineConfig({
   base: basePath,
   resolve: {

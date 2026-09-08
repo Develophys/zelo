@@ -1,8 +1,8 @@
 import { z } from "zod";
 import type { InstitutionLinkPort, InstitutionLookupResult, InstitutionSector } from "@/ports/institution-link.port";
 import { InstitutionLookupResultSchema, InstitutionNotFoundError, InstitutionSectorSchema } from "@/ports/institution-link.port";
+import { API_BASE_URL } from './api-base-url';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
 export class HttpInstitutionLinkAdapter implements InstitutionLinkPort {
   async lookupByCode(code: string): Promise<InstitutionLookupResult> {

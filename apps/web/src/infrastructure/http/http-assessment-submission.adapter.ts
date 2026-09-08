@@ -1,7 +1,7 @@
 import type { Assessment } from "@zelo/domain";
 import type { AssessmentSubmissionPort } from "@/ports/assessment-submission.port";
+import { API_BASE_URL } from './api-base-url';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
 export class HttpAssessmentSubmissionAdapter implements AssessmentSubmissionPort {
   async submit(assessment: Assessment): Promise<void> {

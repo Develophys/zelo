@@ -1,8 +1,8 @@
 import type { ManagerInsightHistoryPort, StoredManagerInsight } from "@/ports/manager-insight-history.port";
 import { StoredManagerInsightSchema } from "@/ports/manager-insight-history.port";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
+import { API_BASE_URL } from './api-base-url';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
 export class HttpManagerInsightHistoryAdapter implements ManagerInsightHistoryPort {
   async fetchHistory(token: string): Promise<StoredManagerInsight[]> {

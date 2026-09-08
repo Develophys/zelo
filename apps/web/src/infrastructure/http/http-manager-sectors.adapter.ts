@@ -1,8 +1,8 @@
 import { z } from "zod";
 import type { AccessibleSector, ManagerSectorsPort } from "@/ports/manager-sectors.port";
 import { AccessibleSectorSchema } from "@/ports/manager-sectors.port";
+import { API_BASE_URL } from './api-base-url';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
 export class HttpManagerSectorsAdapter implements ManagerSectorsPort {
   async listAccessible(token: string): Promise<AccessibleSector[]> {

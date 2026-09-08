@@ -1,7 +1,7 @@
 import type { ManagerAuthPort, ManagerLoginResult } from "@/ports/manager-auth.port";
 import { ManagerLoginResultSchema, InvalidManagerCredentialsError, InvalidOrExpiredManagerSetupTokenError } from "@/ports/manager-auth.port";
+import { API_BASE_URL } from './api-base-url';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
 export class HttpManagerAuthAdapter implements ManagerAuthPort {
   async login(email: string, password: string): Promise<ManagerLoginResult> {

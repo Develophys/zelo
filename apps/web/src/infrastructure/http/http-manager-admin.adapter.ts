@@ -27,8 +27,8 @@ import {
   SectorNameConflictError,
 } from "@/ports/manager-admin.port";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
+import { API_BASE_URL } from './api-base-url';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
 function authHeaders(token: string): HeadersInit {
   return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };

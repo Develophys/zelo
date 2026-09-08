@@ -5,10 +5,10 @@ import type {
 } from "@/ports/manager-notifications.port";
 import { ManagerNotificationsPageSchema } from "@/ports/manager-notifications.port";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
+import { API_BASE_URL } from './api-base-url';
 
 const UnreadCountSchema = z.object({ count: z.number() });
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
 async function guard(response: Response, what: string): Promise<void> {
   if (response.status === 401) throw new UnauthorizedManagerError();

@@ -1,7 +1,7 @@
 import type { AnonymizedMessage } from "@zelo/domain";
 import type { ChatGatewayPort, ChatStreamEvent } from "@/ports/chat-gateway.port";
+import { API_BASE_URL } from './api-base-url';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
 function parseStreamEvent(line: string): ChatStreamEvent | null {
   const trimmed = line.trim();

@@ -1,6 +1,6 @@
 import type { SignalCheckinParams, SignalCheckinPort } from "@/ports/signal-checkin.port";
+import { API_BASE_URL } from './api-base-url';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
 export class HttpSignalCheckinAdapter implements SignalCheckinPort {
   async checkin(params: SignalCheckinParams): Promise<void> {
