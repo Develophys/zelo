@@ -4,6 +4,7 @@ import { Button } from "@/presentation/ui/Button";
 import { Skeleton } from "@/presentation/ui/Skeleton";
 import { Pill } from "@/presentation/ui/Pill";
 import { MultiSelectDropdown } from "@/presentation/ui/MultiSelectDropdown";
+import { useHotkey } from "@/presentation/hooks/useHotkey";
 import { useManagerNotifications, useManagerUnreadCount } from "@/presentation/hooks/useManagerNotifications";
 import { useSendManagerSetPasswordEmail } from "@/presentation/hooks/useSendManagerSetPasswordEmail";
 import { useSendPeerPartnerSetPasswordEmail } from "@/presentation/hooks/useSendPeerPartnerSetPasswordEmail";
@@ -43,6 +44,9 @@ export function ManagerNotificationsPage() {
       },
     });
   };
+
+  useHotkey("l", markAllRead, "Marcar todas como lidas", { enabled: unreadCount > 0 });
+  useHotkey("r", refresh, "Atualizar");
 
   const presentTypes = TYPE_ORDER.filter((type) => notifications.some((n) => n.type === type));
   const effectiveTypeFilter = typeFilter ?? presentTypes;

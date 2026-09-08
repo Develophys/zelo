@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -7,6 +7,8 @@ import { ManagerNotificationsPage } from "./ManagerNotificationsPage";
 import * as container from "@/app/container";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { useToastStore } from "@/stores/toast.store";
+import { HotkeyListener } from "@/presentation/layout/HotkeyListener";
+import { useHotkeyStore } from "@/stores/hotkey.store";
 
 const UNREAD = {
   id: "n-1",
@@ -32,6 +34,7 @@ function renderPage() {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>
         <ManagerNotificationsPage />
+        <HotkeyListener />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -43,6 +46,7 @@ beforeEach(() => {
     .getState()
     .setSession("token", new Date(Date.now() + 60_000).toISOString(), "HOSPITAL_ADMIN");
   useToastStore.getState().clear();
+  useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
   vi.restoreAllMocks();
 });
 
@@ -539,5 +543,57 @@ describe("ManagerNotificationsPage", () => {
     expect(screen.getByText("Convite aceito")).toBeInTheDocument();
     expect(screen.getByText("Falha no envio do convite")).toBeInTheDocument();
     expect(screen.queryByText(/Convite expirado/)).not.toBeInTheDocument();
+  });
+});
+
+describe("hotkeys", () => {
+  it("marks all as read on 'l' once there is at least one unread notification", async () => {
+    vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
+      items: [UNREAD],
+      nextCursor: null,
+      total: 1,
+    });
+    vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(1);
+    const markAllRead = vi
+      .spyOn(container.markManagerNotificationReadUseCase, "executeAll")
+      .mockResolvedValue(undefined);
+    renderPage();
+    await screen.findByRole("button", { name: "Marcar todas como lidas" });
+
+    fireEvent.keyDown(document, { key: "l" });
+
+    await waitFor(() => expect(markAllRead).toHaveBeenCalledWith("token"));
+  });
+
+  it("does nothing on 'l' when there is nothing unread", async () => {
+    vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
+      items: [READ],
+      nextCursor: null,
+      total: 1,
+    });
+    vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(0);
+    const markAllRead = vi.spyOn(container.markManagerNotificationReadUseCase, "executeAll");
+    renderPage();
+    await screen.findByRole("button", { name: "Atualizar" });
+
+    fireEvent.keyDown(document, { key: "l" });
+
+    expect(markAllRead).not.toHaveBeenCalled();
+  });
+
+  it("refreshes on 'r'", async () => {
+    const listNotifications = vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue({
+      items: [],
+      nextCursor: null,
+      total: 0,
+    });
+    vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(0);
+    renderPage();
+    await screen.findByRole("button", { name: "Atualizar" });
+    listNotifications.mockClear();
+
+    fireEvent.keyDown(document, { key: "r" });
+
+    await waitFor(() => expect(listNotifications).toHaveBeenCalled());
   });
 });
