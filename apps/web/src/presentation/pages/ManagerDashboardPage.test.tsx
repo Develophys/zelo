@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -8,6 +8,8 @@ import { ManagerDashboardPage } from "./ManagerDashboardPage";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import * as container from "@/app/container";
 import * as pgrExport from "@/presentation/lib/download-manager-pgr-report";
+import { HotkeyListener } from "@/presentation/layout/HotkeyListener";
+import { useHotkeyStore } from "@/stores/hotkey.store";
 
 /** Surfaces the router's current query string so the tests can assert on it. */
 function LocationProbe() {
@@ -22,7 +24,15 @@ function renderManager(initialEntry = "/manager") {
       <MemoryRouter initialEntries={[initialEntry]}>
         <LocationProbe />
         <Routes>
-          <Route path="/manager" element={<ManagerDashboardPage />} />
+          <Route
+            path="/manager"
+            element={
+              <>
+                <ManagerDashboardPage />
+                <HotkeyListener />
+              </>
+            }
+          />
           <Route path="/manager/login" element={<div>Login screen</div>} />
           <Route path="/manager/history" element={<div>History screen</div>} />
           <Route path="/manager/methodology" element={<div>Methodology screen</div>} />
@@ -54,6 +64,7 @@ describe("ManagerDashboardPage", () => {
   beforeEach(() => {
     sessionStorage.clear();
     useManagerSessionStore.setState({ token: "abc.def", expiresAt: new Date(Date.now() + 60_000).toISOString() });
+    useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
     vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue(SIGNALS_RESPONSE);
     // Two sectors (not one — the picker only shows when there's more than one to
     // pick from) named distinctly from every segment label in SIGNALS_RESPONSE,
@@ -1049,5 +1060,53 @@ describe("ManagerDashboardPage", () => {
 
     const bubble = await screen.findByTestId("tooltip");
     expect(bubble).toHaveTextContent("não um limite de alerta");
+  });
+
+  describe("hotkeys", () => {
+    it("generates an analysis on 'r' while none exists yet", async () => {
+      const generate = vi
+        .spyOn(container.generateManagerInsightUseCase, "execute")
+        .mockResolvedValue({ interpretation: "Nova interpretação.", suggestedActions: ["Ação nova"] });
+      renderManager();
+      await screen.findByRole("button", { name: "Gerar análise" });
+
+      fireEvent.keyDown(document, { key: "r" });
+
+      await waitFor(() => expect(generate).toHaveBeenCalled());
+    });
+
+    it("exports CSV on 'v' once segments exist", async () => {
+      const csvSpy = vi.spyOn(pgrExport, "downloadPgrReportAsCsv").mockImplementation(() => {});
+      renderManager();
+      await waitFor(() => expect(screen.getByRole("button", { name: "Exportar CSV" })).not.toBeDisabled());
+
+      fireEvent.keyDown(document, { key: "v" });
+
+      expect(csvSpy).toHaveBeenCalledWith(SIGNALS_RESPONSE);
+    });
+
+    it("exports PDF on 'f' once segments exist", async () => {
+      const pdfSpy = vi.spyOn(pgrExport, "downloadPgrReportAsPdf").mockImplementation(async () => {});
+      renderManager();
+      await waitFor(() => expect(screen.getByRole("button", { name: "Exportar PDF" })).not.toBeDisabled());
+
+      fireEvent.keyDown(document, { key: "f" });
+
+      expect(pdfSpy).toHaveBeenCalledWith(SIGNALS_RESPONSE);
+    });
+
+    it("does nothing on 'v' or 'f' while segments are empty", async () => {
+      vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({ ...SIGNALS_RESPONSE, segments: [] });
+      const csvSpy = vi.spyOn(pgrExport, "downloadPgrReportAsCsv").mockImplementation(() => {});
+      const pdfSpy = vi.spyOn(pgrExport, "downloadPgrReportAsPdf").mockImplementation(async () => {});
+      renderManager();
+      await screen.findByTestId("segments-empty");
+
+      fireEvent.keyDown(document, { key: "v" });
+      fireEvent.keyDown(document, { key: "f" });
+
+      expect(csvSpy).not.toHaveBeenCalled();
+      expect(pdfSpy).not.toHaveBeenCalled();
+    });
   });
 });

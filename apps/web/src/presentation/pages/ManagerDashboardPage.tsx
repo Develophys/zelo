@@ -23,6 +23,7 @@ import { routes } from "@/presentation/lib/routes";
 import { useManagerSignals } from "@/presentation/hooks/useManagerSignals";
 import { useManagerSectors } from "@/presentation/hooks/useManagerSectors";
 import { useManagerInsight } from "@/presentation/hooks/useManagerInsight";
+import { useHotkey } from "@/presentation/hooks/useHotkey";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 import { downloadPgrReportAsCsv, downloadPgrReportAsPdf } from "@/presentation/lib/download-manager-pgr-report";
 import { MANAGER_INSIGHT_DISCLAIMER } from "@/presentation/lib/manager-insight-disclaimer";
@@ -342,6 +343,14 @@ export function ManagerDashboardPage() {
   // A API não recorta janela nenhuma: a tendência traz quantas semanas houver.
   const trendWindowLabel =
     weeklyTrend.length === 1 ? "última semana" : `últimas ${weeklyTrend.length} semanas`;
+
+  useHotkey("r", () => insight.mutate(), "Gerar análise", { enabled: !insight.data });
+  useHotkey("v", () => data && downloadPgrReportAsCsv(data), "Exportar CSV", {
+    enabled: Boolean(data) && segments.length > 0,
+  });
+  useHotkey("f", () => data && downloadPgrReportAsPdf(data), "Exportar PDF", {
+    enabled: Boolean(data) && segments.length > 0,
+  });
 
   return (
     <div>
