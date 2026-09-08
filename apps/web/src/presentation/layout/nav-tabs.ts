@@ -9,6 +9,7 @@ export interface NavDestination {
   label: string;
   icon: ComponentType<{ size?: number }>;
   route: string;
+  hotkey?: string;
 }
 
 export interface NavTab extends NavDestination {
@@ -26,11 +27,11 @@ export interface NavTab extends NavDestination {
 // crisis with no route at all. It sits before "Você" so it is not the edge tab
 // a thumb hits by accident.
 export const NAV_TABS: NavTab[] = [
-  { id: "home", label: "Início", icon: Home, route: routes.home },
-  { id: "checkin", label: "Check-in", icon: ClipboardCheck, route: routes.assessment },
-  { id: "chat", label: "Conversar", icon: MessageCircle, route: routes.chat },
-  { id: "apoio", label: "Apoio", icon: HandHeart, route: routes.crisis },
-  { id: "you", label: "Você", icon: UserRound, route: routes.you },
+  { id: "home", label: "Início", icon: Home, route: routes.home, hotkey: "i" },
+  { id: "checkin", label: "Check-in", icon: ClipboardCheck, route: routes.assessment, hotkey: "k" },
+  { id: "chat", label: "Conversar", icon: MessageCircle, route: routes.chat, hotkey: "c" },
+  { id: "apoio", label: "Apoio", icon: HandHeart, route: routes.crisis, hotkey: "a" },
+  { id: "you", label: "Você", icon: UserRound, route: routes.you, hotkey: "v" },
 ];
 
 // Secondary destinations, deliberately outside NAV_TABS: neither is one of the
@@ -41,6 +42,7 @@ export const SETTINGS_NAV_ITEM: NavDestination = {
   label: "Configurações",
   icon: SlidersHorizontal,
   route: routes.settings,
+  hotkey: "g",
 };
 
 export const ADMIN_NAV_ITEM: NavDestination = {

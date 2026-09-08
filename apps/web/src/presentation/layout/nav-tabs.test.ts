@@ -52,3 +52,17 @@ describe("SECONDARY_NAV_ITEMS", () => {
     expect(SECONDARY_NAV_ITEMS.map((item) => item.id)).toEqual(["settings"]);
   });
 });
+
+describe("nav destination hotkeys", () => {
+  it("assigns a distinct single-letter hotkey to each of the five médico destinations", () => {
+    const hotkeys = NAV_TABS.map((tab) => tab.hotkey);
+    expect(hotkeys).toEqual(["i", "k", "c", "a", "v"]);
+    expect(new Set(hotkeys).size).toBe(hotkeys.length);
+  });
+
+  it("assigns Configurações a hotkey that does not collide with any médico destination", () => {
+    const settings = SECONDARY_NAV_ITEMS.find((item) => item.id === "settings");
+    expect(settings?.hotkey).toBe("g");
+    expect(NAV_TABS.map((tab) => tab.hotkey)).not.toContain(settings?.hotkey);
+  });
+});
