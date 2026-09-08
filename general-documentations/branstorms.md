@@ -56,12 +56,6 @@ Legenda de escopo: `[Global]` `[Médico]` `[Chat]` `[Autoavaliação]` `[Admin]`
 
 ### 1.3 Fluxos e funcionalidades
 
-- **`[Admin]` Tabela de "Instituições cadastradas" com busca** — *parcial*
-  Transformar a listagem em tabela com input de busca.
-  - **Já existe**: virou `DataTable` com busca local (nome, código, gestores).
-  - **Falta**: paginação — `findAll()` no backend continua trazendo tudo numa
-    requisição só; sem `page`/`limit` nem no backend nem no frontend.
-
 - Tela do Gestor poderia ter ordem dos items de menu customizaveis?
 
 ### 1.4 Segurança e identidade
@@ -154,6 +148,9 @@ toggle nas telas de login/admin) estão em **5. Concluído**.*
     (nenhuma tela de login pré-autenticação tinha o toggle) existia também no login do gestor e do
     par anônimo, então as três foram corrigidas juntas — decisão consultada e aprovada, não
     unilateral.
+- [x] **`[Admin]`** Paginação da tabela de instituições cadastradas — mesmo padrão keyset
+  (`createdAt desc, id desc`) usado no histórico de análises e nas notificações, botão "Carregar
+  mais". Fecha o item de busca em tabela que já estava listado como *parcial* só por faltar isso.
 
 ### Já estava implementado (verificado em 2026-09-08, doc estava desatualizado)
 
