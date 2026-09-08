@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { HotkeyHelpModal } from "./HotkeyHelpModal";
 import { HotkeyListener } from "@/presentation/layout/HotkeyListener";
 import { useHotkey } from "@/presentation/hooks/useHotkey";
 import { useHotkeyStore } from "@/stores/hotkey.store";
+import { useManagerPrefsStore } from "@/stores/manager-prefs.store";
 
 function noop() {}
 
@@ -15,6 +17,7 @@ function Probe({ handler }: { handler: () => void }) {
 describe("HotkeyHelpModal", () => {
   beforeEach(() => {
     useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
+    useManagerPrefsStore.setState({ hotkeys: "on" });
   });
 
   it("renders nothing when closed", () => {
@@ -145,5 +148,21 @@ describe("HotkeyHelpModal", () => {
     fireEvent.keyDown(document, { key: "d" });
 
     expect(handler).toHaveBeenCalledOnce();
+  });
+
+  it("offers the shared hotkeys preference right where you're already looking", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <HotkeyListener />
+        <HotkeyHelpModal />
+      </>
+    );
+    fireEvent.keyDown(document, { key: "?" });
+    const dialog = within(screen.getByRole("dialog"));
+
+    await user.click(dialog.getByRole("radio", { name: "Desativados" }));
+
+    expect(useManagerPrefsStore.getState().hotkeys).toBe("off");
   });
 });

@@ -22,15 +22,16 @@ afterEach(() => {
     accent: 'sage',
     corners: 'sharp',
     sidebarCollapsed: false,
+    hotkeys: 'on',
   });
 });
 
 describe('SettingsPage', () => {
-  it('offers the three preferences that change something on the doctor’s own screens', () => {
+  it('offers the preferences that change something on the doctor’s own screens', () => {
     renderSettings();
     const stack = screen.getByTestId('appearance-settings');
 
-    for (const name of ['Tema', 'Cor de destaque', 'Cantos']) {
+    for (const name of ['Tema', 'Cor de destaque', 'Cantos', 'Atalhos de teclado']) {
       expect(within(stack).getByRole('heading', { level: 2, name })).toBeInTheDocument();
     }
   });
@@ -47,6 +48,13 @@ describe('SettingsPage', () => {
 
     expect(useManagerPrefsStore.getState().corners).toBe('rounded');
     expect(screen.queryByRole('button', { name: /salvar/i })).not.toBeInTheDocument();
+  });
+
+  it('turns hotkeys off through the same shared preference', async () => {
+    renderSettings();
+    await userEvent.click(screen.getByRole('radio', { name: 'Desativados' }));
+
+    expect(useManagerPrefsStore.getState().hotkeys).toBe('off');
   });
 
   it('says the preferences are per-device', () => {

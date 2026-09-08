@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useHotkeyStore } from "@/stores/hotkey.store";
+import { useManagerPrefsStore } from "@/stores/manager-prefs.store";
 
 const NON_TEXT_INPUT_TYPES = new Set([
   "checkbox",
@@ -28,6 +29,7 @@ function isEditableElement(element: Element | null): boolean {
 export function HotkeyListener() {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      if (useManagerPrefsStore.getState().hotkeys === "off") return;
       if (useHotkeyStore.getState().helpOpen) return;
       if (event.repeat) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;

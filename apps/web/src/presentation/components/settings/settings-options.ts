@@ -1,4 +1,4 @@
-import type { ManagerAccent, ManagerCorners, ManagerDensity } from '@/stores/manager-prefs.store';
+import type { HotkeysPref, ManagerAccent, ManagerCorners, ManagerDensity } from '@/stores/manager-prefs.store';
 
 export const ACCENT_LABEL: Record<ManagerAccent, string> = {
   sage: 'Sage',
@@ -15,4 +15,9 @@ export const DENSITY_OPTIONS: readonly { value: ManagerDensity; label: string }[
 export const CORNERS_OPTIONS: readonly { value: ManagerCorners; label: string }[] = [
   { value: 'sharp', label: 'Retos' },
   { value: 'rounded', label: 'Arredondados' },
+];
+
+export const HOTKEYS_OPTIONS: readonly { value: HotkeysPref; label: string }[] = [
+  { value: 'on', label: 'Ativados' },
+  { value: 'off', label: 'Desativados' },
 ];

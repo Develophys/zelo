@@ -4,7 +4,7 @@ import { AccentField } from './AccentField';
 import { DensityPreview } from './DensityPreview';
 import { SegmentedField } from './SegmentedField';
 import { SettingsRow } from './SettingsRow';
-import { CORNERS_OPTIONS, DENSITY_OPTIONS } from './settings-options';
+import { CORNERS_OPTIONS, DENSITY_OPTIONS, HOTKEYS_OPTIONS } from './settings-options';
 
 interface AppearanceSettingsProps {
   /** Density only moves tokens the manager panel uses, so only it offers the row. */
@@ -15,9 +15,11 @@ export function AppearanceSettings({ includeDensity = false }: AppearanceSetting
   const density = useManagerPrefsStore((state) => state.density);
   const accent = useManagerPrefsStore((state) => state.accent);
   const corners = useManagerPrefsStore((state) => state.corners);
+  const hotkeys = useManagerPrefsStore((state) => state.hotkeys);
   const setDensity = useManagerPrefsStore((state) => state.setDensity);
   const setAccent = useManagerPrefsStore((state) => state.setAccent);
   const setCorners = useManagerPrefsStore((state) => state.setCorners);
+  const setHotkeys = useManagerPrefsStore((state) => state.setHotkeys);
 
   return (
     <div data-testid="appearance-settings" className="flex flex-col">
@@ -42,6 +44,19 @@ export function AppearanceSettings({ includeDensity = false }: AppearanceSetting
           options={CORNERS_OPTIONS}
           value={corners}
           onChange={setCorners}
+        />
+      </SettingsRow>
+
+      <SettingsRow
+        title="Atalhos de teclado"
+        description="Teclas como C ou D navegam e agem sem precisar do mouse. Desative se atrapalharem seu uso do teclado."
+      >
+        <SegmentedField
+          name="manager-hotkeys"
+          ariaLabel="Atalhos de teclado"
+          options={HOTKEYS_OPTIONS}
+          value={hotkeys}
+          onChange={setHotkeys}
         />
       </SettingsRow>
 

@@ -20,6 +20,7 @@ afterEach(() => {
     accent: "sage",
     corners: "sharp",
     sidebarCollapsed: false,
+    hotkeys: "on",
   });
 });
 

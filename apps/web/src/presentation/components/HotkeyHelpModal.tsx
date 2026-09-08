@@ -2,6 +2,9 @@ import { useState } from "react";
 import { Modal } from "@/presentation/ui/Modal";
 import { useHotkey } from "@/presentation/hooks/useHotkey";
 import { useHotkeyStore } from "@/stores/hotkey.store";
+import { useManagerPrefsStore } from "@/stores/manager-prefs.store";
+import { SegmentedField } from "@/presentation/components/settings/SegmentedField";
+import { HOTKEYS_OPTIONS } from "@/presentation/components/settings/settings-options";
 
 function HotkeyRow({ hotkeyKey, label }: { hotkeyKey: string; label: string }) {
   return (
@@ -26,6 +29,9 @@ export function HotkeyHelpModal() {
     "Ver atalhos",
     { scope: "global" },
   );
+
+  const hotkeys = useManagerPrefsStore((state) => state.hotkeys);
+  const setHotkeys = useManagerPrefsStore((state) => state.setHotkeys);
 
   const entries = useHotkeyStore((state) => state.entries);
   const byKey = ([a]: [string, unknown], [b]: [string, unknown]) => a.localeCompare(b);
@@ -59,6 +65,16 @@ export function HotkeyHelpModal() {
           </ul>
         )}
       </section>
+      <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-4">
+        <span className="text-label text-ink-2">Atalhos de teclado</span>
+        <SegmentedField
+          name="hotkeys-toggle-modal"
+          ariaLabel="Atalhos de teclado"
+          options={HOTKEYS_OPTIONS}
+          value={hotkeys}
+          onChange={setHotkeys}
+        />
+      </div>
     </Modal>
   );
 }

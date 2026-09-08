@@ -12,6 +12,7 @@ afterEach(() => {
     accent: 'sage',
     corners: 'sharp',
     sidebarCollapsed: false,
+    hotkeys: 'on',
   });
 });
 
@@ -83,7 +84,7 @@ describe('ManagerSettingsPage', () => {
   it('titles every setting as a level-2 heading, sized as a row label rather than a card title', () => {
     render(<ManagerSettingsPage />);
 
-    for (const name of ['Cor de destaque', 'Densidade', 'Cantos', 'Tema']) {
+    for (const name of ['Cor de destaque', 'Densidade', 'Cantos', 'Tema', 'Atalhos de teclado']) {
       const heading = screen.getByRole('heading', { level: 2, name });
       expect(heading.className).toContain('font-sans');
       expect(heading.className).toContain('text-body');
@@ -96,7 +97,7 @@ describe('ManagerSettingsPage', () => {
 
     expect(screen.queryByTestId('settings-grid')).not.toBeInTheDocument();
     const rows = screen.getAllByTestId('settings-row');
-    expect(rows).toHaveLength(4);
+    expect(rows).toHaveLength(5);
     rows.forEach((row) => {
       expect(row.className).toContain('border-b');
       expect(row.className).not.toContain('rounded-card');
@@ -107,7 +108,7 @@ describe('ManagerSettingsPage', () => {
   it('keeps every setting inside the row stack', () => {
     render(<ManagerSettingsPage />);
     const stack = screen.getByTestId('appearance-settings');
-    for (const name of ['Cor de destaque', 'Densidade', 'Cantos', 'Tema']) {
+    for (const name of ['Cor de destaque', 'Densidade', 'Cantos', 'Tema', 'Atalhos de teclado']) {
       expect(within(stack).getByRole('heading', { level: 2, name })).toBeInTheDocument();
     }
   });
