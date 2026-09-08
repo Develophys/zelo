@@ -49,10 +49,10 @@ export const MANAGER_METRICS: Record<ManagerMetricId, MetricDefinition> = {
     id: "sectorCoverage",
     label: "Cobertura desta leitura",
     method:
-      "Quantos dos setores selecionados no filtro chegaram ao mínimo de 5 respostas na semana de referência e, portanto, entram em todos os números desta página.",
-    window: "Semana de referência, a mesma do indicador de sofrimento relevante.",
+      "Conta, entre os setores que você selecionou no filtro, quantos têm 5 respostas ou mais na semana de referência — só esses entram nos números desta página.",
+    window: "Usa a mesma semana de referência do indicador de sofrimento relevante, no topo da página.",
     suppression:
-      "Este indicador é a medida da supressão: quanto maior a diferença entre os dois números, menor a parcela da instituição que os demais indicadores representam.",
+      "Quanto maior a diferença entre os dois números, menor a parte da instituição que os outros indicadores desta página conseguem representar. Por exemplo, em \"3 de 8 setores\": tudo nesta página descreve apenas esses 3. Os outros 5 podem estar melhor ou pior, e nada aqui mostraria isso.",
   },
 };
 
