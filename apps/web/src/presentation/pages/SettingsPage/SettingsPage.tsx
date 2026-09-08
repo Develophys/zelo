@@ -2,6 +2,7 @@ import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router';
 import { PhoneShell } from '@/presentation/layout/PhoneShell';
 import { AppearanceSettings } from '@/presentation/components/settings/AppearanceSettings';
+import { InstallAppRow } from '@/presentation/components/settings/InstallAppRow';
 import { STAFF_NAV_ITEMS } from '@/presentation/layout/nav-tabs';
 
 export function SettingsPage() {
@@ -12,6 +13,7 @@ export function SettingsPage() {
       </p>
 
       <AppearanceSettings />
+      <InstallAppRow />
 
       <div className="mt-8 border-t border-line pt-6">
         <p className="text-label font-extrabold text-ink">Sou gestor ou par voluntário</p>

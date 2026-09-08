@@ -1,6 +1,7 @@
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { PeerPartnerBottomNav } from "@/presentation/layout/PeerPartnerBottomNav";
 import { AppearanceSettings } from "@/presentation/components/settings/AppearanceSettings";
+import { InstallAppRow } from "@/presentation/components/settings/InstallAppRow";
 import { routes } from "@/presentation/lib/routes";
 
 export function PeerPartnerSettingsPage() {
@@ -9,6 +10,7 @@ export function PeerPartnerSettingsPage() {
       <p className="max-w-[62ch] text-label text-muted">Valem só para você, neste dispositivo.</p>
 
       <AppearanceSettings />
+      <InstallAppRow />
     </PhoneShell>
   );
 }

@@ -1,4 +1,5 @@
 import { AppearanceSettings } from "@/presentation/components/settings/AppearanceSettings";
+import { InstallAppRow } from "@/presentation/components/settings/InstallAppRow";
 
 export function ManagerSettingsPage() {
   return (
@@ -9,6 +10,7 @@ export function ManagerSettingsPage() {
       </p>
 
       <AppearanceSettings includeDensity />
+      <InstallAppRow />
     </div>
   );
 }

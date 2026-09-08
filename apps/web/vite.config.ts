@@ -25,7 +25,13 @@ export default defineConfig({
     VitePWA({
       disable: process.env.VITE_DISABLE_PWA === "true",
       registerType: "autoUpdate",
-      includeAssets: ["icon-192.png", "icon-512.png"],
+      includeAssets: [
+        "icon-192.png",
+        "icon-512.png",
+        "apple-touch-icon.png",
+        "favicon-32.png",
+        "favicon-16.png",
+      ],
       manifest: {
         name: "Zelo",
         short_name: "Zelo",
