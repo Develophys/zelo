@@ -81,9 +81,16 @@ a re-registration by itself. `enabled` lets a call site register conditionally w
 around the hook call itself (e.g. a bulk-toolbar "Ativar" hotkey that only exists once a row is
 selected).
 
-Two call sites using the same key **in the same layer** log a dev-only `console.warn` naming
-both labels — a signal for whoever is wiring up the second one to pick a different letter, not
-a runtime error. Nothing crashes; the second registration simply loses the key to the first.
+Two call sites registering the same key with the **same label and scope** are treated as the
+same logical hotkey asserted twice — expected whenever `Sidebar` and `BottomNav` are both
+mounted at once (PhoneShell keeps both in the DOM and switches between them with CSS, not
+mount/unmount) and each independently registers "Início" — and merge silently via a reference
+count, so either one unmounting alone doesn't drop the hotkey the other still needs.
+
+Two call sites using the same key with a **different** label log a dev-only `console.warn`
+naming both — a signal for whoever is wiring up the second one to pick a different letter, not
+a runtime error. Nothing crashes; the second registration simply loses the key to the first and
+is not counted, so it contributes nothing to unregister later.
 
 ### Modal-scoped hotkeys
 
