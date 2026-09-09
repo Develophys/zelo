@@ -61,14 +61,32 @@ class FakeSectorRepository implements SectorRepository {
 
   async create(institutionId: string, name: string) {
     if (this.shouldThrowConflict) throw new SectorNameConflictError();
-    const row = { id: `sector-${this.rows.length + 1}`, name, isActive: true, managerId: null, managerName: null, institutionId };
+    const row = {
+      id: `sector-${this.rows.length + 1}`,
+      name,
+      isActive: true,
+      managerId: null,
+      managerName: null,
+      inviteCode: null,
+      institutionId,
+    };
     this.rows.push(row);
     return { id: row.id, name: row.name };
   }
   async findAllForAdmin(institutionId: string): Promise<AdminSectorRow[]> {
     return this.rows
       .filter((row) => row.institutionId === institutionId)
-      .map(({ id, name, isActive, managerId, managerName }) => ({ id, name, isActive, managerId, managerName }));
+      .map(({ id, name, isActive, managerId, managerName, inviteCode }) => ({
+        id,
+        name,
+        isActive,
+        managerId,
+        managerName,
+        inviteCode,
+      }));
+  }
+  async findByInviteCode(): Promise<never> {
+    throw new Error("not used in this test");
   }
   async findById(id: string) {
     const row = this.rows.find((r) => r.id === id);
@@ -351,7 +369,7 @@ describe("manager admin controller — sectors", () => {
       .set("Authorization", `Bearer ${token}`);
     expect(listResponse.status).toBe(200);
     expect(listResponse.body).toEqual([
-      { id: createResponse.body.id, name: "UTI", isActive: true, managerId: null, managerName: null },
+      { id: createResponse.body.id, name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: null },
     ]);
   });
 
