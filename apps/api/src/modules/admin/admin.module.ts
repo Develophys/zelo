@@ -11,9 +11,10 @@ import { AdminPasswordService } from "./application/services/admin-password.serv
 import { ADMIN_REPOSITORY } from "./application/ports/admin-repository.port.ts";
 import { ADMIN_INSTITUTION_REPOSITORY } from "./application/ports/admin-institution-repository.port.ts";
 import { EmailModule } from "@/shared/email/email.module.js";
+import { SectorModule } from "../sector/sector.module.ts";
 
 @Module({
-  imports: [EmailModule],
+  imports: [EmailModule, SectorModule],
   controllers: [AdminController],
   providers: [
     LoginAdminUseCase,

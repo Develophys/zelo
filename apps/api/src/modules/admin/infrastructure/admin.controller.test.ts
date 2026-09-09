@@ -24,6 +24,13 @@ import type {
 } from "../application/ports/admin-institution-repository.port.ts";
 import { EMAIL_PORT } from "@/shared/email/email.port.js";
 import type { EmailPort, EmailTemplate, SendEmailParams } from "@/shared/email/email.port.js";
+import { SECTOR_REPOSITORY } from "@/modules/sector/application/ports/sector-repository.port.js";
+import type {
+  AdminSectorRow,
+  SectorRepository,
+  SectorWithInstitution,
+  UpdateSectorParams,
+} from "@/modules/sector/application/ports/sector-repository.port.js";
 
 class FakeAdminRepository implements AdminRepository {
   public rows: AdminRow[] = [];
@@ -71,6 +78,44 @@ class FakeAdminInstitutionRepository implements AdminInstitutionRepository {
   }
 }
 
+class FakeSectorRepository implements SectorRepository {
+  public forAdmin: Record<string, AdminSectorRow[]> = {};
+
+  async create(): Promise<{ id: string; name: string }> {
+    throw new Error("not used in this test");
+  }
+  async findAllForAdmin(institutionId: string): Promise<AdminSectorRow[]> {
+    return this.forAdmin[institutionId] ?? [];
+  }
+  async findById(): Promise<{ id: string; institutionId: string; name: string; managerId: string | null; isActive: boolean; inviteCode: string | null } | null> {
+    throw new Error("not used in this test");
+  }
+  async update(_id: string, _patch: UpdateSectorParams): Promise<void> {
+    throw new Error("not used in this test");
+  }
+  async findActiveByInstitution(): Promise<{ id: string; name: string }[]> {
+    throw new Error("not used in this test");
+  }
+  async findActiveByIds(): Promise<{ id: string; name: string }[]> {
+    throw new Error("not used in this test");
+  }
+  async findAssignedSectorIds(): Promise<string[]> {
+    throw new Error("not used in this test");
+  }
+  async reassignManagerSectors(): Promise<void> {
+    throw new Error("not used in this test");
+  }
+  async findByIdsInInstitution(): Promise<{ id: string }[]> {
+    throw new Error("not used in this test");
+  }
+  async findByInviteCode(): Promise<SectorWithInstitution | null> {
+    throw new Error("not used in this test");
+  }
+  async delete(): Promise<void> {
+    throw new Error("not used in this test");
+  }
+}
+
 class FakeEmailPort implements EmailPort {
   public lastSend: { to: string; template: EmailTemplate; params: SendEmailParams } | null = null;
   async send(to: string, template: EmailTemplate, params: SendEmailParams): Promise<void> {
@@ -87,6 +132,7 @@ describe("admin controller", () => {
   let app: INestApplication;
   let adminRepository: FakeAdminRepository;
   let institutionRepository: FakeAdminInstitutionRepository;
+  let sectorRepository: FakeSectorRepository;
   let emailPort: FakeEmailPort;
 
   beforeAll(async () => {
@@ -94,6 +140,7 @@ describe("admin controller", () => {
     adminRepository = new FakeAdminRepository();
     adminRepository.rows = [{ id: "admin-1", name: "Zelo Ops", email: "ops@zelo-demo.local", passwordHash: await passwordService.hash("test-password") }];
     institutionRepository = new FakeAdminInstitutionRepository();
+    sectorRepository = new FakeSectorRepository();
     emailPort = new FakeEmailPort();
 
     const moduleRef = await Test.createTestingModule({
@@ -107,6 +154,7 @@ describe("admin controller", () => {
         AdminAuthGuard,
         { provide: ADMIN_REPOSITORY, useValue: adminRepository },
         { provide: ADMIN_INSTITUTION_REPOSITORY, useValue: institutionRepository },
+        { provide: SECTOR_REPOSITORY, useValue: sectorRepository },
         { provide: EMAIL_PORT, useValue: emailPort },
         { provide: ConfigService, useValue: fakeConfig() },
       ],
@@ -295,6 +343,36 @@ describe("admin controller", () => {
         .send({ name: "" });
 
       expect(response.status).toBe(400);
+    });
+  });
+
+  describe("GET /admin/institutions/:id/sectors", () => {
+    async function loginToken(): Promise<string> {
+      const login = await request(app.getHttpServer()).post("/admin/login").send({ email: "ops@zelo-demo.local", password: "test-password" });
+      return login.body.token;
+    }
+
+    it("returns sectors with invite codes when authenticated", async () => {
+      sectorRepository.forAdmin = {
+        "inst-1": [
+          { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: "uti-2026" },
+        ],
+      };
+      const token = await loginToken();
+
+      const response = await request(app.getHttpServer())
+        .get("/admin/institutions/inst-1/sectors")
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual([
+        { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: "uti-2026" },
+      ]);
+    });
+
+    it("returns 401 without a token", async () => {
+      const response = await request(app.getHttpServer()).get("/admin/institutions/inst-1/sectors");
+      expect(response.status).toBe(401);
     });
   });
 });

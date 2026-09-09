@@ -23,6 +23,8 @@ import type { AdminInstitutionRepository, AdminInstitutionRow } from "../applica
 import { DuplicateInstitutionOrManagerError } from "../application/ports/admin-institution-repository.port.ts";
 import type { IssuedAdminToken } from "../application/services/admin-token.service.ts";
 import { AdminAuthGuard } from "./admin-auth.guard.ts";
+import { SECTOR_REPOSITORY } from "@/modules/sector/application/ports/sector-repository.port.js";
+import type { SectorRepository, AdminSectorRow } from "@/modules/sector/application/ports/sector-repository.port.js";
 
 const LoginRequestSchema = z.object({ email: z.string().email().max(200), password: z.string().min(1).max(200) });
 const CreateInstitutionSchema = z.object({
@@ -53,6 +55,7 @@ export class AdminController {
     @Inject(CreateInstitutionUseCase) private readonly createInstitution: CreateInstitutionUseCase,
     @Inject(ListInstitutionsUseCase) private readonly listInstitutions: ListInstitutionsUseCase,
     @Inject(ADMIN_INSTITUTION_REPOSITORY) private readonly institutionRepository: AdminInstitutionRepository,
+    @Inject(SECTOR_REPOSITORY) private readonly sectorRepository: SectorRepository,
   ) {}
 
   @Post("login")
@@ -127,5 +130,11 @@ export class AdminController {
       if (error instanceof DuplicateInstitutionOrManagerError) throw new ConflictException();
       throw error;
     }
+  }
+
+  @Get("institutions/:id/sectors")
+  @UseGuards(AdminAuthGuard)
+  async listInstitutionSectorsHandler(@Param("id") id: string): Promise<AdminSectorRow[]> {
+    return this.sectorRepository.findAllForAdmin(id);
   }
 }
