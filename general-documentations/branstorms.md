@@ -9,19 +9,12 @@ Legenda de escopo: `[Global]` `[Médico]` `[Chat]` `[Autoavaliação]` `[Admin]`
 
 ### 1.1 Engajamento e retenção
 
-- **`[Médico]` Modal de confirmação ao abandonar o questionário**
-  Quando o médico inicia o preenchimento do questionário mas volta para a Home, mostrar um modal
-  pedindo que ele confirme que realmente quer sair. O intuito é engajar o médico a responder.
-  - **IMPORTANTE!!!** pensar em como salvar essa informação nos relatórios, para que os gestores
-    também consigam entender quantos médicos iniciaram um questionário mas não terminaram.
-  - Devemos colocar nos termos de consentimento que as interações dentro do app serão salvas, para
-    entender e auxiliar a gestão a identificar potenciais crises e tomar ações para preveni-las,
-    visando a qualidade de vida do médico.
-
 - **`[Chat]` Registrar mensagem digitada mas não enviada**
   Pensar em como salvar a informação de que o usuário começou a escrever algo no chat mas não
   enviou, para que os gestores consigam entender se usuários iniciam uma conversa e desistem.
-  - Depende do mesmo alinhamento de termos de consentimento do item acima.
+  - Precisa da mesma extensão dos termos de consentimento feita pro questionário (ver
+    **5. Concluído**) — a linha de opt-in agregado ainda só menciona "questionário iniciado e não
+    concluído", não rascunho de chat.
 
 ### 1.2 Acessibilidade e personalização
 
@@ -89,9 +82,27 @@ toggle nas telas de login/admin) estão em **5. Concluído**.*
   sinais e interações (como um questionário iniciado e não concluído)" — mesma lógica de
   agregado/anônimo de sempre, só ampliando o que ela cobre. Atualizado nos dois lugares onde o
   texto existe: `ConsentPage` (aceite inicial) e `AggregateOptInSection` na página "Você" (onde o
-  médico revisa/muda o opt-in depois). Ainda não cobre rascunho de chat não enviado nem o modal de
-  abandono do questionário em si — essas features (item 1.1) ainda não existem; isso só prepara o
-  consentimento pra quando existirem.
+  médico revisa/muda o opt-in depois). Ainda não cobre rascunho de chat não enviado — só a metade
+  do item 1.1 sobre o questionário foi construída (ver abaixo); o rascunho de chat é feature
+  separada, ainda pendente.
+- [x] **`[Médico]` `[Gestor]`** Modal de confirmação ao abandonar o questionário. `useBlocker` do
+  React Router bloqueia a navegação dentro do app assim que o médico responde à 1ª pergunta;
+  confirmar a saída dispara um registro fire-and-forget (mesmo gate de vínculo de
+  instituição/setor + opt-in agregado que o check-in de conclusão já usa), reaproveitando a tabela
+  `Signal` existente — nova coluna `abandoned`, com a mesma supressão por k-anonimato de
+  `checkIns` (nunca decide visibilidade sozinha). Gestor vê o agregado da instituição num KPI novo
+  no dashboard e uma linha nova no export do PGR. Ver
+  `docs/superpowers/specs/2026-09-09-assessment-abandonment-design.md` e
+  `docs/superpowers/plans/2026-09-09-assessment-abandonment.md`.
+  - **Fecha o "IMPORTANTE!!!"** do item original: os relatórios do gestor já mostram quantos
+    médicos abandonaram o questionário.
+  - **Achado da revisão final, descartado:** a revisão apontou um possível bug — o `useBlocker`
+    quebraria sob o `basename` do deploy no GitHub Pages, registrando abandono falso logo após um
+    envio bem-sucedido. Investigado contra o código-fonte instalado do react-router: o hook já
+    remove o basename antes de chamar o predicado, então o bug não existe. Ficou um teste de
+    regressão provando isso pros dois deploys.
+  - Não cobre a segunda metade do item 1.1 (rascunho de chat não enviado) — segue pendente, como
+    feature separada.
 
 ### Feito em 2026-09-08
 
