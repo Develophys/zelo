@@ -4,6 +4,8 @@ import { GetSectorByInviteCodeUseCase } from "@/modules/sector/application/use-c
 import { SECTOR_REPOSITORY, type SectorRepository } from "@/modules/sector/application/ports/sector-repository.port.js";
 
 export interface LinkCodeResult {
+  id: string;
+  name: string;
   institution: { id: string; name: string };
   sector?: { id: string; name: string };
 }
@@ -22,7 +24,11 @@ export class InstitutionController {
   async byCode(@Param("code") code: string): Promise<LinkCodeResult> {
     const institution = await this.getInstitutionByInviteCode.execute(code);
     if (institution) {
-      return { institution: { id: institution.id, name: institution.name } };
+      return {
+        id: institution.id,
+        name: institution.name,
+        institution: { id: institution.id, name: institution.name },
+      };
     }
 
     const sector = await this.getSectorByInviteCode.execute(code);
@@ -30,6 +36,8 @@ export class InstitutionController {
       throw new NotFoundException();
     }
     return {
+      id: sector.institution.id,
+      name: sector.institution.name,
       institution: { id: sector.institution.id, name: sector.institution.name },
       sector: { id: sector.id, name: sector.name },
     };

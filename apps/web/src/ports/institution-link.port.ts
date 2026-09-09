@@ -7,6 +7,8 @@ export const InstitutionSectorSchema = z.object({ id: z.string(), name: z.string
 export type InstitutionSector = z.infer<typeof InstitutionSectorSchema>;
 
 export const LinkCodeResultSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().optional(),
   institution: InstitutionLookupResultSchema,
   sector: InstitutionSectorSchema.optional(),
 });

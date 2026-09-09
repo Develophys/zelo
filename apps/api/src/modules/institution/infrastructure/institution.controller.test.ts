@@ -98,7 +98,11 @@ describe("institution controller", () => {
     const response = await request(app.getHttpServer()).get("/institutions/by-code/sao-lucas-2026");
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ institution: { id: "inst-1", name: "Hospital São Lucas" } });
+    expect(response.body).toEqual({
+      id: "inst-1",
+      name: "Hospital São Lucas",
+      institution: { id: "inst-1", name: "Hospital São Lucas" },
+    });
   });
 
   it("GET /institutions/by-code/:code returns 404 for an unknown code", async () => {
@@ -151,6 +155,8 @@ describe("institution controller", () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
+      id: "inst-1",
+      name: "Hospital São Lucas",
       institution: { id: "inst-1", name: "Hospital São Lucas" },
       sector: { id: "sector-1", name: "UTI" },
     });
