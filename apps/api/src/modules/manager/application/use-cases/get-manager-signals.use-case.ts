@@ -129,7 +129,9 @@ export class GetManagerSignalsUseCase {
     const overallConcerningRate = visibleCheckIns === 0 ? 0 : visibleConcerning / visibleCheckIns;
 
     const visibleRows = rows.filter((r) => visibleSectorIds.has(r.sectorId));
-    const weekTimes = [...new Set(visibleRows.map((r) => r.weekStart.getTime()))].sort((a, b) => a - b);
+    const weekTimes = [
+      ...new Set(visibleRows.filter((r) => r.checkIns > 0).map((r) => r.weekStart.getTime())),
+    ].sort((a, b) => a - b);
 
     const recentWeekTimes = new Set(weekTimes.slice(-RECENT_WEEKS_FOR_VOLUME));
     const checkInsLast4Weeks = visibleRows

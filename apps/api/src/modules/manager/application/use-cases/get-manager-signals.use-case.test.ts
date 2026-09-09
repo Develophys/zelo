@@ -295,6 +295,44 @@ describe("GetManagerSignalsUseCase", () => {
     expect(result.abandonedLast4Weeks).toBe(5); // 2 + 3, from "visible" only
   });
 
+  it("leaves a week whose only rows are abandonments out of the trend and out of the 4-week window", async () => {
+    const WEEKS = [
+      new Date("2026-05-11T00:00:00.000Z"),
+      new Date("2026-05-18T00:00:00.000Z"),
+      new Date("2026-05-25T00:00:00.000Z"),
+      new Date("2026-06-01T00:00:00.000Z"),
+      new Date("2026-06-08T00:00:00.000Z"),
+    ] as const;
+    const ABANDON_ONLY_WEEK = new Date("2026-06-15T00:00:00.000Z");
+    const withData: SignalRow[] = WEEKS.map((weekStart, index) => ({
+      sectorId: "visible",
+      sectorName: "UTI",
+      weekStart,
+      checkIns: 6 + index,
+      concerning: 1,
+      abandoned: 1,
+    }));
+    const abandonOnly: SignalRow = {
+      sectorId: "visible",
+      sectorName: "UTI",
+      weekStart: ABANDON_ONLY_WEEK,
+      checkIns: 0,
+      concerning: 0,
+      abandoned: 7,
+    };
+
+    const withAbandonOnly = await makeUseCase([...withData, abandonOnly]).execute("institution-1", ["visible"]);
+    const control = await makeUseCase(withData).execute("institution-1", ["visible"]);
+
+    expect(withAbandonOnly.weeklyTrend.map((point) => point.weekStart)).not.toContain(
+      ABANDON_ONLY_WEEK.toISOString(),
+    );
+    expect(withAbandonOnly.weeklyTrend).toEqual(control.weeklyTrend);
+    expect(withAbandonOnly.checkInsLast4Weeks).toBe(34);
+    expect(withAbandonOnly.checkInsLast4Weeks).toBe(control.checkInsLast4Weeks);
+    expect(withAbandonOnly.abandonedLast4Weeks).toBe(control.abandonedLast4Weeks);
+  });
+
   it("returns abandonedLast4Weeks: 0 when no sector clears the k-anonymity threshold", async () => {
     const rows: SignalRow[] = [
       { sectorId: "hidden", sectorName: "Pronto-Socorro", weekStart: WEEK_1, checkIns: 1, concerning: 0, abandoned: 4 },
