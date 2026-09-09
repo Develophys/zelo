@@ -69,8 +69,7 @@ describe("LinkInstitutionPage", () => {
 
   it("resolves a valid code, asks for sector, links, and navigates to /you", async () => {
     vi.spyOn(container.lookupInstitutionUseCase, "execute").mockResolvedValue({
-      id: "inst-1",
-      name: "Hospital São Lucas",
+      institution: { id: "inst-1", name: "Hospital São Lucas" },
     });
     vi.spyOn(container.listInstitutionSectorsUseCase, "execute").mockResolvedValue([
       { id: "sector-1", name: "UTI" },
@@ -120,8 +119,7 @@ describe("LinkInstitutionPage", () => {
 
   it("disables Concluir until a sector is selected", async () => {
     vi.spyOn(container.lookupInstitutionUseCase, "execute").mockResolvedValue({
-      id: "inst-1",
-      name: "Hospital São Lucas",
+      institution: { id: "inst-1", name: "Hospital São Lucas" },
     });
     vi.spyOn(container.listInstitutionSectorsUseCase, "execute").mockResolvedValue([{ id: "sector-1", name: "UTI" }]);
     const user = userEvent.setup();
@@ -136,8 +134,7 @@ describe("LinkInstitutionPage", () => {
 
   it("shows a message and disables Concluir when the institution has no registered sectors", async () => {
     vi.spyOn(container.lookupInstitutionUseCase, "execute").mockResolvedValue({
-      id: "inst-1",
-      name: "Hospital São Lucas",
+      institution: { id: "inst-1", name: "Hospital São Lucas" },
     });
     vi.spyOn(container.listInstitutionSectorsUseCase, "execute").mockResolvedValue([]);
     const user = userEvent.setup();
@@ -163,8 +160,7 @@ describe("LinkInstitutionPage", () => {
     it("resolves a scanned code exactly like a typed one, skipping straight to the sector step", async () => {
       hasCameraMock.mockResolvedValue(true);
       vi.spyOn(container.lookupInstitutionUseCase, "execute").mockResolvedValue({
-        id: "inst-1",
-        name: "Hospital São Lucas",
+        institution: { id: "inst-1", name: "Hospital São Lucas" },
       });
       vi.spyOn(container.listInstitutionSectorsUseCase, "execute").mockResolvedValue([
         { id: "sector-1", name: "UTI" },

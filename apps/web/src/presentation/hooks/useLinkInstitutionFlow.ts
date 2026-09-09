@@ -8,10 +8,11 @@ import { InstitutionNotFoundError } from "@/ports/institution-link.port";
 
 export function useLinkInstitutionFlow() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<"code" | "sector">("code");
+  const [step, setStep] = useState<"code" | "sector" | "confirm">("code");
   const [code, setCode] = useState("");
   const [sectorId, setSectorId] = useState<string | null>(null);
   const [institution, setInstitution] = useState<{ id: string; name: string } | null>(null);
+  const [confirmSector, setConfirmSector] = useState<{ id: string; name: string } | null>(null);
   const lookup = useLookupInstitution();
   const sectors = useInstitutionSectors(institution?.id ?? null);
   const link = useInstitutionLinkStore((state) => state.link);
@@ -21,8 +22,13 @@ export function useLinkInstitutionFlow() {
     setCode(trimmed);
     lookup.mutate(trimmed, {
       onSuccess: (result) => {
-        setInstitution(result);
-        setStep("sector");
+        setInstitution(result.institution);
+        if (result.sector) {
+          setConfirmSector(result.sector);
+          setStep("confirm");
+        } else {
+          setStep("sector");
+        }
       },
     });
   };
@@ -50,6 +56,23 @@ export function useLinkInstitutionFlow() {
     navigate(routes.you);
   };
 
+  const handleConfirmSubmit = () => {
+    if (!institution || !confirmSector) return;
+    link({
+      institutionId: institution.id,
+      institutionName: institution.name,
+      sectorId: confirmSector.id,
+      sectorName: confirmSector.name,
+    });
+    navigate(routes.you);
+  };
+
+  const handleRejectConfirm = () => {
+    setInstitution(null);
+    setConfirmSector(null);
+    setStep("code");
+  };
+
   const codeErrorMessage = lookup.isError
     ? lookup.error instanceof InstitutionNotFoundError
       ? "Código não encontrado."
@@ -63,6 +86,7 @@ export function useLinkInstitutionFlow() {
     codeErrorMessage,
     isLookupPending: lookup.isPending,
     institutionName: institution?.name ?? null,
+    confirmSector,
     sectors: {
       isLoading: sectors.isLoading,
       // Distinguished from hasSectors on purpose: "your hospital has not
@@ -77,6 +101,8 @@ export function useLinkInstitutionFlow() {
     handleCodeSubmit,
     handleCodeScanned,
     handleSectorSubmit,
+    handleConfirmSubmit,
+    handleRejectConfirm,
   };
 }
 
