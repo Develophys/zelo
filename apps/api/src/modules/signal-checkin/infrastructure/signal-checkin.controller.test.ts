@@ -5,6 +5,7 @@ import request from "supertest";
 import { SignalCheckinController } from "./signal-checkin.controller.ts";
 import { RecordSignalCheckinUseCase } from "../application/use-cases/record-signal-checkin.use-case.ts";
 import { RecordAssessmentAbandonmentUseCase } from "../application/use-cases/record-assessment-abandonment.use-case.ts";
+import { RecordUnsentChatDraftUseCase } from "../application/use-cases/record-unsent-chat-draft.use-case.ts";
 import {
   SIGNAL_CHECKIN_REPOSITORY,
   UnknownInstitutionOrSectorError,
@@ -45,6 +46,7 @@ describe("signal-checkin controller", () => {
       providers: [
         RecordSignalCheckinUseCase,
         RecordAssessmentAbandonmentUseCase,
+        RecordUnsentChatDraftUseCase,
         { provide: SIGNAL_CHECKIN_REPOSITORY, useValue: repository },
         { provide: NOTIFICATION_PUBLISHER, useValue: fakeNotificationPublisher },
       ],
@@ -141,6 +143,47 @@ describe("signal-checkin controller", () => {
       institutionId: "inst-1",
       sectorId: "UTI",
       deviceSignalId: "device-5",
+    });
+
+    expect(response.status).not.toBe(401);
+  });
+
+  it("POST /signals/chat-draft returns 204 for a valid body and forwards it to the repository", async () => {
+    const response = await request(app.getHttpServer()).post("/signals/chat-draft").send({
+      institutionId: "inst-1",
+      sectorId: "UTI",
+      deviceSignalId: "device-6",
+    });
+
+    expect(response.status).toBe(204);
+    expect(repository.calls).toContainEqual(
+      expect.objectContaining({ institutionId: "inst-1", sectorId: "UTI", increments: { unsentChatDrafts: 1 } }),
+    );
+  });
+
+  it("POST /signals/chat-draft returns 400 for a malformed body", async () => {
+    const response = await request(app.getHttpServer()).post("/signals/chat-draft").send({ institutionId: "inst-1" });
+
+    expect(response.status).toBe(400);
+  });
+
+  it("POST /signals/chat-draft returns 400 when the institution is unknown", async () => {
+    repository.shouldThrowUnknownInstitution = true;
+    const response = await request(app.getHttpServer()).post("/signals/chat-draft").send({
+      institutionId: "does-not-exist",
+      sectorId: "UTI",
+      deviceSignalId: "device-7",
+    });
+
+    expect(response.status).toBe(400);
+    repository.shouldThrowUnknownInstitution = false;
+  });
+
+  it("POST /signals/chat-draft requires no authentication", async () => {
+    const response = await request(app.getHttpServer()).post("/signals/chat-draft").send({
+      institutionId: "inst-1",
+      sectorId: "UTI",
+      deviceSignalId: "device-8",
     });
 
     expect(response.status).not.toBe(401);
