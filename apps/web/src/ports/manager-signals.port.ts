@@ -4,6 +4,7 @@ export const ManagerSignalsResponseSchema = z.object({
   overallConcerningRate: z.number(),
   checkInsLast4Weeks: z.number(),
   abandonedLast4Weeks: z.number().default(0),
+  unsentChatDraftsLast4Weeks: z.number().default(0),
   weeklyTrend: z.array(
     z.object({
       weekStart: z.string(),

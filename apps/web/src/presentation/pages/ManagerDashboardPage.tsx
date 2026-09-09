@@ -8,6 +8,7 @@ import {
   followUpBandFor,
   followUpReading,
   sectorCoverageReading,
+  unsentChatDraftsReading,
   type MetricDefinition,
 } from "@zelo/domain";
 import { SectionLabel } from "@/presentation/ui/SectionLabel";
@@ -320,6 +321,7 @@ export function ManagerDashboardPage() {
   const overallConcerningRate = data?.overallConcerningRate ?? 0;
   const checkInsLast4Weeks = data?.checkInsLast4Weeks ?? 0;
   const abandonedLast4Weeks = data?.abandonedLast4Weeks ?? 0;
+  const unsentChatDraftsLast4Weeks = data?.unsentChatDraftsLast4Weeks ?? 0;
   const followUpResponseRate = data?.followUpResponseRate ?? 0;
   const sectorCoverage = data?.sectorCoverage ?? { visible: 0, total: 0 };
   const concerningPercent = Math.round(overallConcerningRate * 100);
@@ -395,16 +397,17 @@ export function ManagerDashboardPage() {
           defaulting to zero, which reads as a measurement. */}
       {!loadFailed && (
         <>
-        <div data-testid="kpi-grid" className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div data-testid="kpi-grid" className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
           {isLoading ? (
             <>
               <KpiCardSkeleton />
               <KpiCardSkeleton />
               <KpiCardSkeleton />
               <KpiCardSkeleton />
+              <KpiCardSkeleton />
             </>
           ) : checkInsLast4Weeks === 0 ? (
-            <Card className="h-full text-center md:col-span-2 lg:col-span-4" data-testid="kpi-empty">
+            <Card className="h-full text-center md:col-span-2 lg:col-span-5" data-testid="kpi-empty">
               <p className="text-pretty text-label text-muted">{KPI_EMPTY}</p>
             </Card>
           ) : (
@@ -438,6 +441,12 @@ export function ManagerDashboardPage() {
                 value={String(abandonedLast4Weeks)}
                 valueClass="text-ink"
                 reading={abandonedReading(abandonedLast4Weeks)}
+              />
+              <KpiCard
+                metric={MANAGER_METRICS.unsentChatDrafts}
+                value={String(unsentChatDraftsLast4Weeks)}
+                valueClass="text-ink"
+                reading={unsentChatDraftsReading(unsentChatDraftsLast4Weeks)}
               />
               <KpiCard
                 metric={MANAGER_METRICS.followUpRate}

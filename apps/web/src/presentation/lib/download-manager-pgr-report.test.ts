@@ -33,6 +33,7 @@ const DATA: ManagerSignalsResponse = {
   overallConcerningRate: 0.41,
   checkInsLast4Weeks: 111,
   abandonedLast4Weeks: 9,
+  unsentChatDraftsLast4Weeks: 0,
   weeklyTrend: [],
   segments: [
     { label: "Plantão noturno", value: 52, n: 18 },

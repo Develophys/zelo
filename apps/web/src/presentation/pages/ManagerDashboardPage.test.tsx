@@ -47,6 +47,7 @@ const SIGNALS_RESPONSE = {
   overallConcerningRate: 0.41,
   checkInsLast4Weeks: 111,
   abandonedLast4Weeks: 23,
+  unsentChatDraftsLast4Weeks: 7,
   weeklyTrend: [
     { weekStart: "2026-06-01T00:00:00.000Z", concerningRate: 0.3, checkIns: 20, concerning: 6 },
     { weekStart: "2026-06-08T00:00:00.000Z", concerningRate: 0.5, checkIns: 24, concerning: 12 },
@@ -189,11 +190,20 @@ describe("ManagerDashboardPage", () => {
     expect(within(grid).getByText("23")).toBeInTheDocument();
   });
 
+  it("shows the unsent-chat-drafts KPI", async () => {
+    renderManager();
+
+    expect(await screen.findByText("Conversas iniciadas e não enviadas")).toBeInTheDocument();
+    const grid = screen.getByTestId("kpi-grid");
+    expect(within(grid).getByText("7")).toBeInTheDocument();
+  });
+
   it("withholds the KPI numerals instead of printing a fabricated 0% and a hospital-wide follow-up rate beside it", async () => {
     vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
       overallConcerningRate: 0,
       checkInsLast4Weeks: 0,
       abandonedLast4Weeks: 0,
+      unsentChatDraftsLast4Weeks: 0,
       weeklyTrend: [],
       segments: [],
       followUpResponseRate: 0.7,
@@ -479,12 +489,12 @@ describe("ManagerDashboardPage", () => {
     expect(zero.className).not.toContain("text-warn");
   });
 
-  it("lays out the four KPI cards in a responsive grid", async () => {
+  it("lays out the five KPI cards in a responsive grid", async () => {
     renderManager();
     await waitFor(() => {
       expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
     });
-    expect(screen.getByTestId("kpi-grid")).toHaveClass("grid-cols-1", "md:grid-cols-2", "lg:grid-cols-4");
+    expect(screen.getByTestId("kpi-grid")).toHaveClass("grid-cols-1", "md:grid-cols-2", "lg:grid-cols-5");
   });
 
   it("lays out trend and segments in a responsive grid", async () => {
@@ -840,13 +850,13 @@ describe("ManagerDashboardPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it('grows the stat grid one, two, four across — one column per card, never leaving an empty one', async () => {
+  it('grows the stat grid one, two, five across — one column per card, never leaving an empty one', async () => {
     renderManager();
     const grid = await screen.findByTestId('kpi-grid');
     expect(grid.className).toContain('grid-cols-1');
     expect(grid.className).toContain('md:grid-cols-2');
-    expect(grid.className).toContain('lg:grid-cols-4');
-    expect(within(grid).getAllByTestId('kpi-card')).toHaveLength(4);
+    expect(grid.className).toContain('lg:grid-cols-5');
+    expect(within(grid).getAllByTestId('kpi-card')).toHaveLength(5);
     for (const card of within(grid).getAllByTestId('kpi-card')) {
       expect(card.className).toContain('h-full');
     }
