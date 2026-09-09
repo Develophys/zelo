@@ -13,6 +13,7 @@ afterEach(() => {
     corners: 'sharp',
     sidebarCollapsed: false,
     hotkeys: 'on',
+    fontSize: 'default',
   });
 });
 
@@ -54,6 +55,14 @@ describe('ManagerSettingsPage', () => {
     expect(useManagerPrefsStore.getState().corners).toBe('rounded');
   });
 
+  it('switches font size', async () => {
+    const user = userEvent.setup();
+    render(<ManagerSettingsPage />);
+
+    await user.click(screen.getByRole('radio', { name: 'Extra grande' }));
+    expect(useManagerPrefsStore.getState().fontSize).toBe('xlarge');
+  });
+
   it('marks the selected option for assistive tech, not only visually', () => {
     useManagerPrefsStore.setState({ accent: 'clay' });
     render(<ManagerSettingsPage />);
@@ -84,7 +93,14 @@ describe('ManagerSettingsPage', () => {
   it('titles every setting as a level-2 heading, sized as a row label rather than a card title', () => {
     render(<ManagerSettingsPage />);
 
-    for (const name of ['Cor de destaque', 'Densidade', 'Cantos', 'Tema', 'Atalhos de teclado']) {
+    for (const name of [
+      'Cor de destaque',
+      'Tamanho da fonte',
+      'Densidade',
+      'Cantos',
+      'Tema',
+      'Atalhos de teclado',
+    ]) {
       const heading = screen.getByRole('heading', { level: 2, name });
       expect(heading.className).toContain('font-sans');
       expect(heading.className).toContain('text-body');
@@ -97,7 +113,7 @@ describe('ManagerSettingsPage', () => {
 
     expect(screen.queryByTestId('settings-grid')).not.toBeInTheDocument();
     const rows = screen.getAllByTestId('settings-row');
-    expect(rows).toHaveLength(5);
+    expect(rows).toHaveLength(6);
     rows.forEach((row) => {
       expect(row.className).toContain('border-b');
       expect(row.className).not.toContain('rounded-card');
@@ -108,7 +124,14 @@ describe('ManagerSettingsPage', () => {
   it('keeps every setting inside the row stack', () => {
     render(<ManagerSettingsPage />);
     const stack = screen.getByTestId('appearance-settings');
-    for (const name of ['Cor de destaque', 'Densidade', 'Cantos', 'Tema', 'Atalhos de teclado']) {
+    for (const name of [
+      'Cor de destaque',
+      'Tamanho da fonte',
+      'Densidade',
+      'Cantos',
+      'Tema',
+      'Atalhos de teclado',
+    ]) {
       expect(within(stack).getByRole('heading', { level: 2, name })).toBeInTheDocument();
     }
   });

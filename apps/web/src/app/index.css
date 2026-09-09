@@ -310,6 +310,18 @@ html[data-corners='rounded'] {
   --radius-bubble: 28px;
 }
 
+/* Scales the root font-size, so every `text-*` utility (all defined in rem
+   above) grows with it and no component needs to know the preference exists.
+   Percentage, not a fixed px, so it still composes with the browser's own
+   zoom/base-size setting instead of overriding it. */
+html[data-font-size='large'] {
+  font-size: 112.5%;
+}
+
+html[data-font-size='xlarge'] {
+  font-size: 125%;
+}
+
 /* Tablet/desktop type scale (design-tokens.md §2) — overrides the same custom
    properties the @theme block above defines, so every `text-h1`/`text-h2`/
    `text-body`/`text-label`/`text-body-strong` utility picks this up

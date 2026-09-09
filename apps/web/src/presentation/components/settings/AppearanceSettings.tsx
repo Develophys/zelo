@@ -4,7 +4,7 @@ import { AccentField } from './AccentField';
 import { DensityPreview } from './DensityPreview';
 import { SegmentedField } from './SegmentedField';
 import { SettingsRow } from './SettingsRow';
-import { CORNERS_OPTIONS, DENSITY_OPTIONS, HOTKEYS_OPTIONS } from './settings-options';
+import { CORNERS_OPTIONS, DENSITY_OPTIONS, FONT_SIZE_OPTIONS, HOTKEYS_OPTIONS } from './settings-options';
 
 interface AppearanceSettingsProps {
   /** Density only moves tokens the manager panel uses, so only it offers the row. */
@@ -16,10 +16,12 @@ export function AppearanceSettings({ includeDensity = false }: AppearanceSetting
   const accent = useManagerPrefsStore((state) => state.accent);
   const corners = useManagerPrefsStore((state) => state.corners);
   const hotkeys = useManagerPrefsStore((state) => state.hotkeys);
+  const fontSize = useManagerPrefsStore((state) => state.fontSize);
   const setDensity = useManagerPrefsStore((state) => state.setDensity);
   const setAccent = useManagerPrefsStore((state) => state.setAccent);
   const setCorners = useManagerPrefsStore((state) => state.setCorners);
   const setHotkeys = useManagerPrefsStore((state) => state.setHotkeys);
+  const setFontSize = useManagerPrefsStore((state) => state.setFontSize);
 
   return (
     <div data-testid="appearance-settings" className="flex flex-col">
@@ -32,6 +34,19 @@ export function AppearanceSettings({ includeDensity = false }: AppearanceSetting
         description="Usada em botões, links e no item ativo do menu."
       >
         <AccentField value={accent} onChange={setAccent} />
+      </SettingsRow>
+
+      <SettingsRow
+        title="Tamanho da fonte"
+        description="Aumenta o texto em todas as telas, para maior conforto de leitura."
+      >
+        <SegmentedField
+          name="manager-font-size"
+          ariaLabel="Tamanho da fonte"
+          options={FONT_SIZE_OPTIONS}
+          value={fontSize}
+          onChange={setFontSize}
+        />
       </SettingsRow>
 
       <SettingsRow

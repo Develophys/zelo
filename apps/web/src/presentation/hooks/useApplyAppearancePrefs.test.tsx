@@ -33,6 +33,7 @@ describe('useApplyAppearancePrefs', () => {
       accent: 'sage',
       corners: 'sharp',
       sidebarCollapsed: false,
+      fontSize: 'default',
     });
   });
 
@@ -40,6 +41,7 @@ describe('useApplyAppearancePrefs', () => {
     delete root().dataset.density;
     delete root().dataset.accent;
     delete root().dataset.corners;
+    delete root().dataset.fontSize;
     window.localStorage.clear();
   });
 
@@ -68,6 +70,13 @@ describe('useApplyAppearancePrefs', () => {
     expect(root().dataset.corners).toBe('rounded');
   });
 
+  it('projects the font-size preference onto the document root', () => {
+    render(<Panel />);
+    expect(root().dataset.fontSize).toBe('default');
+    act(() => useManagerPrefsStore.getState().setFontSize('xlarge'));
+    expect(root().dataset.fontSize).toBe('xlarge');
+  });
+
   it('cleans up on unmount, so leaving the panel does not restyle the rest of the app', () => {
     const { unmount } = render(<Panel />);
     unmount();
@@ -80,6 +89,12 @@ describe('useApplyAppearancePrefs', () => {
     unmount();
     expect(root().dataset.corners).toBeUndefined();
   });
+
+  it('cleans up the font-size attribute on unmount, like the others', () => {
+    const { unmount } = render(<Panel />);
+    unmount();
+    expect(root().dataset.fontSize).toBeUndefined();
+  });
 });
 
 describe('manager prefs store', () => {
@@ -90,15 +105,17 @@ describe('manager prefs store', () => {
       accent: 'sage',
       corners: 'sharp',
       sidebarCollapsed: false,
+      fontSize: 'default',
     });
   });
 
   it('defaults to the validated comfortable density and the existing sage brand', () => {
-    const { density, accent, corners, sidebarCollapsed } = useManagerPrefsStore.getState();
+    const { density, accent, corners, sidebarCollapsed, fontSize } = useManagerPrefsStore.getState();
     expect(density).toBe('comfortable');
     expect(accent).toBe('sage');
     expect(corners).toBe('sharp');
     expect(sidebarCollapsed).toBe(false);
+    expect(fontSize).toBe('default');
   });
 
   it('toggles the sidebar both ways', () => {
@@ -129,6 +146,20 @@ describe('manager prefs store', () => {
     expect(state.density).toBe('compact');
     expect(state.accent).toBe('clay');
     expect(state.sidebarCollapsed).toBe(true);
+  });
+
+  it('rehydrates a payload saved before "fontSize" existed as the default size', async () => {
+    window.localStorage.setItem(
+      'zelo.manager.prefs',
+      JSON.stringify({
+        state: { density: 'compact', accent: 'clay', corners: 'rounded', sidebarCollapsed: true },
+        version: 0,
+      }),
+    );
+
+    await useManagerPrefsStore.persist.rehydrate();
+
+    expect(useManagerPrefsStore.getState().fontSize).toBe('default');
   });
 });
 

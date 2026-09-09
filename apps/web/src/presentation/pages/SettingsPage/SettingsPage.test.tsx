@@ -23,6 +23,7 @@ afterEach(() => {
     corners: 'sharp',
     sidebarCollapsed: false,
     hotkeys: 'on',
+    fontSize: 'default',
   });
 });
 
@@ -31,7 +32,7 @@ describe('SettingsPage', () => {
     renderSettings();
     const stack = screen.getByTestId('appearance-settings');
 
-    for (const name of ['Tema', 'Cor de destaque', 'Cantos', 'Atalhos de teclado']) {
+    for (const name of ['Tema', 'Cor de destaque', 'Tamanho da fonte', 'Cantos', 'Atalhos de teclado']) {
       expect(within(stack).getByRole('heading', { level: 2, name })).toBeInTheDocument();
     }
   });
@@ -55,6 +56,13 @@ describe('SettingsPage', () => {
     await userEvent.click(screen.getByRole('radio', { name: 'Desativados' }));
 
     expect(useManagerPrefsStore.getState().hotkeys).toBe('off');
+  });
+
+  it('scales the font size through the same shared preference', async () => {
+    renderSettings();
+    await userEvent.click(screen.getByRole('radio', { name: 'Grande' }));
+
+    expect(useManagerPrefsStore.getState().fontSize).toBe('large');
   });
 
   it('says the preferences are per-device', () => {

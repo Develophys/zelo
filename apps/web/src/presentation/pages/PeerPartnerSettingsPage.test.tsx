@@ -21,6 +21,7 @@ afterEach(() => {
     corners: "sharp",
     sidebarCollapsed: false,
     hotkeys: "on",
+    fontSize: "default",
   });
 });
 
