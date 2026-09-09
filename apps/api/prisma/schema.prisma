@@ -80,6 +80,7 @@ model Signal {
   weekStart     DateTime
   checkIns      Int         @default(0)
   concerning    Int         @default(0)
+  abandoned     Int         @default(0)
   createdAt     DateTime    @default(now())
 
   @@unique([institutionId, sectorId, weekStart])
