@@ -1,9 +1,11 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, createEvent, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router';
 import { ChatPage } from './ChatPage';
 import * as container from '@/app/container';
+import { useInstitutionLinkStore } from '@/stores/institution-link.store';
+import { useConsentStore } from '@/stores/consent.store';
 
 const CONVERSATION_ID = '00000000-0000-4000-8000-000000000001';
 const HANDOFF_LABEL = 'Falar com uma pessoa real';
@@ -1455,5 +1457,100 @@ describe('ChatPage', () => {
       expect(screen.queryByText(/Primeira parte|Segunda parte/)).not.toBeInTheDocument();
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
+  });
+});
+
+describe('unsent chat draft signal', () => {
+  beforeEach(() => {
+    useInstitutionLinkStore.setState({
+      institutionId: null,
+      institutionName: null,
+      sectorId: null,
+      sectorName: null,
+      deviceSignalId: null,
+    });
+    useConsentStore.setState({ aggregateOptIn: true });
+  });
+
+  it('does not record anything when the composer is empty and the médico navigates away', async () => {
+    const user = userEvent.setup();
+    const executeSpy = vi.spyOn(container.recordUnsentChatDraftUseCase, 'execute');
+    renderChat();
+
+    await user.click(screen.getByRole('button', { name: /falar com uma pessoa real/i }));
+
+    expect(screen.getByText('Crisis offer screen')).toBeInTheDocument();
+    expect(executeSpy).not.toHaveBeenCalled();
+  });
+
+  it('records the draft when there is unsent text and the médico is linked and opted in', async () => {
+    const user = userEvent.setup();
+    useInstitutionLinkStore.setState({
+      institutionId: 'inst-1',
+      institutionName: 'Hospital X',
+      sectorId: 'UTI',
+      sectorName: 'UTI',
+      deviceSignalId: 'device-1',
+    });
+    vi.spyOn(container.recordUnsentChatDraftUseCase, 'execute').mockResolvedValue(undefined);
+    renderChat();
+
+    await user.type(screen.getByPlaceholderText('Escreva como você está…'), 'Não sei bem como');
+    await user.click(screen.getByRole('button', { name: /falar com uma pessoa real/i }));
+
+    expect(container.recordUnsentChatDraftUseCase.execute).toHaveBeenCalledWith({
+      link: { institutionId: 'inst-1', sectorId: 'UTI', deviceSignalId: 'device-1' },
+    });
+  });
+
+  it('does not record when there is no institution link', async () => {
+    const user = userEvent.setup();
+    const executeSpy = vi.spyOn(container.recordUnsentChatDraftUseCase, 'execute');
+    renderChat();
+
+    await user.type(screen.getByPlaceholderText('Escreva como você está…'), 'Texto qualquer');
+    await user.click(screen.getByRole('button', { name: /falar com uma pessoa real/i }));
+
+    expect(executeSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not record when aggregateOptIn is false, even with a valid link', async () => {
+    const user = userEvent.setup();
+    useInstitutionLinkStore.setState({
+      institutionId: 'inst-1',
+      institutionName: 'Hospital X',
+      sectorId: 'UTI',
+      sectorName: 'UTI',
+      deviceSignalId: 'device-1',
+    });
+    useConsentStore.setState({ aggregateOptIn: false });
+    const executeSpy = vi.spyOn(container.recordUnsentChatDraftUseCase, 'execute');
+    renderChat();
+
+    await user.type(screen.getByPlaceholderText('Escreva como você está…'), 'Texto qualquer');
+    await user.click(screen.getByRole('button', { name: /falar com uma pessoa real/i }));
+
+    expect(executeSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not record when the message was sent instead of abandoned', async () => {
+    const user = userEvent.setup();
+    useInstitutionLinkStore.setState({
+      institutionId: 'inst-1',
+      institutionName: 'Hospital X',
+      sectorId: 'UTI',
+      sectorName: 'UTI',
+      deviceSignalId: 'device-1',
+    });
+    vi.spyOn(container.sendChatMessageUseCase, 'execute').mockReturnValue(fakeAssistantStream());
+    const executeSpy = vi.spyOn(container.recordUnsentChatDraftUseCase, 'execute');
+    renderChat();
+
+    await user.type(screen.getByPlaceholderText('Escreva como você está…'), 'Estou bem');
+    await user.click(screen.getByRole('button', { name: 'Enviar' }));
+    await screen.findByText('Estou bem');
+    await user.click(screen.getByRole('button', { name: 'Falar com alguém' }));
+
+    expect(executeSpy).not.toHaveBeenCalled();
   });
 });

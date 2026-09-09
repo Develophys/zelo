@@ -7,6 +7,8 @@ import {
   REMAINING_ANNOUNCEMENT_STEPS,
 } from '@/presentation/lib/chat-limits';
 import { PRIVATE_TEXT_FIELD } from '@/presentation/lib/private-field';
+import { recordUnsentChatDraftUseCase } from '@/app/container';
+import { getLinkedAndOptedIn } from '@/presentation/lib/institution-link-gate';
 
 const COMPOSER_ACTION =
   'flex h-11 w-11 flex-none items-center justify-center rounded-control border border-fill-edge bg-brand-fill text-on-fill transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2';
@@ -23,6 +25,18 @@ export const ChatComposer = memo(function ChatComposer({
   fieldRef: RefObject<HTMLTextAreaElement | null>;
 }) {
   const [text, setText] = useState('');
+  const textRef = useRef(text);
+  textRef.current = text;
+
+  useEffect(() => {
+    return () => {
+      if (textRef.current.trim().length === 0) return;
+      const link = getLinkedAndOptedIn();
+      if (link) {
+        void recordUnsentChatDraftUseCase.execute({ link }).catch(() => {});
+      }
+    };
+  }, []);
   const [blockedByStream, setBlockedByStream] = useState(false);
   const [overScrollbar, setOverScrollbar] = useState(false);
   const [remainingAnnouncement, setRemainingAnnouncement] = useState('');
