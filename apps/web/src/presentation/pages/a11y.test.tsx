@@ -91,6 +91,10 @@ function mount(element: ReactElement, path: string, state?: unknown) {
 // that's App.tsx's job) — a fragment-testing false positive, not a real issue.
 // Every other rule stays enabled; a violation there must be fixed at the source.
 async function expectNoViolations(container: HTMLElement) {
+  // A render-time crash is caught by RouterProvider's own error boundary and
+  // replaced with this markup instead of propagating — axe scans it clean, so
+  // a crashing screen would otherwise pass the sweep silently.
+  expect(container.textContent).not.toMatch(/Unexpected Application Error/i);
   const results = await axe(container, { rules: { region: { enabled: false } } });
   expect(results).toHaveNoViolations();
 }
