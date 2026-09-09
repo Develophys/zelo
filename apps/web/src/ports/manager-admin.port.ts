@@ -6,6 +6,7 @@ export const AdminSectorSchema = z.object({
   isActive: z.boolean(),
   managerId: z.string().nullable(),
   managerName: z.string().nullable(),
+  inviteCode: z.string().nullable(),
 });
 export type AdminSector = z.infer<typeof AdminSectorSchema>;
 
@@ -59,6 +60,7 @@ export interface UpdatePeerPartnerParams {
 export class PeerPartnerEmailConflictError extends Error {}
 
 export class SectorNameConflictError extends Error {}
+export class SectorInviteCodeConflictError extends Error {}
 export class InvalidManagerAdminRequestError extends Error {}
 export class LastActiveHospitalAdminError extends Error {}
 export class ManagerAdminNotFoundError extends Error {}
@@ -103,6 +105,7 @@ export function updateConflictMessage(error: unknown): string | null {
 export interface UpdateSectorParams {
   isActive?: boolean;
   managerId?: string | null;
+  inviteCode?: string;
 }
 
 export interface CreateManagerParams {
@@ -120,7 +123,7 @@ export interface UpdateManagerParams {
 
 export interface ManagerAdminPort {
   listSectors(token: string): Promise<AdminSector[]>;
-  createSector(token: string, name: string): Promise<{ id: string; name: string }>;
+  createSector(token: string, params: { name: string; inviteCode?: string }): Promise<{ id: string; name: string }>;
   updateSector(token: string, id: string, patch: UpdateSectorParams): Promise<void>;
   listManagers(token: string): Promise<ManagerSummary[]>;
   createManager(token: string, params: CreateManagerParams): Promise<CreateManagerResult>;

@@ -6,7 +6,7 @@ export function useCreateSector() {
   const token = useManagerSessionStore((state) => state.token);
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (name: string) => createSectorUseCase.execute(token!, name),
+    mutationFn: (params: { name: string; inviteCode?: string }) => createSectorUseCase.execute(token!, params),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-sectors"] }),
   });
 }

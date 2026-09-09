@@ -24,6 +24,7 @@ import {
   ManagerSummarySchema,
   PeerPartnerEmailConflictError,
   PeerPartnerSummarySchema,
+  SectorInviteCodeConflictError,
   SectorNameConflictError,
 } from "@/ports/manager-admin.port";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
@@ -41,13 +42,20 @@ export class HttpManagerAdminAdapter implements ManagerAdminPort {
     return z.array(AdminSectorSchema).parse(await response.json());
   }
 
-  async createSector(token: string, name: string): Promise<{ id: string; name: string }> {
+  async createSector(
+    token: string,
+    params: { name: string; inviteCode?: string },
+  ): Promise<{ id: string; name: string }> {
     const response = await fetch(`${API_BASE_URL}/manager/admin/sectors`, {
       method: "POST",
       headers: authHeaders(token),
-      body: JSON.stringify({ name }),
+      body: JSON.stringify(params),
     });
-    if (response.status === 409) throw new SectorNameConflictError();
+    if (response.status === 409) {
+      const body = await response.json();
+      if (body.conflict === "inviteCode") throw new SectorInviteCodeConflictError();
+      throw new SectorNameConflictError();
+    }
     if (!response.ok) throw new Error(`create sector failed with status ${response.status}`);
     return response.json();
   }
@@ -59,6 +67,11 @@ export class HttpManagerAdminAdapter implements ManagerAdminPort {
       body: JSON.stringify(patch),
     });
     if (response.status === 404) throw new ManagerAdminNotFoundError();
+    if (response.status === 409) {
+      const body = await response.json();
+      if (body.conflict === "inviteCode") throw new SectorInviteCodeConflictError();
+      throw new SectorNameConflictError();
+    }
     if (!response.ok) throw new Error(`update sector failed with status ${response.status}`);
   }
 
