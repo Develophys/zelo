@@ -1,6 +1,8 @@
+import { z } from "zod";
 import type {
   AdminInstitutionPort,
   AdminInstitutionPage,
+  AdminInstitutionSector,
   CreateInstitutionParams,
   CreateInstitutionResult,
   UpdateInstitutionParams,
@@ -8,6 +10,7 @@ import type {
 import {
   AdminInstitutionNotFoundError,
   AdminInstitutionPageSchema,
+  AdminInstitutionSectorSchema,
   CreateInstitutionResultSchema,
   DuplicateInstitutionError,
   UnauthorizedAdminError,
@@ -57,5 +60,16 @@ export class HttpAdminInstitutionAdapter implements AdminInstitutionPort {
     if (response.status === 404) throw new AdminInstitutionNotFoundError();
     if (response.status === 409) throw new DuplicateInstitutionError();
     if (!response.ok) throw new Error(`update institution failed with status ${response.status}`);
+  }
+
+  async listSectors(token: string, institutionId: string): Promise<AdminInstitutionSector[]> {
+    const response = await fetch(`${API_BASE_URL}/admin/institutions/${institutionId}/sectors`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.status === 401) throw new UnauthorizedAdminError();
+    if (!response.ok) throw new Error(`list institution sectors failed with status ${response.status}`);
+
+    return z.array(AdminInstitutionSectorSchema).parse(await response.json());
   }
 }

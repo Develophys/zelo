@@ -23,6 +23,16 @@ export const AdminInstitutionPageSchema = z.object({
 });
 export type AdminInstitutionPage = z.infer<typeof AdminInstitutionPageSchema>;
 
+export const AdminInstitutionSectorSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  isActive: z.boolean(),
+  managerId: z.string().nullable(),
+  managerName: z.string().nullable(),
+  inviteCode: z.string().nullable(),
+});
+export type AdminInstitutionSector = z.infer<typeof AdminInstitutionSectorSchema>;
+
 export class DuplicateInstitutionError extends Error {}
 export class UnauthorizedAdminError extends Error {}
 export class AdminInstitutionNotFoundError extends Error {}
@@ -45,4 +55,5 @@ export interface AdminInstitutionPort {
   create(token: string, params: CreateInstitutionParams): Promise<CreateInstitutionResult>;
   list(token: string, query: { cursor?: string | null; limit?: number }): Promise<AdminInstitutionPage>;
   update(token: string, id: string, patch: UpdateInstitutionParams): Promise<void>;
+  listSectors(token: string, institutionId: string): Promise<AdminInstitutionSector[]>;
 }
