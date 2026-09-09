@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { DataTable, type DataTableColumn } from './DataTable';
@@ -38,7 +39,17 @@ const BULK_ACTIONS = (
   </>
 );
 
-function Harness({ rows = ROWS }: { rows?: Row[] }) {
+function Harness({
+  rows = ROWS,
+  renderExpanded,
+  isRowExpanded,
+  onToggleExpand,
+}: {
+  rows?: Row[];
+  renderExpanded?: (row: Row) => ReactNode;
+  isRowExpanded?: (row: Row) => boolean;
+  onToggleExpand?: (row: Row) => void;
+}) {
   const selection = useDataTableSelection(rows, { singular: 'gestor', article: 'um' });
   return (
     <DataTable
@@ -57,6 +68,9 @@ function Harness({ rows = ROWS }: { rows?: Row[] }) {
       }
       emptyState={<p>Nenhum gestor por aqui.</p>}
       mobileList={<ul data-testid="mobile-list" />}
+      renderExpanded={renderExpanded}
+      isRowExpanded={isRowExpanded}
+      onToggleExpand={onToggleExpand}
     />
   );
 }
@@ -193,6 +207,53 @@ describe('DataTable', () => {
     expect(actionsRow.className).toContain('md:overflow-x-auto');
     expect(within(actionsRow).getByRole('button', { name: 'Editar' })).toBeInTheDocument();
     expect(within(actionsRow).getByRole('button', { name: 'Excluir' })).toBeInTheDocument();
+  });
+
+  it('renders no expand column when renderExpanded is not provided', () => {
+    render(<Harness />);
+    expect(screen.queryByLabelText(/expandir/i)).not.toBeInTheDocument();
+  });
+
+  it('renders an expand toggle per row when renderExpanded is provided, collapsed by default', () => {
+    render(
+      <Harness
+        rows={ROWS.slice(0, 1)}
+        renderExpanded={(row) => <p>Detalhe de {row.name}</p>}
+        isRowExpanded={() => false}
+        onToggleExpand={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText(/expandir/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Detalhe de/)).not.toBeInTheDocument();
+  });
+
+  it('renders the expanded content in a full-width row when isRowExpanded returns true', () => {
+    render(
+      <Harness
+        rows={ROWS.slice(0, 1)}
+        renderExpanded={(row) => <p>Detalhe de {row.name}</p>}
+        isRowExpanded={() => true}
+        onToggleExpand={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/Detalhe de/)).toBeInTheDocument();
+  });
+
+  it('calls onToggleExpand with the row when its toggle is clicked', () => {
+    const onToggleExpand = vi.fn();
+    render(
+      <Harness
+        rows={ROWS.slice(0, 1)}
+        renderExpanded={() => <p>Detalhe</p>}
+        isRowExpanded={() => false}
+        onToggleExpand={onToggleExpand}
+      />,
+    );
+
+    fireEvent.click(screen.getByLabelText(/expandir/i));
+    expect(onToggleExpand).toHaveBeenCalledWith(ROWS[0]);
   });
 });
 

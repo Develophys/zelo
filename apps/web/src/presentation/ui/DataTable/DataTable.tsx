@@ -1,5 +1,7 @@
-import type { JSX, ReactNode } from 'react';
+import { Fragment, type JSX, type ReactNode } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Checkbox } from '@/presentation/ui/Checkbox';
+import { IconButton } from '@/presentation/ui/IconButton';
 import { DataTableShell } from './DataTableShell';
 import type { DataTableSelection } from './useDataTableSelection';
 
@@ -29,6 +31,15 @@ interface DataTableProps<T> {
   mobileList: ReactNode;
   /** Fill the column and scroll the rows instead of the page. See DataTableShell. */
   fill?: boolean;
+  /**
+   * Optional per-row expand/collapse. Pass all three together (or none): a
+   * toggle column renders before the caller's columns, and expanding a row
+   * inserts `renderExpanded(row)` in a full-width row right below it. Desktop
+   * table only — this does not touch `mobileList`.
+   */
+  renderExpanded?(row: T): ReactNode;
+  isRowExpanded?(row: T): boolean;
+  onToggleExpand?(row: T): void;
 }
 
 function rowLabel(row: { name?: string; id: string }): string {
@@ -45,7 +56,12 @@ export function DataTable<T extends { id: string; isActive: boolean; name?: stri
   caption,
   mobileList,
   fill = false,
+  renderExpanded,
+  isRowExpanded,
+  onToggleExpand,
 }: DataTableProps<T>): JSX.Element {
+  const hasExpand = renderExpanded !== undefined && isRowExpanded !== undefined && onToggleExpand !== undefined;
+
   return (
     <DataTableShell fill={fill} toolbar={toolbar}>
       {rows.length === 0 ? (
@@ -62,6 +78,11 @@ export function DataTable<T extends { id: string; isActive: boolean; name?: stri
               <th scope="col" className="w-12 px-cell-x py-cell-y">
                 <span className="sr-only">Seleção</span>
               </th>
+              {hasExpand && (
+                <th scope="col" className="w-10 px-cell-x py-cell-y">
+                  <span className="sr-only">Expandir</span>
+                </th>
+              )}
               {columns.map((column) => (
                 <th
                   key={column.key}
@@ -80,48 +101,71 @@ export function DataTable<T extends { id: string; isActive: boolean; name?: stri
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr
-                key={row.id}
-                className={`border-b border-line last:border-b-0 ${
-                  selection.isSelected(row.id) ? 'bg-brand/5' : ''
-                }`}
-              >
-                <td className="px-cell-x py-cell-y">
-                  <Checkbox
-                    aria-label={`Selecionar ${rowLabel(row)}`}
-                    checked={selection.isSelected(row.id)}
-                    onChange={() => selection.toggle(row.id)}
-                  />
-                </td>
-                {columns.map((column) => {
-                  const value = column.cell(row);
-                  const isString = typeof value === 'string';
-                  return (
-                    <td
-                      key={column.key}
-                      className={`px-cell-x py-cell-y text-label text-ink ${column.width} ${
-                        column.hideBelowLg ? 'hidden lg:table-cell' : ''
-                      }`}
-                    >
-                      <span
-                        className={
-                          column.breakAll
-                            ? 'block break-all whitespace-normal'
-                            : isString
-                              ? 'block truncate'
-                              : 'block overflow-hidden'
+              <Fragment key={row.id}>
+                <tr
+                  className={`border-b border-line last:border-b-0 ${
+                    selection.isSelected(row.id) ? 'bg-brand/5' : ''
+                  }`}
+                >
+                  <td className="px-cell-x py-cell-y">
+                    <Checkbox
+                      aria-label={`Selecionar ${rowLabel(row)}`}
+                      checked={selection.isSelected(row.id)}
+                      onChange={() => selection.toggle(row.id)}
+                    />
+                  </td>
+                  {hasExpand && (
+                    <td className="px-cell-x py-cell-y">
+                      <IconButton
+                        label={isRowExpanded!(row) ? `Recolher ${rowLabel(row)}` : `Expandir ${rowLabel(row)}`}
+                        icon={
+                          isRowExpanded!(row) ? (
+                            <ChevronDown size={16} aria-hidden="true" />
+                          ) : (
+                            <ChevronRight size={16} aria-hidden="true" />
+                          )
                         }
-                        title={column.breakAll || !isString ? undefined : value}
-                      >
-                        {value}
-                      </span>
+                        onClick={() => onToggleExpand!(row)}
+                      />
                     </td>
-                  );
-                })}
-                <td className="px-cell-x py-cell-y">
-                  <div className="flex items-center justify-end gap-1">{rowActions(row)}</div>
-                </td>
-              </tr>
+                  )}
+                  {columns.map((column) => {
+                    const value = column.cell(row);
+                    const isString = typeof value === 'string';
+                    return (
+                      <td
+                        key={column.key}
+                        className={`px-cell-x py-cell-y text-label text-ink ${column.width} ${
+                          column.hideBelowLg ? 'hidden lg:table-cell' : ''
+                        }`}
+                      >
+                        <span
+                          className={
+                            column.breakAll
+                              ? 'block break-all whitespace-normal'
+                              : isString
+                                ? 'block truncate'
+                                : 'block overflow-hidden'
+                          }
+                          title={column.breakAll || !isString ? undefined : value}
+                        >
+                          {value}
+                        </span>
+                      </td>
+                    );
+                  })}
+                  <td className="px-cell-x py-cell-y">
+                    <div className="flex items-center justify-end gap-1">{rowActions(row)}</div>
+                  </td>
+                </tr>
+                {hasExpand && isRowExpanded!(row) && (
+                  <tr className="border-b border-line last:border-b-0 bg-canvas">
+                    <td colSpan={columns.length + 3} className="px-cell-x py-cell-y">
+                      {renderExpanded!(row)}
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
             ))}
             </tbody>
           </table>
