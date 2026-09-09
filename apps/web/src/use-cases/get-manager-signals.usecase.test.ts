@@ -6,6 +6,7 @@ import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 const SAMPLE_RESPONSE: ManagerSignalsResponse = {
   overallConcerningRate: 0.41,
   checkInsLast4Weeks: 111,
+  abandonedLast4Weeks: 0,
   weeklyTrend: [{ weekStart: "2026-06-01T00:00:00.000Z", concerningRate: 0.3, checkIns: 20, concerning: 6 }],
   segments: [{ label: "UTI", value: 44, n: 9 }],
   followUpResponseRate: 0.7,

@@ -46,6 +46,7 @@ function renderManager(initialEntry = "/manager") {
 const SIGNALS_RESPONSE = {
   overallConcerningRate: 0.41,
   checkInsLast4Weeks: 111,
+  abandonedLast4Weeks: 23,
   weeklyTrend: [
     { weekStart: "2026-06-01T00:00:00.000Z", concerningRate: 0.3, checkIns: 20, concerning: 6 },
     { weekStart: "2026-06-08T00:00:00.000Z", concerningRate: 0.5, checkIns: 24, concerning: 12 },
@@ -180,10 +181,19 @@ describe("ManagerDashboardPage", () => {
     expect(screen.getByText("Taxa de resposta do follow-up")).toBeInTheDocument();
   });
 
+  it("shows the abandoned-questionnaires KPI", async () => {
+    renderManager();
+
+    expect(await screen.findByText("Questionários abandonados")).toBeInTheDocument();
+    const grid = screen.getByTestId("kpi-grid");
+    expect(within(grid).getByText("23")).toBeInTheDocument();
+  });
+
   it("withholds the KPI numerals instead of printing a fabricated 0% and a hospital-wide follow-up rate beside it", async () => {
     vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
       overallConcerningRate: 0,
       checkInsLast4Weeks: 0,
+      abandonedLast4Weeks: 0,
       weeklyTrend: [],
       segments: [],
       followUpResponseRate: 0.7,

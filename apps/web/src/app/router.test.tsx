@@ -129,6 +129,7 @@ describe("onboarding router flow", () => {
     vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
       overallConcerningRate: 0,
       checkInsLast4Weeks: 0,
+      abandonedLast4Weeks: 0,
       weeklyTrend: [],
       segments: [],
       followUpResponseRate: 0,
@@ -168,6 +169,7 @@ describe("onboarding router flow", () => {
     vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
       overallConcerningRate: 0,
       checkInsLast4Weeks: 0,
+      abandonedLast4Weeks: 0,
       weeklyTrend: [],
       segments: [],
       followUpResponseRate: 0,

@@ -3,6 +3,7 @@ import { z } from "zod";
 export const ManagerSignalsResponseSchema = z.object({
   overallConcerningRate: z.number(),
   checkInsLast4Weeks: z.number(),
+  abandonedLast4Weeks: z.number(),
   weeklyTrend: z.array(
     z.object({
       weekStart: z.string(),

@@ -4,6 +4,7 @@ import { ManagerSignalsResponseSchema } from "./manager-signals.port";
 const VALID = {
   overallConcerningRate: 0.47,
   checkInsLast4Weeks: 312,
+  abandonedLast4Weeks: 0,
   weeklyTrend: [{ weekStart: "2026-08-31T00:00:00.000Z", concerningRate: 0.47, checkIns: 62, concerning: 29 }],
   segments: [{ label: "UTI", value: 44, n: 20 }],
   followUpResponseRate: 0.72,

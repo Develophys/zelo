@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
 import {
   MANAGER_METRICS,
+  abandonedReading,
   checkInsReading,
   concerningRateReading,
   followUpBandFor,
@@ -318,6 +319,7 @@ export function ManagerDashboardPage() {
   const peakSector = peakSegmentLabel(segments);
   const overallConcerningRate = data?.overallConcerningRate ?? 0;
   const checkInsLast4Weeks = data?.checkInsLast4Weeks ?? 0;
+  const abandonedLast4Weeks = data?.abandonedLast4Weeks ?? 0;
   const followUpResponseRate = data?.followUpResponseRate ?? 0;
   const sectorCoverage = data?.sectorCoverage ?? { visible: 0, total: 0 };
   const concerningPercent = Math.round(overallConcerningRate * 100);
@@ -429,6 +431,12 @@ export function ManagerDashboardPage() {
                   total: checkInsLast4Weeks,
                   visibleSectors: sectorCoverage.visible,
                 })}
+              />
+              <KpiCard
+                metric={MANAGER_METRICS.abandoned}
+                value={String(abandonedLast4Weeks)}
+                valueClass="text-ink"
+                reading={abandonedReading(abandonedLast4Weeks)}
               />
               <KpiCard
                 metric={MANAGER_METRICS.followUpRate}
