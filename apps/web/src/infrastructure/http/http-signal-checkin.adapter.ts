@@ -1,4 +1,9 @@
-import type { SignalAbandonmentParams, SignalCheckinParams, SignalCheckinPort } from "@/ports/signal-checkin.port";
+import type {
+  SignalAbandonmentParams,
+  SignalChatDraftParams,
+  SignalCheckinParams,
+  SignalCheckinPort,
+} from "@/ports/signal-checkin.port";
 import { API_BASE_URL } from './api-base-url';
 
 export class HttpSignalCheckinAdapter implements SignalCheckinPort {
@@ -23,6 +28,18 @@ export class HttpSignalCheckinAdapter implements SignalCheckinPort {
 
     if (!response.ok) {
       throw new Error(`signal abandonment failed with status ${response.status}`);
+    }
+  }
+
+  async chatDraft(params: SignalChatDraftParams): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/signals/chat-draft`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      throw new Error(`signal chat draft failed with status ${response.status}`);
     }
   }
 }
