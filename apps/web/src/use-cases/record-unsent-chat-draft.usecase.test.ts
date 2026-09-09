@@ -1,39 +1,39 @@
 import { describe, expect, it } from "vitest";
-import { RecordAssessmentAbandonmentUseCase } from "./record-assessment-abandonment.usecase";
-import type { SignalAbandonmentParams, SignalCheckinPort } from "@/ports/signal-checkin.port";
+import { RecordUnsentChatDraftUseCase } from "./record-unsent-chat-draft.usecase";
+import type { SignalChatDraftParams, SignalCheckinPort } from "@/ports/signal-checkin.port";
 
 class FakeSignalCheckinPort implements SignalCheckinPort {
-  public abandonCalls: SignalAbandonmentParams[] = [];
+  public chatDraftCalls: SignalChatDraftParams[] = [];
   async checkin(): Promise<void> {
     throw new Error("not used in this test");
   }
-  async abandon(params: SignalAbandonmentParams): Promise<void> {
-    this.abandonCalls.push(params);
-  }
-  async chatDraft(): Promise<void> {
+  async abandon(): Promise<void> {
     throw new Error("not used in this test");
+  }
+  async chatDraft(params: SignalChatDraftParams): Promise<void> {
+    this.chatDraftCalls.push(params);
   }
 }
 
-describe("RecordAssessmentAbandonmentUseCase", () => {
+describe("RecordUnsentChatDraftUseCase", () => {
   it("does nothing when there is no institution link", async () => {
     const port = new FakeSignalCheckinPort();
-    const useCase = new RecordAssessmentAbandonmentUseCase(port);
+    const useCase = new RecordUnsentChatDraftUseCase(port);
 
     await useCase.execute({ link: null });
 
-    expect(port.abandonCalls).toHaveLength(0);
+    expect(port.chatDraftCalls).toHaveLength(0);
   });
 
   it("calls the port with the link's fields, when a link exists", async () => {
     const port = new FakeSignalCheckinPort();
-    const useCase = new RecordAssessmentAbandonmentUseCase(port);
+    const useCase = new RecordUnsentChatDraftUseCase(port);
 
     await useCase.execute({
       link: { institutionId: "inst-1", sectorId: "UTI", deviceSignalId: "device-1" },
     });
 
-    expect(port.abandonCalls).toEqual([{ institutionId: "inst-1", sectorId: "UTI", deviceSignalId: "device-1" }]);
+    expect(port.chatDraftCalls).toEqual([{ institutionId: "inst-1", sectorId: "UTI", deviceSignalId: "device-1" }]);
   });
 
   it("propagates a port failure (the caller decides whether to swallow it)", async () => {
@@ -42,13 +42,13 @@ describe("RecordAssessmentAbandonmentUseCase", () => {
         throw new Error("not used in this test");
       }
       async abandon(): Promise<void> {
-        throw new Error("network down");
-      }
-      async chatDraft(): Promise<void> {
         throw new Error("not used in this test");
       }
+      async chatDraft(): Promise<void> {
+        throw new Error("network down");
+      }
     }
-    const useCase = new RecordAssessmentAbandonmentUseCase(new ThrowingPort());
+    const useCase = new RecordUnsentChatDraftUseCase(new ThrowingPort());
 
     await expect(
       useCase.execute({ link: { institutionId: "inst-1", sectorId: "UTI", deviceSignalId: "device-1" } }),
