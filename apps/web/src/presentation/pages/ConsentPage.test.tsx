@@ -26,6 +26,8 @@ describe("ConsentPage", () => {
     renderConsent();
     expect(screen.getByText(/não emite diagnóstico/)).toBeInTheDocument();
     expect(screen.getByText(/anônimo e agregado/)).toBeInTheDocument();
+    expect(screen.getByText(/questionário iniciado e não concluído/)).toBeInTheDocument();
+    expect(screen.getByText(/mensagem de chat começada e não enviada/)).toBeInTheDocument();
     expect(screen.getByText(/eu escolher/)).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Criptografia AES-256 no seu aparelho/ }),

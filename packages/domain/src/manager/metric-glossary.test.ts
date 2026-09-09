@@ -40,6 +40,14 @@ describe("MANAGER_METRICS", () => {
     expect(MANAGER_METHODOLOGY_VERSION.length).toBeGreaterThan(0);
   });
 
+  it.each(["label", "method", "window", "suppression"] as const)(
+    "has a unique %s across every metric, so no two cards or methodology rows read identically",
+    (field) => {
+      const values = Object.values(MANAGER_METRICS).map((metric) => metric[field]);
+      expect(new Set(values).size).toBe(values.length);
+    },
+  );
+
   // O k-anonimato é decidido por setor, uma vez, na semana de referência —
   // não semana a semana. Um setor visível mostra todas as suas semanas com a
   // contagem real, inclusive as que sozinhas ficariam abaixo de 5. Quem audita

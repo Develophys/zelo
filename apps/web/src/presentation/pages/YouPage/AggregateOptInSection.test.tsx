@@ -14,6 +14,12 @@ describe('AggregateOptInSection', () => {
     expect(screen.getByRole('checkbox', { name: /anônimo e agregado/ })).toBeChecked();
   });
 
+  it('names both the questionnaire draft and the chat draft as covered signals', () => {
+    render(<AggregateOptInSection />);
+    expect(screen.getByText(/questionário iniciado e não concluído/)).toBeInTheDocument();
+    expect(screen.getByText(/mensagem de chat começada e não enviada/)).toBeInTheDocument();
+  });
+
   it('shows the toggle unchecked when the médico has declined', () => {
     useConsentStore.setState({ aggregateOptIn: false });
     render(<AggregateOptInSection />);
