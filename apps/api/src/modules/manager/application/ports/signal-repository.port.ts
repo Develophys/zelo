@@ -5,6 +5,7 @@ export interface SignalRow {
   checkIns: number;
   concerning: number;
   abandoned: number;
+  unsentChatDrafts: number;
 }
 
 export interface WeeklySignalRow {

@@ -340,11 +340,11 @@ describe("manager controller", () => {
 
   it("GET /manager/signals returns only the authenticated manager's own institution's data, suppressing n<5 departments", async () => {
     signalRepository.setRowsForInstitution("institution-a", [
-      { sectorId: "sector-a", sectorName: "A", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 10, concerning: 6, abandoned: 0 },
-      { sectorId: "sector-tiny", sectorName: "Tiny", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 3, concerning: 1, abandoned: 0 },
+      { sectorId: "sector-a", sectorName: "A", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 10, concerning: 6, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "sector-tiny", sectorName: "Tiny", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 3, concerning: 1, abandoned: 0, unsentChatDrafts: 0 },
     ]);
     signalRepository.setRowsForInstitution("institution-b", [
-      { sectorId: "sector-a", sectorName: "A", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 20, concerning: 2, abandoned: 0 },
+      { sectorId: "sector-a", sectorName: "A", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 20, concerning: 2, abandoned: 0, unsentChatDrafts: 0 },
     ]);
     sectorRepository.activeByInstitution = {
       "institution-a": [{ id: "sector-a", name: "A" }, { id: "sector-tiny", name: "Tiny" }],
@@ -374,8 +374,8 @@ describe("manager controller", () => {
 
   it("GET /manager/signals?sectorIds=... narrows the result to the requested, permitted sectors", async () => {
     signalRepository.setRowsForInstitution("institution-a", [
-      { sectorId: "sector-1", sectorName: "UTI", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 10, concerning: 6, abandoned: 0 },
-      { sectorId: "sector-2", sectorName: "Pronto-Socorro", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 20, concerning: 2, abandoned: 0 },
+      { sectorId: "sector-1", sectorName: "UTI", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 10, concerning: 6, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "sector-2", sectorName: "Pronto-Socorro", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 20, concerning: 2, abandoned: 0, unsentChatDrafts: 0 },
     ]);
     sectorRepository.activeByInstitution = { "institution-a": [{ id: "sector-1", name: "UTI" }, { id: "sector-2", name: "Pronto-Socorro" }] };
     const token = await getToken("ana@zelo-demo.local", "test-password");
@@ -390,8 +390,8 @@ describe("manager controller", () => {
 
   it("GET /manager/signals with no sectorIds param at all returns every accessible sector, identically to spelling them all out", async () => {
     signalRepository.setRowsForInstitution("institution-a", [
-      { sectorId: "sector-1", sectorName: "UTI", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 10, concerning: 6, abandoned: 0 },
-      { sectorId: "sector-2", sectorName: "Pronto-Socorro", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 20, concerning: 2, abandoned: 0 },
+      { sectorId: "sector-1", sectorName: "UTI", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 10, concerning: 6, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "sector-2", sectorName: "Pronto-Socorro", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 20, concerning: 2, abandoned: 0, unsentChatDrafts: 0 },
     ]);
     sectorRepository.activeByInstitution = { "institution-a": [{ id: "sector-1", name: "UTI" }, { id: "sector-2", name: "Pronto-Socorro" }] };
     const token = await getToken("ana@zelo-demo.local", "test-password");
@@ -413,8 +413,8 @@ describe("manager controller", () => {
 
   it("GET /manager/signals?sectorIds= (empty value) returns the all-zero response, not the manager's full accessible data", async () => {
     signalRepository.setRowsForInstitution("institution-a", [
-      { sectorId: "sector-1", sectorName: "UTI", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 10, concerning: 6, abandoned: 0 },
-      { sectorId: "sector-2", sectorName: "Pronto-Socorro", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 20, concerning: 2, abandoned: 0 },
+      { sectorId: "sector-1", sectorName: "UTI", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 10, concerning: 6, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "sector-2", sectorName: "Pronto-Socorro", weekStart: new Date("2026-06-22T00:00:00.000Z"), checkIns: 20, concerning: 2, abandoned: 0, unsentChatDrafts: 0 },
     ]);
     sectorRepository.activeByInstitution = { "institution-a": [{ id: "sector-1", name: "UTI" }, { id: "sector-2", name: "Pronto-Socorro" }] };
     const token = await getToken("ana@zelo-demo.local", "test-password");

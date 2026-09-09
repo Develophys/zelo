@@ -43,7 +43,7 @@ describe("GetManagerSignalsUseCase", () => {
   });
 
   it("returns the all-zero response without calling the repository when sectorIds is empty", async () => {
-    const repository = new FakeSignalRepository([{ sectorId: "x", sectorName: "X", weekStart: WEEK_1, checkIns: 10, concerning: 5, abandoned: 0 }]);
+    const repository = new FakeSignalRepository([{ sectorId: "x", sectorName: "X", weekStart: WEEK_1, checkIns: 10, concerning: 5, abandoned: 0, unsentChatDrafts: 0 }]);
     const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
 
     const result = await useCase.execute("institution-1", []);
@@ -63,12 +63,12 @@ describe("GetManagerSignalsUseCase", () => {
 
   it("computes segments from the most recent week only, excluding sectors under k=5, labeling by sectorName", async () => {
     const repository = new FakeSignalRepository([
-      { sectorId: "b", sectorName: "B", weekStart: WEEK_2, checkIns: 10, concerning: 4, abandoned: 0 },
-      { sectorId: "a", sectorName: "A", weekStart: WEEK_1, checkIns: 10, concerning: 3, abandoned: 0 },
-      { sectorId: "c", sectorName: "C", weekStart: WEEK_1, checkIns: 4, concerning: 2, abandoned: 0 },
-      { sectorId: "a", sectorName: "A", weekStart: WEEK_2, checkIns: 10, concerning: 6, abandoned: 0 },
-      { sectorId: "c", sectorName: "C", weekStart: WEEK_2, checkIns: 4, concerning: 2, abandoned: 0 },
-      { sectorId: "b", sectorName: "B", weekStart: WEEK_1, checkIns: 10, concerning: 4, abandoned: 0 },
+      { sectorId: "b", sectorName: "B", weekStart: WEEK_2, checkIns: 10, concerning: 4, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "a", sectorName: "A", weekStart: WEEK_1, checkIns: 10, concerning: 3, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "c", sectorName: "C", weekStart: WEEK_1, checkIns: 4, concerning: 2, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "a", sectorName: "A", weekStart: WEEK_2, checkIns: 10, concerning: 6, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "c", sectorName: "C", weekStart: WEEK_2, checkIns: 4, concerning: 2, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "b", sectorName: "B", weekStart: WEEK_1, checkIns: 10, concerning: 4, abandoned: 0, unsentChatDrafts: 0 },
     ]);
     const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
 
@@ -85,9 +85,9 @@ describe("GetManagerSignalsUseCase", () => {
 
   it("computes overallConcerningRate from only the visible sectors' most recent week", async () => {
     const repository = new FakeSignalRepository([
-      { sectorId: "a", sectorName: "A", weekStart: WEEK_2, checkIns: 10, concerning: 6, abandoned: 0 },
-      { sectorId: "b", sectorName: "B", weekStart: WEEK_2, checkIns: 10, concerning: 4, abandoned: 0 },
-      { sectorId: "c", sectorName: "C", weekStart: WEEK_2, checkIns: 4, concerning: 2, abandoned: 0 },
+      { sectorId: "a", sectorName: "A", weekStart: WEEK_2, checkIns: 10, concerning: 6, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "b", sectorName: "B", weekStart: WEEK_2, checkIns: 10, concerning: 4, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "c", sectorName: "C", weekStart: WEEK_2, checkIns: 4, concerning: 2, abandoned: 0, unsentChatDrafts: 0 },
     ]);
     const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
 
@@ -98,12 +98,12 @@ describe("GetManagerSignalsUseCase", () => {
 
   it("computes weeklyTrend and checkInsLast4Weeks from the visible sectors only, excluding every week of a suppressed sector", async () => {
     const repository = new FakeSignalRepository([
-      { sectorId: "a", sectorName: "A", weekStart: WEEK_1, checkIns: 10, concerning: 3, abandoned: 0 },
-      { sectorId: "a", sectorName: "A", weekStart: WEEK_2, checkIns: 10, concerning: 6, abandoned: 0 },
-      { sectorId: "b", sectorName: "B", weekStart: WEEK_1, checkIns: 10, concerning: 4, abandoned: 0 },
-      { sectorId: "b", sectorName: "B", weekStart: WEEK_2, checkIns: 10, concerning: 4, abandoned: 0 },
-      { sectorId: "c", sectorName: "C", weekStart: WEEK_1, checkIns: 4, concerning: 2, abandoned: 0 },
-      { sectorId: "c", sectorName: "C", weekStart: WEEK_2, checkIns: 4, concerning: 2, abandoned: 0 },
+      { sectorId: "a", sectorName: "A", weekStart: WEEK_1, checkIns: 10, concerning: 3, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "a", sectorName: "A", weekStart: WEEK_2, checkIns: 10, concerning: 6, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "b", sectorName: "B", weekStart: WEEK_1, checkIns: 10, concerning: 4, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "b", sectorName: "B", weekStart: WEEK_2, checkIns: 10, concerning: 4, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "c", sectorName: "C", weekStart: WEEK_1, checkIns: 4, concerning: 2, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "c", sectorName: "C", weekStart: WEEK_2, checkIns: 4, concerning: 2, abandoned: 0, unsentChatDrafts: 0 },
     ]);
     const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
 
@@ -119,8 +119,8 @@ describe("GetManagerSignalsUseCase", () => {
 
   it("keeps a visible sector's earlier weeks in the sums even when that week was under k=5, matching how segments decides visibility", async () => {
     const repository = new FakeSignalRepository([
-      { sectorId: "a", sectorName: "A", weekStart: WEEK_1, checkIns: 2, concerning: 1, abandoned: 0 },
-      { sectorId: "a", sectorName: "A", weekStart: WEEK_2, checkIns: 10, concerning: 5, abandoned: 0 },
+      { sectorId: "a", sectorName: "A", weekStart: WEEK_1, checkIns: 2, concerning: 1, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "a", sectorName: "A", weekStart: WEEK_2, checkIns: 10, concerning: 5, abandoned: 0, unsentChatDrafts: 0 },
     ]);
     const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
 
@@ -135,7 +135,7 @@ describe("GetManagerSignalsUseCase", () => {
 
   it("returns 0 for overallConcerningRate (not NaN) when every sector is suppressed", async () => {
     const repository = new FakeSignalRepository([
-      { sectorId: "tiny", sectorName: "Tiny", weekStart: WEEK_2, checkIns: 2, concerning: 1, abandoned: 0 },
+      { sectorId: "tiny", sectorName: "Tiny", weekStart: WEEK_2, checkIns: 2, concerning: 1, abandoned: 0, unsentChatDrafts: 0 },
     ]);
     const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
 
@@ -148,8 +148,8 @@ describe("GetManagerSignalsUseCase", () => {
 
   it("suppresses weeklyTrend and checkInsLast4Weeks entirely when the sector filter narrows to a single under-k sector", async () => {
     const repository = new FakeSignalRepository([
-      { sectorId: "c", sectorName: "C", weekStart: WEEK_1, checkIns: 3, concerning: 2, abandoned: 0 },
-      { sectorId: "c", sectorName: "C", weekStart: WEEK_2, checkIns: 4, concerning: 3, abandoned: 0 },
+      { sectorId: "c", sectorName: "C", weekStart: WEEK_1, checkIns: 3, concerning: 2, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "c", sectorName: "C", weekStart: WEEK_2, checkIns: 4, concerning: 3, abandoned: 0, unsentChatDrafts: 0 },
     ]);
     const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
 
@@ -163,8 +163,8 @@ describe("GetManagerSignalsUseCase", () => {
 
   it("carries the denominator of every trend week, so a rate can be read against its base", async () => {
     const rows = [
-      { sectorId: "s1", sectorName: "UTI", weekStart: new Date("2026-08-24T00:00:00.000Z"), checkIns: 10, concerning: 4, abandoned: 0 },
-      { sectorId: "s1", sectorName: "UTI", weekStart: new Date("2026-08-31T00:00:00.000Z"), checkIns: 20, concerning: 9, abandoned: 0 },
+      { sectorId: "s1", sectorName: "UTI", weekStart: new Date("2026-08-24T00:00:00.000Z"), checkIns: 10, concerning: 4, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "s1", sectorName: "UTI", weekStart: new Date("2026-08-31T00:00:00.000Z"), checkIns: 20, concerning: 9, abandoned: 0, unsentChatDrafts: 0 },
     ];
     const useCase = makeUseCase(rows);
 
@@ -182,8 +182,8 @@ describe("GetManagerSignalsUseCase", () => {
   it("keeps a sub-threshold sector out of the trend denominators entirely", async () => {
     const week = new Date("2026-08-31T00:00:00.000Z");
     const rows = [
-      { sectorId: "visible", sectorName: "UTI", weekStart: week, checkIns: 20, concerning: 9, abandoned: 0 },
-      { sectorId: "hidden", sectorName: "Pediatria", weekStart: week, checkIns: 3, concerning: 3, abandoned: 0 },
+      { sectorId: "visible", sectorName: "UTI", weekStart: week, checkIns: 20, concerning: 9, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "hidden", sectorName: "Pediatria", weekStart: week, checkIns: 3, concerning: 3, abandoned: 0, unsentChatDrafts: 0 },
     ];
     const useCase = makeUseCase(rows);
 
@@ -198,9 +198,9 @@ describe("GetManagerSignalsUseCase", () => {
   it("reports how many sectors the reading covers and how many are suppressed", async () => {
     const week = new Date("2026-08-31T00:00:00.000Z");
     const rows = [
-      { sectorId: "a", sectorName: "UTI", weekStart: week, checkIns: 20, concerning: 9, abandoned: 0 },
-      { sectorId: "b", sectorName: "PS", weekStart: week, checkIns: 8, concerning: 2, abandoned: 0 },
-      { sectorId: "c", sectorName: "Pediatria", weekStart: week, checkIns: 3, concerning: 1, abandoned: 0 },
+      { sectorId: "a", sectorName: "UTI", weekStart: week, checkIns: 20, concerning: 9, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "b", sectorName: "PS", weekStart: week, checkIns: 8, concerning: 2, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "c", sectorName: "Pediatria", weekStart: week, checkIns: 3, concerning: 1, abandoned: 0, unsentChatDrafts: 0 },
     ];
     const useCase = makeUseCase(rows);
 
@@ -214,8 +214,8 @@ describe("GetManagerSignalsUseCase", () => {
   it("still reports the total when every sector is suppressed", async () => {
     const week = new Date("2026-08-31T00:00:00.000Z");
     const rows = [
-      { sectorId: "a", sectorName: "UTI", weekStart: week, checkIns: 2, concerning: 1, abandoned: 0 },
-      { sectorId: "b", sectorName: "PS", weekStart: week, checkIns: 1, concerning: 0, abandoned: 0 },
+      { sectorId: "a", sectorName: "UTI", weekStart: week, checkIns: 2, concerning: 1, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "b", sectorName: "PS", weekStart: week, checkIns: 1, concerning: 0, abandoned: 0, unsentChatDrafts: 0 },
     ];
     const useCase = makeUseCase(rows);
 
@@ -235,7 +235,7 @@ describe("GetManagerSignalsUseCase", () => {
 
   it("counts a sector that has never had a single check-in toward the total, not just sectors with rows", async () => {
     const week = new Date("2026-08-31T00:00:00.000Z");
-    const rows = [{ sectorId: "a", sectorName: "UTI", weekStart: week, checkIns: 20, concerning: 9, abandoned: 0 }];
+    const rows = [{ sectorId: "a", sectorName: "UTI", weekStart: week, checkIns: 20, concerning: 9, abandoned: 0, unsentChatDrafts: 0 }];
     const useCase = makeUseCase(rows);
 
     const result = await useCase.execute("inst-1", ["a", "never-checked-in"]);
@@ -251,8 +251,8 @@ describe("GetManagerSignalsUseCase", () => {
     const REFERENCE = new Date("2026-08-24T00:00:00.000Z");
     const PARTIAL = new Date("2026-08-31T00:00:00.000Z"); // a semana em curso
     const rows = [
-      { sectorId: "s1", sectorName: "UTI", weekStart: REFERENCE, checkIns: 20, concerning: 8, abandoned: 0 },
-      { sectorId: "s1", sectorName: "UTI", weekStart: PARTIAL, checkIns: 3, concerning: 1, abandoned: 0 },
+      { sectorId: "s1", sectorName: "UTI", weekStart: REFERENCE, checkIns: 20, concerning: 8, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "s1", sectorName: "UTI", weekStart: PARTIAL, checkIns: 3, concerning: 1, abandoned: 0, unsentChatDrafts: 0 },
     ];
     const useCase = makeUseCase(rows);
 
@@ -270,7 +270,7 @@ describe("GetManagerSignalsUseCase", () => {
 
   it("names no reference week when no week reaches the minimum", async () => {
     const rows = [
-      { sectorId: "a", sectorName: "UTI", weekStart: WEEK_2, checkIns: 2, concerning: 1, abandoned: 0 },
+      { sectorId: "a", sectorName: "UTI", weekStart: WEEK_2, checkIns: 2, concerning: 1, abandoned: 0, unsentChatDrafts: 0 },
     ];
     const useCase = makeUseCase(rows);
 
@@ -282,11 +282,11 @@ describe("GetManagerSignalsUseCase", () => {
   it("sums abandoned only across the visible sectors' last 4 weeks, mirroring checkInsLast4Weeks", async () => {
     const rows: SignalRow[] = [
       // sector "visible": clears k=5 in WEEK_2 (the reference week) — counts.
-      { sectorId: "visible", sectorName: "UTI", weekStart: WEEK_1, checkIns: 6, concerning: 1, abandoned: 2 },
-      { sectorId: "visible", sectorName: "UTI", weekStart: WEEK_2, checkIns: 6, concerning: 2, abandoned: 3 },
+      { sectorId: "visible", sectorName: "UTI", weekStart: WEEK_1, checkIns: 6, concerning: 1, abandoned: 2, unsentChatDrafts: 0 },
+      { sectorId: "visible", sectorName: "UTI", weekStart: WEEK_2, checkIns: 6, concerning: 2, abandoned: 3, unsentChatDrafts: 0 },
       // sector "hidden": never reaches 5 check-ins — its abandoned count must not leak through.
-      { sectorId: "hidden", sectorName: "Pronto-Socorro", weekStart: WEEK_1, checkIns: 2, concerning: 0, abandoned: 9 },
-      { sectorId: "hidden", sectorName: "Pronto-Socorro", weekStart: WEEK_2, checkIns: 2, concerning: 0, abandoned: 9 },
+      { sectorId: "hidden", sectorName: "Pronto-Socorro", weekStart: WEEK_1, checkIns: 2, concerning: 0, abandoned: 9, unsentChatDrafts: 0 },
+      { sectorId: "hidden", sectorName: "Pronto-Socorro", weekStart: WEEK_2, checkIns: 2, concerning: 0, abandoned: 9, unsentChatDrafts: 0 },
     ];
     const useCase = makeUseCase(rows);
 
@@ -311,6 +311,7 @@ describe("GetManagerSignalsUseCase", () => {
       checkIns: 6 + index,
       concerning: 1,
       abandoned: 1,
+      unsentChatDrafts: 0,
     }));
     const abandonOnly: SignalRow = {
       sectorId: "visible",
@@ -319,6 +320,7 @@ describe("GetManagerSignalsUseCase", () => {
       checkIns: 0,
       concerning: 0,
       abandoned: 7,
+      unsentChatDrafts: 0,
     };
 
     const withAbandonOnly = await makeUseCase([...withData, abandonOnly]).execute("institution-1", ["visible"]);
@@ -335,7 +337,7 @@ describe("GetManagerSignalsUseCase", () => {
 
   it("returns abandonedLast4Weeks: 0 when no sector clears the k-anonymity threshold", async () => {
     const rows: SignalRow[] = [
-      { sectorId: "hidden", sectorName: "Pronto-Socorro", weekStart: WEEK_1, checkIns: 1, concerning: 0, abandoned: 4 },
+      { sectorId: "hidden", sectorName: "Pronto-Socorro", weekStart: WEEK_1, checkIns: 1, concerning: 0, abandoned: 4, unsentChatDrafts: 0 },
     ];
     const useCase = makeUseCase(rows);
 
@@ -369,10 +371,10 @@ describe("GetManagerSignalsUseCase - followUpResponseRate", () => {
     // 50% / 72, while a strict superset of those two returned 0% / 0.
     const WEEK_3 = new Date("2026-06-29T00:00:00.000Z"); // newer than WEEK_2
     const repository = new FakeSignalRepository([
-      { sectorId: "busy", sectorName: "Plantão noturno", weekStart: WEEK_1, checkIns: 18, concerning: 9, abandoned: 0 },
-      { sectorId: "busy", sectorName: "Plantão noturno", weekStart: WEEK_2, checkIns: 18, concerning: 9, abandoned: 0 },
+      { sectorId: "busy", sectorName: "Plantão noturno", weekStart: WEEK_1, checkIns: 18, concerning: 9, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "busy", sectorName: "Plantão noturno", weekStart: WEEK_2, checkIns: 18, concerning: 9, abandoned: 0, unsentChatDrafts: 0 },
       // One doctor checked in this week in a different sector.
-      { sectorId: "fresh", sectorName: "UTI", weekStart: WEEK_3, checkIns: 1, concerning: 1, abandoned: 0 },
+      { sectorId: "fresh", sectorName: "UTI", weekStart: WEEK_3, checkIns: 1, concerning: 1, abandoned: 0, unsentChatDrafts: 0 },
     ]);
     const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
 
@@ -387,8 +389,8 @@ describe("GetManagerSignalsUseCase - followUpResponseRate", () => {
   it("stays monotonic: adding a sector never returns less than the subset did", async () => {
     const WEEK_3 = new Date("2026-06-29T00:00:00.000Z");
     const rows: SignalRow[] = [
-      { sectorId: "busy", sectorName: "Plantão noturno", weekStart: WEEK_2, checkIns: 18, concerning: 9, abandoned: 0 },
-      { sectorId: "fresh", sectorName: "UTI", weekStart: WEEK_3, checkIns: 1, concerning: 1, abandoned: 0 },
+      { sectorId: "busy", sectorName: "Plantão noturno", weekStart: WEEK_2, checkIns: 18, concerning: 9, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "fresh", sectorName: "UTI", weekStart: WEEK_3, checkIns: 1, concerning: 1, abandoned: 0, unsentChatDrafts: 0 },
     ];
     const useCase = new GetManagerSignalsUseCase(
       new FakeSignalRepository(rows.filter((r) => r.sectorId === "busy")),

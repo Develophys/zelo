@@ -15,6 +15,7 @@ export class PrismaSignalRepository implements SignalRepository {
         checkIns: true,
         concerning: true,
         abandoned: true,
+        unsentChatDrafts: true,
         sector: { select: { name: true } },
       },
     });
@@ -25,6 +26,7 @@ export class PrismaSignalRepository implements SignalRepository {
       checkIns: row.checkIns,
       concerning: row.concerning,
       abandoned: row.abandoned,
+      unsentChatDrafts: row.unsentChatDrafts,
     }));
   }
 
