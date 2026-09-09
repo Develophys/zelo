@@ -1,4 +1,4 @@
-export type ManagerMetricId = "concerningRate" | "checkIns" | "followUpRate" | "sectorCoverage";
+export type ManagerMetricId = "concerningRate" | "checkIns" | "abandoned" | "followUpRate" | "sectorCoverage";
 
 export interface MetricDefinition {
   id: ManagerMetricId;
@@ -19,7 +19,7 @@ export interface MetricDefinition {
 }
 
 /** Muda sempre que um limiar, uma janela ou uma regra de supressão mudar. */
-export const MANAGER_METHODOLOGY_VERSION = "1.0 — 7 de setembro de 2026";
+export const MANAGER_METHODOLOGY_VERSION = "1.1 — 9 de setembro de 2026";
 
 export const MANAGER_METRICS: Record<ManagerMetricId, MetricDefinition> = {
   concerningRate: {
@@ -39,6 +39,15 @@ export const MANAGER_METRICS: Record<ManagerMetricId, MetricDefinition> = {
       "Soma das respostas enviadas. Uma mesma pessoa que responde em duas semanas diferentes conta duas vezes; dentro da mesma semana, conta uma única vez, mesmo que refaça o questionário.",
     window: "As 4 semanas mais recentes que têm dados — não necessariamente os últimos 28 dias corridos.",
     suppression: "Conta apenas os setores com 5 respostas ou mais.",
+  },
+  abandoned: {
+    id: "abandoned",
+    label: "Questionários abandonados",
+    method:
+      "Quantas vezes alguém começou a responder um questionário (PHQ-9 ou GAD-7) e confirmou que queria sair antes de terminar, na tela de aviso que aparece nesse momento. Uma pessoa que abandona e depois volta e conclui o mesmo questionário conta nos dois indicadores — não há tentativa de reconciliar um com o outro.",
+    window: "As 4 semanas mais recentes que têm dados — mesma janela de \"Respostas\".",
+    suppression:
+      "Conta apenas os setores que já têm 5 respostas ou mais na semana de referência — o mesmo critério de \"Respostas\", nunca um critério próprio. Um setor não fica visível por abandono sozinho.",
   },
   followUpRate: {
     id: "followUpRate",
@@ -91,4 +100,12 @@ export function sectorCoverageReading(input: { visible: number; total: number })
       ? "nenhum oculto"
       : `${hidden} ${hidden === 1 ? "oculto" : "ocultos"} por ${hidden === 1 ? "ter" : "terem"} menos de 5 respostas`;
   return `${input.visible} de ${input.total} setores · ${tail}`;
+}
+
+function questionariosAbandonados(count: number): string {
+  return count === 1 ? "1 questionário abandonado" : `${count} questionários abandonados`;
+}
+
+export function abandonedReading(total: number): string {
+  return `${questionariosAbandonados(total)}, nas últimas 4 semanas`;
 }
