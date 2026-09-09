@@ -9,6 +9,7 @@ import { PHQ9_RISK_ITEM_INDEX } from '@/domain/assessment-scales/phq9';
 import * as container from '@/app/container';
 import { routes } from '@/presentation/lib/routes';
 import { useInstitutionLinkStore } from '@/stores/institution-link.store';
+import { useConsentStore } from '@/stores/consent.store';
 
 function ResultProbe() {
   const { state } = useLocation() as {
@@ -31,7 +32,7 @@ function NavigateAwayProbe() {
   );
 }
 
-function renderScale(scale: AssessmentScale, path: string) {
+function renderScale(scale: AssessmentScale, path: string, basename?: string) {
   const queryClient = new QueryClient();
   const router = createMemoryRouter(
     [
@@ -48,7 +49,7 @@ function renderScale(scale: AssessmentScale, path: string) {
       { path: routes.home, element: <div>Home screen</div> },
       { path: routes.result, element: <ResultProbe /> },
     ],
-    { initialEntries: [path] },
+    { initialEntries: [`${basename ?? ''}${path}`], ...(basename ? { basename } : {}) },
   );
   return render(
     <QueryClientProvider client={queryClient}>
@@ -87,6 +88,7 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
       sectorName: null,
       deviceSignalId: null,
     });
+    useConsentStore.setState({ aggregateOptIn: true });
     vi.spyOn(container.submitAssessmentUseCase, 'execute').mockResolvedValue({
       totalScore: 5,
       riskSignal: false,
@@ -404,6 +406,27 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     });
   });
 
+  it('does not record the abandonment when the médico declined the aggregate signal, even with a linked institution', async () => {
+    const user = userEvent.setup();
+    useInstitutionLinkStore.setState({
+      institutionId: 'inst-1',
+      institutionName: 'Hospital X',
+      sectorId: 'UTI',
+      sectorName: 'UTI',
+      deviceSignalId: 'device-1',
+    });
+    useConsentStore.setState({ aggregateOptIn: false });
+    const executeSpy = vi.spyOn(container.recordAssessmentAbandonmentUseCase, 'execute');
+    renderScale(scale, path);
+
+    await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
+    await user.click(screen.getByRole('button', { name: 'Ir para Home (probe)' }));
+    await user.click(screen.getByRole('button', { name: 'Sair mesmo assim' }));
+
+    expect(screen.getByText('Home screen')).toBeInTheDocument();
+    expect(executeSpy).not.toHaveBeenCalled();
+  });
+
   it('does not record the abandonment when there is no institution link', async () => {
     const user = userEvent.setup();
     const executeSpy = vi.spyOn(container.recordAssessmentAbandonmentUseCase, 'execute');
@@ -427,6 +450,30 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
 
     expect(await screen.findByText(`Result screen max=${maxScore} score=5`)).toBeInTheDocument();
     expect(screen.queryByText('Sair sem terminar?')).not.toBeInTheDocument();
+  });
+
+  it('does not block the post-submit navigation, nor record an abandonment, when the router is mounted under a basename as it is on GitHub Pages', async () => {
+    const user = userEvent.setup();
+    useInstitutionLinkStore.setState({
+      institutionId: 'inst-1',
+      institutionName: 'Hospital X',
+      sectorId: 'UTI',
+      sectorName: 'UTI',
+      deviceSignalId: 'device-1',
+    });
+    const abandonSpy = vi
+      .spyOn(container.recordAssessmentAbandonmentUseCase, 'execute')
+      .mockResolvedValue(undefined);
+    renderScale(scale, path, '/zelo');
+
+    for (let i = 0; i < total; i++) {
+      await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
+    }
+    await user.click(screen.getByRole('button', { name: 'Enviar respostas' }));
+
+    expect(await screen.findByText(`Result screen max=${maxScore} score=5`)).toBeInTheDocument();
+    expect(screen.queryByText('Sair sem terminar?')).not.toBeInTheDocument();
+    expect(abandonSpy).not.toHaveBeenCalled();
   });
 });
 

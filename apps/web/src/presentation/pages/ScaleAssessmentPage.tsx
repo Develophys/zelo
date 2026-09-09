@@ -16,8 +16,7 @@ import { useSubmitAssessment } from '@/presentation/hooks/useSubmitAssessment';
 import { routes } from '@/presentation/lib/routes';
 import { clearDraft, recallDraft, rememberDraft } from '@/presentation/lib/assessment-draft';
 import { recordAssessmentAbandonmentUseCase } from '@/app/container';
-import { useInstitutionLinkStore } from '@/stores/institution-link.store';
-import { useConsentStore } from '@/stores/consent.store';
+import { getLinkedAndOptedIn } from '@/presentation/lib/institution-link-gate';
 
 interface ScaleAssessmentPageProps {
   scale: AssessmentScale;
@@ -48,12 +47,9 @@ export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
   );
 
   const handleConfirmLeave = () => {
-    const { institutionId, sectorId, deviceSignalId } = useInstitutionLinkStore.getState();
-    const { aggregateOptIn } = useConsentStore.getState();
-    if (institutionId !== null && sectorId !== null && deviceSignalId !== null && aggregateOptIn) {
-      void recordAssessmentAbandonmentUseCase
-        .execute({ link: { institutionId, sectorId, deviceSignalId } })
-        .catch(() => {});
+    const link = getLinkedAndOptedIn();
+    if (link) {
+      void recordAssessmentAbandonmentUseCase.execute({ link }).catch(() => {});
     }
   };
 

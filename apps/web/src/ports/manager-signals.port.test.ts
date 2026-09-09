@@ -38,6 +38,13 @@ describe("ManagerSignalsResponseSchema", () => {
     expect(() => ManagerSignalsResponseSchema.parse(stale)).toThrow();
   });
 
+  it("falls back to zero abandonments when the API has not deployed the field yet, rather than failing the whole parse", () => {
+    const stale: Partial<typeof VALID> = { ...VALID };
+    delete stale.abandonedLast4Weeks;
+
+    expect(ManagerSignalsResponseSchema.parse(stale)).toEqual(VALID);
+  });
+
   // Null é diferente de ausente: nenhuma semana atingiu o mínimo.
   it("accepts a null reference week, which is what an all-suppressed reading returns", () => {
     expect(ManagerSignalsResponseSchema.parse({ ...VALID, referenceWeekStart: null })).toEqual({

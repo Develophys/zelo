@@ -395,15 +395,16 @@ export function ManagerDashboardPage() {
           defaulting to zero, which reads as a measurement. */}
       {!loadFailed && (
         <>
-        <div data-testid="kpi-grid" className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div data-testid="kpi-grid" className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           {isLoading ? (
             <>
               <KpiCardSkeleton />
               <KpiCardSkeleton />
               <KpiCardSkeleton />
+              <KpiCardSkeleton />
             </>
           ) : checkInsLast4Weeks === 0 ? (
-            <Card className="h-full text-center md:col-span-2 lg:col-span-3" data-testid="kpi-empty">
+            <Card className="h-full text-center md:col-span-2 lg:col-span-4" data-testid="kpi-empty">
               <p className="text-pretty text-label text-muted">{KPI_EMPTY}</p>
             </Card>
           ) : (

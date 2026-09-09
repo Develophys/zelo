@@ -4,8 +4,7 @@ import type {
   SubmitAssessmentParams,
   SubmitAssessmentResult,
 } from '@/use-cases/submit-assessment.usecase';
-import { useInstitutionLinkStore } from '@/stores/institution-link.store';
-import { useConsentStore } from '@/stores/consent.store';
+import { getLinkedAndOptedIn } from '@/presentation/lib/institution-link-gate';
 import { isConcerningScore } from '@/domain/is-concerning-score';
 
 export function useSubmitAssessment() {
@@ -18,14 +17,10 @@ export function useSubmitAssessment() {
       // (linking is optional and never gates core functionality). An unlinked
       // device must fire zero check-in network calls, so we skip invoking the
       // use case entirely rather than calling it with a null link.
-      const { institutionId, sectorId, deviceSignalId } = useInstitutionLinkStore.getState();
-      const { aggregateOptIn } = useConsentStore.getState();
-      if (institutionId !== null && sectorId !== null && deviceSignalId !== null && aggregateOptIn) {
+      const link = getLinkedAndOptedIn();
+      if (link) {
         void recordSignalCheckinUseCase
-          .execute({
-            link: { institutionId, sectorId, deviceSignalId },
-            concerning: isConcerningScore(result.totalScore),
-          })
+          .execute({ link, concerning: isConcerningScore(result.totalScore) })
           .catch(() => {});
       }
 

@@ -342,6 +342,25 @@ describe("ManagerDashboardPage", () => {
     expect(screen.queryAllByTestId("skeleton")).toHaveLength(0);
   });
 
+  it("places one skeleton per KPI card, so the grid does not jump when the data lands", async () => {
+    let resolveSignals!: (value: typeof SIGNALS_RESPONSE) => void;
+    const pending = new Promise<typeof SIGNALS_RESPONSE>((resolve) => {
+      resolveSignals = resolve;
+    });
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockReturnValue(pending);
+
+    renderManager();
+
+    const loadingCards = within(screen.getByTestId("kpi-grid")).getAllByTestId("kpi-card").length;
+
+    resolveSignals(SIGNALS_RESPONSE);
+    await waitFor(() => {
+      expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
+    });
+
+    expect(loadingCards).toBe(within(screen.getByTestId("kpi-grid")).getAllByTestId("kpi-card").length);
+  });
+
   it("offers the AI analysis control while the signals query is still loading — it does not depend on signals data", async () => {
     let resolveSignals!: (value: typeof SIGNALS_RESPONSE) => void;
     const pending = new Promise<typeof SIGNALS_RESPONSE>((resolve) => {
@@ -460,12 +479,12 @@ describe("ManagerDashboardPage", () => {
     expect(zero.className).not.toContain("text-warn");
   });
 
-  it("lays out the three KPI cards in a responsive grid", async () => {
+  it("lays out the four KPI cards in a responsive grid", async () => {
     renderManager();
     await waitFor(() => {
       expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
     });
-    expect(screen.getByTestId("kpi-grid")).toHaveClass("grid-cols-1", "md:grid-cols-2", "lg:grid-cols-3");
+    expect(screen.getByTestId("kpi-grid")).toHaveClass("grid-cols-1", "md:grid-cols-2", "lg:grid-cols-4");
   });
 
   it("lays out trend and segments in a responsive grid", async () => {
@@ -821,13 +840,13 @@ describe("ManagerDashboardPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it('grows the stat grid one, two, three across — never leaving an empty column', async () => {
+  it('grows the stat grid one, two, four across — one column per card, never leaving an empty one', async () => {
     renderManager();
     const grid = await screen.findByTestId('kpi-grid');
     expect(grid.className).toContain('grid-cols-1');
     expect(grid.className).toContain('md:grid-cols-2');
-    expect(grid.className).toContain('lg:grid-cols-3');
-    expect(grid.className).not.toContain('lg:grid-cols-4');
+    expect(grid.className).toContain('lg:grid-cols-4');
+    expect(within(grid).getAllByTestId('kpi-card')).toHaveLength(4);
     for (const card of within(grid).getAllByTestId('kpi-card')) {
       expect(card.className).toContain('h-full');
     }
