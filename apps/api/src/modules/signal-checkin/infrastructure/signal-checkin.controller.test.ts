@@ -4,22 +4,35 @@ import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
 import { SignalCheckinController } from "./signal-checkin.controller.ts";
 import { RecordSignalCheckinUseCase } from "../application/use-cases/record-signal-checkin.use-case.ts";
+import { RecordAssessmentAbandonmentUseCase } from "../application/use-cases/record-assessment-abandonment.use-case.ts";
 import {
   SIGNAL_CHECKIN_REPOSITORY,
   UnknownInstitutionOrSectorError,
 } from "../application/ports/signal-checkin-repository.port.ts";
-import type { RecordCheckinParams, SignalCheckinRepository } from "../application/ports/signal-checkin-repository.port.ts";
+import type {
+  RecordAbandonmentParams,
+  RecordCheckinParams,
+  SignalCheckinRepository,
+} from "../application/ports/signal-checkin-repository.port.ts";
 import { NOTIFICATION_PUBLISHER, type NotificationEvent, type NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
 
 class FakeSignalCheckinRepository implements SignalCheckinRepository {
-  public calls: RecordCheckinParams[] = [];
+  public checkinCalls: RecordCheckinParams[] = [];
+  public abandonCalls: RecordAbandonmentParams[] = [];
   public shouldThrowUnknownInstitution = false;
   async recordCheckin(params: RecordCheckinParams): Promise<{ checkIns: number } | null> {
     if (this.shouldThrowUnknownInstitution) {
       throw new UnknownInstitutionOrSectorError();
     }
-    this.calls.push(params);
+    this.checkinCalls.push(params);
     return { checkIns: 1 };
+  }
+  async recordAbandonment(params: RecordAbandonmentParams): Promise<{ abandoned: number } | null> {
+    if (this.shouldThrowUnknownInstitution) {
+      throw new UnknownInstitutionOrSectorError();
+    }
+    this.abandonCalls.push(params);
+    return { abandoned: 1 };
   }
 }
 
@@ -37,6 +50,7 @@ describe("signal-checkin controller", () => {
       controllers: [SignalCheckinController],
       providers: [
         RecordSignalCheckinUseCase,
+        RecordAssessmentAbandonmentUseCase,
         { provide: SIGNAL_CHECKIN_REPOSITORY, useValue: repository },
         { provide: NOTIFICATION_PUBLISHER, useValue: fakeNotificationPublisher },
       ],
@@ -59,8 +73,8 @@ describe("signal-checkin controller", () => {
     });
 
     expect(response.status).toBe(204);
-    expect(repository.calls).toHaveLength(1);
-    expect(repository.calls[0]).toMatchObject({ institutionId: "inst-1", sectorId: "UTI", concerning: true });
+    expect(repository.checkinCalls).toHaveLength(1);
+    expect(repository.checkinCalls[0]).toMatchObject({ institutionId: "inst-1", sectorId: "UTI", concerning: true });
   });
 
   it("POST /signals/checkin returns 400 for a malformed body", async () => {
@@ -88,6 +102,46 @@ describe("signal-checkin controller", () => {
       sectorId: "UTI",
       concerning: false,
       deviceSignalId: "device-2",
+    });
+
+    expect(response.status).not.toBe(401);
+  });
+
+  it("POST /signals/abandon returns 204 for a valid body and forwards it to the repository", async () => {
+    const response = await request(app.getHttpServer()).post("/signals/abandon").send({
+      institutionId: "inst-1",
+      sectorId: "UTI",
+      deviceSignalId: "device-3",
+    });
+
+    expect(response.status).toBe(204);
+    expect(repository.abandonCalls).toHaveLength(1);
+    expect(repository.abandonCalls[0]).toMatchObject({ institutionId: "inst-1", sectorId: "UTI" });
+  });
+
+  it("POST /signals/abandon returns 400 for a malformed body", async () => {
+    const response = await request(app.getHttpServer()).post("/signals/abandon").send({ institutionId: "inst-1" });
+
+    expect(response.status).toBe(400);
+  });
+
+  it("POST /signals/abandon returns 400 when the institution is unknown", async () => {
+    repository.shouldThrowUnknownInstitution = true;
+    const response = await request(app.getHttpServer()).post("/signals/abandon").send({
+      institutionId: "does-not-exist",
+      sectorId: "UTI",
+      deviceSignalId: "device-4",
+    });
+
+    expect(response.status).toBe(400);
+    repository.shouldThrowUnknownInstitution = false;
+  });
+
+  it("POST /signals/abandon requires no authentication", async () => {
+    const response = await request(app.getHttpServer()).post("/signals/abandon").send({
+      institutionId: "inst-1",
+      sectorId: "UTI",
+      deviceSignalId: "device-5",
     });
 
     expect(response.status).not.toBe(401);
