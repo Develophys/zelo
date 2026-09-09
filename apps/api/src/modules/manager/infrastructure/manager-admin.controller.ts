@@ -19,7 +19,8 @@ import { z } from "zod";
 import { ManagerAuthGuard } from "./manager-auth.guard.ts";
 import { HospitalAdminGuard } from "./hospital-admin.guard.ts";
 import { SECTOR_REPOSITORY, type SectorRepository, type AdminSectorRow } from "@/modules/sector/application/ports/sector-repository.port.js";
-import { SectorNameConflictError } from "@/modules/sector/application/ports/sector-repository.port.js";
+import { SectorNameConflictError, SectorInviteCodeConflictError } from "@/modules/sector/application/ports/sector-repository.port.js";
+import { GetInstitutionByInviteCodeUseCase } from "@/modules/institution/application/use-cases/get-institution-by-invite-code.use-case.js";
 import { MANAGER_REPOSITORY, type ManagerRepository, type ManagerSummaryRow } from "../application/ports/manager-repository.port.ts";
 import { CreateManagerUseCase, type CreateManagerResult } from "../application/use-cases/create-manager.use-case.ts";
 import { UpdateManagerUseCase } from "../application/use-cases/update-manager.use-case.ts";
@@ -40,8 +41,15 @@ import { CreatePeerPartnerUseCase, type CreatePeerPartnerResult } from "../appli
 import { SendPeerPartnerSetPasswordEmailUseCase } from "../application/use-cases/send-peer-partner-set-password-email.use-case.ts";
 import { PeerChatGateway } from "@/modules/peer-chat/infrastructure/peer-chat.gateway.js";
 
-const CreateSectorSchema = z.object({ name: z.string().trim().min(1).max(200) });
-const UpdateSectorSchema = z.object({ isActive: z.boolean().optional(), managerId: z.string().nullable().optional() });
+const CreateSectorSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  inviteCode: z.string().trim().min(1).max(100).optional(),
+});
+const UpdateSectorSchema = z.object({
+  isActive: z.boolean().optional(),
+  managerId: z.string().nullable().optional(),
+  inviteCode: z.string().trim().min(1).max(100).optional(),
+});
 
 const CreateManagerSchema = z
   .object({
@@ -85,6 +93,7 @@ export class ManagerAdminController {
     @Inject(CreatePeerPartnerUseCase) private readonly createPeerPartner: CreatePeerPartnerUseCase,
     @Inject(SendPeerPartnerSetPasswordEmailUseCase) private readonly sendPeerPartnerSetPasswordEmail: SendPeerPartnerSetPasswordEmailUseCase,
     @Inject(PeerChatGateway) private readonly peerChatGateway: PeerChatGateway,
+    @Inject(GetInstitutionByInviteCodeUseCase) private readonly getInstitutionByInviteCode: GetInstitutionByInviteCodeUseCase,
   ) {}
 
   @Get("sectors")
@@ -100,11 +109,25 @@ export class ManagerAdminController {
       throw new BadRequestException(parsed.error.flatten());
     }
 
+    if (parsed.data.inviteCode) {
+      const claimedByInstitution = await this.getInstitutionByInviteCode.execute(parsed.data.inviteCode);
+      if (claimedByInstitution) {
+        throw new ConflictException({ conflict: "inviteCode" });
+      }
+    }
+
     try {
-      return await this.sectorRepository.create(request.manager!.institutionId, parsed.data.name);
+      return await this.sectorRepository.create(
+        request.manager!.institutionId,
+        parsed.data.name,
+        parsed.data.inviteCode,
+      );
     } catch (error) {
       if (error instanceof SectorNameConflictError) {
-        throw new ConflictException();
+        throw new ConflictException({ conflict: "name" });
+      }
+      if (error instanceof SectorInviteCodeConflictError) {
+        throw new ConflictException({ conflict: "inviteCode" });
       }
       throw error;
     }
@@ -123,6 +146,17 @@ export class ManagerAdminController {
       throw new NotFoundException();
     }
 
+    if (parsed.data.inviteCode !== undefined && sector.inviteCode !== null) {
+      throw new BadRequestException("inviteCode is immutable once set");
+    }
+
+    if (parsed.data.inviteCode !== undefined) {
+      const claimedByInstitution = await this.getInstitutionByInviteCode.execute(parsed.data.inviteCode);
+      if (claimedByInstitution) {
+        throw new ConflictException({ conflict: "inviteCode" });
+      }
+    }
+
     // The DB foreign key only proves the manager exists, not that they belong
     // here — without this check an admin could assign another institution's
     // manager to one of their own sectors.
@@ -133,7 +167,14 @@ export class ManagerAdminController {
       }
     }
 
-    await this.sectorRepository.update(id, parsed.data);
+    try {
+      await this.sectorRepository.update(id, parsed.data);
+    } catch (error) {
+      if (error instanceof SectorInviteCodeConflictError) {
+        throw new ConflictException({ conflict: "inviteCode" });
+      }
+      throw error;
+    }
   }
 
   @Delete("sectors/:id")

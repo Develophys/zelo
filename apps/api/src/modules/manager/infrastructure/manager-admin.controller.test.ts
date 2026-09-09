@@ -9,7 +9,7 @@ import { HospitalAdminGuard } from "./hospital-admin.guard.ts";
 import { ManagerTokenService } from "../application/services/manager-token.service.ts";
 import { SECTOR_REPOSITORY } from "@/modules/sector/application/ports/sector-repository.port.js";
 import type { AdminSectorRow, SectorRepository, UpdateSectorParams } from "@/modules/sector/application/ports/sector-repository.port.js";
-import { SectorNameConflictError } from "@/modules/sector/application/ports/sector-repository.port.js";
+import { SectorNameConflictError, SectorInviteCodeConflictError } from "@/modules/sector/application/ports/sector-repository.port.js";
 import { CreateManagerUseCase } from "../application/use-cases/create-manager.use-case.ts";
 import { UpdateManagerUseCase } from "../application/use-cases/update-manager.use-case.ts";
 import { SendManagerSetPasswordEmailUseCase } from "../application/use-cases/send-manager-set-password-email.use-case.ts";
@@ -33,14 +33,15 @@ import { NOTIFICATION_PUBLISHER } from "@/modules/notification/application/ports
 import type { NotificationEvent, NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
 import { INSTITUTION_REPOSITORY } from "@/modules/institution/application/ports/institution-repository.port.js";
 import type { InstitutionRepository, InstitutionRow } from "@/modules/institution/application/ports/institution-repository.port.js";
+import { GetInstitutionByInviteCodeUseCase } from "@/modules/institution/application/use-cases/get-institution-by-invite-code.use-case.js";
 
 class FakeInstitutionRepository implements InstitutionRepository {
   public rows: InstitutionRow[] = [
     { id: "institution-1", name: "Hospital 1", inviteCode: "hospital-1-2026", isActive: true },
     { id: "institution-2", name: "Hospital 2", inviteCode: "hospital-2-2026", isActive: true },
   ];
-  async findByInviteCode(): Promise<InstitutionRow | null> {
-    throw new Error("not used in this test");
+  async findByInviteCode(inviteCode: string): Promise<InstitutionRow | null> {
+    return this.rows.find((row) => row.inviteCode === inviteCode) ?? null;
   }
   async findById(id: string): Promise<InstitutionRow | null> {
     return this.rows.find((row) => row.id === id) ?? null;
@@ -59,15 +60,21 @@ class FakeSectorRepository implements SectorRepository {
   public shouldThrowConflict = false;
   public assignedSectorIds: string[] = [];
 
-  async create(institutionId: string, name: string) {
+  async create(institutionId: string, name: string, inviteCode?: string) {
     if (this.shouldThrowConflict) throw new SectorNameConflictError();
+    if (this.rows.some((row) => row.institutionId === institutionId && row.name === name)) {
+      throw new SectorNameConflictError();
+    }
+    if (inviteCode && this.rows.some((row) => row.inviteCode === inviteCode)) {
+      throw new SectorInviteCodeConflictError();
+    }
     const row = {
       id: `sector-${this.rows.length + 1}`,
       name,
       isActive: true,
       managerId: null,
       managerName: null,
-      inviteCode: null,
+      inviteCode: inviteCode ?? null,
       institutionId,
     };
     this.rows.push(row);
@@ -91,14 +98,18 @@ class FakeSectorRepository implements SectorRepository {
   async findById(id: string) {
     const row = this.rows.find((r) => r.id === id);
     return row
-      ? { id: row.id, institutionId: row.institutionId, name: row.name, managerId: row.managerId, isActive: row.isActive }
+      ? { id: row.id, institutionId: row.institutionId, name: row.name, managerId: row.managerId, isActive: row.isActive, inviteCode: row.inviteCode }
       : null;
   }
   async update(id: string, patch: UpdateSectorParams): Promise<void> {
     const row = this.rows.find((r) => r.id === id);
     if (!row) return;
+    if (patch.inviteCode !== undefined && this.rows.some((r) => r.id !== id && r.inviteCode === patch.inviteCode)) {
+      throw new SectorInviteCodeConflictError();
+    }
     if (patch.isActive !== undefined) row.isActive = patch.isActive;
     if (patch.managerId !== undefined) row.managerId = patch.managerId;
+    if (patch.inviteCode !== undefined) row.inviteCode = patch.inviteCode;
   }
   async findActiveByInstitution(): Promise<{ id: string; name: string }[]> {
     throw new Error("not used in this test");
@@ -314,6 +325,7 @@ describe("manager admin controller — sectors", () => {
         CreatePeerPartnerUseCase,
         SendPeerPartnerSetPasswordEmailUseCase,
         PeerPartnerPasswordService,
+        GetInstitutionByInviteCodeUseCase,
       ],
     }).compile();
 
@@ -380,6 +392,98 @@ describe("manager admin controller — sectors", () => {
       .set("Authorization", `Bearer ${hospitalAdminToken()}`)
       .send({ name: "UTI" });
     expect(response.status).toBe(409);
+  });
+
+  it("POST /manager/admin/sectors accepts an optional inviteCode", async () => {
+    const response = await request(app.getHttpServer())
+      .post("/manager/admin/sectors")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ name: "UTI", inviteCode: "uti-2026" });
+
+    expect(response.status).toBe(201);
+  });
+
+  it('POST /manager/admin/sectors returns 409 with { conflict: "inviteCode" } when the code is taken', async () => {
+    await request(app.getHttpServer())
+      .post("/manager/admin/sectors")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ name: "UTI", inviteCode: "shared-code" });
+
+    const response = await request(app.getHttpServer())
+      .post("/manager/admin/sectors")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ name: "PS", inviteCode: "shared-code" });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ conflict: "inviteCode" });
+  });
+
+  it('POST /manager/admin/sectors still returns 409 with { conflict: "name" } for a duplicate name', async () => {
+    await request(app.getHttpServer())
+      .post("/manager/admin/sectors")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ name: "Duplicada" });
+
+    const response = await request(app.getHttpServer())
+      .post("/manager/admin/sectors")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ name: "Duplicada" });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ conflict: "name" });
+  });
+
+  it('POST /manager/admin/sectors returns 409 with { conflict: "inviteCode" } when the code is already claimed by an active institution', async () => {
+    const response = await request(app.getHttpServer())
+      .post("/manager/admin/sectors")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ name: "UTI", inviteCode: "hospital-1-2026" });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ conflict: "inviteCode" });
+  });
+
+  it("PATCH /manager/admin/sectors/:id sets the inviteCode when the sector doesn't have one yet", async () => {
+    const created = await request(app.getHttpServer())
+      .post("/manager/admin/sectors")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ name: "Sem código" });
+
+    const response = await request(app.getHttpServer())
+      .patch(`/manager/admin/sectors/${created.body.id}`)
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ inviteCode: "novo-codigo" });
+
+    expect(response.status).toBe(204);
+  });
+
+  it("PATCH /manager/admin/sectors/:id rejects changing an inviteCode that is already set", async () => {
+    const created = await request(app.getHttpServer())
+      .post("/manager/admin/sectors")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ name: "Com código", inviteCode: "original-2026" });
+
+    const response = await request(app.getHttpServer())
+      .patch(`/manager/admin/sectors/${created.body.id}`)
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ inviteCode: "tentativa-de-troca" });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('PATCH /manager/admin/sectors/:id returns 409 with { conflict: "inviteCode" } when the new code is already claimed by an active institution', async () => {
+    const created = await request(app.getHttpServer())
+      .post("/manager/admin/sectors")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ name: "Sem código" });
+
+    const response = await request(app.getHttpServer())
+      .patch(`/manager/admin/sectors/${created.body.id}`)
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ inviteCode: "hospital-1-2026" });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ conflict: "inviteCode" });
   });
 
   it("PATCH /manager/admin/sectors/:id deactivates a sector", async () => {

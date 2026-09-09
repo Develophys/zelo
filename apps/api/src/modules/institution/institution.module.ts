@@ -12,6 +12,6 @@ import { SectorModule } from "../sector/sector.module.ts";
     GetInstitutionByInviteCodeUseCase,
     { provide: INSTITUTION_REPOSITORY, useClass: PrismaInstitutionRepository },
   ],
-  exports: [INSTITUTION_REPOSITORY],
+  exports: [INSTITUTION_REPOSITORY, GetInstitutionByInviteCodeUseCase],
 })
 export class InstitutionModule {}
