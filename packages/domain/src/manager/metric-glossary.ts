@@ -60,7 +60,7 @@ export const MANAGER_METRICS: Record<ManagerMetricId, MetricDefinition> = {
     label: "Conversas iniciadas e não enviadas",
     method:
       "Quantas vezes alguém escreveu algo no campo de mensagem do chat com a IA e saiu da tela sem enviar. Não guarda o que foi escrito — só a contagem de que aconteceu. Uma pessoa que abandona uma mensagem e depois envia outra numa nova visita conta nos dois eventos, sem tentativa de reconciliar.",
-    window: "As 4 semanas mais recentes que têm dados — mesma janela de \"Respostas\".",
+    window: "As 4 semanas mais recentes que têm dados — a mesma janela usada por \"Respostas\" e \"Questionários abandonados\".",
     suppression:
       "Conta apenas os setores que já têm 5 respostas ou mais na semana de referência — o mesmo critério de \"Respostas\", nunca um critério próprio. Um setor não fica visível por rascunho não enviado sozinho.",
   },
