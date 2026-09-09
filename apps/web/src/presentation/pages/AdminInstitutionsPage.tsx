@@ -294,7 +294,7 @@ export function AdminInstitutionsPage() {
             rows={filteredInstitutions}
             selection={selection}
             rowActions={renderRowActions}
-            renderExpanded={(institution) => (
+            renderExpanded={(_institution) => (
               <InstitutionSectorList
                 isLoading={expandedSectors.isLoading}
                 isError={expandedSectors.isError}
