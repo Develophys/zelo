@@ -6,10 +6,12 @@ import { InstitutionController } from "./institution.controller.ts";
 import { GetInstitutionByInviteCodeUseCase } from "../application/use-cases/get-institution-by-invite-code.use-case.ts";
 import { INSTITUTION_REPOSITORY } from "../application/ports/institution-repository.port.ts";
 import type { InstitutionRepository, InstitutionRow } from "../application/ports/institution-repository.port.ts";
+import { GetSectorByInviteCodeUseCase } from "@/modules/sector/application/use-cases/get-sector-by-invite-code.use-case.js";
 import { SECTOR_REPOSITORY } from "@/modules/sector/application/ports/sector-repository.port.js";
 import type {
   AdminSectorRow,
   SectorRepository,
+  SectorWithInstitution,
   UpdateSectorParams,
 } from "@/modules/sector/application/ports/sector-repository.port.js";
 
@@ -25,6 +27,7 @@ class FakeInstitutionRepository implements InstitutionRepository {
 
 class FakeSectorRepository implements SectorRepository {
   public activeByInstitution: Record<string, { id: string; name: string }[]> = {};
+  public byInviteCode: Record<string, SectorWithInstitution> = {};
 
   async create(): Promise<{ id: string; name: string }> {
     throw new Error("not used in this test");
@@ -53,8 +56,8 @@ class FakeSectorRepository implements SectorRepository {
   async findByIdsInInstitution(): Promise<{ id: string }[]> {
     throw new Error("not used in this test");
   }
-  async findByInviteCode(): Promise<never> {
-    throw new Error("not used in this test");
+  async findByInviteCode(inviteCode: string): Promise<SectorWithInstitution | null> {
+    return this.byInviteCode[inviteCode] ?? null;
   }
   async delete(): Promise<never> {
     throw new Error("not used in this test");
@@ -77,6 +80,7 @@ describe("institution controller", () => {
       controllers: [InstitutionController],
       providers: [
         GetInstitutionByInviteCodeUseCase,
+        GetSectorByInviteCodeUseCase,
         { provide: INSTITUTION_REPOSITORY, useValue: repository },
         { provide: SECTOR_REPOSITORY, useValue: sectorRepository },
       ],
@@ -94,7 +98,7 @@ describe("institution controller", () => {
     const response = await request(app.getHttpServer()).get("/institutions/by-code/sao-lucas-2026");
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ id: "inst-1", name: "Hospital São Lucas" });
+    expect(response.body).toEqual({ institution: { id: "inst-1", name: "Hospital São Lucas" } });
   });
 
   it("GET /institutions/by-code/:code returns 404 for an unknown code", async () => {
@@ -131,5 +135,54 @@ describe("institution controller", () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual([]);
+  });
+
+  it("GET /institutions/by-code/:code resolves a sector code, nesting both institution and sector", async () => {
+    sectorRepository.byInviteCode = {
+      "uti-2026": {
+        id: "sector-1",
+        name: "UTI",
+        isActive: true,
+        institution: { id: "inst-1", name: "Hospital São Lucas", isActive: true },
+      },
+    };
+
+    const response = await request(app.getHttpServer()).get("/institutions/by-code/uti-2026");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      institution: { id: "inst-1", name: "Hospital São Lucas" },
+      sector: { id: "sector-1", name: "UTI" },
+    });
+  });
+
+  it("GET /institutions/by-code/:code returns 404 for an inactive sector's code", async () => {
+    sectorRepository.byInviteCode = {
+      "uti-pausada": {
+        id: "sector-2",
+        name: "UTI",
+        isActive: false,
+        institution: { id: "inst-1", name: "Hospital São Lucas", isActive: true },
+      },
+    };
+
+    const response = await request(app.getHttpServer()).get("/institutions/by-code/uti-pausada");
+
+    expect(response.status).toBe(404);
+  });
+
+  it("GET /institutions/by-code/:code returns 404 for a sector whose institution is inactive", async () => {
+    sectorRepository.byInviteCode = {
+      "uti-encerrado": {
+        id: "sector-3",
+        name: "UTI",
+        isActive: true,
+        institution: { id: "inst-2", name: "Hospital Encerrado", isActive: false },
+      },
+    };
+
+    const response = await request(app.getHttpServer()).get("/institutions/by-code/uti-encerrado");
+
+    expect(response.status).toBe(404);
   });
 });
