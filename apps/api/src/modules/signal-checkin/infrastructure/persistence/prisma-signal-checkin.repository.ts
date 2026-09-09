@@ -1,6 +1,10 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { Prisma } from "../../../../../generated/prisma/client.ts";
-import type { RecordCheckinParams, SignalCheckinRepository } from "@/modules/signal-checkin/application/ports/signal-checkin-repository.port.js";
+import type {
+  RecordAbandonmentParams,
+  RecordCheckinParams,
+  SignalCheckinRepository,
+} from "@/modules/signal-checkin/application/ports/signal-checkin-repository.port.js";
 import { UnknownInstitutionOrSectorError } from "@/modules/signal-checkin/application/ports/signal-checkin-repository.port.js";
 import { PrismaService } from "@/shared/prisma/prisma.service.js";
 
@@ -34,6 +38,40 @@ export class PrismaSignalCheckinRepository implements SignalCheckinRepository {
           select: { checkIns: true },
         });
         return { checkIns: signal.checkIns };
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === UNIQUE_CONSTRAINT_VIOLATION) {
+        return null;
+      }
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === FOREIGN_KEY_VIOLATION) {
+        throw new UnknownInstitutionOrSectorError();
+      }
+      throw error;
+    }
+  }
+
+  async recordAbandonment(params: RecordAbandonmentParams): Promise<{ abandoned: number } | null> {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        await tx.signalDedupKey.create({ data: { dedupKey: params.dedupKey } });
+        const signal = await tx.signal.upsert({
+          where: {
+            institutionId_sectorId_weekStart: {
+              institutionId: params.institutionId,
+              sectorId: params.sectorId,
+              weekStart: params.weekStart,
+            },
+          },
+          update: { abandoned: { increment: 1 } },
+          create: {
+            institutionId: params.institutionId,
+            sectorId: params.sectorId,
+            weekStart: params.weekStart,
+            abandoned: 1,
+          },
+          select: { abandoned: true },
+        });
+        return { abandoned: signal.abandoned };
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === UNIQUE_CONSTRAINT_VIOLATION) {
