@@ -7,7 +7,11 @@ import { ManagerAdminSectorsPage } from "./ManagerAdminSectorsPage";
 import * as container from "@/app/container";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { useToastStore } from "@/stores/toast.store";
-import { AdminDeleteConflictError, SectorNameConflictError } from "@/ports/manager-admin.port";
+import {
+  AdminDeleteConflictError,
+  SectorInviteCodeConflictError,
+  SectorNameConflictError,
+} from "@/ports/manager-admin.port";
 import { HotkeyListener } from "@/presentation/layout/HotkeyListener";
 import { useHotkeyStore } from "@/stores/hotkey.store";
 
@@ -51,12 +55,14 @@ describe("ManagerAdminSectorsPage", () => {
     await user.type(screen.getByLabelText("Nome do setor"), "UTI");
     await user.click(screen.getByRole("button", { name: "Salvar" }));
 
-    await waitFor(() => expect(container.createSectorUseCase.execute).toHaveBeenCalledWith("token", "UTI"));
+    await waitFor(() =>
+      expect(container.createSectorUseCase.execute).toHaveBeenCalledWith("token", { name: "UTI" }),
+    );
   });
 
   it("assigns a manager to a sector from the edit modal", async () => {
     vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
-      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
+      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: null },
     ]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
       { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
@@ -77,7 +83,7 @@ describe("ManagerAdminSectorsPage", () => {
 
   it("clears a sector's manager assignment through the edit modal", async () => {
     vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
-      { id: "sector-1", name: "UTI", isActive: true, managerId: "manager-5", managerName: "Paulo" },
+      { id: "sector-1", name: "UTI", isActive: true, managerId: "manager-5", managerName: "Paulo", inviteCode: null },
     ]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
       { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorIds: [], sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
@@ -94,6 +100,94 @@ describe("ManagerAdminSectorsPage", () => {
     await waitFor(() =>
       expect(container.updateSectorUseCase.execute).toHaveBeenCalledWith("token", "sector-1", { managerId: null }),
     );
+  });
+
+  it("lets an admin set an invite code while editing a sector that has none yet", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: null },
+    ]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.updateSectorUseCase, "execute").mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    const table = within(await screen.findByRole("table"));
+    await user.click(table.getByRole("button", { name: "Editar UTI" }));
+    const inviteCodeField = screen.getByLabelText("Código de convite (opcional)");
+    expect(inviteCodeField).toBeEnabled();
+    await user.type(inviteCodeField, "uti-2026");
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Salvar" }));
+
+    await waitFor(() =>
+      expect(container.updateSectorUseCase.execute).toHaveBeenCalledWith("token", "sector-1", {
+        managerId: null,
+        inviteCode: "uti-2026",
+      }),
+    );
+  });
+
+  it("disables the invite code field once a sector already has one", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: "uti-2026" },
+    ]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+    const user = userEvent.setup();
+    renderPage();
+
+    const table = within(await screen.findByRole("table"));
+    await user.click(table.getByRole("button", { name: "Editar UTI" }));
+
+    expect(screen.getByLabelText("Código de convite (opcional)")).toBeDisabled();
+  });
+
+  it("never resends an unchanged existing invite code when saving other edits", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: "uti-2026" },
+    ]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
+      { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
+    ]);
+    vi.spyOn(container.updateSectorUseCase, "execute").mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    const table = within(await screen.findByRole("table"));
+    await user.click(table.getByRole("button", { name: "Editar UTI" }));
+    await user.selectOptions(screen.getByLabelText("Gestor responsável"), "manager-5");
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Salvar" }));
+
+    await waitFor(() =>
+      expect(container.updateSectorUseCase.execute).toHaveBeenCalledWith("token", "sector-1", {
+        managerId: "manager-5",
+      }),
+    );
+  });
+
+  it("shows a 'Ver QR Code' action only enabled when the sector has a code", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+      { id: "s1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: "uti-2026" },
+      { id: "s2", name: "PS", isActive: true, managerId: null, managerName: null, inviteCode: null },
+    ]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+    renderPage();
+
+    const table = within(await screen.findByRole("table"));
+    expect(table.getByRole("button", { name: "Ver QR Code de UTI" })).toBeEnabled();
+    expect(table.getByRole("button", { name: "Ver QR Code de PS" })).toBeDisabled();
+  });
+
+  it("opens the SectorQrCodeModal with the sector's code when 'Ver QR Code' is clicked", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+      { id: "s1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: "uti-2026" },
+    ]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+    renderPage();
+
+    const table = within(await screen.findByRole("table"));
+    fireEvent.click(table.getByRole("button", { name: "Ver QR Code de UTI" }));
+
+    await waitFor(() => screen.getByTestId("sector-qr-canvas"));
+    expect(screen.getByText("QR Code — UTI")).toBeInTheDocument();
   });
 
   it('anchors + Adicionar setor to the right of the table\'s own search row', async () => {
@@ -125,10 +219,45 @@ describe("ManagerAdminSectorsPage", () => {
     await user.selectOptions(screen.getByLabelText('Gestor responsável'), 'm1');
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
-    await waitFor(() => expect(createSector).toHaveBeenCalledWith('token', 'UTI'));
+    await waitFor(() => expect(createSector).toHaveBeenCalledWith('token', { name: 'UTI' }));
     await waitFor(() =>
       expect(updateSector).toHaveBeenCalledWith('token', 's1', { managerId: 'm1' }),
     );
+  });
+
+  it('lets the gestor type an invite code when creating a sector', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
+    const createSector = vi
+      .spyOn(container.createSectorUseCase, 'execute')
+      .mockResolvedValue({ id: 's1', name: 'UTI' });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: '+ Adicionar setor' }));
+    await user.type(screen.getByLabelText('Nome do setor'), 'UTI');
+    await user.type(screen.getByLabelText('Código de convite (opcional)'), 'uti-2026');
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() =>
+      expect(createSector).toHaveBeenCalledWith('token', { name: 'UTI', inviteCode: 'uti-2026' }),
+    );
+  });
+
+  it('shows an invite-code conflict message when the code is already taken', async () => {
+    vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
+    vi.spyOn(container.createSectorUseCase, 'execute').mockRejectedValue(new SectorInviteCodeConflictError());
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: '+ Adicionar setor' }));
+    await user.type(screen.getByLabelText('Nome do setor'), 'UTI');
+    await user.type(screen.getByLabelText('Código de convite (opcional)'), 'uti-2026');
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Já existe um setor com esse código.');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('cannot be submitted without a name', async () => {
@@ -205,8 +334,8 @@ describe("ManagerAdminSectorsPage", () => {
 
   it('deletes the selected sectors and closes the dialog on the happy path', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
-      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null },
-      { id: 'sector-2', name: 'Pronto-Socorro', isActive: true, managerId: null, managerName: null },
+      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null, inviteCode: null },
+      { id: 'sector-2', name: 'Pronto-Socorro', isActive: true, managerId: null, managerName: null, inviteCode: null },
     ]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
     const deleteSpy = vi.spyOn(container.deleteSectorAdminUseCase, 'execute').mockResolvedValue(undefined);
@@ -228,7 +357,7 @@ describe("ManagerAdminSectorsPage", () => {
 
   it('keeps the delete dialog open and renders the refusal sentence when a sector has check-in history', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
-      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null },
+      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null, inviteCode: null },
     ]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.deleteSectorAdminUseCase, 'execute').mockRejectedValue(
@@ -252,8 +381,8 @@ describe("ManagerAdminSectorsPage", () => {
 
   it('reports a partial bulk delete and retries only the still-failing id', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
-      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null },
-      { id: 'sector-2', name: 'Pronto-Socorro', isActive: true, managerId: null, managerName: null },
+      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null, inviteCode: null },
+      { id: 'sector-2', name: 'Pronto-Socorro', isActive: true, managerId: null, managerName: null, inviteCode: null },
     ]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
     const deleteSpy = vi
@@ -287,8 +416,8 @@ describe("ManagerAdminSectorsPage", () => {
 
   it('pauses the selected sectors and clears the selection on the happy path', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
-      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null },
-      { id: 'sector-2', name: 'Pronto-Socorro', isActive: true, managerId: null, managerName: null },
+      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null, inviteCode: null },
+      { id: 'sector-2', name: 'Pronto-Socorro', isActive: true, managerId: null, managerName: null, inviteCode: null },
     ]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
     const updateSpy = vi.spyOn(container.updateSectorUseCase, 'execute').mockResolvedValue(undefined);
@@ -308,8 +437,8 @@ describe("ManagerAdminSectorsPage", () => {
 
   it('raises a success toast naming the count and noun when a bulk pause succeeds', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
-      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null },
-      { id: 'sector-2', name: 'Pronto-Socorro', isActive: true, managerId: null, managerName: null },
+      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null, inviteCode: null },
+      { id: 'sector-2', name: 'Pronto-Socorro', isActive: true, managerId: null, managerName: null, inviteCode: null },
     ]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.updateSectorUseCase, 'execute').mockResolvedValue(undefined);
@@ -329,7 +458,7 @@ describe("ManagerAdminSectorsPage", () => {
 
   it('raises a success toast when a bulk delete succeeds', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
-      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null },
+      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null, inviteCode: null },
     ]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.deleteSectorAdminUseCase, 'execute').mockResolvedValue(undefined);
@@ -350,8 +479,8 @@ describe("ManagerAdminSectorsPage", () => {
 
   it('reports a partial bulk pause and keeps the selection so the still-active sector can be retried', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
-      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null },
-      { id: 'sector-2', name: 'Pronto-Socorro', isActive: true, managerId: null, managerName: null },
+      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null, inviteCode: null },
+      { id: 'sector-2', name: 'Pronto-Socorro', isActive: true, managerId: null, managerName: null, inviteCode: null },
     ]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
     vi.spyOn(container.updateSectorUseCase, 'execute').mockImplementation(async (_token: string, id: string) => {
@@ -380,8 +509,8 @@ describe("ManagerAdminSectorsPage", () => {
 
   it("filters the table by the responsible manager's name, accent-insensitively", async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
-      { id: 'sector-1', name: 'UTI', isActive: true, managerId: 'manager-1', managerName: 'João' },
-      { id: 'sector-2', name: 'Pronto-Socorro', isActive: true, managerId: 'manager-2', managerName: 'Beatriz' },
+      { id: 'sector-1', name: 'UTI', isActive: true, managerId: 'manager-1', managerName: 'João', inviteCode: null },
+      { id: 'sector-2', name: 'Pronto-Socorro', isActive: true, managerId: 'manager-2', managerName: 'Beatriz', inviteCode: null },
     ]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
     const user = userEvent.setup();
@@ -398,7 +527,7 @@ describe("ManagerAdminSectorsPage", () => {
 
   it('admits the search only covers loaded items when nothing matches', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
-      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null },
+      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null, inviteCode: null },
     ]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
     const user = userEvent.setup();
@@ -425,7 +554,7 @@ describe("ManagerAdminSectorsPage", () => {
     const listSpy = vi
       .spyOn(container.listSectorsUseCase, 'execute')
       .mockRejectedValueOnce(new Error('network down'))
-      .mockResolvedValueOnce([{ id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null }]);
+      .mockResolvedValueOnce([{ id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null, inviteCode: null }]);
     const user = userEvent.setup();
     renderPage();
 
@@ -452,7 +581,7 @@ describe("ManagerAdminSectorsPage", () => {
 
     it("opens the edit modal on 'e' once exactly one row is selected", async () => {
       vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
-        { id: "1", name: "UTI", isActive: true, managerId: null, managerName: null },
+        { id: "1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: null },
       ]);
       vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
       const user = userEvent.setup();
@@ -466,7 +595,7 @@ describe("ManagerAdminSectorsPage", () => {
 
     it("saves the edit on 'v' while the edit modal is open", async () => {
       vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
-        { id: "1", name: "UTI", isActive: true, managerId: null, managerName: null },
+        { id: "1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: null },
       ]);
       vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
         { id: "manager-1", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", sectorIds: [], sectorNames: [], isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
@@ -489,7 +618,7 @@ describe("ManagerAdminSectorsPage", () => {
 
     it("pauses the selection on 'u'", async () => {
       vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
-        { id: "1", name: "UTI", isActive: true, managerId: null, managerName: null },
+        { id: "1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: null },
       ]);
       vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
       const updateSector = vi.spyOn(container.updateSectorUseCase, "execute").mockResolvedValue(undefined);
@@ -506,7 +635,7 @@ describe("ManagerAdminSectorsPage", () => {
 
     it("activates the selection on 'i'", async () => {
       vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
-        { id: "1", name: "UTI", isActive: false, managerId: null, managerName: null },
+        { id: "1", name: "UTI", isActive: false, managerId: null, managerName: null, inviteCode: null },
       ]);
       vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
       const updateSector = vi.spyOn(container.updateSectorUseCase, "execute").mockResolvedValue(undefined);
@@ -523,7 +652,7 @@ describe("ManagerAdminSectorsPage", () => {
 
     it("opens the delete-confirmation modal on 'x', without deleting directly", async () => {
       vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
-        { id: "1", name: "UTI", isActive: true, managerId: null, managerName: null },
+        { id: "1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: null },
       ]);
       vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
       const deleteSector = vi.spyOn(container.deleteSectorAdminUseCase, "execute");
@@ -539,7 +668,7 @@ describe("ManagerAdminSectorsPage", () => {
 
     it("does nothing on 'u' while the create modal sits on top", async () => {
       vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
-        { id: "1", name: "UTI", isActive: true, managerId: null, managerName: null },
+        { id: "1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: null },
       ]);
       vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
       const updateSector = vi.spyOn(container.updateSectorUseCase, "execute");

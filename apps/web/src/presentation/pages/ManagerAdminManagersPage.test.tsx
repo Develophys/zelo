@@ -42,7 +42,7 @@ describe("ManagerAdminManagersPage", () => {
 
   it("creates a SECTOR_MANAGER with the selected sectors", async () => {
     vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
-      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
+      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: null },
     ]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
     vi.spyOn(container.createManagerAdminUseCase, "execute").mockResolvedValue({
@@ -75,7 +75,7 @@ describe("ManagerAdminManagersPage", () => {
 
   it("rejects a malformed manager email, keeping Adicionar gestor disabled", async () => {
     vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
-      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
+      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: null },
     ]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
     const createManager = vi.spyOn(container.createManagerAdminUseCase, "execute");
@@ -101,7 +101,7 @@ describe("ManagerAdminManagersPage", () => {
   // to create more admins.
   it("defaults a new manager to the narrower role, and says what each role reaches", async () => {
     vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
-      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
+      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: null },
     ]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
     const user = userEvent.setup();
@@ -191,8 +191,8 @@ describe("ManagerAdminManagersPage", () => {
 
   it("edits an existing manager's role and sectors from the edit modal, pre-filled from their current assignment", async () => {
     vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
-      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
-      { id: "sector-2", name: "Pronto-Socorro", isActive: true, managerId: null, managerName: null },
+      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: null },
+      { id: "sector-2", name: "Pronto-Socorro", isActive: true, managerId: null, managerName: null, inviteCode: null },
     ]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
       { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorIds: ["sector-1"], sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
@@ -222,7 +222,7 @@ describe("ManagerAdminManagersPage", () => {
 
   it("promotes an existing manager to hospital admin from the edit modal", async () => {
     vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
-      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
+      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: null },
     ]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
       { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorIds: ["sector-1"], sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
@@ -247,7 +247,7 @@ describe("ManagerAdminManagersPage", () => {
 
   it('disables Salvar in the edit modal when a sector manager is left with no sectors, same as the create guard', async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
-      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null },
+      { id: 'sector-1', name: 'UTI', isActive: true, managerId: null, managerName: null, inviteCode: null },
     ]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([
       { id: 'manager-5', name: 'Paulo', email: 'paulo@zelo-demo.local', role: 'SECTOR_MANAGER', isActive: true, sectorIds: ['sector-1'], sectorNames: ['UTI'], hasPassword: true, setPasswordTokenExpiresAt: null },
@@ -270,7 +270,7 @@ describe("ManagerAdminManagersPage", () => {
 
   it("discards edits on Cancelar without calling the update mutation", async () => {
     vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
-      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
+      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: null },
     ]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
       { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorIds: ["sector-1"], sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
@@ -721,8 +721,8 @@ describe("ManagerAdminManagersPage", () => {
 
   it("pre-fills the edit picker from the manager's own sector ids, not by matching display names", async () => {
     vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
-      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
-      { id: "sector-2", name: "UTI", isActive: true, managerId: null, managerName: null },
+      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: null },
+      { id: "sector-2", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: null },
     ]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
       { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorIds: ["sector-2"], sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
@@ -766,7 +766,7 @@ describe("ManagerAdminManagersPage", () => {
 
     it("saves the edit on 'v' while the edit modal is open", async () => {
       vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
-        { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null },
+        { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: null },
       ]);
       vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
         { id: "1", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", sectorIds: ["sector-1"], sectorNames: ["UTI"], isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },

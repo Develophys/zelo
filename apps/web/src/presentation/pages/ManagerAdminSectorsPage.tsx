@@ -21,8 +21,10 @@ import { useCreateSector } from "@/presentation/hooks/useCreateSector";
 import { useUpdateSector } from "@/presentation/hooks/useUpdateSector";
 import { useDeleteSector } from "@/presentation/hooks/useDeleteSector";
 import { useHotkey } from "@/presentation/hooks/useHotkey";
-import type { AdminSector, ManagerSummary } from "@/ports/manager-admin.port";
-import { Pencil } from "lucide-react";
+import type { AdminSector, ManagerSummary, UpdateSectorParams } from "@/ports/manager-admin.port";
+import { SectorInviteCodeConflictError } from "@/ports/manager-admin.port";
+import { SectorQrCodeModal } from "@/presentation/components/SectorQrCodeModal";
+import { Pencil, QrCode } from "lucide-react";
 
 const SUGGESTED_SECTOR_NAMES = ["UTI", "Pronto-Socorro", "Clínica Médica", "Centro Cirúrgico", "Pediatria", "Ambulatório", "Plantão Noturno"];
 
@@ -41,6 +43,9 @@ function SectorFields({
   onNameChange,
   nameDisabled,
   showSuggestions,
+  inviteCode,
+  onInviteCodeChange,
+  inviteCodeDisabled,
   managers,
   managerId,
   onManagerChange,
@@ -50,11 +55,15 @@ function SectorFields({
   onNameChange?: (value: string) => void;
   nameDisabled?: boolean;
   showSuggestions?: boolean;
+  inviteCode: string;
+  onInviteCodeChange?: (value: string) => void;
+  inviteCodeDisabled?: boolean;
   managers: ManagerSummary[];
   managerId: string | null;
   onManagerChange: (id: string | null) => void;
 }) {
   const nameFieldId = `${idPrefix}-sector-name`;
+  const inviteCodeFieldId = `${idPrefix}-sector-invite-code`;
   const managerFieldId = `${idPrefix}-sector-manager`;
 
   return (
@@ -70,6 +79,18 @@ function SectorFields({
         onChange={onNameChange ? (event) => onNameChange(event.target.value) : undefined}
         className="mt-2"
       />
+
+      <label htmlFor={inviteCodeFieldId} className="mt-4 block text-label font-semibold text-ink-2">
+        Código de convite (opcional)
+      </label>
+      <TextField
+        id={inviteCodeFieldId}
+        value={inviteCode}
+        disabled={inviteCodeDisabled}
+        onChange={onInviteCodeChange ? (event) => onInviteCodeChange(event.target.value) : undefined}
+        className="mt-2"
+      />
+
       {showSuggestions && (
         <div className="mt-2 flex flex-wrap gap-2">
           {SUGGESTED_SECTOR_NAMES.map((suggestion) => (
@@ -145,12 +166,15 @@ export function ManagerAdminSectorsPage() {
   const deleteSector = useDeleteSector();
 
   const [name, setName] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [managerId, setManagerId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const [formMode, setFormMode] = useState<"create" | "edit" | null>(null);
   const [editingSector, setEditingSector] = useState<AdminSector | null>(null);
+  const [editInviteCode, setEditInviteCode] = useState("");
   const [editManagerId, setEditManagerId] = useState<string | null>(null);
+  const [qrSector, setQrSector] = useState<{ name: string; inviteCode: string } | null>(null);
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -190,6 +214,7 @@ export function ManagerAdminSectorsPage() {
 
   const openCreate = () => {
     setName("");
+    setInviteCode("");
     setManagerId(null);
     createSector.reset();
     setFormMode("create");
@@ -197,6 +222,7 @@ export function ManagerAdminSectorsPage() {
 
   const openEdit = (sector: AdminSector) => {
     setEditingSector(sector);
+    setEditInviteCode(sector.inviteCode ?? "");
     setEditManagerId(sector.managerId);
     setFormMode("edit");
   };
@@ -207,34 +233,38 @@ export function ManagerAdminSectorsPage() {
   };
 
   const handleCreateSubmit = () => {
-    createSector.mutate(name, {
-      onSuccess: (result) => {
-        if (managerId === null) {
-          closeModal();
-          return;
-        }
-        updateSector.mutate(
-          { id: result.id, patch: { managerId } },
-          {
-            onSuccess: () => closeModal(),
-            onError: () => {
-              closeModal();
-              setNotice(
-                `Setor "${result.name}" criado, mas não foi possível atribuir o gestor. Edite o setor para tentar de novo.`,
-              );
+    createSector.mutate(
+      { name, inviteCode: inviteCode.trim() || undefined },
+      {
+        onSuccess: (result) => {
+          if (managerId === null) {
+            closeModal();
+            return;
+          }
+          updateSector.mutate(
+            { id: result.id, patch: { managerId } },
+            {
+              onSuccess: () => closeModal(),
+              onError: () => {
+                closeModal();
+                setNotice(
+                  `Setor "${result.name}" criado, mas não foi possível atribuir o gestor. Edite o setor para tentar de novo.`,
+                );
+              },
             },
-          },
-        );
+          );
+        },
       },
-    });
+    );
   };
 
   const handleSaveEdit = () => {
     if (!editingSector) return;
-    updateSector.mutate(
-      { id: editingSector.id, patch: { managerId: editManagerId } },
-      { onSuccess: () => closeModal() },
-    );
+    const patch: UpdateSectorParams = { managerId: editManagerId };
+    if (!editingSector.inviteCode && editInviteCode.trim().length > 0) {
+      patch.inviteCode = editInviteCode.trim();
+    }
+    updateSector.mutate({ id: editingSector.id, patch }, { onSuccess: () => closeModal() });
   };
 
   const handleBulkPause = async () => {
@@ -261,7 +291,16 @@ export function ManagerAdminSectorsPage() {
   const isSubmitDisabled = name.trim().length === 0;
 
   const renderRowActions = (sector: AdminSector) => (
-    <IconButton label={`Editar ${sector.name}`} icon={<Pencil size={16} aria-hidden="true" />} onClick={() => openEdit(sector)} />
+    <>
+      <IconButton label={`Editar ${sector.name}`} icon={<Pencil size={16} aria-hidden="true" />} onClick={() => openEdit(sector)} />
+      <IconButton
+        label={`Ver QR Code de ${sector.name}`}
+        icon={<QrCode size={16} aria-hidden="true" />}
+        disabled={!sector.inviteCode}
+        tooltip={sector.inviteCode ? undefined : "Cadastre um código de convite antes de gerar o QR"}
+        onClick={() => setQrSector({ name: sector.name, inviteCode: sector.inviteCode! })}
+      />
+    </>
   );
 
   const modalTitle = formMode === "create" ? "Adicionar setor" : editingSector ? `Editar ${editingSector.name}` : "";
@@ -406,26 +445,42 @@ export function ManagerAdminSectorsPage() {
               name={name}
               onNameChange={setName}
               showSuggestions
+              inviteCode={inviteCode}
+              onInviteCodeChange={setInviteCode}
               managers={managerList}
               managerId={managerId}
               onManagerChange={setManagerId}
             />
             {createSector.isError && (
               <p role="alert" className="mt-4 text-label text-danger">
-                Já existe um setor com esse nome.
+                {createSector.error instanceof SectorInviteCodeConflictError
+                  ? "Já existe um setor com esse código."
+                  : "Já existe um setor com esse nome."}
               </p>
             )}
           </>
         ) : (
           editingSector && (
-            <SectorFields
-              idPrefix={`edit-${editingSector.id}`}
-              name={editingSector.name}
-              nameDisabled
-              managers={managerList}
-              managerId={editManagerId}
-              onManagerChange={setEditManagerId}
-            />
+            <>
+              <SectorFields
+                idPrefix={`edit-${editingSector.id}`}
+                name={editingSector.name}
+                nameDisabled
+                inviteCode={editInviteCode}
+                onInviteCodeChange={setEditInviteCode}
+                inviteCodeDisabled={Boolean(editingSector.inviteCode)}
+                managers={managerList}
+                managerId={editManagerId}
+                onManagerChange={setEditManagerId}
+              />
+              {updateSector.isError && (
+                <p role="alert" className="mt-4 text-label text-danger">
+                  {updateSector.error instanceof SectorInviteCodeConflictError
+                    ? "Já existe um setor com esse código."
+                    : "Não foi possível salvar. Tente de novo."}
+                </p>
+              )}
+            </>
           )
         )}
       </Modal>
@@ -453,6 +508,13 @@ export function ManagerAdminSectorsPage() {
           </p>
         )}
       </Modal>
+
+      <SectorQrCodeModal
+        isOpen={qrSector !== null}
+        onClose={() => setQrSector(null)}
+        sectorName={qrSector?.name ?? ""}
+        inviteCode={qrSector?.inviteCode ?? ""}
+      />
     </div>
   );
 }
