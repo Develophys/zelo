@@ -7,16 +7,7 @@ Legenda de escopo: `[Global]` `[Médico]` `[Chat]` `[Autoavaliação]` `[Admin]`
 
 ## 1. Novas features
 
-### 1.1 Engajamento e retenção
-
-- **`[Chat]` Registrar mensagem digitada mas não enviada**
-  Pensar em como salvar a informação de que o usuário começou a escrever algo no chat mas não
-  enviou, para que os gestores consigam entender se usuários iniciam uma conversa e desistem.
-  - Precisa da mesma extensão dos termos de consentimento feita pro questionário (ver
-    **5. Concluído**) — a linha de opt-in agregado ainda só menciona "questionário iniciado e não
-    concluído", não rascunho de chat.
-
-### 1.2 Acessibilidade e personalização
+### 1.1 Acessibilidade e personalização
 
 - **`[Global]` Customização de fontes e cores pelo usuário** — *parcial*
   O sistema precisa ser configurável a ponto de o usuário conseguir customizar as fontes e cores
@@ -34,11 +25,11 @@ Legenda de escopo: `[Global]` `[Médico]` `[Chat]` `[Autoavaliação]` `[Admin]`
 
 - **`[Global]` Suporte a múltiplos idiomas (ES / EN / PT)**
 
-### 1.3 Fluxos e funcionalidades
+### 1.2 Fluxos e funcionalidades
 
 - Tela do Gestor poderia ter ordem dos items de menu customizaveis?
 
-### 1.4 Segurança e identidade
+### 1.3 Segurança e identidade
 
 - **`[Global]` Autenticação anônima do médico**
   Pensar se existe uma forma de autenticar o usuário mantendo o anonimato — por exemplo usando o
@@ -101,8 +92,27 @@ toggle nas telas de login/admin) estão em **5. Concluído**.*
     envio bem-sucedido. Investigado contra o código-fonte instalado do react-router: o hook já
     remove o basename antes de chamar o predicado, então o bug não existe. Ficou um teste de
     regressão provando isso pros dois deploys.
-  - Não cobre a segunda metade do item 1.1 (rascunho de chat não enviado) — segue pendente, como
-    feature separada.
+  - Não cobria a segunda metade do item original (rascunho de chat não enviado) — feature separada,
+    construída a seguir (ver abaixo).
+- [x] **`[Chat]`** Registrar rascunho de chat não enviado. Ao contrário do modal do questionário,
+  aqui o registro é silencioso — sem confirmação, sem `useBlocker`: um `useEffect` no
+  `ChatComposer` detecta, no unmount, se havia texto não vazio na caixa de mensagem e dispara o
+  mesmo fire-and-forget (gate de vínculo + opt-in agregado) já usado pelos outros sinais. O texto
+  do rascunho em si nunca é persistido, só o fato de que houve um. Reaproveita a mesma tabela
+  `Signal` — nova coluna `unsentChatDrafts`, com a mesma supressão por k-anonimato das demais (nunca
+  decide visibilidade sozinha). Gestor vê o agregado num KPI novo no dashboard e uma linha nova no
+  export do PGR; os termos de consentimento (`ConsentPage` e `AggregateOptInSection`) foram
+  ampliados para mencionar "mensagem de chat começada e não enviada", fechando a lacuna que o item
+  de abandono do questionário tinha deixado. Ver
+  `docs/superpowers/specs/2026-09-09-unsent-chat-draft-design.md` e
+  `docs/superpowers/plans/2026-09-09-unsent-chat-draft.md`.
+  - **Decisão de design tomada durante o brainstorm:** o repositório de sinais (que já tinha sido
+    duplicado uma vez entre check-in e abandono) foi generalizado num único método parametrizado
+    (`recordIncrement`) nesta terceira repetição, em vez de copiar o padrão pela terceira vez.
+  - **Achado real corrigido durante a execução:** o texto do card `unsentChatDrafts` no glossário de
+    métricas saiu idêntico ao do card `abandoned`, quebrando o teste de unicidade da página de
+    metodologia do gestor — corrigido, e um teste de unicidade par-a-par foi adicionado no
+    `packages/domain` para pegar isso na fonte da próxima vez.
 
 ### Feito em 2026-09-08
 
