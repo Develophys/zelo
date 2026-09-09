@@ -17,7 +17,8 @@ const ROWS: ReactNode[] = [
   </>,
   <>
     Autorizo o uso <strong>anônimo e agregado</strong> dos meus sinais e interações (como um
-    questionário iniciado e não concluído) para melhorar o cuidado da equipe.
+    questionário iniciado e não concluído, ou uma mensagem de chat começada e não enviada) para
+    melhorar o cuidado da equipe.
   </>,
   <>
     Minha identidade só é revelada se <strong>eu escolher</strong> falar com uma pessoa.
