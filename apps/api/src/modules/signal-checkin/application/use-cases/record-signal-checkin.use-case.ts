@@ -28,12 +28,12 @@ export class RecordSignalCheckinUseCase {
       .update(`${input.deviceSignalId}:${input.institutionId}:${input.sectorId}:${weekStart.toISOString()}`)
       .digest("hex");
 
-    const result = await this.repository.recordCheckin({
+    const result = await this.repository.recordIncrement({
       institutionId: input.institutionId,
       sectorId: input.sectorId,
       weekStart,
-      concerning: input.concerning,
       dedupKey,
+      increments: { checkIns: 1, concerning: input.concerning ? 1 : 0 },
     });
 
     // Within one week this counter only increases, so exactly one increment can

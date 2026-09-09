@@ -22,11 +22,12 @@ export class RecordAssessmentAbandonmentUseCase {
       .update(`abandon:${input.deviceSignalId}:${input.institutionId}:${input.sectorId}:${weekStart.toISOString()}`)
       .digest("hex");
 
-    await this.repository.recordAbandonment({
+    await this.repository.recordIncrement({
       institutionId: input.institutionId,
       sectorId: input.sectorId,
       weekStart,
       dedupKey,
+      increments: { abandoned: 1 },
     });
   }
 }

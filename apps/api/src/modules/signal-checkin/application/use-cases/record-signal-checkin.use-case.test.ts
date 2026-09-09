@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { RecordSignalCheckinUseCase } from "./record-signal-checkin.use-case.ts";
-import type { RecordCheckinParams, SignalCheckinRepository } from "../ports/signal-checkin-repository.port.ts";
+import type {
+  RecordSignalIncrementParams,
+  SignalCheckinRepository,
+  SignalCounters,
+} from "../ports/signal-checkin-repository.port.ts";
 import type { NotificationEvent, NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
 import { K_ANONYMITY_THRESHOLD } from "@/modules/manager/application/constants.js";
 
+const ZERO_COUNTERS: SignalCounters = { checkIns: 0, concerning: 0, abandoned: 0, unsentChatDrafts: 0 };
+
 class FakeSignalCheckinRepository implements SignalCheckinRepository {
-  public calls: RecordCheckinParams[] = [];
-  public nextResult: { checkIns: number } | null = { checkIns: 1 };
-  async recordCheckin(params: RecordCheckinParams): Promise<{ checkIns: number } | null> {
+  public calls: RecordSignalIncrementParams[] = [];
+  public nextResult: SignalCounters | null = { ...ZERO_COUNTERS, checkIns: 1 };
+  async recordIncrement(params: RecordSignalIncrementParams): Promise<SignalCounters | null> {
     this.calls.push(params);
     return this.nextResult;
   }
@@ -21,7 +27,7 @@ class FakeNotificationPublisher implements NotificationPublisher {
 }
 
 describe("RecordSignalCheckinUseCase", () => {
-  it("computes weekStart and a dedupKey hashing in sectorId, and forwards to the repository", async () => {
+  it("computes weekStart and a dedupKey hashing in sectorId, and forwards a checkIns+concerning increment to the repository", async () => {
     const repository = new FakeSignalCheckinRepository();
     const notifications = new FakeNotificationPublisher();
     const useCase = new RecordSignalCheckinUseCase(repository, notifications);
@@ -36,8 +42,8 @@ describe("RecordSignalCheckinUseCase", () => {
       institutionId: "institution-1",
       sectorId: "sector-1",
       weekStart: new Date("2026-06-15T00:00:00.000Z"), // Monday of that week
-      concerning: true,
       dedupKey: expect.any(String),
+      increments: { checkIns: 1, concerning: 1 },
     });
   });
 
@@ -58,7 +64,7 @@ describe("RecordSignalCheckinUseCase", () => {
 
   it("announces the sector becoming visible on the increment that reaches the threshold", async () => {
     const repository = new FakeSignalCheckinRepository();
-    repository.nextResult = { checkIns: K_ANONYMITY_THRESHOLD };
+    repository.nextResult = { ...ZERO_COUNTERS, checkIns: K_ANONYMITY_THRESHOLD };
     const notifications = new FakeNotificationPublisher();
     const useCase = new RecordSignalCheckinUseCase(repository, notifications);
 
@@ -82,7 +88,7 @@ describe("RecordSignalCheckinUseCase", () => {
   // equal the threshold — this is what makes the event fire once with no state.
   it.each([1, 2, 3, 4, 6, 7, 12])("stays quiet at %i check-ins", async (checkIns) => {
     const repository = new FakeSignalCheckinRepository();
-    repository.nextResult = { checkIns };
+    repository.nextResult = { ...ZERO_COUNTERS, checkIns };
     const notifications = new FakeNotificationPublisher();
     const useCase = new RecordSignalCheckinUseCase(repository, notifications);
 
@@ -100,7 +106,7 @@ describe("RecordSignalCheckinUseCase", () => {
     const useCase = new RecordSignalCheckinUseCase(repository, notifications);
 
     for (let checkIns = 1; checkIns <= 12; checkIns += 1) {
-      repository.nextResult = { checkIns };
+      repository.nextResult = { ...ZERO_COUNTERS, checkIns };
       await useCase.execute(
         { institutionId: "institution-1", sectorId: "sector-1", concerning: false, deviceSignalId: `device-${checkIns}` },
         new Date("2026-07-08T15:00:00.000Z"),

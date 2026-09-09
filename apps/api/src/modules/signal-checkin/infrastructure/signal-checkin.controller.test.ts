@@ -10,29 +10,23 @@ import {
   UnknownInstitutionOrSectorError,
 } from "../application/ports/signal-checkin-repository.port.ts";
 import type {
-  RecordAbandonmentParams,
-  RecordCheckinParams,
+  RecordSignalIncrementParams,
   SignalCheckinRepository,
+  SignalCounters,
 } from "../application/ports/signal-checkin-repository.port.ts";
 import { NOTIFICATION_PUBLISHER, type NotificationEvent, type NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
 
+const ZERO_COUNTERS: SignalCounters = { checkIns: 0, concerning: 0, abandoned: 0, unsentChatDrafts: 0 };
+
 class FakeSignalCheckinRepository implements SignalCheckinRepository {
-  public checkinCalls: RecordCheckinParams[] = [];
-  public abandonCalls: RecordAbandonmentParams[] = [];
+  public calls: RecordSignalIncrementParams[] = [];
   public shouldThrowUnknownInstitution = false;
-  async recordCheckin(params: RecordCheckinParams): Promise<{ checkIns: number } | null> {
+  async recordIncrement(params: RecordSignalIncrementParams): Promise<SignalCounters | null> {
     if (this.shouldThrowUnknownInstitution) {
       throw new UnknownInstitutionOrSectorError();
     }
-    this.checkinCalls.push(params);
-    return { checkIns: 1 };
-  }
-  async recordAbandonment(params: RecordAbandonmentParams): Promise<{ abandoned: number } | null> {
-    if (this.shouldThrowUnknownInstitution) {
-      throw new UnknownInstitutionOrSectorError();
-    }
-    this.abandonCalls.push(params);
-    return { abandoned: 1 };
+    this.calls.push(params);
+    return ZERO_COUNTERS;
   }
 }
 
@@ -73,8 +67,12 @@ describe("signal-checkin controller", () => {
     });
 
     expect(response.status).toBe(204);
-    expect(repository.checkinCalls).toHaveLength(1);
-    expect(repository.checkinCalls[0]).toMatchObject({ institutionId: "inst-1", sectorId: "UTI", concerning: true });
+    expect(repository.calls).toHaveLength(1);
+    expect(repository.calls[0]).toMatchObject({
+      institutionId: "inst-1",
+      sectorId: "UTI",
+      increments: { checkIns: 1, concerning: 1 },
+    });
   });
 
   it("POST /signals/checkin returns 400 for a malformed body", async () => {
@@ -115,8 +113,9 @@ describe("signal-checkin controller", () => {
     });
 
     expect(response.status).toBe(204);
-    expect(repository.abandonCalls).toHaveLength(1);
-    expect(repository.abandonCalls[0]).toMatchObject({ institutionId: "inst-1", sectorId: "UTI" });
+    expect(repository.calls).toContainEqual(
+      expect.objectContaining({ institutionId: "inst-1", sectorId: "UTI", increments: { abandoned: 1 } }),
+    );
   });
 
   it("POST /signals/abandon returns 400 for a malformed body", async () => {

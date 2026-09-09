@@ -1,23 +1,21 @@
-export interface RecordCheckinParams {
+export interface RecordSignalIncrementParams {
   institutionId: string;
   sectorId: string;
   weekStart: Date;
-  concerning: boolean;
   dedupKey: string;
+  increments: Partial<{ checkIns: number; concerning: number; abandoned: number; unsentChatDrafts: number }>;
 }
 
-export interface RecordAbandonmentParams {
-  institutionId: string;
-  sectorId: string;
-  weekStart: Date;
-  dedupKey: string;
+export interface SignalCounters {
+  checkIns: number;
+  concerning: number;
+  abandoned: number;
+  unsentChatDrafts: number;
 }
 
 export interface SignalCheckinRepository {
-  /** The row's check-in count after the increment, or null when deduplicated. */
-  recordCheckin(params: RecordCheckinParams): Promise<{ checkIns: number } | null>;
-  /** The row's abandoned count after the increment, or null when deduplicated. */
-  recordAbandonment(params: RecordAbandonmentParams): Promise<{ abandoned: number } | null>;
+  /** The row's counters after the increment, or null when deduplicated. */
+  recordIncrement(params: RecordSignalIncrementParams): Promise<SignalCounters | null>;
 }
 
 export const SIGNAL_CHECKIN_REPOSITORY = Symbol("SIGNAL_CHECKIN_REPOSITORY");
