@@ -172,8 +172,8 @@ describe("ManagerAdminSectorsPage", () => {
     renderPage();
 
     const table = within(await screen.findByRole("table"));
-    expect(table.getByRole("button", { name: "Ver QR Code de UTI" })).toBeEnabled();
-    expect(table.getByRole("button", { name: "Ver QR Code de PS" })).toBeDisabled();
+    expect(table.getByRole("button", { name: "Ver QR Code de UTI" })).not.toHaveAttribute("aria-disabled", "true");
+    expect(table.getByRole("button", { name: "Ver QR Code de PS" })).toHaveAttribute("aria-disabled", "true");
   });
 
   it("opens the SectorQrCodeModal with the sector's code when 'Ver QR Code' is clicked", async () => {
@@ -507,6 +507,27 @@ describe("ManagerAdminSectorsPage", () => {
     expect(screen.getByRole('checkbox', { name: 'Selecionar Pronto-Socorro' })).toBeChecked();
   });
 
+  it("does not show a stale error in the edit modal after an unrelated bulk pause failure", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+      { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: null },
+    ]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.updateSectorUseCase, "execute").mockRejectedValueOnce(new Error("network down"));
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("checkbox", { name: "Selecionar UTI" }));
+    await user.click(screen.getByRole("button", { name: "Pausar" }));
+    await waitFor(() =>
+      expect(useToastStore.getState().toasts).toEqual([expect.objectContaining({ tone: "error" })]),
+    );
+
+    const table = within(screen.getByRole("table"));
+    await user.click(table.getByRole("button", { name: "Editar UTI" }));
+
+    expect(within(screen.getByRole("dialog")).queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("filters the table by the responsible manager's name, accent-insensitively", async () => {
     vi.spyOn(container.listSectorsUseCase, 'execute').mockResolvedValue([
       { id: 'sector-1', name: 'UTI', isActive: true, managerId: 'manager-1', managerName: 'João', inviteCode: null },
@@ -681,6 +702,21 @@ describe("ManagerAdminSectorsPage", () => {
       fireEvent.keyDown(document, { key: "u" });
 
       expect(updateSector).not.toHaveBeenCalled();
+    });
+
+    it("does nothing on 'a' while the sector QR modal sits on top", async () => {
+      vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
+        { id: "1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: "uti-2026" },
+      ]);
+      vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+      renderPage();
+      const table = within(await screen.findByRole("table"));
+      fireEvent.click(table.getByRole("button", { name: "Ver QR Code de UTI" }));
+      await waitFor(() => screen.getByTestId("sector-qr-canvas"));
+
+      fireEvent.keyDown(document, { key: "a" });
+
+      expect(screen.queryByRole("dialog", { name: "Adicionar setor" })).not.toBeInTheDocument();
     });
   });
 });

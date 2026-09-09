@@ -204,8 +204,8 @@ describe("AdminInstitutionsPage", () => {
       fireEvent.click(await screen.findByLabelText(/expandir hospital são lucas/i));
       await screen.findByText("UTI");
 
-      expect(screen.getByRole("button", { name: "Ver QR Code de UTI" })).toBeEnabled();
-      expect(screen.getByRole("button", { name: "Ver QR Code de PS" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Ver QR Code de UTI" })).not.toHaveAttribute("aria-disabled", "true");
+      expect(screen.getByRole("button", { name: "Ver QR Code de PS" })).toHaveAttribute("aria-disabled", "true");
     });
   });
 

@@ -84,9 +84,12 @@ function InstitutionSectorList({
           <IconButton
             label={`Ver QR Code de ${sector.name}`}
             icon={<QrCode size={16} aria-hidden="true" />}
-            disabled={!sector.inviteCode}
+            aria-disabled={!sector.inviteCode}
             tooltip={sector.inviteCode ? undefined : "Este setor ainda não tem código de convite"}
-            onClick={() => onGenerateQr({ name: sector.name, inviteCode: sector.inviteCode! })}
+            onClick={() => {
+              if (!sector.inviteCode) return;
+              onGenerateQr({ name: sector.name, inviteCode: sector.inviteCode });
+            }}
           />
         </li>
       ))}

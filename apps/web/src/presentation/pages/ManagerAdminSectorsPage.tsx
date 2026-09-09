@@ -210,7 +210,7 @@ export function ManagerAdminSectorsPage() {
     noun: { singular: "setor" },
   });
 
-  const isAnyModalOpen = formMode !== null || bulkDelete.deleteTarget !== null;
+  const isAnyModalOpen = formMode !== null || bulkDelete.deleteTarget !== null || qrSector !== null;
 
   const openCreate = () => {
     setName("");
@@ -224,6 +224,7 @@ export function ManagerAdminSectorsPage() {
     setEditingSector(sector);
     setEditInviteCode(sector.inviteCode ?? "");
     setEditManagerId(sector.managerId);
+    updateSector.reset();
     setFormMode("edit");
   };
 
@@ -296,9 +297,12 @@ export function ManagerAdminSectorsPage() {
       <IconButton
         label={`Ver QR Code de ${sector.name}`}
         icon={<QrCode size={16} aria-hidden="true" />}
-        disabled={!sector.inviteCode}
+        aria-disabled={!sector.inviteCode}
         tooltip={sector.inviteCode ? undefined : "Cadastre um código de convite antes de gerar o QR"}
-        onClick={() => setQrSector({ name: sector.name, inviteCode: sector.inviteCode! })}
+        onClick={() => {
+          if (!sector.inviteCode) return;
+          setQrSector({ name: sector.name, inviteCode: sector.inviteCode });
+        }}
       />
     </>
   );
