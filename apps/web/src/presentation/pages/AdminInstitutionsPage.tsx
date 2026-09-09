@@ -18,6 +18,7 @@ import { routes } from "@/presentation/lib/routes";
 import { useAdminInstitutions } from "@/presentation/hooks/useAdminInstitutions";
 import { useCreateInstitution } from "@/presentation/hooks/useCreateInstitution";
 import { useUpdateInstitution } from "@/presentation/hooks/useUpdateInstitution";
+import { useAdminInstitutionSectors } from "@/presentation/hooks/useAdminInstitutionSectors";
 import { useHotkey } from "@/presentation/hooks/useHotkey";
 import { useAdminSessionStore } from "@/stores/admin-session.store";
 import type { AdminInstitutionListItem } from "@/ports/admin-institution.port";
@@ -25,6 +26,7 @@ import { DuplicateInstitutionError } from "@/ports/admin-institution.port";
 import { TextField } from "@/presentation/ui/TextField";
 import { isValidEmail } from "@/presentation/lib/validate-email";
 import { InstitutionQrCodeModal } from "@/presentation/components/InstitutionQrCodeModal";
+import { SectorQrCodeModal } from "@/presentation/components/SectorQrCodeModal";
 import { toast } from "@/stores/toast.store";
 
 const COLUMNS: DataTableColumn<AdminInstitutionListItem>[] = [
@@ -59,6 +61,39 @@ function institutionStatusMessage(count: number, isActive: boolean, failed: bool
   return `Não foi possível ${isActive ? "ativar" : "desativar"} ${isPlural ? "algumas instituições" : "a instituição"}. Tente de novo.`;
 }
 
+function InstitutionSectorList({
+  isLoading,
+  isError,
+  sectors,
+  onGenerateQr,
+}: {
+  isLoading: boolean;
+  isError: boolean;
+  sectors: { id: string; name: string; inviteCode: string | null }[];
+  onGenerateQr: (sector: { name: string; inviteCode: string }) => void;
+}) {
+  if (isLoading) return <p className="text-label text-muted">Carregando setores…</p>;
+  if (isError) return <p className="text-label text-danger">Não foi possível carregar os setores.</p>;
+  if (sectors.length === 0) return <p className="text-label text-muted">Nenhum setor cadastrado.</p>;
+
+  return (
+    <ul className="flex flex-col gap-2">
+      {sectors.map((sector) => (
+        <li key={sector.id} className="flex items-center justify-between gap-3">
+          <span className="text-label text-ink">{sector.name}</span>
+          <IconButton
+            label={`Ver QR Code de ${sector.name}`}
+            icon={<QrCode size={16} aria-hidden="true" />}
+            disabled={!sector.inviteCode}
+            tooltip={sector.inviteCode ? undefined : "Este setor ainda não tem código de convite"}
+            onClick={() => onGenerateQr({ name: sector.name, inviteCode: sector.inviteCode! })}
+          />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function AdminInstitutionsPage() {
   const navigate = useNavigate();
   const clearSession = useAdminSessionStore((state) => state.clearSession);
@@ -79,6 +114,9 @@ export function AdminInstitutionsPage() {
   const [editError, setEditError] = useState<string | null>(null);
 
   const [qrInstitution, setQrInstitution] = useState<{ name: string; inviteCode: string } | null>(null);
+  const [expandedInstitutionId, setExpandedInstitutionId] = useState<string | null>(null);
+  const [qrSector, setQrSector] = useState<{ name: string; inviteCode: string } | null>(null);
+  const expandedSectors = useAdminInstitutionSectors(expandedInstitutionId);
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -106,7 +144,7 @@ export function AdminInstitutionsPage() {
 
   const selection = useDataTableSelection(filteredInstitutions, { singular: "instituição", article: "uma" });
 
-  const isAnyModalOpen = formMode !== null || qrInstitution !== null;
+  const isAnyModalOpen = formMode !== null || qrInstitution !== null || qrSector !== null;
 
   const openCreate = () => {
     setInstitutionName("");
@@ -256,6 +294,18 @@ export function AdminInstitutionsPage() {
             rows={filteredInstitutions}
             selection={selection}
             rowActions={renderRowActions}
+            renderExpanded={(institution) => (
+              <InstitutionSectorList
+                isLoading={expandedSectors.isLoading}
+                isError={expandedSectors.isError}
+                sectors={expandedSectors.data ?? []}
+                onGenerateQr={setQrSector}
+              />
+            )}
+            isRowExpanded={(institution) => expandedInstitutionId === institution.id}
+            onToggleExpand={(institution) =>
+              setExpandedInstitutionId((current) => (current === institution.id ? null : institution.id))
+            }
             toolbar={
               <DataTableToolbar
                 selection={selection}
@@ -492,6 +542,13 @@ export function AdminInstitutionsPage() {
         onClose={() => setQrInstitution(null)}
         institutionName={qrInstitution?.name ?? ""}
         inviteCode={qrInstitution?.inviteCode ?? ""}
+      />
+
+      <SectorQrCodeModal
+        isOpen={qrSector !== null}
+        onClose={() => setQrSector(null)}
+        sectorName={qrSector?.name ?? ""}
+        inviteCode={qrSector?.inviteCode ?? ""}
       />
     </PhoneShell>
   );

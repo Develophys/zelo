@@ -170,6 +170,45 @@ describe("AdminInstitutionsPage", () => {
     });
   });
 
+  describe("expanding a row to see its sectors", () => {
+    it("expands a row to show its sectors, including one without an invite code", async () => {
+      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(
+        page([
+          { id: "1", name: "Hospital São Lucas", inviteCode: "sao-lucas-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
+        ]),
+      );
+      vi.spyOn(container.listAdminInstitutionSectorsUseCase, "execute").mockResolvedValue([
+        { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: "uti-2026" },
+        { id: "sector-2", name: "PS", isActive: true, managerId: null, managerName: null, inviteCode: null },
+      ]);
+      renderPage();
+
+      fireEvent.click(await screen.findByLabelText(/expandir hospital são lucas/i));
+
+      expect(await screen.findByText("UTI")).toBeInTheDocument();
+      expect(screen.getByText("PS")).toBeInTheDocument();
+    });
+
+    it("only enables 'Gerar QR' for a sector that already has a code", async () => {
+      vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(
+        page([
+          { id: "1", name: "Hospital São Lucas", inviteCode: "sao-lucas-2026", isActive: true, createdAt: "2026-08-01T00:00:00.000Z", hospitalAdminNames: [] },
+        ]),
+      );
+      vi.spyOn(container.listAdminInstitutionSectorsUseCase, "execute").mockResolvedValue([
+        { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: "uti-2026" },
+        { id: "sector-2", name: "PS", isActive: true, managerId: null, managerName: null, inviteCode: null },
+      ]);
+      renderPage();
+
+      fireEvent.click(await screen.findByLabelText(/expandir hospital são lucas/i));
+      await screen.findByText("UTI");
+
+      expect(screen.getByRole("button", { name: "Ver QR Code de UTI" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Ver QR Code de PS" })).toBeDisabled();
+    });
+  });
+
   it("creates an institution via the Adicionar instituição modal, confirming with a toast", async () => {
     vi.spyOn(container.listInstitutionsUseCase, "execute").mockResolvedValue(page([]));
     vi.spyOn(container.createInstitutionUseCase, "execute").mockResolvedValue({
