@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Routes, Route, useLocation } from 'react-router';
+import { createMemoryRouter, RouterProvider, useLocation } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ScaleAssessmentPage } from './ScaleAssessmentPage';
 import { PHQ9_SCALE, GAD7_SCALE, type AssessmentScale } from '@/domain/assessment-scales/scales';
@@ -24,16 +24,18 @@ function ResultProbe() {
 
 function renderScale(scale: AssessmentScale, path: string) {
   const queryClient = new QueryClient();
+  const router = createMemoryRouter(
+    [
+      { path, element: <ScaleAssessmentPage scale={scale} /> },
+      { path: routes.assessment, element: <div>Assessment select screen</div> },
+      { path: routes.home, element: <div>Home screen</div> },
+      { path: routes.result, element: <ResultProbe /> },
+    ],
+    { initialEntries: [path] },
+  );
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route path={path} element={<ScaleAssessmentPage scale={scale} />} />
-          <Route path={routes.assessment} element={<div>Assessment select screen</div>} />
-          <Route path={routes.home} element={<div>Home screen</div>} />
-          <Route path={routes.result} element={<ResultProbe />} />
-        </Routes>
-      </MemoryRouter>
+      <RouterProvider router={router} />
     </QueryClientProvider>,
   );
 }
