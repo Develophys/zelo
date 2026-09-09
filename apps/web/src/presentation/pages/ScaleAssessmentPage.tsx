@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useBlocker, useNavigate } from 'react-router';
 import { PhoneShell } from '@/presentation/layout/PhoneShell';
 import { CrisisCallLink } from '@/presentation/components/CrisisCallLink';
 import { getCrisisLine } from '@/presentation/lib/crisis-line';
@@ -10,10 +10,14 @@ import { ProgressBar } from '@/presentation/ui/ProgressBar';
 import { WaveText } from '@/presentation/ui/WaveText';
 import { QuestionCard } from '@/presentation/components/QuestionCard';
 import { AssessmentReview } from '@/presentation/components/AssessmentReview';
+import { AbandonAssessmentModal } from '@/presentation/components/AbandonAssessmentModal';
 import type { AssessmentScale } from '@/domain/assessment-scales/scales';
 import { useSubmitAssessment } from '@/presentation/hooks/useSubmitAssessment';
 import { routes } from '@/presentation/lib/routes';
 import { clearDraft, recallDraft, rememberDraft } from '@/presentation/lib/assessment-draft';
+import { recordAssessmentAbandonmentUseCase } from '@/app/container';
+import { useInstitutionLinkStore } from '@/stores/institution-link.store';
+import { useConsentStore } from '@/stores/consent.store';
 
 interface ScaleAssessmentPageProps {
   scale: AssessmentScale;
@@ -33,6 +37,25 @@ export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
   const [showResumed, setShowResumed] = useState(() => (resumed.current?.questionIndex ?? 0) > 0);
 
   const total = scale.questions.length;
+
+  // "Iniciado" = pelo menos 1 resposta dada. A navegação para a tela de
+  // resultado após um envio bem-sucedido nunca é bloqueada — answers ainda
+  // tem os valores enviados nesse momento, então o filtro é pelo destino, não
+  // por zerar o estado antes de navegar.
+  const hasProgress = answers.some((value) => value !== undefined);
+  const blocker = useBlocker(
+    ({ nextLocation }) => hasProgress && nextLocation.pathname !== routes.result,
+  );
+
+  const handleConfirmLeave = () => {
+    const { institutionId, sectorId, deviceSignalId } = useInstitutionLinkStore.getState();
+    const { aggregateOptIn } = useConsentStore.getState();
+    if (institutionId !== null && sectorId !== null && deviceSignalId !== null && aggregateOptIn) {
+      void recordAssessmentAbandonmentUseCase
+        .execute({ link: { institutionId, sectorId, deviceSignalId } })
+        .catch(() => {});
+    }
+  };
 
   useEffect(() => {
     rememberDraft({ scaleType: scale.type, answers, questionIndex });
@@ -184,6 +207,7 @@ export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
           </div>
         )}
       </div>
+      <AbandonAssessmentModal blocker={blocker} onConfirmLeave={handleConfirmLeave} />
     </PhoneShell>
   );
 }

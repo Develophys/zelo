@@ -3,7 +3,7 @@ import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
-import { MemoryRouter } from 'react-router';
+import { createMemoryRouter, RouterProvider } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as container from '@/app/container';
 import { SplashPage } from './SplashPage';
@@ -74,9 +74,14 @@ const SCREENS: { name: string; Component: ComponentType; path: string; state?: u
 
 function mount(element: ReactElement, path: string, state?: unknown) {
   const queryClient = new QueryClient();
+  // A data router — not the declarative MemoryRouter — because
+  // ScaleAssessmentPage's useBlocker() requires one.
+  const router = createMemoryRouter([{ path, element }], {
+    initialEntries: [{ pathname: path, state }],
+  });
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[{ pathname: path, state }]}>{element}</MemoryRouter>
+      <RouterProvider router={router} />
     </QueryClientProvider>,
   );
 }

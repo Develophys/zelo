@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createMemoryRouter, RouterProvider, useLocation } from 'react-router';
+import { createMemoryRouter, RouterProvider, useLocation, useNavigate } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ScaleAssessmentPage } from './ScaleAssessmentPage';
 import { PHQ9_SCALE, GAD7_SCALE, type AssessmentScale } from '@/domain/assessment-scales/scales';
@@ -22,11 +22,28 @@ function ResultProbe() {
   );
 }
 
+function NavigateAwayProbe() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(routes.home)}>
+      Ir para Home (probe)
+    </button>
+  );
+}
+
 function renderScale(scale: AssessmentScale, path: string) {
   const queryClient = new QueryClient();
   const router = createMemoryRouter(
     [
-      { path, element: <ScaleAssessmentPage scale={scale} /> },
+      {
+        path,
+        element: (
+          <>
+            <ScaleAssessmentPage scale={scale} />
+            <NavigateAwayProbe />
+          </>
+        ),
+      },
       { path: routes.assessment, element: <div>Assessment select screen</div> },
       { path: routes.home, element: <div>Home screen</div> },
       { path: routes.result, element: <ResultProbe /> },
@@ -297,7 +314,11 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
     expect(screen.getByText(scale.questions[1]!)).toBeInTheDocument();
 
+    // Progress exists, so it now routes through the same abandon confirmation
+    // as any other navigation away — it still exits the assessment entirely
+    // (as opposed to the in-body step-back), just past the confirmation.
     await user.click(screen.getByTestId('back-button'));
+    await user.click(screen.getByRole('button', { name: 'Sair mesmo assim' }));
     expect(screen.getByText('Home screen')).toBeInTheDocument();
   });
 
@@ -320,6 +341,92 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     await waitFor(() => {
       expect(screen.getByText(/pendingSync=true/)).toBeInTheDocument();
     });
+  });
+
+  it('does not block navigating away before any question is answered', async () => {
+    const user = userEvent.setup();
+    renderScale(scale, path);
+
+    await user.click(screen.getByRole('button', { name: 'Ir para Home (probe)' }));
+
+    expect(screen.getByText('Home screen')).toBeInTheDocument();
+    expect(screen.queryByText('Sair sem terminar?')).not.toBeInTheDocument();
+  });
+
+  it('blocks navigating away after answering at least one question, and lets the médico stay', async () => {
+    const user = userEvent.setup();
+    renderScale(scale, path);
+
+    await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
+    await user.click(screen.getByRole('button', { name: 'Ir para Home (probe)' }));
+
+    expect(screen.getByText('Sair sem terminar?')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Continuar respondendo' }));
+
+    // Modal content stays mounted (only the native <dialog> open state
+    // toggles), so checking the dialog role — not the title text — is what
+    // actually reflects it being closed.
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    // Still on the questionnaire (not navigated to Home) — the click landed on
+    // question[1], since answering question[0] already auto-advanced to it.
+    expect(screen.getByText(scale.questions[1]!)).toBeInTheDocument();
+  });
+
+  it('lets the médico confirm leaving, and navigates away', async () => {
+    const user = userEvent.setup();
+    renderScale(scale, path);
+
+    await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
+    await user.click(screen.getByRole('button', { name: 'Ir para Home (probe)' }));
+    await user.click(screen.getByRole('button', { name: 'Sair mesmo assim' }));
+
+    expect(screen.getByText('Home screen')).toBeInTheDocument();
+  });
+
+  it('records the abandonment when the médico is linked and opted in, on confirming leave', async () => {
+    const user = userEvent.setup();
+    useInstitutionLinkStore.setState({
+      institutionId: 'inst-1',
+      institutionName: 'Hospital X',
+      sectorId: 'UTI',
+      sectorName: 'UTI',
+      deviceSignalId: 'device-1',
+    });
+    vi.spyOn(container.recordAssessmentAbandonmentUseCase, 'execute').mockResolvedValue(undefined);
+    renderScale(scale, path);
+
+    await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
+    await user.click(screen.getByRole('button', { name: 'Ir para Home (probe)' }));
+    await user.click(screen.getByRole('button', { name: 'Sair mesmo assim' }));
+
+    expect(container.recordAssessmentAbandonmentUseCase.execute).toHaveBeenCalledWith({
+      link: { institutionId: 'inst-1', sectorId: 'UTI', deviceSignalId: 'device-1' },
+    });
+  });
+
+  it('does not record the abandonment when there is no institution link', async () => {
+    const user = userEvent.setup();
+    const executeSpy = vi.spyOn(container.recordAssessmentAbandonmentUseCase, 'execute');
+    renderScale(scale, path);
+
+    await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
+    await user.click(screen.getByRole('button', { name: 'Ir para Home (probe)' }));
+    await user.click(screen.getByRole('button', { name: 'Sair mesmo assim' }));
+
+    expect(executeSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not block the programmatic navigation to the result screen after a successful submit', async () => {
+    const user = userEvent.setup();
+    renderScale(scale, path);
+
+    for (let i = 0; i < total; i++) {
+      await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
+    }
+    await user.click(screen.getByRole('button', { name: 'Enviar respostas' }));
+
+    expect(await screen.findByText(`Result screen max=${maxScore} score=5`)).toBeInTheDocument();
+    expect(screen.queryByText('Sair sem terminar?')).not.toBeInTheDocument();
   });
 });
 
