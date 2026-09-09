@@ -9,7 +9,14 @@ export class PrismaSignalRepository implements SignalRepository {
   async findAll(institutionId: string, sectorIds: string[]): Promise<SignalRow[]> {
     const rows = await this.prisma.signal.findMany({
       where: { institutionId, sectorId: { in: sectorIds } },
-      select: { sectorId: true, weekStart: true, checkIns: true, concerning: true, sector: { select: { name: true } } },
+      select: {
+        sectorId: true,
+        weekStart: true,
+        checkIns: true,
+        concerning: true,
+        abandoned: true,
+        sector: { select: { name: true } },
+      },
     });
     return rows.map((row) => ({
       sectorId: row.sectorId,
@@ -17,6 +24,7 @@ export class PrismaSignalRepository implements SignalRepository {
       weekStart: row.weekStart,
       checkIns: row.checkIns,
       concerning: row.concerning,
+      abandoned: row.abandoned,
     }));
   }
 

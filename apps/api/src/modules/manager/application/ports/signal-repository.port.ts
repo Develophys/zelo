@@ -4,6 +4,7 @@ export interface SignalRow {
   weekStart: Date;
   checkIns: number;
   concerning: number;
+  abandoned: number;
 }
 
 export interface WeeklySignalRow {

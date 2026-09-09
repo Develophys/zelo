@@ -81,8 +81,8 @@ const WEEK_2 = new Date("2026-06-22T00:00:00.000Z");
 describe("GenerateManagerInsightUseCase", () => {
   it("formats the current ManagerSignalsResponse into a PT-BR summary and forwards it with the system prompt", async () => {
     const signalsRepository = new FakeSignalRepository([
-      { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_1, checkIns: 10, concerning: 3 },
-      { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 6 },
+      { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_1, checkIns: 10, concerning: 3, abandoned: 0 },
+      { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 6, abandoned: 0 },
     ]);
     const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository, new FakeSimulatedFollowUpRepository());
     const aiInsight = new FakeAiInsightPort({ interpretation: "texto", suggestedActions: ["ação 1"] });
@@ -117,8 +117,8 @@ describe("GenerateManagerInsightUseCase", () => {
 
   it("keeps a sub-threshold sector out of every number in the summary, but still reports it was suppressed", async () => {
     const signalsRepository = new FakeSignalRepository([
-      { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 4 },
-      { sectorId: "sector-peq", sectorName: "Pediatria", weekStart: WEEK_2, checkIns: 3, concerning: 1 },
+      { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 4, abandoned: 0 },
+      { sectorId: "sector-peq", sectorName: "Pediatria", weekStart: WEEK_2, checkIns: 3, concerning: 1, abandoned: 0 },
     ]);
     const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository, new FakeSimulatedFollowUpRepository());
     const aiInsight = new FakeAiInsightPort({ interpretation: "texto", suggestedActions: [] });
@@ -144,7 +144,7 @@ describe("GenerateManagerInsightUseCase", () => {
 
   it("propagates whatever the AiInsightPort throws (e.g. InsightGenerationFailedError from the adapter)", async () => {
     const signalsRepository = new FakeSignalRepository([
-      { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 6 },
+      { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 6, abandoned: 0 },
     ]);
     const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository, new FakeSimulatedFollowUpRepository());
     class ThrowingAiInsightPort implements AiInsightPort {
@@ -167,7 +167,7 @@ describe("GenerateManagerInsightUseCase", () => {
 
   it("saves the generated insight to the repository, attributed to the manager and institution", async () => {
     const signalsRepository = new FakeSignalRepository([
-      { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 6 },
+      { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 6, abandoned: 0 },
     ]);
     const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository, new FakeSimulatedFollowUpRepository());
     const aiInsight = new FakeAiInsightPort({ interpretation: "texto", suggestedActions: ["ação 1"] });
@@ -190,7 +190,7 @@ describe("GenerateManagerInsightUseCase", () => {
 
   it("still returns the generated insight even if saving to the repository fails", async () => {
     const signalsRepository = new FakeSignalRepository([
-      { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 6 },
+      { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 6, abandoned: 0 },
     ]);
     const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository, new FakeSimulatedFollowUpRepository());
     const aiInsight = new FakeAiInsightPort({ interpretation: "texto", suggestedActions: ["ação 1"] });
