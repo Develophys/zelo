@@ -61,6 +61,7 @@ model Sector {
   isActive      Boolean     @default(true)
   managerId     String?
   manager       Manager?    @relation(fields: [managerId], references: [id])
+  inviteCode    String?     @unique
   createdAt     DateTime    @default(now())
 
   signals       Signal[]
