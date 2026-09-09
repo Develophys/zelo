@@ -9,20 +9,6 @@ Legenda de escopo: `[Global]` `[Médico]` `[Chat]` `[Autoavaliação]` `[Admin]`
 
 ### 1.1 Acessibilidade e personalização
 
-- **`[Global]` Customização de fontes e cores pelo usuário** — *parcial*
-  O sistema precisa ser configurável a ponto de o usuário conseguir customizar as fontes e cores
-  dentro da aplicação.
-  - **Já existe** (`AppearanceSettings`): tema claro/escuro/sistema, cor de destaque (4 acentos
-    curados) e cantos. **Falta**: controle de tamanho de fonte — nenhum existe hoje.
-  - Inicialmente a aplicação foi criada visando a persona de um médico jovem, então isso não era
-    um problema.
-  - Precisamos expandir e tornar o aplicativo mais acessível para um range maior de usuários.
-  - Para isso vamos criar uma persona de um médico com mais idade, na faixa dos 45 a 60 anos.
-    Esse usuário pode precisar de fontes maiores e cores mais contrastantes.
-  - Num primeiro momento, apenas cores e fontes customizáveis parecem suficientes. A navegação
-    atual me parece suficiente.
-  - Ver pendências abertas em **4. Pendências e decisões em aberto**.
-
 - **`[Global]` Suporte a múltiplos idiomas (ES / EN / PT)**
 
 ### 1.2 Fluxos e funcionalidades
@@ -55,7 +41,6 @@ toggle nas telas de login/admin) estão em **5. Concluído**.*
 
 ## 4. Pendências e decisões em aberto
 
-- **`[Global]` Onde ficará o botão de customização de fontes/cores** nas páginas "Home" e "Você".
 - **`[Global]` Validar a faixa etária da nova persona** (45–60 anos) — confirmar se faz sentido ou
   se precisamos ajustá-la.
 
@@ -73,9 +58,9 @@ toggle nas telas de login/admin) estão em **5. Concluído**.*
   sinais e interações (como um questionário iniciado e não concluído)" — mesma lógica de
   agregado/anônimo de sempre, só ampliando o que ela cobre. Atualizado nos dois lugares onde o
   texto existe: `ConsentPage` (aceite inicial) e `AggregateOptInSection` na página "Você" (onde o
-  médico revisa/muda o opt-in depois). Ainda não cobre rascunho de chat não enviado — só a metade
-  do item 1.1 sobre o questionário foi construída (ver abaixo); o rascunho de chat é feature
-  separada, ainda pendente.
+  médico revisa/muda o opt-in depois). Ainda não cobria rascunho de chat não enviado — só o
+  questionário foi construído neste momento (ver abaixo); o rascunho de chat é feature separada,
+  construída depois.
 - [x] **`[Médico]` `[Gestor]`** Modal de confirmação ao abandonar o questionário. `useBlocker` do
   React Router bloqueia a navegação dentro do app assim que o médico responde à 1ª pergunta;
   confirmar a saída dispara um registro fire-and-forget (mesmo gate de vínculo de
@@ -113,6 +98,15 @@ toggle nas telas de login/admin) estão em **5. Concluído**.*
     métricas saiu idêntico ao do card `abandoned`, quebrando o teste de unicidade da página de
     metodologia do gestor — corrigido, e um teste de unicidade par-a-par foi adicionado no
     `packages/domain` para pegar isso na fonte da próxima vez.
+- [x] **`[Global]`** Tamanho de fonte customizável, fechando o `Customização de fontes e cores` que
+  ficava *parcial* (tema, cor de destaque e cantos já existiam). Nova preferência `fontSize`
+  (Padrão/Grande/Extra grande) em `AppearanceSettings`, projetada em `<html data-font-size>` do
+  mesmo jeito que densidade/cor/cantos já eram — como todo tamanho de texto do app já é definido em
+  `rem` (`--text-body`, `--text-h1` etc.), escalar o `font-size` da raiz por porcentagem
+  (112,5%/125%) escala o app inteiro sem nenhum componente saber que a preferência existe. Por
+  `AppearanceSettings` ser compartilhado, aparece de uma vez nas telas de Configurações do médico,
+  gestor e par voluntário — resolvendo também a pendência de "onde fica o botão" sem precisar de
+  decisão nova.
 
 ### Feito em 2026-09-08
 
