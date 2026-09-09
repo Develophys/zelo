@@ -14,7 +14,7 @@ export function useLinkInstitutionFlow() {
   const [institution, setInstitution] = useState<{ id: string; name: string } | null>(null);
   const [confirmSector, setConfirmSector] = useState<{ id: string; name: string } | null>(null);
   const lookup = useLookupInstitution();
-  const sectors = useInstitutionSectors(institution?.id ?? null);
+  const sectors = useInstitutionSectors(step === "sector" ? (institution?.id ?? null) : null);
   const link = useInstitutionLinkStore((state) => state.link);
 
   const lookupCode = (rawCode: string) => {

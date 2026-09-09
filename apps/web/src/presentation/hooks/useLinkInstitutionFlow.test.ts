@@ -61,6 +61,22 @@ describe("useLinkInstitutionFlow", () => {
     expect(result.current.confirmSector).toEqual({ id: "sector-1", name: "UTI" });
   });
 
+  it("does not fetch the sectors list when the lookup resolves a sector too (confirm path skips the picker)", async () => {
+    vi.spyOn(container.lookupInstitutionUseCase, "execute").mockResolvedValue({
+      institution: { id: "inst-1", name: "Hospital São Lucas" },
+      sector: { id: "sector-1", name: "UTI" },
+    });
+    const listSectorsSpy = vi.spyOn(container.listInstitutionSectorsUseCase, "execute");
+
+    const { result } = renderHook(() => useLinkInstitutionFlow(), { wrapper });
+
+    act(() => result.current.onCodeChange("uti-sao-lucas-2026"));
+    act(() => result.current.handleCodeSubmit(submitEvent()));
+    await waitFor(() => expect(result.current.step).toBe("confirm"));
+
+    expect(listSectorsSpy).not.toHaveBeenCalled();
+  });
+
   it("handleConfirmSubmit links using the already-resolved institution and sector, without another lookup call", async () => {
     const lookupSpy = vi.spyOn(container.lookupInstitutionUseCase, "execute").mockResolvedValue({
       institution: { id: "inst-1", name: "Hospital São Lucas" },
