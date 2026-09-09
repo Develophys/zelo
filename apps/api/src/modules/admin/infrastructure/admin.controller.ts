@@ -85,6 +85,11 @@ export class AdminController {
       throw new BadRequestException(parsed.error.flatten());
     }
 
+    const claimedBySector = await this.sectorRepository.findByInviteCode(parsed.data.inviteCode);
+    if (claimedBySector) {
+      throw new ConflictException({ conflict: "inviteCode" });
+    }
+
     try {
       return await this.createInstitution.execute(parsed.data);
     } catch (error) {

@@ -20,7 +20,7 @@ import { ManagerAuthGuard } from "./manager-auth.guard.ts";
 import { HospitalAdminGuard } from "./hospital-admin.guard.ts";
 import { SECTOR_REPOSITORY, type SectorRepository, type AdminSectorRow } from "@/modules/sector/application/ports/sector-repository.port.js";
 import { SectorNameConflictError, SectorInviteCodeConflictError } from "@/modules/sector/application/ports/sector-repository.port.js";
-import { GetInstitutionByInviteCodeUseCase } from "@/modules/institution/application/use-cases/get-institution-by-invite-code.use-case.js";
+import { INSTITUTION_REPOSITORY, type InstitutionRepository } from "@/modules/institution/application/ports/institution-repository.port.js";
 import { MANAGER_REPOSITORY, type ManagerRepository, type ManagerSummaryRow } from "../application/ports/manager-repository.port.ts";
 import { CreateManagerUseCase, type CreateManagerResult } from "../application/use-cases/create-manager.use-case.ts";
 import { UpdateManagerUseCase } from "../application/use-cases/update-manager.use-case.ts";
@@ -93,7 +93,7 @@ export class ManagerAdminController {
     @Inject(CreatePeerPartnerUseCase) private readonly createPeerPartner: CreatePeerPartnerUseCase,
     @Inject(SendPeerPartnerSetPasswordEmailUseCase) private readonly sendPeerPartnerSetPasswordEmail: SendPeerPartnerSetPasswordEmailUseCase,
     @Inject(PeerChatGateway) private readonly peerChatGateway: PeerChatGateway,
-    @Inject(GetInstitutionByInviteCodeUseCase) private readonly getInstitutionByInviteCode: GetInstitutionByInviteCodeUseCase,
+    @Inject(INSTITUTION_REPOSITORY) private readonly institutionRepository: InstitutionRepository,
   ) {}
 
   @Get("sectors")
@@ -110,7 +110,7 @@ export class ManagerAdminController {
     }
 
     if (parsed.data.inviteCode) {
-      const claimedByInstitution = await this.getInstitutionByInviteCode.execute(parsed.data.inviteCode);
+      const claimedByInstitution = await this.institutionRepository.findByInviteCode(parsed.data.inviteCode);
       if (claimedByInstitution) {
         throw new ConflictException({ conflict: "inviteCode" });
       }
@@ -151,7 +151,7 @@ export class ManagerAdminController {
     }
 
     if (parsed.data.inviteCode !== undefined) {
-      const claimedByInstitution = await this.getInstitutionByInviteCode.execute(parsed.data.inviteCode);
+      const claimedByInstitution = await this.institutionRepository.findByInviteCode(parsed.data.inviteCode);
       if (claimedByInstitution) {
         throw new ConflictException({ conflict: "inviteCode" });
       }

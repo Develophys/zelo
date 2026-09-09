@@ -33,12 +33,12 @@ import { NOTIFICATION_PUBLISHER } from "@/modules/notification/application/ports
 import type { NotificationEvent, NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
 import { INSTITUTION_REPOSITORY } from "@/modules/institution/application/ports/institution-repository.port.js";
 import type { InstitutionRepository, InstitutionRow } from "@/modules/institution/application/ports/institution-repository.port.js";
-import { GetInstitutionByInviteCodeUseCase } from "@/modules/institution/application/use-cases/get-institution-by-invite-code.use-case.js";
 
 class FakeInstitutionRepository implements InstitutionRepository {
   public rows: InstitutionRow[] = [
     { id: "institution-1", name: "Hospital 1", inviteCode: "hospital-1-2026", isActive: true },
     { id: "institution-2", name: "Hospital 2", inviteCode: "hospital-2-2026", isActive: true },
+    { id: "institution-3", name: "Hospital Encerrado", inviteCode: "hospital-3-encerrado", isActive: false },
   ];
   async findByInviteCode(inviteCode: string): Promise<InstitutionRow | null> {
     return this.rows.find((row) => row.inviteCode === inviteCode) ?? null;
@@ -325,7 +325,6 @@ describe("manager admin controller — sectors", () => {
         CreatePeerPartnerUseCase,
         SendPeerPartnerSetPasswordEmailUseCase,
         PeerPartnerPasswordService,
-        GetInstitutionByInviteCodeUseCase,
       ],
     }).compile();
 
@@ -438,6 +437,16 @@ describe("manager admin controller — sectors", () => {
       .post("/manager/admin/sectors")
       .set("Authorization", `Bearer ${hospitalAdminToken()}`)
       .send({ name: "UTI", inviteCode: "hospital-1-2026" });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ conflict: "inviteCode" });
+  });
+
+  it('POST /manager/admin/sectors returns 409 with { conflict: "inviteCode" } when the code belongs to an inactive institution', async () => {
+    const response = await request(app.getHttpServer())
+      .post("/manager/admin/sectors")
+      .set("Authorization", `Bearer ${hospitalAdminToken()}`)
+      .send({ name: "UTI", inviteCode: "hospital-3-encerrado" });
 
     expect(response.status).toBe(409);
     expect(response.body).toEqual({ conflict: "inviteCode" });

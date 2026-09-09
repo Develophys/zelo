@@ -80,6 +80,7 @@ class FakeAdminInstitutionRepository implements AdminInstitutionRepository {
 
 class FakeSectorRepository implements SectorRepository {
   public forAdmin: Record<string, AdminSectorRow[]> = {};
+  public byInviteCode: Record<string, SectorWithInstitution> = {};
 
   async create(): Promise<{ id: string; name: string }> {
     throw new Error("not used in this test");
@@ -108,8 +109,8 @@ class FakeSectorRepository implements SectorRepository {
   async findByIdsInInstitution(): Promise<{ id: string }[]> {
     throw new Error("not used in this test");
   }
-  async findByInviteCode(): Promise<SectorWithInstitution | null> {
-    throw new Error("not used in this test");
+  async findByInviteCode(inviteCode: string): Promise<SectorWithInstitution | null> {
+    return this.byInviteCode[inviteCode] ?? null;
   }
   async delete(): Promise<void> {
     throw new Error("not used in this test");
@@ -218,6 +219,50 @@ describe("admin controller", () => {
 
     expect(response.status).toBe(409);
     institutionRepository.shouldThrowDuplicate = false;
+  });
+
+  it('POST /admin/institutions returns 409 with { conflict: "inviteCode" } when the code is already claimed by a sector', async () => {
+    sectorRepository.byInviteCode = {
+      "uti-2026": {
+        id: "sector-1",
+        name: "UTI",
+        isActive: true,
+        institution: { id: "institution-9", name: "Outro Hospital", isActive: true },
+      },
+    };
+    const login = await request(app.getHttpServer()).post("/admin/login").send({ email: "ops@zelo-demo.local", password: "test-password" });
+    const token = login.body.token;
+
+    const response = await request(app.getHttpServer())
+      .post("/admin/institutions")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ institutionName: "Hospital Teste", inviteCode: "uti-2026", hospitalAdminName: "Mauricio", hospitalAdminEmail: "mauricio2@zelo-demo.local" });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ conflict: "inviteCode" });
+    sectorRepository.byInviteCode = {};
+  });
+
+  it('POST /admin/institutions returns 409 with { conflict: "inviteCode" } when the code is claimed by an inactive sector', async () => {
+    sectorRepository.byInviteCode = {
+      "uti-pausada": {
+        id: "sector-2",
+        name: "UTI",
+        isActive: false,
+        institution: { id: "institution-9", name: "Outro Hospital", isActive: true },
+      },
+    };
+    const login = await request(app.getHttpServer()).post("/admin/login").send({ email: "ops@zelo-demo.local", password: "test-password" });
+    const token = login.body.token;
+
+    const response = await request(app.getHttpServer())
+      .post("/admin/institutions")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ institutionName: "Hospital Teste", inviteCode: "uti-pausada", hospitalAdminName: "Mauricio", hospitalAdminEmail: "mauricio3@zelo-demo.local" });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ conflict: "inviteCode" });
+    sectorRepository.byInviteCode = {};
   });
 
   it("GET /admin/institutions rejects a request with no token", async () => {
