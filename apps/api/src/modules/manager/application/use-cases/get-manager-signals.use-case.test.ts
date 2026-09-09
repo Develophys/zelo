@@ -52,6 +52,7 @@ describe("GetManagerSignalsUseCase", () => {
       overallConcerningRate: 0,
       checkInsLast4Weeks: 0,
       abandonedLast4Weeks: 0,
+      unsentChatDraftsLast4Weeks: 0,
       weeklyTrend: [],
       segments: [],
       followUpResponseRate: 0,
@@ -344,6 +345,31 @@ describe("GetManagerSignalsUseCase", () => {
     const result = await useCase.execute("institution-1", ["hidden"]);
 
     expect(result.abandonedLast4Weeks).toBe(0);
+  });
+
+  it("sums unsentChatDrafts only across the visible sectors' last 4 weeks with real check-ins, mirroring abandonedLast4Weeks", async () => {
+    const rows: SignalRow[] = [
+      { sectorId: "visible", sectorName: "UTI", weekStart: WEEK_1, checkIns: 6, concerning: 1, abandoned: 0, unsentChatDrafts: 2 },
+      { sectorId: "visible", sectorName: "UTI", weekStart: WEEK_2, checkIns: 6, concerning: 2, abandoned: 0, unsentChatDrafts: 3 },
+      { sectorId: "hidden", sectorName: "Pronto-Socorro", weekStart: WEEK_1, checkIns: 2, concerning: 0, abandoned: 0, unsentChatDrafts: 9 },
+      { sectorId: "hidden", sectorName: "Pronto-Socorro", weekStart: WEEK_2, checkIns: 2, concerning: 0, abandoned: 0, unsentChatDrafts: 9 },
+    ];
+    const useCase = makeUseCase(rows);
+
+    const result = await useCase.execute("institution-1", ["visible", "hidden"]);
+
+    expect(result.unsentChatDraftsLast4Weeks).toBe(5); // 2 + 3, from "visible" only
+  });
+
+  it("returns unsentChatDraftsLast4Weeks: 0 when no sector clears the k-anonymity threshold", async () => {
+    const rows: SignalRow[] = [
+      { sectorId: "hidden", sectorName: "Pronto-Socorro", weekStart: WEEK_1, checkIns: 1, concerning: 0, abandoned: 0, unsentChatDrafts: 4 },
+    ];
+    const useCase = makeUseCase(rows);
+
+    const result = await useCase.execute("institution-1", ["hidden"]);
+
+    expect(result.unsentChatDraftsLast4Weeks).toBe(0);
   });
 });
 

@@ -428,6 +428,7 @@ describe("manager controller", () => {
       overallConcerningRate: 0,
       checkInsLast4Weeks: 0,
       abandonedLast4Weeks: 0,
+      unsentChatDraftsLast4Weeks: 0,
       weeklyTrend: [],
       segments: [],
       followUpResponseRate: 0,
