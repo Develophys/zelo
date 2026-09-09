@@ -7,6 +7,9 @@ class FakeSignalCheckinPort implements SignalCheckinPort {
   async checkin(params: SignalCheckinParams): Promise<void> {
     this.calls.push(params);
   }
+  async abandon(): Promise<void> {
+    throw new Error("not used in this test");
+  }
 }
 
 describe("RecordSignalCheckinUseCase", () => {
@@ -37,6 +40,9 @@ describe("RecordSignalCheckinUseCase", () => {
     class ThrowingPort implements SignalCheckinPort {
       async checkin(): Promise<void> {
         throw new Error("network down");
+      }
+      async abandon(): Promise<void> {
+        throw new Error("not used in this test");
       }
     }
     const useCase = new RecordSignalCheckinUseCase(new ThrowingPort());
