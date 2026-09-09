@@ -39,6 +39,7 @@ export function buildPgrCsvLines(data: ManagerSignalsResponse, generatedAt: Date
     "Métrica,Valor",
     `${MANAGER_METRICS.concerningRate.label},${Math.round(data.overallConcerningRate * 100)}%`,
     `${MANAGER_METRICS.checkIns.label} (4 semanas),${data.checkInsLast4Weeks}`,
+    `${MANAGER_METRICS.abandoned.label} (4 semanas),${data.abandonedLast4Weeks}`,
     `${MANAGER_METRICS.followUpRate.label}${DEMONSTRATION_SUFFIX},${Math.round(data.followUpResponseRate * 100)}%`,
     "",
     "Setor,Sinais (%),n",
@@ -79,6 +80,8 @@ export async function downloadPgrReportAsPdf(
   doc.text(`${MANAGER_METRICS.concerningRate.label}: ${Math.round(data.overallConcerningRate * 100)}%`, 14, y);
   y += LINE_HEIGHT;
   doc.text(`${MANAGER_METRICS.checkIns.label} (4 semanas): ${data.checkInsLast4Weeks}`, 14, y);
+  y += LINE_HEIGHT;
+  doc.text(`${MANAGER_METRICS.abandoned.label} (4 semanas): ${data.abandonedLast4Weeks}`, 14, y);
   y += LINE_HEIGHT;
   const followUpLines = doc.splitTextToSize(
     `${MANAGER_METRICS.followUpRate.label}${DEMONSTRATION_SUFFIX}: ${Math.round(data.followUpResponseRate * 100)}%`,
