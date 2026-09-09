@@ -1,4 +1,10 @@
-export type ManagerMetricId = "concerningRate" | "checkIns" | "abandoned" | "followUpRate" | "sectorCoverage";
+export type ManagerMetricId =
+  | "concerningRate"
+  | "checkIns"
+  | "abandoned"
+  | "unsentChatDrafts"
+  | "followUpRate"
+  | "sectorCoverage";
 
 export interface MetricDefinition {
   id: ManagerMetricId;
@@ -19,7 +25,7 @@ export interface MetricDefinition {
 }
 
 /** Muda sempre que um limiar, uma janela ou uma regra de supressão mudar. */
-export const MANAGER_METHODOLOGY_VERSION = "1.1 — 9 de setembro de 2026";
+export const MANAGER_METHODOLOGY_VERSION = "1.2 — 9 de setembro de 2026";
 
 export const MANAGER_METRICS: Record<ManagerMetricId, MetricDefinition> = {
   concerningRate: {
@@ -48,6 +54,15 @@ export const MANAGER_METRICS: Record<ManagerMetricId, MetricDefinition> = {
     window: "As 4 semanas mais recentes que têm dados — mesma janela de \"Respostas\".",
     suppression:
       "Conta apenas os setores que já têm 5 respostas ou mais na semana de referência — o mesmo critério de \"Respostas\", nunca um critério próprio. Um setor não fica visível por abandono sozinho.",
+  },
+  unsentChatDrafts: {
+    id: "unsentChatDrafts",
+    label: "Conversas iniciadas e não enviadas",
+    method:
+      "Quantas vezes alguém escreveu algo no campo de mensagem do chat com a IA e saiu da tela sem enviar. Não guarda o que foi escrito — só a contagem de que aconteceu. Uma pessoa que abandona uma mensagem e depois envia outra numa nova visita conta nos dois eventos, sem tentativa de reconciliar.",
+    window: "As 4 semanas mais recentes que têm dados — mesma janela de \"Respostas\".",
+    suppression:
+      "Conta apenas os setores que já têm 5 respostas ou mais na semana de referência — o mesmo critério de \"Respostas\", nunca um critério próprio. Um setor não fica visível por rascunho não enviado sozinho.",
   },
   followUpRate: {
     id: "followUpRate",
@@ -108,4 +123,12 @@ function questionariosAbandonados(count: number): string {
 
 export function abandonedReading(total: number): string {
   return `${questionariosAbandonados(total)}, nas últimas 4 semanas`;
+}
+
+function conversasNaoEnviadas(count: number): string {
+  return count === 1 ? "1 conversa iniciada e não enviada" : `${count} conversas iniciadas e não enviadas`;
+}
+
+export function unsentChatDraftsReading(total: number): string {
+  return `${conversasNaoEnviadas(total)}, nas últimas 4 semanas`;
 }
