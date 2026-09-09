@@ -1,11 +1,11 @@
 import { z } from "zod";
-import type { InstitutionLinkPort, InstitutionLookupResult, InstitutionSector } from "@/ports/institution-link.port";
-import { InstitutionLookupResultSchema, InstitutionNotFoundError, InstitutionSectorSchema } from "@/ports/institution-link.port";
+import type { InstitutionLinkPort, InstitutionSector, LinkCodeResult } from "@/ports/institution-link.port";
+import { InstitutionNotFoundError, InstitutionSectorSchema, LinkCodeResultSchema } from "@/ports/institution-link.port";
 import { API_BASE_URL } from './api-base-url';
 
 
 export class HttpInstitutionLinkAdapter implements InstitutionLinkPort {
-  async lookupByCode(code: string): Promise<InstitutionLookupResult> {
+  async lookupByCode(code: string): Promise<LinkCodeResult> {
     const response = await fetch(`${API_BASE_URL}/institutions/by-code/${encodeURIComponent(code)}`);
 
     if (response.status === 404) {
@@ -15,7 +15,7 @@ export class HttpInstitutionLinkAdapter implements InstitutionLinkPort {
       throw new Error(`institution lookup failed with status ${response.status}`);
     }
 
-    return InstitutionLookupResultSchema.parse(await response.json());
+    return LinkCodeResultSchema.parse(await response.json());
   }
 
   async listSectors(institutionId: string): Promise<InstitutionSector[]> {

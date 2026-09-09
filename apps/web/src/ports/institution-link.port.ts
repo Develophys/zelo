@@ -6,9 +6,15 @@ export type InstitutionLookupResult = z.infer<typeof InstitutionLookupResultSche
 export const InstitutionSectorSchema = z.object({ id: z.string(), name: z.string() });
 export type InstitutionSector = z.infer<typeof InstitutionSectorSchema>;
 
+export const LinkCodeResultSchema = z.object({
+  institution: InstitutionLookupResultSchema,
+  sector: InstitutionSectorSchema.optional(),
+});
+export type LinkCodeResult = z.infer<typeof LinkCodeResultSchema>;
+
 export class InstitutionNotFoundError extends Error {}
 
 export interface InstitutionLinkPort {
-  lookupByCode(code: string): Promise<InstitutionLookupResult>;
+  lookupByCode(code: string): Promise<LinkCodeResult>;
   listSectors(institutionId: string): Promise<InstitutionSector[]>;
 }
