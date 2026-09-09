@@ -16,8 +16,8 @@ const ROWS: ReactNode[] = [
     profissional.
   </>,
   <>
-    Autorizo o uso <strong>anônimo e agregado</strong> dos meus sinais para melhorar o cuidado da
-    equipe.
+    Autorizo o uso <strong>anônimo e agregado</strong> dos meus sinais e interações (como um
+    questionário iniciado e não concluído) para melhorar o cuidado da equipe.
   </>,
   <>
     Minha identidade só é revelada se <strong>eu escolher</strong> falar com uma pessoa.

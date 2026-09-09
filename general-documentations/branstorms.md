@@ -45,19 +45,6 @@ Legenda de escopo: `[Global]` `[Médico]` `[Chat]` `[Autoavaliação]` `[Admin]`
 
 - Tela do Gestor poderia ter ordem dos items de menu customizaveis?
 
-- **`[Médico]` `[Admin]` QR code já vinculado a um setor** — investigado em 2026-09-08: hoje o QR
-  code do admin (`InstitutionQrCodeModal`) só codifica o `inviteCode` da instituição, e a escolha
-  de setor no fluxo de vínculo (`useLinkInstitutionFlow` → `LinkInstitutionSectorStep`) é um passo
-  manual separado, sem nenhuma ligação com o que foi escaneado. **Não existe** granularidade de
-  setor em código de convite/QR hoje — nem no schema (`Sector` não tem código próprio), nem no
-  backend, nem no frontend.
-  - **Tamanho:** feature nova de escopo moderado, não um retrofit pequeno — reaproveita bastante do
-    que já existe (endpoint `GET /institutions/:id/sectors`, libs `qrcode`/`qr-scanner`, os modais
-    de scan/geração). O que falta: um campo de código próprio em `Sector` (ou codificar
-    `institutionId:sectorId` no próprio QR), um endpoint de lookup por esse código, uma ação
-    "Gerar QR" por linha em `ManagerAdminSectorsPage`, e um ajuste no hook de vínculo para pular o
-    passo manual de setor quando o código já resolve um.
-
 ### 1.4 Segurança e identidade
 
 - **`[Global]` Autenticação anônima do médico**
@@ -87,11 +74,6 @@ toggle nas telas de login/admin) estão em **5. Concluído**.*
 - **`[Global]` Onde ficará o botão de customização de fontes/cores** nas páginas "Home" e "Você".
 - **`[Global]` Validar a faixa etária da nova persona** (45–60 anos) — confirmar se faz sentido ou
   se precisamos ajustá-la.
-- **`[Gestor]` Repensar a localização do botão de acesso à administração do sistema.**
-  Não faz sentido ele estar na tela do gestor, já que o gestor não necessariamente vai acessar essa
-  área, e o botão pode causar confusão.
-- **`[Global]` Atualizar os termos de consentimento** para cobrir o salvamento de interações
-  (questionário abandonado, rascunho de chat não enviado).
 
 ---
 
@@ -99,6 +81,17 @@ toggle nas telas de login/admin) estão em **5. Concluído**.*
 
 - [x] **`[Chat]`** Transformar em conteúdo colapsável a seção com botão que redireciona para um chat
   real ou para as páginas de checking.
+- [x] **`[Gestor]`** Repensar a localização do botão de acesso à administração do sistema — saiu da
+  navegação principal do médico anônimo e passou a viver na tela de Configurações, agrupado com o
+  acesso de par voluntário sob "Sou gestor ou par voluntário".
+- [x] **`[Global]`** Atualizar os termos de consentimento para cobrir o salvamento de interações.
+  A linha 2 (o único item opt-in, controlado por checkbox) passou de "meus sinais" para "meus
+  sinais e interações (como um questionário iniciado e não concluído)" — mesma lógica de
+  agregado/anônimo de sempre, só ampliando o que ela cobre. Atualizado nos dois lugares onde o
+  texto existe: `ConsentPage` (aceite inicial) e `AggregateOptInSection` na página "Você" (onde o
+  médico revisa/muda o opt-in depois). Ainda não cobre rascunho de chat não enviado nem o modal de
+  abandono do questionário em si — essas features (item 1.1) ainda não existem; isso só prepara o
+  consentimento pra quando existirem.
 
 ### Feito em 2026-09-08
 
@@ -156,6 +149,21 @@ toggle nas telas de login/admin) estão em **5. Concluído**.*
   pares), no dashboard, notificações e histórico de insights do gestor, e na inbox do par anônimo
   (Aceitar/Recusar). Fecha o "falta" que restava do item de Hotkeys — ver
   `docs/superpowers/plans/2026-09-08-hotkeys-phase-2.md`.
+- [x] **`[Médico]` `[Admin]` `[Gestor]`** QR code já vinculado a um setor. `Sector` ganhou um
+  `inviteCode` próprio (escolhido à mão pelo gestor, único, imutável como o da instituição); o
+  lookup por código (`GET /institutions/by-code/:code`) passou a resolver também códigos de setor;
+  e o fluxo de vínculo do médico ganhou um passo de confirmação (institution+sector) quando o
+  código escaneado já resolve os dois, pulando a escolha manual de setor. Gestor gera o QR de cada
+  setor em `ManagerAdminSectorsPage`; admin vê e gera o mesmo QR expandindo a linha da instituição
+  em `AdminInstitutionsPage` (`DataTable` ganhou expand/collapse por linha, reutilizável). Ver
+  `docs/superpowers/specs/2026-09-08-sector-scoped-qr-design.md` e
+  `docs/superpowers/plans/2026-09-08-sector-scoped-qr.md`.
+  - **Correção sobre o spec original:** a visão de setores do admin usa um endpoint próprio,
+    autenticado por admin (`GET /admin/institutions/:id/sectors`), em vez de reaproveitar o
+    endpoint público de lookup por código usado no fluxo do médico — esse é anônimo por design e
+    nunca pode devolver invite codes para quem não está autenticado.
+  - **Ressalva de segurança fechada em revisão:** o guard de conflito de invite code (setor vs.
+    instituição) tinha duas lacunas cross-table — corrigidas antes do merge.
 
 ### Já estava implementado (verificado em 2026-09-08, doc estava desatualizado)
 

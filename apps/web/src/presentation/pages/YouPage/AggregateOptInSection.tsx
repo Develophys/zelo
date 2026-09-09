@@ -10,8 +10,8 @@ export function AggregateOptInSection() {
     <Card size="md" className="mt-3.5">
       <label className="flex items-start gap-3">
         <p className="flex-1 text-label text-ink-2">
-          Autorizo o uso <strong>anônimo e agregado</strong> dos meus sinais para melhorar o
-          cuidado da equipe.
+          Autorizo o uso <strong>anônimo e agregado</strong> dos meus sinais e interações (como um
+          questionário iniciado e não concluído) para melhorar o cuidado da equipe.
         </p>
         <Checkbox
           checked={aggregateOptIn}
