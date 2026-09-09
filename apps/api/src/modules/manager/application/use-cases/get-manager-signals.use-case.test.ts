@@ -51,6 +51,7 @@ describe("GetManagerSignalsUseCase", () => {
     expect(result).toEqual({
       overallConcerningRate: 0,
       checkInsLast4Weeks: 0,
+      abandonedLast4Weeks: 0,
       weeklyTrend: [],
       segments: [],
       followUpResponseRate: 0,
@@ -276,6 +277,33 @@ describe("GetManagerSignalsUseCase", () => {
     const result = await useCase.execute("inst-1", ["a"]);
 
     expect(result.referenceWeekStart).toBeNull();
+  });
+
+  it("sums abandoned only across the visible sectors' last 4 weeks, mirroring checkInsLast4Weeks", async () => {
+    const rows: SignalRow[] = [
+      // sector "visible": clears k=5 in WEEK_2 (the reference week) — counts.
+      { sectorId: "visible", sectorName: "UTI", weekStart: WEEK_1, checkIns: 6, concerning: 1, abandoned: 2 },
+      { sectorId: "visible", sectorName: "UTI", weekStart: WEEK_2, checkIns: 6, concerning: 2, abandoned: 3 },
+      // sector "hidden": never reaches 5 check-ins — its abandoned count must not leak through.
+      { sectorId: "hidden", sectorName: "Pronto-Socorro", weekStart: WEEK_1, checkIns: 2, concerning: 0, abandoned: 9 },
+      { sectorId: "hidden", sectorName: "Pronto-Socorro", weekStart: WEEK_2, checkIns: 2, concerning: 0, abandoned: 9 },
+    ];
+    const useCase = makeUseCase(rows);
+
+    const result = await useCase.execute("institution-1", ["visible", "hidden"]);
+
+    expect(result.abandonedLast4Weeks).toBe(5); // 2 + 3, from "visible" only
+  });
+
+  it("returns abandonedLast4Weeks: 0 when no sector clears the k-anonymity threshold", async () => {
+    const rows: SignalRow[] = [
+      { sectorId: "hidden", sectorName: "Pronto-Socorro", weekStart: WEEK_1, checkIns: 1, concerning: 0, abandoned: 4 },
+    ];
+    const useCase = makeUseCase(rows);
+
+    const result = await useCase.execute("institution-1", ["hidden"]);
+
+    expect(result.abandonedLast4Weeks).toBe(0);
   });
 });
 

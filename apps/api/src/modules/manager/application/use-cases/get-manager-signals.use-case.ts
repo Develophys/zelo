@@ -9,6 +9,7 @@ import {
 export interface ManagerSignalsResponse {
   overallConcerningRate: number;
   checkInsLast4Weeks: number;
+  abandonedLast4Weeks: number;
   weeklyTrend: { weekStart: string; concerningRate: number; checkIns: number; concerning: number }[];
   segments: { label: string; value: number; n: number }[];
   followUpResponseRate: number;
@@ -26,6 +27,7 @@ const RECENT_WEEKS_FOR_VOLUME = 4;
 const EMPTY_RESPONSE: Omit<ManagerSignalsResponse, "followUpResponseRate"> = {
   overallConcerningRate: 0,
   checkInsLast4Weeks: 0,
+  abandonedLast4Weeks: 0,
   weeklyTrend: [],
   segments: [],
   sectorCoverage: { visible: 0, total: 0 },
@@ -134,6 +136,10 @@ export class GetManagerSignalsUseCase {
       .filter((r) => recentWeekTimes.has(r.weekStart.getTime()))
       .reduce((sum, r) => sum + r.checkIns, 0);
 
+    const abandonedLast4Weeks = visibleRows
+      .filter((r) => recentWeekTimes.has(r.weekStart.getTime()))
+      .reduce((sum, r) => sum + r.abandoned, 0);
+
     const weeklyTrend = weekTimes.map((weekTime) => {
       const weekRows = visibleRows.filter((r) => r.weekStart.getTime() === weekTime);
       const totalCheckIns = weekRows.reduce((sum, r) => sum + r.checkIns, 0);
@@ -149,6 +155,7 @@ export class GetManagerSignalsUseCase {
     return {
       overallConcerningRate,
       checkInsLast4Weeks,
+      abandonedLast4Weeks,
       weeklyTrend,
       segments,
       followUpResponseRate,
