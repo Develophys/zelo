@@ -33,7 +33,7 @@ const DATA: ManagerSignalsResponse = {
   overallConcerningRate: 0.41,
   checkInsLast4Weeks: 111,
   abandonedLast4Weeks: 9,
-  unsentChatDraftsLast4Weeks: 0,
+  unsentChatDraftsLast4Weeks: 4,
   weeklyTrend: [],
   segments: [
     { label: "Plantão noturno", value: 52, n: 18 },
@@ -57,6 +57,7 @@ describe("buildPgrCsvLines", () => {
     expect(lines).toContain(`${MANAGER_METRICS.concerningRate.label},41%`);
     expect(lines).toContain(`${MANAGER_METRICS.checkIns.label} (4 semanas),111`);
     expect(lines).toContain(`${MANAGER_METRICS.abandoned.label} (4 semanas),9`);
+    expect(lines).toContain(`${MANAGER_METRICS.unsentChatDrafts.label} (4 semanas),4`);
     expect(lines).toContain(`${MANAGER_METRICS.followUpRate.label}${DEMONSTRATION_SUFFIX},70%`);
     expect(lines).toContain("Plantão noturno,52%,18");
     expect(lines).toContain("Pronto-socorro,38%,24");
@@ -173,6 +174,7 @@ describe("downloadPgrReportAsPdf", () => {
     expect(textMock).toHaveBeenCalledWith(`${MANAGER_METRICS.concerningRate.label}: 41%`, 14, 52);
     expect(textMock).toHaveBeenCalledWith(`${MANAGER_METRICS.checkIns.label} (4 semanas): 111`, 14, 58);
     expect(textMock).toHaveBeenCalledWith(`${MANAGER_METRICS.abandoned.label} (4 semanas): 9`, 14, 64);
+    expect(textMock).toHaveBeenCalledWith(`${MANAGER_METRICS.unsentChatDrafts.label} (4 semanas): 4`, 14, 70);
     expect(splitTextToSizeMock).toHaveBeenCalledWith(
       `${MANAGER_METRICS.followUpRate.label}${DEMONSTRATION_SUFFIX}: 70%`,
       180,
@@ -180,18 +182,18 @@ describe("downloadPgrReportAsPdf", () => {
     expect(textMock).toHaveBeenCalledWith(
       [`${MANAGER_METRICS.followUpRate.label}${DEMONSTRATION_SUFFIX}: 70%`],
       14,
-      70,
+      76,
     );
-    expect(textMock).toHaveBeenCalledWith(sectorCoverageReading(DATA.sectorCoverage), 14, 76);
-    expect(textMock).toHaveBeenCalledWith("Sinais por setor:", 14, 88);
-    expect(textMock).toHaveBeenCalledWith("- Plantão noturno: 52% (n=18)", 14, 96);
-    expect(textMock).toHaveBeenCalledWith("- Pronto-socorro: 38% (n=24)", 14, 102);
-    expect(textMock).toHaveBeenCalledWith("- UTI: 44% (n=9)", 14, 108);
+    expect(textMock).toHaveBeenCalledWith(sectorCoverageReading(DATA.sectorCoverage), 14, 82);
+    expect(textMock).toHaveBeenCalledWith("Sinais por setor:", 14, 94);
+    expect(textMock).toHaveBeenCalledWith("- Plantão noturno: 52% (n=18)", 14, 102);
+    expect(textMock).toHaveBeenCalledWith("- Pronto-socorro: 38% (n=24)", 14, 108);
+    expect(textMock).toHaveBeenCalledWith("- UTI: 44% (n=9)", 14, 114);
     expect(setFontSizeMock).toHaveBeenCalledWith(9);
     expect(textMock).toHaveBeenCalledWith(
       `Metodologia: /manager/methodology — versão ${MANAGER_METHODOLOGY_VERSION}`,
       14,
-      120,
+      126,
     );
     expect(saveMock).toHaveBeenCalledWith("pgr-zelo-2026-07-01.pdf");
   });
@@ -208,5 +210,11 @@ describe("downloadPgrReportAsPdf", () => {
     await downloadPgrReportAsPdf(DATA, GENERATED_AT);
 
     expect(textMock).toHaveBeenCalledWith(`${MANAGER_METRICS.abandoned.label} (4 semanas): 9`, 14, expect.any(Number));
+  });
+
+  it("includes the unsent-chat-drafts line", async () => {
+    await downloadPgrReportAsPdf(DATA, GENERATED_AT);
+
+    expect(textMock).toHaveBeenCalledWith(`${MANAGER_METRICS.unsentChatDrafts.label} (4 semanas): 4`, 14, expect.any(Number));
   });
 });
