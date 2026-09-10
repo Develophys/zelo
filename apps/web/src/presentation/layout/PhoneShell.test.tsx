@@ -39,10 +39,10 @@ describe("PhoneShell", () => {
     expect(screen.getByTestId("phone-shell-root")).toHaveClass("bg-canvas");
   });
 
-  it("uses dynamic viewport height so mobile browser toolbars don't clip content", () => {
+  it("uses dynamic viewport height at every width, not just mobile, so main's overflow-y-auto always has a bounded region to scroll within", () => {
     renderShell(<PhoneShell>content</PhoneShell>);
     const root = screen.getByTestId("phone-shell-root");
-    expect(root).toHaveClass("md:min-h-dvh");
+    expect(root).toHaveClass("h-dvh");
     expect(root).not.toHaveClass("min-h-screen");
   });
 });
@@ -121,30 +121,23 @@ describe("PhoneShell fill mode", () => {
 });
 
 describe("PhoneShell bottom nav mode", () => {
-  it("locks the root to the viewport height below md, so only the body scrolls and the nav stays put", () => {
+  it("locks the root to the viewport height at every width, so only the body scrolls and the nav stays put", () => {
     renderShell(<PhoneShell bottomNav>content</PhoneShell>);
     const root = screen.getByTestId("phone-shell-root");
-    expect(root).toHaveClass("max-md:h-dvh", "max-md:overflow-hidden");
+    expect(root).toHaveClass("h-dvh", "overflow-hidden");
   });
 
-  it("leaves the desktop height as a minimum, since the sidebar pins itself independently of this", () => {
-    renderShell(<PhoneShell bottomNav>content</PhoneShell>);
-    const root = screen.getByTestId("phone-shell-root");
-    expect(root).toHaveClass("md:min-h-dvh");
-  });
-
-  it("locks the height on mobile even with no bottom nav, so the body's own scroll region is reachable", () => {
+  it("locks the height with no bottom nav too, so the body's own scroll region is reachable there as well", () => {
     renderShell(<PhoneShell>content</PhoneShell>);
     const root = screen.getByTestId("phone-shell-root");
-    expect(root).toHaveClass("max-md:h-dvh");
-    expect(root).toHaveClass("max-md:overflow-hidden");
+    expect(root).toHaveClass("h-dvh", "overflow-hidden");
   });
 
   it("defers to fill's own exact-height lock instead of stacking both", () => {
     renderShell(<PhoneShell bottomNav fill>content</PhoneShell>);
     const root = screen.getByTestId("phone-shell-root");
     expect(root).toHaveClass("h-dvh");
-    expect(root).not.toHaveClass("max-md:h-dvh");
+    expect(root).not.toHaveClass("overflow-hidden");
   });
 });
 

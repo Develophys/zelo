@@ -65,23 +65,23 @@ export function PhoneShell({
   backTo,
   chrome = 'doctor',
 }: PhoneShellProps) {
-  // Below md, every shell behaves like a native app: the body (`main`,
-  // `overflow-y-auto`) is the one scroll region, and the root is clamped to
-  // the viewport so that region actually has a bounded height to scroll
-  // within. `html`/`body` lock their own overflow (index.css) so nothing
-  // falls back to document-level scroll — a root left at `min-h-dvh` alone
-  // would grow past the viewport with the page and leave the overflow
-  // unreachable. Desktop is untouched — the sidebar already stays pinned via
-  // its own sticky position, regardless of how tall the page grows.
+  // Every shell behaves like a native app at every width, not just mobile:
+  // the body (`main`, `overflow-y-auto`) is the one scroll region, and the
+  // root is clamped to the viewport so that region actually has a bounded
+  // height to scroll within. `html`/`body` lock their own overflow
+  // (index.css) so nothing falls back to document-level scroll — a root left
+  // at `min-h-dvh` alone (a floor, not a ceiling) grows past the viewport
+  // with the page and leaves the overflow unreachable, on desktop the same
+  // as on mobile. Sidebar.tsx already uses this exact pattern for itself
+  // (`md:h-dvh md:sticky` with its own internal `overflow-y-auto` nav) —
+  // this mirrors it instead of leaning on a since-removed document scroll.
   const hasBottomNav = Boolean(bottomNav);
 
   const column = (
     <div
       data-testid="phone-shell-root"
       className={`flex ${
-        fill
-          ? 'h-dvh'
-          : 'max-md:h-dvh max-md:overflow-hidden md:h-full md:min-h-dvh'
+        fill ? 'h-dvh' : 'h-dvh overflow-hidden'
       } ${sidebar ? 'min-w-0 flex-1' : ''} flex-col ${BG_CLASS[bg]}`}
     >
       <AppHeader
