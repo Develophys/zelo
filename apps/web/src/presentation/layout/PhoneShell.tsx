@@ -65,13 +65,15 @@ export function PhoneShell({
   backTo,
   chrome = 'doctor',
 }: PhoneShellProps) {
-  // Below md, a page with its own bottom nav should behave like a native app:
-  // the nav stays put and only the body scrolls, rather than the document
-  // growing past the viewport and carrying the nav off-screen with it.
-  // Desktop is untouched — the sidebar already stays pinned via its own
-  // sticky position, regardless of how tall the page grows.
+  // Below md, every shell behaves like a native app: the body (`main`,
+  // `overflow-y-auto`) is the one scroll region, and the root is clamped to
+  // the viewport so that region actually has a bounded height to scroll
+  // within. `html`/`body` lock their own overflow (index.css) so nothing
+  // falls back to document-level scroll — a root left at `min-h-dvh` alone
+  // would grow past the viewport with the page and leave the overflow
+  // unreachable. Desktop is untouched — the sidebar already stays pinned via
+  // its own sticky position, regardless of how tall the page grows.
   const hasBottomNav = Boolean(bottomNav);
-  const lockMobileHeight = hasBottomNav && !fill;
 
   const column = (
     <div
@@ -79,9 +81,7 @@ export function PhoneShell({
       className={`flex ${
         fill
           ? 'h-dvh'
-          : lockMobileHeight
-            ? 'max-md:h-dvh max-md:overflow-hidden md:h-full md:min-h-dvh'
-            : 'h-full min-h-dvh'
+          : 'max-md:h-dvh max-md:overflow-hidden md:h-full md:min-h-dvh'
       } ${sidebar ? 'min-w-0 flex-1' : ''} flex-col ${BG_CLASS[bg]}`}
     >
       <AppHeader

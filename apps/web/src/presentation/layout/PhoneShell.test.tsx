@@ -42,7 +42,7 @@ describe("PhoneShell", () => {
   it("uses dynamic viewport height so mobile browser toolbars don't clip content", () => {
     renderShell(<PhoneShell>content</PhoneShell>);
     const root = screen.getByTestId("phone-shell-root");
-    expect(root).toHaveClass("min-h-dvh");
+    expect(root).toHaveClass("md:min-h-dvh");
     expect(root).not.toHaveClass("min-h-screen");
   });
 });
@@ -133,11 +133,11 @@ describe("PhoneShell bottom nav mode", () => {
     expect(root).toHaveClass("md:min-h-dvh");
   });
 
-  it("does not lock the height for a page with no bottom nav to keep on screen", () => {
+  it("locks the height on mobile even with no bottom nav, so the body's own scroll region is reachable", () => {
     renderShell(<PhoneShell>content</PhoneShell>);
     const root = screen.getByTestId("phone-shell-root");
-    expect(root).not.toHaveClass("max-md:h-dvh");
-    expect(root).not.toHaveClass("max-md:overflow-hidden");
+    expect(root).toHaveClass("max-md:h-dvh");
+    expect(root).toHaveClass("max-md:overflow-hidden");
   });
 
   it("defers to fill's own exact-height lock instead of stacking both", () => {
