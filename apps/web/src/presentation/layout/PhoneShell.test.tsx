@@ -147,10 +147,18 @@ describe("PhoneShell centered mode", () => {
     expect(screen.getByTestId("phone-shell-body")).not.toHaveClass("md:max-w-170");
   });
 
-  it("constrains and centers the body from the tablet breakpoint when centered is set", () => {
+  it("keeps the scrolling body full-width, so its scrollbar sits at the window edge, not the middle of the screen", () => {
     renderShell(<PhoneShell centered>content</PhoneShell>);
     const body = screen.getByTestId("phone-shell-body");
-    expect(body).toHaveClass("md:max-w-170", "md:mx-auto");
+    expect(body).not.toHaveClass("md:max-w-170");
+    expect(body).not.toHaveClass("md:mx-auto");
+  });
+
+  it("constrains and centers an inner column instead, so content still reads at a fixed width", () => {
+    renderShell(<PhoneShell centered>content</PhoneShell>);
+    const column = screen.getByTestId("phone-shell-body").firstElementChild;
+    expect(column).toHaveClass("md:max-w-170", "md:mx-auto");
+    expect(column).toHaveTextContent("content");
   });
 });
 

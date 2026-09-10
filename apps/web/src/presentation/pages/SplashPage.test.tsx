@@ -52,9 +52,10 @@ describe("SplashPage", () => {
     expect(screen.getByText("Home screen")).toBeInTheDocument();
   });
 
-  it("uses dynamic viewport height so the CTA isn't hidden behind mobile browser toolbars", () => {
+  it("fills the shell's own available height to center the CTA, rather than re-claiming the whole viewport", () => {
     const { container } = renderSplash();
-    expect(container.querySelector(".min-h-dvh")).not.toBeNull();
+    expect(container.querySelector(".h-full")).not.toBeNull();
+    expect(container.querySelector(".min-h-dvh")).toBeNull();
     expect(container.querySelector(".min-h-screen")).toBeNull();
   });
 

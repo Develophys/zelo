@@ -97,9 +97,9 @@ export function PhoneShell({
         data-testid="phone-shell-body"
         className={`max-md:no-scrollbar ${
           fill ? 'flex min-h-0 flex-1 flex-col overflow-hidden' : 'flex-1 overflow-y-auto pt-6 pb-6'
-        } ${bleed ? '' : 'px-6'} ${centered ? 'md:mx-auto md:w-full md:max-w-170' : ''}`}
+        } ${bleed ? '' : 'px-6'}`}
       >
-        {children}
+        {centered ? <div className="h-full md:mx-auto md:w-full md:max-w-170">{children}</div> : children}
       </main>
       {bottomNav === true ? <BottomNav /> : bottomNav}
     </div>
