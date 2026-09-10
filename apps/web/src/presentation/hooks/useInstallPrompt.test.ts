@@ -80,6 +80,18 @@ describe('useInstallPrompt', () => {
     expect(result.current.status).toBe('ios');
   });
 
+  it('detects iOS Chrome as unable to complete the flow itself, since only Safari exposes it', () => {
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      userAgent:
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/120.0.0.0 Mobile/15E148 Safari/604.1',
+    });
+
+    const { result } = renderHook(() => useInstallPrompt());
+
+    expect(result.current.status).toBe('ios-other-browser');
+  });
+
   it('detects Android before beforeinstallprompt clears Chrome\'s engagement heuristic', () => {
     vi.stubGlobal('navigator', {
       ...navigator,

@@ -47,6 +47,21 @@ export function InstallAppRow() {
             />
           </>
         )}
+        {status === 'ios-other-browser' && (
+          <Button
+            size="sm"
+            full={false}
+            onClick={() => {
+              // The only cross-app way to reach Safari's Share-sheet flow:
+              // iOS itself (not Safari) owns this URL scheme and hands the
+              // current page to Safari, which is the one browser Apple lets
+              // add a Home Screen icon.
+              window.location.href = `x-safari-${window.location.href}`;
+            }}
+          >
+            Abrir no Safari
+          </Button>
+        )}
         {status === 'android' && (
           <>
             <Button size="sm" full={false} onClick={() => setShowInstructions(true)}>

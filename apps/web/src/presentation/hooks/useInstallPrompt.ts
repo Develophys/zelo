@@ -23,12 +23,29 @@ function isAndroid() {
   return /android/i.test(navigator.userAgent);
 }
 
-export type InstallStatus = 'installed' | 'installable' | 'ios' | 'android' | 'unsupported';
+// Every iOS browser embeds its own UA token even though all of them run on
+// WebKit and carry a "Safari" token too — that's what makes it possible to
+// tell Safari itself apart from Chrome/Firefox/Edge/Opera wearing its skin.
+function isIosNonSafariBrowser() {
+  if (typeof navigator === 'undefined') return false;
+  return /CriOS|FxiOS|EdgiOS|OPiOS/i.test(navigator.userAgent);
+}
+
+export type InstallStatus =
+  | 'installed'
+  | 'installable'
+  | 'ios'
+  | 'ios-other-browser'
+  | 'android'
+  | 'unsupported';
 
 // iOS (Safari, and every other browser there since all run on WebKit) has no
 // API to trigger "Add to Home Screen" — Apple only exposes the manual
-// Share-sheet flow, so `status: 'ios'` is a dead end for automation, not a
-// gap in this hook. Android browsers do reach `beforeinstallprompt`
+// Share-sheet flow, and only from Safari's own UI. `status: 'ios'` is a dead
+// end for automation, not a gap in this hook; `status: 'ios-other-browser'`
+// is worse still — the flow isn't reachable from the current app at all, so
+// the caller has to send the user to Safari first. Android browsers do reach
+// `beforeinstallprompt`
 // eventually, but Chrome gates it behind an engagement heuristic (repeat
 // visits, time on site), so a session can sit in `status: 'android'` for a
 // while first — that state points at the browser's own menu instead of
@@ -74,7 +91,9 @@ export function useInstallPrompt() {
     : deferredPrompt
       ? 'installable'
       : isIos()
-        ? 'ios'
+        ? isIosNonSafariBrowser()
+          ? 'ios-other-browser'
+          : 'ios'
         : isAndroid()
           ? 'android'
           : 'unsupported';

@@ -52,6 +52,24 @@ describe('InstallAppRow', () => {
     expect(screen.getByText('Toque no ícone de Compartilhar na barra do Safari')).toBeInTheDocument();
   });
 
+  it('sends non-Safari iOS browsers straight to Safari, since the flow is unreachable from where they are', async () => {
+    stubUserAgent(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/120.0.0.0 Mobile/15E148 Safari/604.1',
+    );
+    const originalLocation = window.location;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...originalLocation, href: 'https://zelohealth.app/settings' },
+    });
+
+    render(<InstallAppRow />);
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir no Safari' }));
+
+    expect(window.location.href).toBe('x-safari-https://zelohealth.app/settings');
+
+    Object.defineProperty(window, 'location', { configurable: true, value: originalLocation });
+  });
+
   it('points Android browsers at their own menu instead of guessing at a button', async () => {
     stubUserAgent('Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/120.0.0.0');
     render(<InstallAppRow />);
