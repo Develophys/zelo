@@ -37,9 +37,14 @@ export function CrisisDeclinePage() {
 
         <div className="flex-1" />
 
-        <Button variant="outline" onClick={() => navigate(routes.home)}>
-          Voltar ao início
-        </Button>
+        <div className="flex flex-col gap-3">
+          <Button variant="outline" onClick={() => navigate(routes.peers)}>
+            Falar com um colega anônimo, agora
+          </Button>
+          <Button variant="outline" onClick={() => navigate(routes.home)}>
+            Voltar ao início
+          </Button>
+        </div>
       </div>
     </PhoneShell>
   );

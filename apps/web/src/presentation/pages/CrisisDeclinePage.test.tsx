@@ -11,6 +11,7 @@ function renderDecline() {
         <Route path="/crisis/line" element={<CrisisDeclinePage />} />
         <Route path="/crisis" element={<div>Crisis offer screen</div>} />
         <Route path="/home" element={<div>Home screen</div>} />
+        <Route path="/peers" element={<div>Peers screen</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -32,5 +33,16 @@ describe("CrisisDeclinePage", () => {
     renderDecline();
     await user.click(screen.getByRole("button", { name: "Voltar ao início" }));
     expect(screen.getByText("Home screen")).toBeInTheDocument();
+  });
+
+  it("offers the anonymous peer chat before giving up on reaching a person", async () => {
+    const user = userEvent.setup();
+    renderDecline();
+    const peerCta = screen.getByRole("button", { name: "Falar com um colega anônimo, agora" });
+    const backHome = screen.getByRole("button", { name: "Voltar ao início" });
+    expect(peerCta.compareDocumentPosition(backHome) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    await user.click(peerCta);
+    expect(screen.getByText("Peers screen")).toBeInTheDocument();
   });
 });

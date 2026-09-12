@@ -36,6 +36,9 @@ export function CrisisOfferPage() {
           <Button variant="outline" onClick={() => navigate(routes.crisisLine)}>
             Agora não
           </Button>
+          <Button variant="ghost" full={false} onClick={() => navigate(routes.peers)}>
+            Prefere falar com um colega, anonimamente?
+          </Button>
         </div>
 
         <div className="mt-6">

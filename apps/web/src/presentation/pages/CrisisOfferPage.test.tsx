@@ -11,6 +11,7 @@ function renderOffer() {
         <Route path="/crisis" element={<CrisisOfferPage />} />
         <Route path="/crisis/connect" element={<div>Crisis accept screen</div>} />
         <Route path="/crisis/line" element={<div>Crisis decline screen</div>} />
+        <Route path="/peers" element={<div>Peers screen</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -86,5 +87,18 @@ describe("CrisisOfferPage", () => {
     renderOffer();
     await user.click(screen.getByTestId("crisis-accept-cta"));
     expect(screen.getByText("Crisis accept screen")).toBeInTheDocument();
+  });
+
+  it("offers the anonymous peer chat below the two crisis choices, not competing with them", async () => {
+    const user = userEvent.setup();
+    renderOffer();
+    const decline = screen.getByRole("button", { name: "Agora não" });
+    const peerLink = screen.getByRole("button", {
+      name: "Prefere falar com um colega, anonimamente?",
+    });
+    expect(decline.compareDocumentPosition(peerLink) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    await user.click(peerLink);
+    expect(screen.getByText("Peers screen")).toBeInTheDocument();
   });
 });
