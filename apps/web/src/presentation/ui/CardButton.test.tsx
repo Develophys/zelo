@@ -17,4 +17,10 @@ describe('CardButton', () => {
     expect(button.className).toContain('bg-brand/5');
     expect(button.className).not.toContain('bg-surface');
   });
+
+  it('gives every tap visible press feedback, since hover means nothing on a touchscreen', () => {
+    render(<CardButton>Label</CardButton>);
+    const button = screen.getByRole('button', { name: 'Label' });
+    expect(button.className).toContain('active:scale-');
+  });
 });

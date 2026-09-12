@@ -112,14 +112,33 @@ describe("YouPage", () => {
     expect(screen.queryByRole("button", { name: "Vincular agora" })).not.toBeInTheDocument();
   });
 
-  it("Desvincular clears the institution link immediately, without a confirm step", async () => {
+  it("Desvincular asks for confirmation before clearing the institution link", async () => {
     useInstitutionLinkStore.getState().link({ institutionId: "inst-1", institutionName: "Hospital São Lucas", sectorId: "sector-1", sectorName: "UTI" });
     renderYou();
 
     await userEvent.click(screen.getByRole("button", { name: "Desvincular" }));
+    expect(screen.getByText(/Tem certeza/)).toBeInTheDocument();
+    // A one-tap unlink was too easy to trigger by accident, given the
+    // product treats institution linkage as core to team-aggregate
+    // visibility — the same inline-confirm pattern already used for
+    // revoking consent now guards this action too.
+    expect(useInstitutionLinkStore.getState().institutionId).toBe("inst-1");
+
+    await userEvent.click(screen.getByRole("button", { name: "Sim, desvincular" }));
 
     expect(useInstitutionLinkStore.getState().institutionId).toBeNull();
     expect(screen.getByRole("button", { name: "Vincular agora" })).toBeInTheDocument();
+  });
+
+  it("Cancelar backs out of the unlink confirmation without changing anything", async () => {
+    useInstitutionLinkStore.getState().link({ institutionId: "inst-1", institutionName: "Hospital São Lucas", sectorId: "sector-1", sectorName: "UTI" });
+    renderYou();
+
+    await userEvent.click(screen.getByRole("button", { name: "Desvincular" }));
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.queryByText(/Tem certeza/)).not.toBeInTheDocument();
+    expect(useInstitutionLinkStore.getState().institutionId).toBe("inst-1");
   });
 
   it("offers the aggregate-signal toggle so the choice can be changed after onboarding", () => {

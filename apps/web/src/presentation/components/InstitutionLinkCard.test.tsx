@@ -108,6 +108,7 @@ describe("InstitutionLinkCard", () => {
     renderCard(true);
 
     await user.click(screen.getByRole("button", { name: "Desvincular" }));
+    await user.click(screen.getByRole("button", { name: "Sim, desvincular" }));
 
     // The nudge is snoozed, so there is no "Vincular agora" button to receive
     // the focus this action would normally restore — it must land somewhere

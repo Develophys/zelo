@@ -32,7 +32,9 @@ export function CardButton({
         padding,
         TONE_CLASS[tone],
         'text-left',
-        'hover:shadow-lift transition-shadow duration-300 ease-out',
+        // Hover means nothing on the touchscreen this app is actually used
+        // on — active:scale is the tap feedback that actually applies.
+        'hover:shadow-lift active:scale-[0.97] transition-[box-shadow,transform] duration-300 ease-out',
         'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand',
         className,
       ].join(' ')}

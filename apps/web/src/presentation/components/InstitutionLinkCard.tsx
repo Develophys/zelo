@@ -9,6 +9,7 @@ import { routes } from '@/presentation/lib/routes';
 import { useInstitutionLinkStore } from '@/stores/institution-link.store';
 import { useInstitutionNudgeStore } from '@/stores/institution-nudge.store';
 import { ShouldShowInstitutionNudgeUseCase } from '@/use-cases/should-show-institution-nudge.usecase';
+import { useInlineConfirm } from '@/presentation/hooks/useInlineConfirm';
 
 const shouldShowInstitutionNudgeUseCase = new ShouldShowInstitutionNudgeUseCase();
 
@@ -43,6 +44,7 @@ export function InstitutionLinkCard({
   // "Vincular agora" button for ctaRef to land on, so there is nowhere for
   // the usual focus restoration to go without this fallback.
   const [justUnlinkedIntoQuiet, setJustUnlinkedIntoQuiet] = useState(false);
+  const unlinkConfirm = useInlineConfirm();
 
   useEffect(() => {
     if (!shouldFocusCta) {
@@ -139,6 +141,42 @@ export function InstitutionLinkCard({
   const institution = displayName(institutionName);
   const sector = displayName(sectorName);
 
+  const handleUnlink = () => {
+    unlink();
+    const willShowNudge = shouldShowInstitutionNudgeUseCase.execute({
+      dismissedAt: nudgeDismissedAt ? new Date(nudgeDismissedAt) : null,
+      now: new Date(),
+    });
+    if (willShowNudge) {
+      setShouldFocusCta(true);
+    } else {
+      setJustUnlinkedIntoQuiet(true);
+    }
+  };
+
+  // Institution linkage is what makes a doctor visible in their team's
+  // aggregate — a one-tap unlink was too easy to trigger by accident. Same
+  // inline-confirm pattern RevokeConsentSection already uses.
+  if (unlinkConfirm.isConfirming) {
+    return (
+      <Card size="md" className={className} tone="brand-tint">
+        <div ref={unlinkConfirm.confirmRef} tabIndex={-1} className="outline-none">
+          <p className="text-label text-ink-2">
+            Tem certeza? Você deixa de aparecer nos números do seu time até vincular de novo.
+          </p>
+          <div className="mt-3 flex gap-3">
+            <Button variant="outline" full={false} className="flex-1" onClick={unlinkConfirm.cancel}>
+              Cancelar
+            </Button>
+            <Button variant="danger" full={false} className="flex-1" onClick={handleUnlink}>
+              Sim, desvincular
+            </Button>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card size="md" className={className}>
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between md:gap-3">
@@ -152,21 +190,11 @@ export function InstitutionLinkCard({
           </div>
         </div>
         <Button
+          ref={unlinkConfirm.triggerRef}
           variant="outline"
           full={false}
           className="md:flex-none"
-          onClick={() => {
-            unlink();
-            const willShowNudge = shouldShowInstitutionNudgeUseCase.execute({
-              dismissedAt: nudgeDismissedAt ? new Date(nudgeDismissedAt) : null,
-              now: new Date(),
-            });
-            if (willShowNudge) {
-              setShouldFocusCta(true);
-            } else {
-              setJustUnlinkedIntoQuiet(true);
-            }
-          }}
+          onClick={unlinkConfirm.requestConfirm}
         >
           Desvincular
         </Button>

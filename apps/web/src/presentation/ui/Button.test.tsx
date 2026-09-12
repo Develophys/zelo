@@ -29,6 +29,25 @@ describe('Button', () => {
     expect(button).toHaveClass('bg-surface-brand', 'text-brand', 'enabled:hover:bg-track');
   });
 
+  it('gives every enabled tap visible press feedback, since hover means nothing on a touchscreen', () => {
+    render(<Button>Label</Button>);
+    const button = screen.getByRole('button', { name: 'Label' });
+    expect(button).toHaveClass('enabled:active:scale-[0.97]');
+  });
+
+  it('does not depress a disabled or aria-disabled button on tap', () => {
+    render(
+      <>
+        <Button disabled>Disabled</Button>
+        <Button aria-disabled>Aria disabled</Button>
+      </>,
+    );
+    expect(screen.getByRole('button', { name: 'Disabled' })).toHaveClass('enabled:active:scale-[0.97]');
+    expect(screen.getByRole('button', { name: 'Aria disabled' })).toHaveClass(
+      'aria-disabled:active:scale-100',
+    );
+  });
+
   it('lays out leading icons beside the label without per-page flex classes', () => {
     render(
       <Button>
@@ -78,12 +97,14 @@ describe('Button', () => {
       </Button>,
     );
     const button = screen.getByRole('button', { name: 'Label' });
-    // Behavior kept: full-width toggle, disabled dimming, focus ring, cursor.
+    // Behavior kept: full-width toggle, disabled dimming, focus ring, cursor,
+    // tap feedback.
     expect(button).toHaveClass(
       'w-full',
       'disabled:opacity-50',
       'focus-visible:ring-2',
       'cursor-pointer',
+      'enabled:active:scale-[0.97]',
     );
     // Visuals not contributed: no variant color, no default shape/padding/font.
     expect(button).not.toHaveClass('bg-brand', 'rounded-control', 'py-4', 'font-sans', 'min-h-13');

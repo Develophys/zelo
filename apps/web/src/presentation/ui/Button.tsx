@@ -3,8 +3,9 @@ import type { ButtonHTMLAttributes, Ref } from 'react';
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   ref?: Ref<HTMLButtonElement>;
   // "unstyled" keeps only shared behavior (focus ring, disabled/loading state,
-  // cursor, the full-width toggle) and contributes no color, shape, spacing,
-  // or hover effect — bring your own visuals via className.
+  // cursor, tap-press feedback, the full-width toggle) and contributes no
+  // color, shape, spacing, or hover effect — bring your own visuals via
+  // className.
   variant?: 'primary' | 'soft' | 'ghost' | 'outline' | 'danger' | 'inverse' | 'unstyled';
   // Geometry only: height, padding, radius, gap and type role. Left unset it
   // stays the default full-size control. Passing it explicitly also works with
@@ -61,6 +62,10 @@ export function Button({
     <button
       className={[
         'cursor-pointer transition disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50',
+        // Hover means nothing on the touchscreen this app is actually used
+        // on — without this, every tap gives no visible response until the
+        // route itself changes.
+        'enabled:active:scale-[0.97] aria-disabled:active:scale-100',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand',
         hasShape && SHAPE_BASE,
         hasShape && SIZE_CLASS[size ?? 'md'],
