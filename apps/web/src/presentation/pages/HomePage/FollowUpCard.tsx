@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router';
 import { Button } from '@/presentation/ui/Button';
 import { routes } from '@/presentation/lib/routes';
 import { Card } from '@/presentation/ui/Card';
-import { Skeleton } from '@/presentation/ui/Skeleton';
 import { useFollowUpAnswer } from '@/presentation/hooks/useFollowUpAnswer';
 
 interface FollowUpCardProps {
@@ -11,24 +10,17 @@ interface FollowUpCardProps {
 
 export function FollowUpCard({ className = '' }: FollowUpCardProps) {
   const navigate = useNavigate();
-  const { isLoading, answer, answeredThisCycle, shouldShowPrompt, recordAnswer } =
-    useFollowUpAnswer();
+  const { isLoading, answer, showAcknowledgment, shouldShowPrompt, recordAnswer } = useFollowUpAnswer();
 
+  // Deliberately no loading skeleton: most Home visits resolve to "no prompt
+  // needed" (no history yet, or still inside the interval), so a
+  // content-shaped placeholder would reserve space that then collapses on
+  // exactly that common path — the same layout shift a skeleton was tried
+  // here to fix. Reserving nothing means collapsing never moves anything;
+  // the rarer prompt/ack paths popping in once resolved is the accepted
+  // trade-off, same as before a skeleton was ever added.
   if (isLoading) {
-    // Without a reserved height, the card pops in once history resolves and
-    // shifts everything below it — including the contact tiles a one-handed
-    // user may already be tapping moments after first paint.
-    return (
-      <div className={className} data-testid="followup-skeleton">
-        <Card>
-          <Skeleton className="h-5 w-3/4 rounded" />
-          <div className="mt-3 flex gap-3">
-            <Skeleton className="h-11 w-24 rounded-control" />
-            <Skeleton className="h-11 w-32 rounded-control" />
-          </div>
-        </Card>
-      </div>
-    );
+    return null;
   }
 
   // Answering used to unmount the card outright. Someone who had just said they
@@ -36,10 +28,13 @@ export function FollowUpCard({ className = '' }: FollowUpCardProps) {
   // interaction most likely to teach a doctor that this app does not listen.
   // The acknowledgement replaces the question in place instead.
   //
-  // Derived from answeredThisCycle (backed by the persisted answeredAt), not
+  // Derived from showAcknowledgment (backed by the persisted answeredAt), not
   // local component state — a remount right after answering (a reload, a PWA
   // background-eviction) must still show this, not silently render nothing.
-  if (answeredThisCycle) {
+  // showAcknowledgment expires after ACKNOWLEDGMENT_WINDOW_HOURS even though
+  // answeredThisCycle stays true for the whole cycle — "Obrigado por dizer"
+  // read days later as stale, not caring.
+  if (showAcknowledgment) {
     return (
       <div className={className} role="status" aria-live="polite" aria-atomic="true">
         <Card data-testid="followup-ack" tone={answer === 'no' ? 'brand-tint' : undefined}>

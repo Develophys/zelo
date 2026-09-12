@@ -6,6 +6,15 @@ import { useFollowUpStore } from '@/stores/followup.store';
 
 const shouldShowFollowUpPromptUseCase = new ShouldShowFollowUpPromptUseCase();
 
+// "Obrigado por dizer." read days later as stale rather than caring, and its
+// nudge-suppression side effect silently overrode InstitutionLinkCard's own
+// tuned 2-day snooze for that whole span. 24h keeps it visible for the rest
+// of the day it was said (including a doctor checking back mid-shift) while
+// guaranteeing it's gone well before a "days later" revisit — independent of
+// answeredThisCycle, which still correctly keeps the question itself from
+// re-appearing until a brand new assessment cycle.
+export const ACKNOWLEDGMENT_WINDOW_HOURS = 24;
+
 // Shared by FollowUpCard (to decide what to render) and HomePage (to keep
 // InstitutionLinkCard's nudge off screen right after a "não estou bem"
 // disclosure) — both need the same "was this cycle already answered"
@@ -33,5 +42,10 @@ export function useFollowUpAnswer() {
     now: new Date(),
   });
 
-  return { isLoading, answer, answeredThisCycle, shouldShowPrompt, recordAnswer };
+  const answeredRecently =
+    answeredAtDate !== null &&
+    Date.now() - answeredAtDate.getTime() < ACKNOWLEDGMENT_WINDOW_HOURS * 60 * 60 * 1000;
+  const showAcknowledgment = answeredThisCycle && answeredRecently;
+
+  return { isLoading, answer, showAcknowledgment, answeredThisCycle, shouldShowPrompt, recordAnswer };
 }

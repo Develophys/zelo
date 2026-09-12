@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import { useFollowUpAnswer } from './useFollowUpAnswer';
+import { useFollowUpAnswer, ACKNOWLEDGMENT_WINDOW_HOURS } from './useFollowUpAnswer';
 import * as container from '@/app/container';
 import { useFollowUpStore } from '@/stores/followup.store';
 import { FOLLOWUP_INTERVAL_DAYS } from '@/use-cases/should-show-followup-prompt.usecase';
@@ -72,5 +72,39 @@ describe('useFollowUpAnswer', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.shouldShowPrompt).toBe(false);
     expect(result.current.answeredThisCycle).toBe(false);
+  });
+
+  it('shows the acknowledgment right after answering', async () => {
+    const now = new Date();
+    vi.spyOn(container.getAssessmentHistoryUseCase, 'execute').mockResolvedValue([
+      { weekStart: now.toISOString(), severityFraction: 0.4 },
+    ]);
+    const answeredAt = new Date(now.getTime() + 1000);
+    useFollowUpStore.setState({ answer: 'no', answeredAt: answeredAt.toISOString() });
+
+    const { result } = renderHook(() => useFollowUpAnswer(), { wrapper });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.showAcknowledgment).toBe(true);
+  });
+
+  it(`stops showing the acknowledgment once ${ACKNOWLEDGMENT_WINDOW_HOURS}h have passed, even though the cycle is still answered`, async () => {
+    const now = new Date();
+    const answeredAt = new Date(now);
+    answeredAt.setHours(answeredAt.getHours() - (ACKNOWLEDGMENT_WINDOW_HOURS + 1));
+
+    vi.spyOn(container.getAssessmentHistoryUseCase, 'execute').mockResolvedValue([
+      { weekStart: answeredAt.toISOString(), severityFraction: 0.4 },
+    ]);
+    useFollowUpStore.setState({ answer: 'no', answeredAt: answeredAt.toISOString() });
+
+    const { result } = renderHook(() => useFollowUpAnswer(), { wrapper });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    // "Obrigado por dizer" days later reads as stale, not caring — but the
+    // question still must not re-appear until a brand new assessment cycle.
+    expect(result.current.showAcknowledgment).toBe(false);
+    expect(result.current.answeredThisCycle).toBe(true);
+    expect(result.current.shouldShowPrompt).toBe(false);
   });
 });

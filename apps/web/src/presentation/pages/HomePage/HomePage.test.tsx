@@ -449,7 +449,7 @@ describe("HomePage follow-up", () => {
   });
 
   it("shows the acknowledgment on a fresh mount, not only right after tapping — the answer is persisted, so the reassurance must be too", async () => {
-    const answeredAt = new Date(new Date(OLD_ENOUGH_WEEK_START).getTime() + 1000);
+    const answeredAt = new Date();
 
     // No click in this test at all: this is what a reload or a PWA
     // background-eviction right after answering "não estou bem" looks like —
@@ -467,10 +467,17 @@ describe("HomePage follow-up", () => {
     expect(within(ack).getByRole("button", { name: "Conversar com o acolhimento" })).toBeInTheDocument();
   });
 
-  it("shows a loading skeleton instead of popping in after paint and shifting the CTAs below it", () => {
+  it("renders nothing while loading, rather than a placeholder that would collapse and shift the CTAs below it in the common case", () => {
+    // Most Home visits resolve to "no prompt needed" (no history yet, or
+    // still inside the interval) — a content-shaped skeleton was tried and
+    // reverted because it reserved space that then collapsed on exactly
+    // that common path. Reserving nothing means collapsing never moves
+    // anything, at the cost of the rarer prompt/ack paths popping in once
+    // resolved — the same trade-off the pre-skeleton version already made.
     vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockReturnValue(new Promise(() => {}));
     renderHome();
-    expect(screen.getByTestId("followup-skeleton")).toBeInTheDocument();
+    expect(screen.queryByTestId("followup-skeleton")).not.toBeInTheDocument();
+    expect(screen.queryByText("Só uma checagem rápida: tudo bem?")).not.toBeInTheDocument();
   });
 });
 
@@ -488,7 +495,7 @@ describe("HomePage follow-up × institution nudge", () => {
   });
 
   it("keeps the institution nudge off screen right after a 'não estou bem' disclosure", async () => {
-    const answeredAt = new Date(new Date(OLD_ENOUGH_WEEK_START).getTime() + 1000);
+    const answeredAt = new Date();
 
     useFollowUpStore.setState({ answer: "no", answeredAt: answeredAt.toISOString() });
     vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
@@ -505,7 +512,7 @@ describe("HomePage follow-up × institution nudge", () => {
   });
 
   it("still shows the institution nudge when the answer was 'estou bem'", async () => {
-    const answeredAt = new Date(new Date(OLD_ENOUGH_WEEK_START).getTime() + 1000);
+    const answeredAt = new Date();
 
     useFollowUpStore.setState({ answer: "yes", answeredAt: answeredAt.toISOString() });
     vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
@@ -515,6 +522,24 @@ describe("HomePage follow-up × institution nudge", () => {
     renderHome();
 
     expect(await screen.findByText("Ainda não vinculado a um hospital")).toBeInTheDocument();
+  });
+
+  it("shows the institution nudge again once the acknowledgment window has passed, even though the cycle is still answered", async () => {
+    const daysOldAnswer = new Date();
+    daysOldAnswer.setDate(daysOldAnswer.getDate() - 3);
+
+    useFollowUpStore.setState({ answer: "no", answeredAt: daysOldAnswer.toISOString() });
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
+      { weekStart: daysOldAnswer.toISOString(), severityFraction: 0.4 },
+    ]);
+
+    renderHome();
+
+    // The "não" from days ago no longer holds the nudge back — a stale
+    // disclosure should not silently override the nudge's own 2-day snooze
+    // for longer than the acknowledgment itself is even shown.
+    expect(await screen.findByText("Ainda não vinculado a um hospital")).toBeInTheDocument();
+    expect(screen.queryByTestId("followup-ack")).not.toBeInTheDocument();
   });
 });
 

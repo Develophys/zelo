@@ -13,12 +13,14 @@ import { HistoryChartCard } from './HistoryChartCard';
 
 export function HomePage() {
   const navigate = useNavigate();
-  const { answer, answeredThisCycle } = useFollowUpAnswer();
+  const { answer, showAcknowledgment } = useFollowUpAnswer();
   // The institution ask is administrative housekeeping — it must never share
   // a view with a "não estou bem" disclosure, not just sit below it in
   // scroll order (see the ordering comment below, which only solved half
-  // of this).
-  const justDisclosedDistress = answeredThisCycle && answer === 'no';
+  // of this). Tied to showAcknowledgment, not the whole answered cycle, so
+  // this lifts on the same schedule the acknowledgment itself does — a
+  // days-old "não" no longer holds the institution nudge back indefinitely.
+  const justDisclosedDistress = showAcknowledgment && answer === 'no';
 
   return (
     <PhoneShell
