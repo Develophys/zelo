@@ -427,6 +427,33 @@ describe("HomePage follow-up", () => {
     expect(await screen.findByTestId("followup-ack")).toHaveTextContent(/que bom/i);
   });
 
+  it("moves keyboard focus into the acknowledgment instead of dropping it to <body>, same as InstitutionLinkCard's own nudge", async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
+      { weekStart: OLD_ENOUGH_WEEK_START, severityFraction: 0.4 },
+    ]);
+    const user = userEvent.setup();
+    renderHome();
+    await screen.findByText("Só uma checagem rápida: tudo bem?");
+
+    await user.click(screen.getByRole("button", { name: "Não estou bem" }));
+
+    const ack = await screen.findByTestId("followup-ack");
+    expect(ack.contains(document.activeElement)).toBe(true);
+  });
+
+  it("does not steal focus on a fresh mount that shows a persisted acknowledgment nobody just tapped for", async () => {
+    const answeredAt = new Date();
+    useFollowUpStore.setState({ answer: "no", answeredAt: answeredAt.toISOString() });
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
+      { weekStart: OLD_ENOUGH_WEEK_START, severityFraction: 0.4 },
+    ]);
+
+    renderHome();
+
+    const ack = await screen.findByTestId("followup-ack");
+    expect(ack.contains(document.activeElement)).toBe(false);
+  });
+
   it("re-arms after a newer assessment, instead of retiring for the rest of the install's life after one answer", async () => {
     const now = new Date();
     const oldAssessment = new Date(now);
@@ -540,6 +567,38 @@ describe("HomePage follow-up × institution nudge", () => {
     // for longer than the acknowledgment itself is even shown.
     expect(await screen.findByText("Ainda não vinculado a um hospital")).toBeInTheDocument();
     expect(screen.queryByTestId("followup-ack")).not.toBeInTheDocument();
+  });
+
+  it("keeps the institution nudge off screen right after a high-severity assessment, even without a pulse-check disclosure", async () => {
+    const assessedAt = new Date();
+
+    // No follow-up answer at all — the severity signal itself, not the
+    // informal pulse check, is what should hold the nudge back here.
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
+      { weekStart: assessedAt.toISOString(), severityFraction: 0.8 },
+    ]);
+
+    renderHome();
+
+    // The follow-up prompt itself won't be due yet (assessed moments ago,
+    // inside FOLLOWUP_INTERVAL_DAYS) — waiting on the history chart's own
+    // post-load caption is what actually confirms the async history fetch
+    // resolved, rather than racing content that renders during loading too.
+    await screen.findByText(/% da escala de sintomas/i);
+    expect(screen.queryByText("Ainda não vinculado a um hospital")).not.toBeInTheDocument();
+  });
+
+  it("shows the institution nudge again once a severe assessment is old enough, even though it's still the most recent one", async () => {
+    const daysOldAssessment = new Date();
+    daysOldAssessment.setDate(daysOldAssessment.getDate() - 3);
+
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
+      { weekStart: daysOldAssessment.toISOString(), severityFraction: 0.8 },
+    ]);
+
+    renderHome();
+
+    expect(await screen.findByText("Ainda não vinculado a um hospital")).toBeInTheDocument();
   });
 });
 

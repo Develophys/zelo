@@ -27,12 +27,17 @@ export function findPeakIndex(points: WeeklyHistoryPoint[]): number {
   return peakIndex;
 }
 
-export function mostRecentAssessmentDate(points: WeeklyHistoryPoint[]): Date | null {
+export function mostRecentAssessmentPoint(points: WeeklyHistoryPoint[]): WeeklyHistoryPoint | null {
   const withData = points.filter(
     (point) => point.severityFraction !== null && point.weekStart !== '',
   );
   if (withData.length === 0) return null;
-  return new Date(withData[withData.length - 1]!.weekStart);
+  return withData[withData.length - 1]!;
+}
+
+export function mostRecentAssessmentDate(points: WeeklyHistoryPoint[]): Date | null {
+  const point = mostRecentAssessmentPoint(points);
+  return point ? new Date(point.weekStart) : null;
 }
 
 export function describeHistoryWeek(

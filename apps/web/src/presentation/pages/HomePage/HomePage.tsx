@@ -13,14 +13,17 @@ import { HistoryChartCard } from './HistoryChartCard';
 
 export function HomePage() {
   const navigate = useNavigate();
-  const { answer, showAcknowledgment } = useFollowUpAnswer();
+  const { answer, showAcknowledgment, recentSevereAssessment } = useFollowUpAnswer();
   // The institution ask is administrative housekeeping — it must never share
-  // a view with a "não estou bem" disclosure, not just sit below it in
-  // scroll order (see the ordering comment below, which only solved half
-  // of this). Tied to showAcknowledgment, not the whole answered cycle, so
-  // this lifts on the same schedule the acknowledgment itself does — a
-  // days-old "não" no longer holds the institution nudge back indefinitely.
-  const justDisclosedDistress = showAcknowledgment && answer === 'no';
+  // a view with a distress signal, not just sit below it in scroll order
+  // (see the ordering comment below, which only solved half of this). Two
+  // signals count: the pulse-check "não" (tied to showAcknowledgment, not
+  // the whole answered cycle, so it lifts on the same schedule the
+  // acknowledgment itself does) and a recent high/severe PHQ-9/GAD-7 result
+  // — the app's authoritative distress signal per PRODUCT.md, which the
+  // pulse check alone never covered. Either way, a days-old disclosure no
+  // longer holds the institution nudge back indefinitely.
+  const justDisclosedDistress = (showAcknowledgment && answer === 'no') || recentSevereAssessment;
 
   return (
     <PhoneShell

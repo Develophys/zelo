@@ -1,6 +1,7 @@
 import { useAssessmentHistory } from '@/presentation/hooks/useAssessmentHistory';
 import { EMPTY_POINTS } from '@/presentation/lib/home.constants';
-import { mostRecentAssessmentDate } from '@/presentation/lib/weekly-history-chart';
+import { bandForSeverityFraction } from '@/presentation/lib/band-for';
+import { mostRecentAssessmentPoint } from '@/presentation/lib/weekly-history-chart';
 import { ShouldShowFollowUpPromptUseCase } from '@/use-cases/should-show-followup-prompt.usecase';
 import { useFollowUpStore } from '@/stores/followup.store';
 
@@ -25,7 +26,8 @@ export function useFollowUpAnswer() {
   const answeredAt = useFollowUpStore((state) => state.answeredAt);
   const recordAnswer = useFollowUpStore((state) => state.recordAnswer);
 
-  const mostRecentAssessmentAt = mostRecentAssessmentDate(history ?? EMPTY_POINTS);
+  const mostRecentPoint = mostRecentAssessmentPoint(history ?? EMPTY_POINTS);
+  const mostRecentAssessmentAt = mostRecentPoint ? new Date(mostRecentPoint.weekStart) : null;
   const answeredAtDate = answeredAt ? new Date(answeredAt) : null;
 
   // Derived from persisted state (answeredAt), not local component state, so
@@ -47,5 +49,27 @@ export function useFollowUpAnswer() {
     Date.now() - answeredAtDate.getTime() < ACKNOWLEDGMENT_WINDOW_HOURS * 60 * 60 * 1000;
   const showAcknowledgment = answeredThisCycle && answeredRecently;
 
-  return { isLoading, answer, showAcknowledgment, answeredThisCycle, shouldShowPrompt, recordAnswer };
+  // The pulse-check "não" is one distress signal; the assessment itself —
+  // PHQ-9/GAD-7, this app's authoritative one per PRODUCT.md — is another,
+  // and the institution nudge has to stay off screen for either. Reuses
+  // ACKNOWLEDGMENT_WINDOW_HOURS rather than a separate constant: the same
+  // "recent enough to still matter" cutoff already tuned for the pulse-check
+  // disclosure applies just as well to a fresh severe reading.
+  const mostRecentSeverityTone = mostRecentPoint
+    ? bandForSeverityFraction(mostRecentPoint.severityFraction!).tone
+    : null;
+  const recentSevereAssessment =
+    (mostRecentSeverityTone === 'high' || mostRecentSeverityTone === 'severe') &&
+    mostRecentAssessmentAt !== null &&
+    Date.now() - mostRecentAssessmentAt.getTime() < ACKNOWLEDGMENT_WINDOW_HOURS * 60 * 60 * 1000;
+
+  return {
+    isLoading,
+    answer,
+    showAcknowledgment,
+    answeredThisCycle,
+    shouldShowPrompt,
+    recordAnswer,
+    recentSevereAssessment,
+  };
 }

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '@/presentation/ui/Button';
 import { routes } from '@/presentation/lib/routes';
@@ -11,6 +12,26 @@ interface FollowUpCardProps {
 export function FollowUpCard({ className = '' }: FollowUpCardProps) {
   const navigate = useNavigate();
   const { isLoading, answer, showAcknowledgment, shouldShowPrompt, recordAnswer } = useFollowUpAnswer();
+  const ackRef = useRef<HTMLDivElement>(null);
+  // Set only by this mount's own click handler below, never derived from
+  // persisted state — a remount that shows a persisted acknowledgment (via
+  // showAcknowledgment) should not steal focus from wherever the user
+  // already is; only the tap that just caused the transition should, the
+  // same distinction InstitutionLinkCard's ctaRef/dismissAckRef make.
+  const [justAnswered, setJustAnswered] = useState(false);
+
+  useEffect(() => {
+    if (!justAnswered) {
+      return;
+    }
+    ackRef.current?.focus();
+    setJustAnswered(false);
+  }, [justAnswered]);
+
+  const handleAnswer = (value: 'yes' | 'no') => {
+    recordAnswer(value);
+    setJustAnswered(true);
+  };
 
   // Deliberately no loading skeleton: most Home visits resolve to "no prompt
   // needed" (no history yet, or still inside the interval), so a
@@ -38,6 +59,7 @@ export function FollowUpCard({ className = '' }: FollowUpCardProps) {
     return (
       <div className={className} role="status" aria-live="polite" aria-atomic="true">
         <Card data-testid="followup-ack" tone={answer === 'no' ? 'brand-tint' : undefined}>
+          <div ref={ackRef} tabIndex={-1}>
           {answer === 'no' ? (
             <>
               <p className="text-body font-extrabold text-ink">Obrigado por dizer.</p>
@@ -76,6 +98,7 @@ export function FollowUpCard({ className = '' }: FollowUpCardProps) {
               </p>
             </>
           )}
+          </div>
         </Card>
       </div>
     );
@@ -93,10 +116,10 @@ export function FollowUpCard({ className = '' }: FollowUpCardProps) {
             same question restated for a 1-tap pulse check. */}
         <p className="text-body font-extrabold text-ink">Só uma checagem rápida: tudo bem?</p>
         <div className="mt-3 flex gap-3">
-          <Button variant="outline" full={false} onClick={() => recordAnswer('yes')}>
+          <Button variant="outline" full={false} onClick={() => handleAnswer('yes')}>
             Estou bem
           </Button>
-          <Button variant="outline" full={false} onClick={() => recordAnswer('no')}>
+          <Button variant="outline" full={false} onClick={() => handleAnswer('no')}>
             Não estou bem
           </Button>
         </div>

@@ -107,4 +107,41 @@ describe('useFollowUpAnswer', () => {
     expect(result.current.answeredThisCycle).toBe(true);
     expect(result.current.shouldShowPrompt).toBe(false);
   });
+
+  it('reports recentSevereAssessment true when the latest assessment is high/severe and within the acknowledgment window', async () => {
+    const now = new Date();
+    vi.spyOn(container.getAssessmentHistoryUseCase, 'execute').mockResolvedValue([
+      { weekStart: now.toISOString(), severityFraction: 0.8 },
+    ]);
+
+    const { result } = renderHook(() => useFollowUpAnswer(), { wrapper });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.recentSevereAssessment).toBe(true);
+  });
+
+  it('reports recentSevereAssessment false when the latest assessment is only moderate', async () => {
+    const now = new Date();
+    vi.spyOn(container.getAssessmentHistoryUseCase, 'execute').mockResolvedValue([
+      { weekStart: now.toISOString(), severityFraction: 0.4 },
+    ]);
+
+    const { result } = renderHook(() => useFollowUpAnswer(), { wrapper });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.recentSevereAssessment).toBe(false);
+  });
+
+  it(`reports recentSevereAssessment false once ${ACKNOWLEDGMENT_WINDOW_HOURS}h have passed, even though the reading was severe`, async () => {
+    const assessedAt = new Date();
+    assessedAt.setHours(assessedAt.getHours() - (ACKNOWLEDGMENT_WINDOW_HOURS + 1));
+    vi.spyOn(container.getAssessmentHistoryUseCase, 'execute').mockResolvedValue([
+      { weekStart: assessedAt.toISOString(), severityFraction: 0.8 },
+    ]);
+
+    const { result } = renderHook(() => useFollowUpAnswer(), { wrapper });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.recentSevereAssessment).toBe(false);
+  });
 });
