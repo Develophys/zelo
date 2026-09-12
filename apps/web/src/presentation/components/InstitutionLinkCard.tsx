@@ -37,6 +37,12 @@ export function InstitutionLinkCard({
   // visit, so returning to this screen later shows nothing, not a replayed
   // acknowledgment.
   const [justDismissedNudge, setJustDismissedNudge] = useState(false);
+  const unlinkAckRef = useRef<HTMLDivElement>(null);
+  // Set instead of shouldFocusCta when Desvincular fires while the nudge is
+  // still snoozed from an earlier dismissal — the render that follows has no
+  // "Vincular agora" button for ctaRef to land on, so there is nowhere for
+  // the usual focus restoration to go without this fallback.
+  const [justUnlinkedIntoQuiet, setJustUnlinkedIntoQuiet] = useState(false);
 
   useEffect(() => {
     if (!shouldFocusCta) {
@@ -53,6 +59,13 @@ export function InstitutionLinkCard({
     dismissAckRef.current?.focus();
   }, [justDismissedNudge]);
 
+  useEffect(() => {
+    if (!justUnlinkedIntoQuiet) {
+      return;
+    }
+    unlinkAckRef.current?.focus();
+  }, [justUnlinkedIntoQuiet]);
+
   if (institutionId === null) {
     if (justDismissedNudge) {
       return (
@@ -61,6 +74,18 @@ export function InstitutionLinkCard({
             <div ref={dismissAckRef} tabIndex={-1}>
               <p className="text-body font-extrabold text-ink">Tudo bem, sem pressa.</p>
               <p className="mt-1 text-caption text-muted">Perguntamos de novo em alguns dias.</p>
+            </div>
+          </Card>
+        </div>
+      );
+    }
+
+    if (justUnlinkedIntoQuiet) {
+      return (
+        <div className={className} role="status" aria-live="polite" aria-atomic="true">
+          <Card tone="brand-tint">
+            <div ref={unlinkAckRef} tabIndex={-1}>
+              <p className="text-caption text-muted">Desvinculado.</p>
             </div>
           </Card>
         </div>
@@ -76,7 +101,7 @@ export function InstitutionLinkCard({
     }
 
     return (
-      <div className={className}>
+      <div className={className} role="status" aria-live="polite" aria-atomic="true">
         <Card tone="brand-tint">
           <p className="text-body font-extrabold text-ink">Ainda não vinculado a um hospital</p>
           <p className="mt-1 text-caption text-muted">
@@ -132,7 +157,15 @@ export function InstitutionLinkCard({
           className="md:flex-none"
           onClick={() => {
             unlink();
-            setShouldFocusCta(true);
+            const willShowNudge = shouldShowInstitutionNudgeUseCase.execute({
+              dismissedAt: nudgeDismissedAt ? new Date(nudgeDismissedAt) : null,
+              now: new Date(),
+            });
+            if (willShowNudge) {
+              setShouldFocusCta(true);
+            } else {
+              setJustUnlinkedIntoQuiet(true);
+            }
           }}
         >
           Desvincular

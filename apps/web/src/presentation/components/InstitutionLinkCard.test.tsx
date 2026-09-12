@@ -7,11 +7,11 @@ import { useInstitutionLinkStore } from "@/stores/institution-link.store";
 import { useInstitutionNudgeStore } from "@/stores/institution-nudge.store";
 import { INSTITUTION_NUDGE_SNOOZE_DAYS } from "@/use-cases/should-show-institution-nudge.usecase";
 
-function renderCard() {
+function renderCard(showLinked = false) {
   return render(
     <MemoryRouter initialEntries={["/home"]}>
       <Routes>
-        <Route path="/home" element={<InstitutionLinkCard />} />
+        <Route path="/home" element={<InstitutionLinkCard showLinked={showLinked} />} />
         <Route path="/you/link" element={<div>Link institution screen</div>} />
       </Routes>
     </MemoryRouter>,
@@ -84,6 +84,34 @@ describe("InstitutionLinkCard", () => {
     renderCard();
     await user.click(screen.getByRole("button", { name: "Agora não" }));
 
+    const status = screen.getByRole("status");
+    expect(status.contains(document.activeElement)).toBe(true);
+  });
+
+  it("announces the nudge's own appearance, matching how its dismissal is already announced", () => {
+    renderCard();
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("Ainda não vinculado a um hospital");
+  });
+
+  it("does not orphan focus when unlinking while the nudge is still snoozed from an earlier dismissal", async () => {
+    const user = userEvent.setup();
+    const dismissedAt = new Date();
+    useInstitutionNudgeStore.setState({ dismissedAt: dismissedAt.toISOString() });
+    useInstitutionLinkStore.setState({
+      institutionId: "inst-1",
+      institutionName: "Hospital São Lucas",
+      sectorId: "sector-1",
+      sectorName: "UTI",
+      deviceSignalId: "device-1",
+    });
+    renderCard(true);
+
+    await user.click(screen.getByRole("button", { name: "Desvincular" }));
+
+    // The nudge is snoozed, so there is no "Vincular agora" button to receive
+    // the focus this action would normally restore — it must land somewhere
+    // real instead of falling to <body>.
     const status = screen.getByRole("status");
     expect(status.contains(document.activeElement)).toBe(true);
   });

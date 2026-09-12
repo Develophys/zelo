@@ -392,12 +392,18 @@ describe("HomePage follow-up", () => {
     // The live region has to exist *before* the swap and stay the same node
     // through it — a region only inserted alongside the new content is never
     // announced, because there was nothing for the screen reader to be
-    // watching yet.
-    const liveRegionBefore = screen.getByRole("status");
+    // watching yet. Scoped via the button's own ancestor rather than a bare
+    // role query: InstitutionLinkCard's nudge is also a role="status" region
+    // on this page by default (no institution linked), so more than one can
+    // legitimately be present at once.
+    const followUpButton = screen.getByRole("button", { name: "Não estou bem" });
+    const liveRegionBefore = followUpButton.closest('[role="status"]');
+    expect(liveRegionBefore).not.toBeNull();
 
-    await user.click(screen.getByRole("button", { name: "Não estou bem" }));
+    await user.click(followUpButton);
 
-    const liveRegionAfter = screen.getByRole("status");
+    const ack = await screen.findByTestId("followup-ack");
+    const liveRegionAfter = ack.closest('[role="status"]');
     expect(liveRegionAfter).toBe(liveRegionBefore);
     expect(liveRegionAfter).toHaveTextContent(/obrigado por dizer/i);
   });
