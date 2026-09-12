@@ -55,7 +55,7 @@ describe("HomePage", () => {
       { weekStart: OLD_ENOUGH_WEEK_START, severityFraction: 0.4 },
     ]);
     renderHome();
-    expect(await screen.findByText("Como você está, um tempo depois?")).toBeInTheDocument();
+    expect(await screen.findByText("Só uma checagem rápida: tudo bem?")).toBeInTheDocument();
   });
 
   it("hides the prompt after answering, and does not write to any network", async () => {
@@ -65,9 +65,9 @@ describe("HomePage", () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     const user = userEvent.setup();
     renderHome();
-    await screen.findByText("Como você está, um tempo depois?");
+    await screen.findByText("Só uma checagem rápida: tudo bem?");
     await user.click(screen.getByRole("button", { name: "Estou bem" }));
-    expect(screen.queryByText("Como você está, um tempo depois?")).not.toBeInTheDocument();
+    expect(screen.queryByText("Só uma checagem rápida: tudo bem?")).not.toBeInTheDocument();
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
@@ -240,7 +240,7 @@ describe("HomePage hierarchy", () => {
     ]);
     renderHome();
 
-    await screen.findByText("Como você está, um tempo depois?");
+    await screen.findByText("Só uma checagem rápida: tudo bem?");
     const checkIn = screen.getByRole("button", { name: "Fazer check-in" });
     const followUp = screen.getByRole("button", { name: "Estou bem" });
     const chat = screen.getByRole("button", { name: /conversar agora/i });
@@ -339,7 +339,7 @@ describe("HomePage follow-up", () => {
     ]);
     const user = userEvent.setup();
     renderHome();
-    await screen.findByText("Como você está, um tempo depois?");
+    await screen.findByText("Só uma checagem rápida: tudo bem?");
 
     await user.click(screen.getByRole("button", { name: "Não estou bem" }));
 
@@ -363,7 +363,7 @@ describe("HomePage follow-up", () => {
     ]);
     const user = userEvent.setup();
     renderHome();
-    await screen.findByText("Como você está, um tempo depois?");
+    await screen.findByText("Só uma checagem rápida: tudo bem?");
 
     await user.click(screen.getByRole("button", { name: "Estou bem" }));
 

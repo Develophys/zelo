@@ -73,7 +73,10 @@ export function FollowUpCard({ className = '' }: FollowUpCardProps) {
   return (
     <div className={className}>
       <Card>
-        <p className="text-body font-extrabold text-ink">Como você está, um tempo depois?</p>
+        {/* Deliberately not "Como você está...?" — CheckInHeroCard already asks
+            that for the full 5-minute assessment; echoing it here read as the
+            same question restated for a 1-tap pulse check. */}
+        <p className="text-body font-extrabold text-ink">Só uma checagem rápida: tudo bem?</p>
         <div className="mt-3 flex gap-3">
           <Button variant="outline" full={false} onClick={() => answerAndAcknowledge('yes')}>
             Estou bem
