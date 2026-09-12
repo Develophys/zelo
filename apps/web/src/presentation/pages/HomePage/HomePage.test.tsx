@@ -268,6 +268,20 @@ describe("HomePage hierarchy", () => {
 
     expect(follows(chart, linkNag)).toBe(true);
   });
+
+  it("gives the two ways to reach a person a heavier visual weight than the reporting/housekeeping cards below them", () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue(SIX_NULL_POINTS);
+    renderHome();
+
+    const chat = screen.getByRole("button", { name: /conversar agora/i });
+    const peers = screen.getByRole("button", { name: /falar com um par/i });
+    const linkNag = screen.getByRole("button", { name: "Vincular agora" });
+
+    expect(chat.className).toContain("border-brand");
+    expect(peers.className).toContain("border-brand");
+    // The housekeeping nudge stays at the plain, unaccented tier.
+    expect(linkNag.className).not.toContain("border-brand");
+  });
 });
 
 describe("HomePage manager entry point", () => {

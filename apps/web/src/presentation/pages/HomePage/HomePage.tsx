@@ -32,11 +32,11 @@ export function HomePage() {
         <FollowUpCard className="mt-3.5" />
 
         <div className="mt-3.5 flex gap-3">
-          <CardButton onClick={() => navigate(routes.chat)} className="flex-1">
+          <CardButton tone="accent" onClick={() => navigate(routes.chat)} className="flex-1">
             <IconBadge icon={MessageCircle} />
             <p className="mt-2 text-body font-extrabold text-ink">Conversar agora</p>
           </CardButton>
-          <CardButton onClick={() => navigate(routes.peers)} className="flex-1">
+          <CardButton tone="accent" onClick={() => navigate(routes.peers)} className="flex-1">
             <IconBadge icon={Users} />
             <p className="mt-2 text-body font-extrabold text-ink">Falar com um par</p>
           </CardButton>
