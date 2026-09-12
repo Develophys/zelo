@@ -22,8 +22,9 @@ export function AssessmentReview({
   return (
     <div>
       <h2 className="mb-1 font-serif text-h2 text-ink">Confira suas respostas</h2>
-      <p className="mb-6 text-caption text-muted">
-        Toque em qualquer resposta para mudá-la. Nada foi enviado ainda.
+      <p className="mb-6 text-pretty text-caption text-muted">
+        Toque em qualquer resposta para mudá-la. Nada foi enviado ainda. Não tem pressa — revise
+        no seu tempo.
       </p>
 
       <ul className="flex flex-col gap-2">

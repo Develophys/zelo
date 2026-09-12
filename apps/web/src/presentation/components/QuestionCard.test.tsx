@@ -110,4 +110,19 @@ describe('QuestionCard', () => {
     expect(chosen.className).not.toMatch(/\bopacity-50\b/);
     expect(other.className).toMatch(/\bopacity-50\b/);
   });
+
+  it('does not steal focus on first mount', () => {
+    renderCard();
+    expect(screen.getByRole('heading')).not.toHaveFocus();
+  });
+
+  it('moves focus to the new question heading when the question changes, so a keyboard user is not stranded at the header chrome', () => {
+    const { rerender } = renderCard({ question: 'Primeira pergunta' });
+
+    rerender(
+      <QuestionCard question="Segunda pergunta" options={OPTIONS} onSelect={vi.fn()} onCommit={vi.fn()} />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Segunda pergunta' })).toHaveFocus();
+  });
 });

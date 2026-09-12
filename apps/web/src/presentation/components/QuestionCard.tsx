@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { Button } from '@/presentation/ui/Button';
 
 interface QuestionCardProps {
@@ -29,10 +29,24 @@ export function QuestionCard({
   const groupName = `${useId()}-scale`;
   const hasAnswer = typeof selected === 'number';
 
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    // Skips the initial mount so it doesn't steal focus from wherever the page put it on arrival.
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    headingRef.current?.focus();
+  }, [question]);
+
   return (
     <div>
       <h2
+        ref={headingRef}
         id={headingId}
+        tabIndex={-1}
         className="mb-6.5 mt-2.5 min-h-[3lh] font-serif text-h2 text-ink md:min-h-[2lh]"
       >
         {question}

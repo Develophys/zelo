@@ -186,6 +186,17 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     });
   });
 
+  it('reassures there is no rush right on the review screen, the highest-tension moment before submitting', async () => {
+    const user = userEvent.setup();
+    renderScale(scale, path);
+
+    for (let i = 0; i < total; i++) {
+      await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
+    }
+
+    expect(screen.getByText(/não tem pressa/i)).toBeInTheDocument();
+  });
+
   it('jumps back from the review to change a single answer', async () => {
     const user = userEvent.setup();
     renderScale(scale, path);
