@@ -35,10 +35,16 @@ export function HomePage() {
           <CardButton tone="accent" onClick={() => navigate(routes.chat)} className="flex-1">
             <IconBadge icon={MessageCircle} />
             <p className="mt-2 text-body font-extrabold text-ink">Conversar agora</p>
+            {/* Named before the tap, not just on the chat screen's own
+                disclaimer after it — PRODUCT.md treats AI-vs-human honesty
+                as a hard principle, and this is the first screen it's
+                relevant on. */}
+            <p className="mt-0.5 text-caption text-muted">Acolhimento por IA</p>
           </CardButton>
           <CardButton tone="accent" onClick={() => navigate(routes.peers)} className="flex-1">
             <IconBadge icon={Users} />
             <p className="mt-2 text-body font-extrabold text-ink">Falar com um par</p>
+            <p className="mt-0.5 text-caption text-muted">Colega anônimo</p>
           </CardButton>
         </div>
 

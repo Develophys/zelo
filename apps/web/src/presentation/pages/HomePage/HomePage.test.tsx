@@ -165,6 +165,15 @@ describe("HomePage", () => {
     expect(screen.getByText("Chat screen")).toBeInTheDocument();
   });
 
+  it("discloses which contact tile is the AI before the tap, not just after", () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue(SIX_NULL_POINTS);
+    renderHome();
+    const chatButton = screen.getByRole("button", { name: /conversar agora/i });
+    const peerButton = screen.getByRole("button", { name: /falar com um par/i });
+    expect(within(chatButton).getByText("Acolhimento por IA")).toBeInTheDocument();
+    expect(within(peerButton).getByText("Colega anônimo")).toBeInTheDocument();
+  });
+
   it("shows Início as the active BottomNav tab", () => {
     vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue(SIX_NULL_POINTS);
     renderHome();

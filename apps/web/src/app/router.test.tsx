@@ -101,7 +101,7 @@ describe("onboarding router flow", () => {
     buildTestRouter("/home");
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole("button", { name: "Falar com um par" }));
+    await user.click(await screen.findByRole("button", { name: /falar com um par/i }));
     expect(await screen.findByText("Pares anônimos")).toBeInTheDocument();
   });
 
