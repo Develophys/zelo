@@ -16,11 +16,7 @@ const shouldShowInstitutionNudgeUseCase = new ShouldShowInstitutionNudgeUseCase(
 interface InstitutionLinkCardProps {
   className?: string;
   showLinked?: boolean;
-  // Keeps the unprompted "link your hospital" ask off screen when Home has a
-  // higher-stakes reason not to compete for attention right now (a "não
-  // estou bem" disclosure) — never applies to the dismiss/unlink
-  // acknowledgments below, which are direct results of the person's own
-  // just-now action on this card.
+  // Keeps the nudge off screen when Home has a higher-stakes reason (a distress disclosure); never applies to this card's own acks.
   suppressNudge?: boolean;
 }
 
@@ -40,16 +36,10 @@ export function InstitutionLinkCard({
   const ctaRef = useRef<HTMLButtonElement>(null);
   const [shouldFocusCta, setShouldFocusCta] = useState(false);
   const dismissAckRef = useRef<HTMLDivElement>(null);
-  // Scoped to this mount, same reasoning as FollowUpCard's answeredThisCycle
-  // derivation: the persisted dismissedAt is what actually suppresses the
-  // nudge on a later visit, so returning to this screen later shows
-  // nothing, not a replayed acknowledgment.
+  // Scoped to this mount — a later visit shows nothing, not a replayed ack.
   const [justDismissedNudge, setJustDismissedNudge] = useState(false);
   const unlinkAckRef = useRef<HTMLDivElement>(null);
-  // Set instead of shouldFocusCta when Desvincular fires while the nudge is
-  // still snoozed from an earlier dismissal — the render that follows has no
-  // "Vincular agora" button for ctaRef to land on, so there is nowhere for
-  // the usual focus restoration to go without this fallback.
+  // Fallback for when Desvincular fires while the nudge is snoozed, so there's no "Vincular agora" for ctaRef to land on.
   const [justUnlinkedIntoQuiet, setJustUnlinkedIntoQuiet] = useState(false);
   const unlinkConfirm = useInlineConfirm();
 
@@ -163,9 +153,7 @@ export function InstitutionLinkCard({
     }
   };
 
-  // Institution linkage is what makes a doctor visible in their team's
-  // aggregate — a one-tap unlink was too easy to trigger by accident. Same
-  // inline-confirm pattern RevokeConsentSection already uses.
+  // A one-tap unlink was too easy to trigger by accident — same inline-confirm pattern as RevokeConsentSection.
   if (unlinkConfirm.isConfirming) {
     return (
       <Card size="md" className={className} tone="brand-tint">

@@ -25,11 +25,7 @@ const GAD7_BANDS: BandEntry[] = [
   { max: 21, band: { label: 'Grave', tone: 'severe' } },
 ];
 
-/**
- * What the band label actually means, in the product's own register: a signal
- * and a next step, never a diagnosis. Without this the result screen renders a
- * word like "Grave" and leaves the reader to supply its meaning from memory.
- */
+// A signal and a next step, never a diagnosis — without this "Grave" is just a word with no meaning attached.
 const BAND_MEANING: Record<ScoreBandTone, string> = {
   minimal: 'Poucos sinais neste período.',
   mild: 'Alguns sinais leves. Vale reparar em como você fica nos próximos dias.',
@@ -55,14 +51,7 @@ export function bandFor(scaleType: 'PHQ-9' | 'GAD-7', score: number): ScoreBand 
 
 const PHQ9_MAX = 27;
 
-/**
- * A history chart plots PHQ-9 and GAD-7 readings on one shared 0-1 axis
- * (score / scale max) so weeks from either scale can sit on the same chart —
- * by the time a reading gets here, which scale it came from is already lost.
- * Reading a band off that fraction directly, via PHQ-9's own ramp as the
- * shared approximation, keeps a severe week from ever landing in the same
- * tone as a minimal one.
- */
+// History points share one 0-1 axis regardless of original scale, so bands are read off PHQ-9's ramp as the shared approximation.
 export function bandForSeverityFraction(fraction: number): ScoreBand {
   return bandFor('PHQ-9', fraction * PHQ9_MAX);
 }

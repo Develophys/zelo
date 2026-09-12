@@ -11,11 +11,7 @@ import {
   toBarHeights,
 } from '@/presentation/lib/weekly-history-chart';
 
-// bg-brand is the user's chosen accent color, not a stable clinical signal —
-// reserved for genuinely good news (minimal/mild). Everything past that uses
-// the same fixed band tokens the assessment result screen scores against, so
-// a severe reading is never painted the same color as a minimal one just
-// because it happens to be the most recent bar.
+// bg-brand only for minimal/mild good news; moderate/high/severe use the same fixed clinical band tokens as the result screen.
 const BAND_BAR_CLASS: Record<ScoreBandTone, string> = {
   minimal: 'bg-brand',
   mild: 'bg-brand',
@@ -42,9 +38,7 @@ export function HistoryChartCard() {
   const latestIndex = points.length - 1;
   const peakIndex = findPeakIndex(points);
 
-  // Peak wins the color: a bar that is also the worst reading in the window
-  // stays an alarm color even when it's the most recent one, instead of
-  // defaulting to "good news" green just for being newest.
+  // Peak wins the color, even if it's also the most recent bar.
   const barColorClass = (index: number, point: WeeklyHistoryPoint): string => {
     if (point.severityFraction === null) return 'bg-line';
     if (index === peakIndex) return 'bg-warn';
@@ -84,9 +78,7 @@ export function HistoryChartCard() {
                 <li key={index}>{describeHistoryWeek(point, index, latestIndex, peakIndex)}</li>
               ))}
             </ul>
-            {/* Without this, the only clue to what a bar's percentage or
-                color means is inference — a first-time viewer has no way to
-                know "higher = more symptoms" from the numbers alone. */}
+            {/* Without this, "higher = more symptoms" is left to inference. */}
             <p className="mt-1 text-caption text-muted">
               % da escala de sintomas na semana — quanto maior, mais intenso.
             </p>

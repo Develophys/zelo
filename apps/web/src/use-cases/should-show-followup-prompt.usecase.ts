@@ -1,5 +1,4 @@
-// Resolves US-009's open question (exact follow-up interval) for the hackathon PoC —
-// see docs/superpowers/specs/2026-07-19-followup-mechanism-design.md §5 for why 3 days.
+// Resolves US-009's follow-up interval; see docs/superpowers/specs/2026-07-19-followup-mechanism-design.md §5.
 export const FOLLOWUP_INTERVAL_DAYS = 3;
 
 export interface ShouldShowFollowUpPromptInput {
@@ -12,10 +11,7 @@ export class ShouldShowFollowUpPromptUseCase {
   execute({ mostRecentAssessmentAt, answeredAt, now }: ShouldShowFollowUpPromptInput): boolean {
     if (mostRecentAssessmentAt === null) return false;
 
-    // A recorded answer only suppresses the prompt for the assessment cycle
-    // it actually responded to. Without this, a boolean "already answered"
-    // would retire the prompt forever after a single tap, even once a brand
-    // new assessment — the thing the interval is timed from — has happened.
+    // Only suppresses for the cycle it answered — otherwise one tap would retire the prompt forever.
     const answeredThisCycle =
       answeredAt !== null && answeredAt.getTime() >= mostRecentAssessmentAt.getTime();
     if (answeredThisCycle) return false;
