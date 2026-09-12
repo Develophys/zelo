@@ -84,6 +84,12 @@ export function HistoryChartCard() {
                 <li key={index}>{describeHistoryWeek(point, index, latestIndex, peakIndex)}</li>
               ))}
             </ul>
+            {/* Without this, the only clue to what a bar's percentage or
+                color means is inference — a first-time viewer has no way to
+                know "higher = more symptoms" from the numbers alone. */}
+            <p className="mt-1 text-caption text-muted">
+              % da escala de sintomas na semana — quanto maior, mais intenso.
+            </p>
             <div className="mt-3 flex gap-2" aria-hidden="true">
               {points.map((point, index) => (
                 <span

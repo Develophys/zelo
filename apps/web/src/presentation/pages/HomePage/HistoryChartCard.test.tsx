@@ -219,4 +219,15 @@ describe('HistoryChartCard', () => {
     expect(screen.getByText('Pico')).toBeInTheDocument();
     expect(screen.queryByText('Mais recente')).not.toBeInTheDocument();
   });
+
+  it('explains what the bar percentages mean instead of leaving color as the only clue', async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, 'execute').mockResolvedValue(SIX_NULL_POINTS);
+
+    renderCard();
+    await waitFor(() => expect(screen.queryAllByTestId('history-bar')).toHaveLength(6));
+
+    expect(
+      screen.getByText(/% da escala de sintomas.*maior.*mais intenso/i),
+    ).toBeInTheDocument();
+  });
 });
