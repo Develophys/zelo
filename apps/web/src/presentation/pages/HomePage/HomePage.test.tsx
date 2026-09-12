@@ -377,7 +377,13 @@ describe("HomePage follow-up", () => {
     await user.click(screen.getByRole("button", { name: "Não estou bem" }));
     const ack = await screen.findByTestId("followup-ack");
 
-    await user.click(within(ack).getByRole("button", { name: "Falar com alguém" }));
+    // Not "Falar com alguém" — that exact phrase already means the
+    // human/crisis-escalation path elsewhere in this app (CrisisOfferPage,
+    // ChatActionTray's collapsed handoff button), so reusing it here for the
+    // AI route would silently promise a person. "Conversar com o
+    // acolhimento" reuses AssessmentResultPage's own established label for
+    // this exact destination.
+    await user.click(within(ack).getByRole("button", { name: "Conversar com o acolhimento" }));
     expect(screen.getByText("Chat screen")).toBeInTheDocument();
   });
 

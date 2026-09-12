@@ -56,8 +56,14 @@ export function FollowUpCard({ className = '' }: FollowUpCardProps) {
                   shown twice at the one moment composure matters most. The
                   promise still needs its own affordance, though: proximity
                   to the row below breaks under scroll, zoom or a short
-                  viewport, so "Falar com alguém" is a real link, not just
-                  words pointing downward. */}
+                  viewport, so this is a real link, not just words pointing
+                  downward. Labeled "Conversar com o acolhimento" (reusing
+                  AssessmentResultPage's own label for this exact chat
+                  destination), not "Falar com alguém" — that phrase already
+                  means the human/crisis path elsewhere in this app
+                  (CrisisOfferPage, ChatActionTray), so reusing it for the AI
+                  route here would silently promise a person, right after
+                  someone has just said they're not okay. */}
               <p className="mt-1 text-pretty text-caption text-muted">
                 Não precisa carregar isso sozinho(a).{' '}
                 <Button
@@ -66,7 +72,7 @@ export function FollowUpCard({ className = '' }: FollowUpCardProps) {
                   className="font-semibold text-brand underline underline-offset-2 hover:text-brand-hover"
                   onClick={() => navigate(routes.chat)}
                 >
-                  Falar com alguém
+                  Conversar com o acolhimento
                 </Button>{' '}
                 costuma ajudar mais do que esperar passar.
               </p>
