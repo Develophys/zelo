@@ -39,7 +39,7 @@ export function FollowUpCard({ className = '' }: FollowUpCardProps) {
   // The acknowledgement replaces the question in place instead.
   if (justAnswered) {
     return (
-      <div className={className}>
+      <div className={className} role="status" aria-live="polite" aria-atomic="true">
         <Card data-testid="followup-ack" tone={justAnswered === 'no' ? 'brand-tint' : undefined}>
           {justAnswered === 'no' ? (
             <>
@@ -71,7 +71,7 @@ export function FollowUpCard({ className = '' }: FollowUpCardProps) {
   }
 
   return (
-    <div className={className}>
+    <div className={className} role="status" aria-live="polite" aria-atomic="true">
       <Card>
         {/* Deliberately not "Como você está...?" — CheckInHeroCard already asks
             that for the full 5-minute assessment; echoing it here read as the

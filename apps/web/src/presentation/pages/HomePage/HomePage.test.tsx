@@ -357,6 +357,27 @@ describe("HomePage follow-up", () => {
     expect(screen.getAllByRole("button", { name: /Falar com um par/i })).toHaveLength(1);
   });
 
+  it("announces the acknowledgment to screen readers instead of relying on them to notice the swap", async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
+      { weekStart: OLD_ENOUGH_WEEK_START, severityFraction: 0.4 },
+    ]);
+    const user = userEvent.setup();
+    renderHome();
+    await screen.findByText("Só uma checagem rápida: tudo bem?");
+
+    // The live region has to exist *before* the swap and stay the same node
+    // through it — a region only inserted alongside the new content is never
+    // announced, because there was nothing for the screen reader to be
+    // watching yet.
+    const liveRegionBefore = screen.getByRole("status");
+
+    await user.click(screen.getByRole("button", { name: "Não estou bem" }));
+
+    const liveRegionAfter = screen.getByRole("status");
+    expect(liveRegionAfter).toBe(liveRegionBefore);
+    expect(liveRegionAfter).toHaveTextContent(/obrigado por dizer/i);
+  });
+
   it("acknowledges 'Estou bem' briefly rather than vanishing", async () => {
     vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
       { weekStart: OLD_ENOUGH_WEEK_START, severityFraction: 0.4 },
