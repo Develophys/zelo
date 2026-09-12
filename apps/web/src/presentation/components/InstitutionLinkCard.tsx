@@ -7,6 +7,10 @@ import { IconBadge } from '@/presentation/ui/IconBadge';
 import { displayName } from '@/presentation/lib/display-name';
 import { routes } from '@/presentation/lib/routes';
 import { useInstitutionLinkStore } from '@/stores/institution-link.store';
+import { useInstitutionNudgeStore } from '@/stores/institution-nudge.store';
+import { ShouldShowInstitutionNudgeUseCase } from '@/use-cases/should-show-institution-nudge.usecase';
+
+const shouldShowInstitutionNudgeUseCase = new ShouldShowInstitutionNudgeUseCase();
 
 interface InstitutionLinkCardProps {
   className?: string;
@@ -22,6 +26,8 @@ export function InstitutionLinkCard({
   const institutionName = useInstitutionLinkStore((state) => state.institutionName);
   const sectorName = useInstitutionLinkStore((state) => state.sectorName);
   const unlink = useInstitutionLinkStore((state) => state.unlink);
+  const nudgeDismissedAt = useInstitutionNudgeStore((state) => state.dismissedAt);
+  const dismissNudge = useInstitutionNudgeStore((state) => state.dismiss);
 
   const ctaRef = useRef<HTMLButtonElement>(null);
   const [shouldFocusCta, setShouldFocusCta] = useState(false);
@@ -35,6 +41,14 @@ export function InstitutionLinkCard({
   }, [shouldFocusCta]);
 
   if (institutionId === null) {
+    const showNudge = shouldShowInstitutionNudgeUseCase.execute({
+      dismissedAt: nudgeDismissedAt ? new Date(nudgeDismissedAt) : null,
+      now: new Date(),
+    });
+    if (!showNudge) {
+      return null;
+    }
+
     return (
       <div className={className}>
         <Card tone="brand-tint">
@@ -42,7 +56,7 @@ export function InstitutionLinkCard({
           <p className="mt-1 text-caption text-muted">
             Vincule para aparecer nos números do seu time, de forma anônima.
           </p>
-          <div className="mt-3">
+          <div className="mt-3 flex items-center gap-3">
             <Button
               ref={ctaRef}
               variant="outline"
@@ -50,6 +64,9 @@ export function InstitutionLinkCard({
               onClick={() => navigate(routes.linkInstitution)}
             >
               Vincular agora
+            </Button>
+            <Button variant="ghost" full={false} onClick={dismissNudge}>
+              Agora não
             </Button>
           </div>
         </Card>

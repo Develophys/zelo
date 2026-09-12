@@ -347,8 +347,14 @@ describe("HomePage follow-up", () => {
     // does not listen.
     const ack = await screen.findByTestId("followup-ack");
     expect(ack).toHaveTextContent(/obrigado por dizer/i);
-    expect(within(ack).getByRole("button", { name: /Conversar agora/i })).toBeInTheDocument();
-    expect(within(ack).getByRole("button", { name: /Falar com um par/i })).toBeInTheDocument();
+
+    // The ack no longer repeats its own contact buttons — the accented
+    // "Conversar agora"/"Falar com um par" row sits right below it and
+    // already carries the action, so this only asserts it exists once.
+    expect(within(ack).queryByRole("button", { name: /Conversar agora/i })).not.toBeInTheDocument();
+    expect(within(ack).queryByRole("button", { name: /Falar com um par/i })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /Conversar agora/i })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: /Falar com um par/i })).toHaveLength(1);
   });
 
   it("acknowledges 'Estou bem' briefly rather than vanishing", async () => {

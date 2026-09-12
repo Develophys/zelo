@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
 import { Button } from '@/presentation/ui/Button';
 import { Card } from '@/presentation/ui/Card';
 import { useAssessmentHistory } from '@/presentation/hooks/useAssessmentHistory';
 import { EMPTY_POINTS } from '@/presentation/lib/home.constants';
-import { routes } from '@/presentation/lib/routes';
 import { mostRecentAssessmentDate } from '@/presentation/lib/weekly-history-chart';
 import { ShouldShowFollowUpPromptUseCase } from '@/use-cases/should-show-followup-prompt.usecase';
 import { useFollowUpStore } from '@/stores/followup.store';
@@ -16,7 +14,6 @@ interface FollowUpCardProps {
 }
 
 export function FollowUpCard({ className = '' }: FollowUpCardProps) {
-  const navigate = useNavigate();
   const { data: history } = useAssessmentHistory();
   const recordAnswer = useFollowUpStore((state) => state.recordAnswer);
   const answer = useFollowUpStore((state) => state.answer);
@@ -47,18 +44,14 @@ export function FollowUpCard({ className = '' }: FollowUpCardProps) {
           {justAnswered === 'no' ? (
             <>
               <p className="text-body font-extrabold text-ink">Obrigado por dizer.</p>
+              {/* No longer repeats "Conversar agora"/"Falar com um par" here —
+                  that accented row sits right below on Home, so restating it
+                  in a different shape was the same action shown twice at the
+                  one moment composure matters most. */}
               <p className="mt-1 text-pretty text-caption text-muted">
                 Não precisa carregar isso sozinho(a). Falar com alguém costuma ajudar mais do que
                 esperar passar.
               </p>
-              <div className="mt-4 flex flex-col gap-3 md:flex-row">
-                <Button variant="primary" full={false} onClick={() => navigate(routes.chat)}>
-                  Conversar agora
-                </Button>
-                <Button variant="outline" full={false} onClick={() => navigate(routes.peers)}>
-                  Falar com um par
-                </Button>
-              </div>
             </>
           ) : (
             <>
