@@ -5,7 +5,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   // "unstyled" keeps only shared behavior (focus ring, disabled/loading state,
   // cursor, the full-width toggle) and contributes no color, shape, spacing,
   // or hover effect — bring your own visuals via className.
-  variant?: 'primary' | 'soft' | 'ghost' | 'outline' | 'danger' | 'unstyled';
+  variant?: 'primary' | 'soft' | 'ghost' | 'outline' | 'danger' | 'inverse' | 'unstyled';
   // Geometry only: height, padding, radius, gap and type role. Left unset it
   // stays the default full-size control. Passing it explicitly also works with
   // `unstyled`, which is how a control keeps system geometry while bringing its
@@ -16,7 +16,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading?: boolean;
 }
 
-const VARIANT_CLASS: Record<'primary' | 'soft' | 'ghost' | 'outline' | 'danger', string> = {
+const VARIANT_CLASS: Record<'primary' | 'soft' | 'ghost' | 'outline' | 'danger' | 'inverse', string> = {
   primary: 'bg-brand-fill text-on-fill border border-fill-edge enabled:hover:bg-brand-fill-hover',
   // The label darkens with the background on hover. Keeping `text-brand`
   // against `track` measured 4.29-4.36:1 across the four accents — under the
@@ -25,6 +25,16 @@ const VARIANT_CLASS: Record<'primary' | 'soft' | 'ghost' | 'outline' | 'danger',
   ghost: 'bg-transparent text-muted',
   outline: 'bg-surface text-ink border border-line',
   danger: 'bg-danger-fill text-on-fill border border-fill-edge',
+  // For a CTA that sits on a brand-fill surface (a hero card, a crisis-line
+  // card) rather than the page background — `primary` on `primary` would
+  // disappear. The default focus ring (`ring-brand`) also reads poorly on
+  // brand-fill, so callers on that surface still need to pass their own
+  // `focus-visible:ring-on-fill focus-visible:ring-offset-2
+  // focus-visible:ring-offset-brand-fill` — the same override the pre-variant
+  // hand-rolled version of this button already relied on working via
+  // className, so this keeps exactly that mechanism instead of risking a
+  // new one inside VARIANT_CLASS (see the ref/className ordering note above).
+  inverse: 'bg-on-fill text-brand-fill border border-on-fill font-bold',
 };
 
 const SHAPE_BASE =

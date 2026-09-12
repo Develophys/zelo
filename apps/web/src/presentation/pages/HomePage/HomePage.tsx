@@ -29,9 +29,9 @@ export function HomePage() {
           this person opened the app. */}
       <div className="flex flex-col">
         <CheckInHeroCard />
-        <FollowUpCard className="mt-3.5" />
+        <FollowUpCard className="mt-3.5 short:mt-2" />
 
-        <div className="mt-3.5 flex gap-3">
+        <div className="mt-3.5 short:mt-2 flex gap-3">
           <CardButton tone="accent" onClick={() => navigate(routes.chat)} className="flex-1">
             <IconBadge icon={MessageCircle} />
             <p className="mt-2 text-body font-extrabold text-ink">Conversar agora</p>
@@ -49,7 +49,7 @@ export function HomePage() {
         </div>
 
         <HistoryChartCard />
-        <InstitutionLinkCard className="mt-3.5" />
+        <InstitutionLinkCard className="mt-3.5 short:mt-2" />
       </div>
     </PhoneShell>
   );

@@ -16,6 +16,7 @@ describe('Button', () => {
     ['ghost', 'bg-transparent'],
     ['outline', 'border-line'],
     ['danger', 'bg-danger-fill'],
+    ['inverse', 'bg-on-fill'],
   ] as const)('applies %s variant classes', (variant, expectedClass) => {
     render(<Button variant={variant}>Label</Button>);
     expect(screen.getByRole('button', { name: 'Label' })).toHaveClass(expectedClass);

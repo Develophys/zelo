@@ -52,7 +52,7 @@ export function HistoryChartCard() {
   };
 
   return (
-    <div className="mt-3.5">
+    <div className="mt-3.5 short:mt-2">
       <Card>
         <ChartHeader />
 
