@@ -1,36 +1,120 @@
-import { describe, expect, it, vi } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
 import { useHasCamera } from './useHasCamera';
 
-const { hasCameraMock } = vi.hoisted(() => ({
-  hasCameraMock: vi.fn(),
+const { checkHasCameraMock } = vi.hoisted(() => ({
+  checkHasCameraMock: vi.fn(),
 }));
 
-vi.mock('qr-scanner', () => ({
-  default: { hasCamera: hasCameraMock },
+vi.mock('@/presentation/lib/has-camera', () => ({
+  checkHasCamera: checkHasCameraMock,
 }));
+
+function stubMediaDevices() {
+  const listeners = new Set<() => void>();
+  const mediaDevices = {
+    addEventListener: (_event: string, listener: () => void) => listeners.add(listener),
+    removeEventListener: (_event: string, listener: () => void) => listeners.delete(listener),
+    dispatchDeviceChange: () => listeners.forEach((listener) => listener()),
+  };
+  vi.stubGlobal('navigator', { ...navigator, mediaDevices });
+  return mediaDevices;
+}
+
+async function flush(ms = 0) {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(ms);
+  });
+}
 
 describe('useHasCamera', () => {
-  it('reports true once qr-scanner confirms a camera exists', async () => {
-    hasCameraMock.mockResolvedValue(true);
-    const { result } = renderHook(() => useHasCamera());
-
-    await waitFor(() => expect(result.current).toBe(true));
+  beforeEach(() => {
+    checkHasCameraMock.mockReset();
+    vi.useFakeTimers();
   });
 
-  it('reports false when qr-scanner finds no camera', async () => {
-    hasCameraMock.mockResolvedValue(false);
-    const { result } = renderHook(() => useHasCamera());
-
-    await waitFor(() => expect(hasCameraMock).toHaveBeenCalled());
-    expect(result.current).toBe(false);
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
-  it('reports false rather than throwing when the check itself fails', async () => {
-    hasCameraMock.mockRejectedValue(new Error('no navigator.mediaDevices'));
+  it('reports true once the first check confirms a camera exists', async () => {
+    checkHasCameraMock.mockResolvedValue(true);
     const { result } = renderHook(() => useHasCamera());
 
-    await waitFor(() => expect(hasCameraMock).toHaveBeenCalled());
+    await flush();
+
+    expect(result.current).toBe(true);
+    expect(checkHasCameraMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries past the WebKit cold-start race and reports true once a later check succeeds', async () => {
+    checkHasCameraMock
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+    const { result } = renderHook(() => useHasCamera());
+
+    await flush();
     expect(result.current).toBe(false);
+    expect(checkHasCameraMock).toHaveBeenCalledTimes(1);
+
+    await flush(300);
+    expect(result.current).toBe(false);
+    expect(checkHasCameraMock).toHaveBeenCalledTimes(2);
+
+    await flush(1000);
+    expect(result.current).toBe(true);
+    expect(checkHasCameraMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('gives up and stays false once every retry reports no camera', async () => {
+    checkHasCameraMock.mockResolvedValue(false);
+    const { result } = renderHook(() => useHasCamera());
+
+    await flush();
+    await flush(300);
+    await flush(1000);
+
+    expect(result.current).toBe(false);
+    expect(checkHasCameraMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('re-checks when the browser fires devicechange', async () => {
+    const mediaDevices = stubMediaDevices();
+    checkHasCameraMock.mockResolvedValue(false);
+    const { result } = renderHook(() => useHasCamera());
+
+    await flush();
+    await flush(300);
+    await flush(1000);
+    expect(result.current).toBe(false);
+
+    checkHasCameraMock.mockResolvedValue(true);
+    await act(async () => {
+      mediaDevices.dispatchDeviceChange();
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(result.current).toBe(true);
+  });
+
+  it('does not update state after unmount', async () => {
+    let resolveCheck!: (value: boolean) => void;
+    checkHasCameraMock.mockReturnValue(
+      new Promise<boolean>((resolve) => {
+        resolveCheck = resolve;
+      }),
+    );
+    const { unmount } = renderHook(() => useHasCamera());
+
+    unmount();
+
+    await expect(
+      act(async () => {
+        resolveCheck(true);
+        await Promise.resolve();
+      }),
+    ).resolves.not.toThrow();
   });
 });
