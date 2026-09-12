@@ -16,11 +16,18 @@ const shouldShowInstitutionNudgeUseCase = new ShouldShowInstitutionNudgeUseCase(
 interface InstitutionLinkCardProps {
   className?: string;
   showLinked?: boolean;
+  // Keeps the unprompted "link your hospital" ask off screen when Home has a
+  // higher-stakes reason not to compete for attention right now (a "não
+  // estou bem" disclosure) — never applies to the dismiss/unlink
+  // acknowledgments below, which are direct results of the person's own
+  // just-now action on this card.
+  suppressNudge?: boolean;
 }
 
 export function InstitutionLinkCard({
   className = '',
   showLinked = false,
+  suppressNudge = false,
 }: InstitutionLinkCardProps) {
   const navigate = useNavigate();
   const institutionId = useInstitutionLinkStore((state) => state.institutionId);
@@ -33,10 +40,10 @@ export function InstitutionLinkCard({
   const ctaRef = useRef<HTMLButtonElement>(null);
   const [shouldFocusCta, setShouldFocusCta] = useState(false);
   const dismissAckRef = useRef<HTMLDivElement>(null);
-  // Scoped to this mount, same reasoning as FollowUpCard's justAnswered: the
-  // persisted dismissedAt is what actually suppresses the nudge on a later
-  // visit, so returning to this screen later shows nothing, not a replayed
-  // acknowledgment.
+  // Scoped to this mount, same reasoning as FollowUpCard's answeredThisCycle
+  // derivation: the persisted dismissedAt is what actually suppresses the
+  // nudge on a later visit, so returning to this screen later shows
+  // nothing, not a replayed acknowledgment.
   const [justDismissedNudge, setJustDismissedNudge] = useState(false);
   const unlinkAckRef = useRef<HTMLDivElement>(null);
   // Set instead of shouldFocusCta when Desvincular fires while the nudge is
@@ -94,10 +101,12 @@ export function InstitutionLinkCard({
       );
     }
 
-    const showNudge = shouldShowInstitutionNudgeUseCase.execute({
-      dismissedAt: nudgeDismissedAt ? new Date(nudgeDismissedAt) : null,
-      now: new Date(),
-    });
+    const showNudge =
+      !suppressNudge &&
+      shouldShowInstitutionNudgeUseCase.execute({
+        dismissedAt: nudgeDismissedAt ? new Date(nudgeDismissedAt) : null,
+        now: new Date(),
+      });
     if (!showNudge) {
       return null;
     }

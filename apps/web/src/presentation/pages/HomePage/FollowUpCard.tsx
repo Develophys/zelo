@@ -1,15 +1,9 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '@/presentation/ui/Button';
 import { routes } from '@/presentation/lib/routes';
 import { Card } from '@/presentation/ui/Card';
-import { useAssessmentHistory } from '@/presentation/hooks/useAssessmentHistory';
-import { EMPTY_POINTS } from '@/presentation/lib/home.constants';
-import { mostRecentAssessmentDate } from '@/presentation/lib/weekly-history-chart';
-import { ShouldShowFollowUpPromptUseCase } from '@/use-cases/should-show-followup-prompt.usecase';
-import { useFollowUpStore } from '@/stores/followup.store';
-
-const shouldShowFollowUpPromptUseCase = new ShouldShowFollowUpPromptUseCase();
+import { Skeleton } from '@/presentation/ui/Skeleton';
+import { useFollowUpAnswer } from '@/presentation/hooks/useFollowUpAnswer';
 
 interface FollowUpCardProps {
   className?: string;
@@ -17,37 +11,39 @@ interface FollowUpCardProps {
 
 export function FollowUpCard({ className = '' }: FollowUpCardProps) {
   const navigate = useNavigate();
-  const { data: history } = useAssessmentHistory();
-  const recordAnswer = useFollowUpStore((state) => state.recordAnswer);
-  const answeredAt = useFollowUpStore((state) => state.answeredAt);
-  // Scoped to this mount on purpose. The persisted answer is what suppresses
-  // the prompt on a later visit; this is only the immediate reply to the tap,
-  // so returning to Home later does not re-open a conversation already had.
-  const [justAnswered, setJustAnswered] = useState<'yes' | 'no' | null>(null);
+  const { isLoading, answer, answeredThisCycle, shouldShowPrompt, recordAnswer } =
+    useFollowUpAnswer();
 
-  const answerAndAcknowledge = (value: 'yes' | 'no') => {
-    recordAnswer(value);
-    setJustAnswered(value);
-  };
-
-  const shouldShow = shouldShowFollowUpPromptUseCase.execute({
-    mostRecentAssessmentAt: mostRecentAssessmentDate(history ?? EMPTY_POINTS),
-    // A past answer only suppresses the prompt for the assessment cycle it
-    // responded to — see the use-case's own comment. Passing the timestamp
-    // instead of a boolean is what lets a brand new assessment re-arm this.
-    answeredAt: answeredAt ? new Date(answeredAt) : null,
-    now: new Date(),
-  });
+  if (isLoading) {
+    // Without a reserved height, the card pops in once history resolves and
+    // shifts everything below it — including the contact tiles a one-handed
+    // user may already be tapping moments after first paint.
+    return (
+      <div className={className} data-testid="followup-skeleton">
+        <Card>
+          <Skeleton className="h-5 w-3/4 rounded" />
+          <div className="mt-3 flex gap-3">
+            <Skeleton className="h-11 w-24 rounded-control" />
+            <Skeleton className="h-11 w-32 rounded-control" />
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   // Answering used to unmount the card outright. Someone who had just said they
   // were not okay watched the question disappear and nothing happen — the one
   // interaction most likely to teach a doctor that this app does not listen.
   // The acknowledgement replaces the question in place instead.
-  if (justAnswered) {
+  //
+  // Derived from answeredThisCycle (backed by the persisted answeredAt), not
+  // local component state — a remount right after answering (a reload, a PWA
+  // background-eviction) must still show this, not silently render nothing.
+  if (answeredThisCycle) {
     return (
       <div className={className} role="status" aria-live="polite" aria-atomic="true">
-        <Card data-testid="followup-ack" tone={justAnswered === 'no' ? 'brand-tint' : undefined}>
-          {justAnswered === 'no' ? (
+        <Card data-testid="followup-ack" tone={answer === 'no' ? 'brand-tint' : undefined}>
+          {answer === 'no' ? (
             <>
               <p className="text-body font-extrabold text-ink">Obrigado por dizer.</p>
               {/* No longer repeats "Conversar agora"/"Falar com um par" as
@@ -90,7 +86,7 @@ export function FollowUpCard({ className = '' }: FollowUpCardProps) {
     );
   }
 
-  if (!shouldShow) {
+  if (!shouldShowPrompt) {
     return null;
   }
 
@@ -102,10 +98,10 @@ export function FollowUpCard({ className = '' }: FollowUpCardProps) {
             same question restated for a 1-tap pulse check. */}
         <p className="text-body font-extrabold text-ink">Só uma checagem rápida: tudo bem?</p>
         <div className="mt-3 flex gap-3">
-          <Button variant="outline" full={false} onClick={() => answerAndAcknowledge('yes')}>
+          <Button variant="outline" full={false} onClick={() => recordAnswer('yes')}>
             Estou bem
           </Button>
-          <Button variant="outline" full={false} onClick={() => answerAndAcknowledge('no')}>
+          <Button variant="outline" full={false} onClick={() => recordAnswer('no')}>
             Não estou bem
           </Button>
         </div>

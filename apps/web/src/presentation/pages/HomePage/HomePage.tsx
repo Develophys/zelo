@@ -6,12 +6,19 @@ import { IconBadge } from '@/presentation/ui/IconBadge';
 import { routes } from '@/presentation/lib/routes';
 import { getGreeting } from '@/presentation/lib/get-greeting';
 import { InstitutionLinkCard } from '@/presentation/components/InstitutionLinkCard';
+import { useFollowUpAnswer } from '@/presentation/hooks/useFollowUpAnswer';
 import { CheckInHeroCard } from './CheckInHeroCard';
 import { FollowUpCard } from './FollowUpCard';
 import { HistoryChartCard } from './HistoryChartCard';
 
 export function HomePage() {
   const navigate = useNavigate();
+  const { answer, answeredThisCycle } = useFollowUpAnswer();
+  // The institution ask is administrative housekeeping — it must never share
+  // a view with a "não estou bem" disclosure, not just sit below it in
+  // scroll order (see the ordering comment below, which only solved half
+  // of this).
+  const justDisclosedDistress = answeredThisCycle && answer === 'no';
 
   return (
     <PhoneShell
@@ -49,7 +56,10 @@ export function HomePage() {
         </div>
 
         <HistoryChartCard />
-        <InstitutionLinkCard className="mt-3.5 short:mt-2" />
+        <InstitutionLinkCard
+          className="mt-3.5 short:mt-2"
+          suppressNudge={justDisclosedDistress}
+        />
       </div>
     </PhoneShell>
   );

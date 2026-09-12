@@ -447,5 +447,74 @@ describe("HomePage follow-up", () => {
 
     expect(await screen.findByText("Só uma checagem rápida: tudo bem?")).toBeInTheDocument();
   });
+
+  it("shows the acknowledgment on a fresh mount, not only right after tapping — the answer is persisted, so the reassurance must be too", async () => {
+    const answeredAt = new Date(new Date(OLD_ENOUGH_WEEK_START).getTime() + 1000);
+
+    // No click in this test at all: this is what a reload or a PWA
+    // background-eviction right after answering "não estou bem" looks like —
+    // the store already has the answer, nothing in this mount ever tapped
+    // anything.
+    useFollowUpStore.setState({ answer: "no", answeredAt: answeredAt.toISOString() });
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
+      { weekStart: OLD_ENOUGH_WEEK_START, severityFraction: 0.4 },
+    ]);
+
+    renderHome();
+
+    const ack = await screen.findByTestId("followup-ack");
+    expect(ack).toHaveTextContent(/obrigado por dizer/i);
+    expect(within(ack).getByRole("button", { name: "Conversar com o acolhimento" })).toBeInTheDocument();
+  });
+
+  it("shows a loading skeleton instead of popping in after paint and shifting the CTAs below it", () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockReturnValue(new Promise(() => {}));
+    renderHome();
+    expect(screen.getByTestId("followup-skeleton")).toBeInTheDocument();
+  });
+});
+
+describe("HomePage follow-up × institution nudge", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useFollowUpStore.setState({ answer: null, answeredAt: null });
+    useInstitutionLinkStore.setState({
+      institutionId: null,
+      institutionName: null,
+      sectorId: null,
+      sectorName: null,
+      deviceSignalId: null,
+    });
+  });
+
+  it("keeps the institution nudge off screen right after a 'não estou bem' disclosure", async () => {
+    const answeredAt = new Date(new Date(OLD_ENOUGH_WEEK_START).getTime() + 1000);
+
+    useFollowUpStore.setState({ answer: "no", answeredAt: answeredAt.toISOString() });
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
+      { weekStart: OLD_ENOUGH_WEEK_START, severityFraction: 0.4 },
+    ]);
+
+    renderHome();
+
+    await screen.findByTestId("followup-ack");
+    // The institution ask is administrative — it should never share a view
+    // with a distress disclosure, however the ordering already tried to
+    // handle that with scroll position alone.
+    expect(screen.queryByText("Ainda não vinculado a um hospital")).not.toBeInTheDocument();
+  });
+
+  it("still shows the institution nudge when the answer was 'estou bem'", async () => {
+    const answeredAt = new Date(new Date(OLD_ENOUGH_WEEK_START).getTime() + 1000);
+
+    useFollowUpStore.setState({ answer: "yes", answeredAt: answeredAt.toISOString() });
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
+      { weekStart: OLD_ENOUGH_WEEK_START, severityFraction: 0.1 },
+    ]);
+
+    renderHome();
+
+    expect(await screen.findByText("Ainda não vinculado a um hospital")).toBeInTheDocument();
+  });
 });
 
