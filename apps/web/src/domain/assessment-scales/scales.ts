@@ -5,6 +5,8 @@ import { PHQ9_QUESTIONS } from './phq9';
 
 export interface AssessmentScale {
   type: Exclude<AssessmentScaleType, 'MBI-HSS'>;
+  // One line naming what the scale measures — shared by the picker screen and the assessment header so the two never drift apart.
+  description: string;
   prompt: string;
   questions: readonly string[];
   options: readonly { value: number; label: string }[];
@@ -18,6 +20,7 @@ const TWO_WEEK_FREQUENCY_PROMPT =
 
 export const PHQ9_SCALE: AssessmentScale = {
   type: 'PHQ-9',
+  description: 'Humor e sinais de depressão',
   prompt: TWO_WEEK_FREQUENCY_PROMPT,
   questions: PHQ9_QUESTIONS,
   options: FREQUENCY_RESPONSE_OPTIONS,
@@ -26,6 +29,7 @@ export const PHQ9_SCALE: AssessmentScale = {
 
 export const GAD7_SCALE: AssessmentScale = {
   type: 'GAD-7',
+  description: 'Ansiedade',
   prompt: TWO_WEEK_FREQUENCY_PROMPT,
   questions: GAD7_QUESTIONS,
   options: FREQUENCY_RESPONSE_OPTIONS,

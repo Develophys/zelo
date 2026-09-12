@@ -147,6 +147,18 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     });
   });
 
+  it('names the scale and what it measures in-flow, not only on the picker screen', async () => {
+    const user = userEvent.setup();
+    renderScale(scale, path);
+
+    expect(screen.getByText(`${scale.type} · ${scale.description}`)).toBeInTheDocument();
+
+    for (let i = 0; i < total; i++) {
+      await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
+    }
+    expect(screen.getByText(`${scale.type} · ${scale.description}`)).toBeInTheDocument();
+  });
+
   it('disables the step-back control on the first question', () => {
     renderScale(scale, path);
     expect(screen.getByTestId('question-back')).toBeDisabled();
@@ -183,6 +195,37 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     expect(screen.getByRole('button', { name: 'Enviar respostas' })).toBeInTheDocument();
     scale.questions.forEach((question) => {
       expect(screen.getByText(question)).toBeInTheDocument();
+    });
+  });
+
+  it('wraps review question text across two lines instead of clipping it to one, so the self-harm item is never hidden while confirming answers', async () => {
+    const user = userEvent.setup();
+    renderScale(scale, path);
+
+    for (let i = 0; i < total; i++) {
+      await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
+    }
+
+    const firstQuestionText = screen.getByText(scale.questions[0]!);
+    expect(firstQuestionText).toHaveClass('line-clamp-2');
+    expect(firstQuestionText).not.toHaveClass('truncate');
+  });
+
+  it('chunks the review list into groups of 3 with a divider, instead of one flat scroll of near-identical rows', async () => {
+    const user = userEvent.setup();
+    renderScale(scale, path);
+
+    for (let i = 0; i < total; i++) {
+      await user.click(screen.getByRole('radio', { name: 'Nenhuma vez' }));
+    }
+
+    scale.questions.forEach((_, index) => {
+      const row = screen.getByTestId(`review-edit-${index}`).closest('li')!;
+      if (index > 0 && index % 3 === 0) {
+        expect(row.className).toMatch(/border-t/);
+      } else {
+        expect(row.className).not.toMatch(/border-t/);
+      }
     });
   });
 

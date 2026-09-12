@@ -3,6 +3,14 @@ import { useNavigate } from 'react-router';
 import { PhoneShell } from '@/presentation/layout/PhoneShell';
 import { CardButton } from '@/presentation/ui/CardButton';
 import { routes } from '@/presentation/lib/routes';
+import { GAD7_SCALE, PHQ9_SCALE } from '@/domain/assessment-scales/scales';
+
+const SECONDS_PER_QUESTION = 20;
+
+function estimate(questionCount: number): string {
+  const minutes = Math.max(1, Math.round((questionCount * SECONDS_PER_QUESTION) / 60));
+  return `${questionCount} perguntas · cerca de ${minutes} minutos`;
+}
 
 export function AssessmentSelectPage() {
   const navigate = useNavigate();
@@ -18,7 +26,10 @@ export function AssessmentSelectPage() {
           >
             <div>
               <p className="text-body font-extrabold text-ink">PHQ-9</p>
-              <p className="text-caption text-muted">Humor e sinais de depressão</p>
+              <p className="text-caption text-muted">{PHQ9_SCALE.description}</p>
+              <p className="mt-1 font-mono text-mono-data text-muted-2">
+                {estimate(PHQ9_SCALE.questions.length)}
+              </p>
             </div>
             <ArrowRight size={18} className="flex-none text-brand md:self-end" aria-hidden="true" />
           </CardButton>
@@ -29,7 +40,10 @@ export function AssessmentSelectPage() {
           >
             <div>
               <p className="text-body font-extrabold text-ink">GAD-7</p>
-              <p className="text-caption text-muted">Ansiedade</p>
+              <p className="text-caption text-muted">{GAD7_SCALE.description}</p>
+              <p className="mt-1 font-mono text-mono-data text-muted-2">
+                {estimate(GAD7_SCALE.questions.length)}
+              </p>
             </div>
             <ArrowRight size={18} className="flex-none text-brand md:self-end" aria-hidden="true" />
           </CardButton>

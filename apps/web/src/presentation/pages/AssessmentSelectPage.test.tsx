@@ -101,6 +101,12 @@ describe("AssessmentSelectPage", () => {
     ).toHaveClass("min-h-11");
   });
 
+  it("shows a question count and time estimate on each scale, so a time-pressed médico can judge whether it fits", () => {
+    renderSelect();
+    expect(screen.getByText("9 perguntas · cerca de 3 minutos")).toBeInTheDocument();
+    expect(screen.getByText("7 perguntas · cerca de 2 minutos")).toBeInTheDocument();
+  });
+
   it("draws the row affordance from the icon set rather than a text arrow", () => {
     renderSelect();
     const phq9 = screen.getByRole("button", { name: /PHQ-9/i });

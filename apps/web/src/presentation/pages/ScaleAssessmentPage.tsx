@@ -131,6 +131,10 @@ export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
           </span>
         </div>
 
+        <p className="mt-2 font-mono text-mono-data text-muted-2">
+          {scale.type} · {scale.description}
+        </p>
+
         {showResumed && (
           <p
             data-testid="assessment-resumed"

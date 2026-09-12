@@ -31,8 +31,11 @@ export function AssessmentReview({
         {scale.questions.map((question, index) => {
           const answer = scale.options.find((option) => option.value === answers[index]);
 
+          // A divider every 3rd row breaks the list into scannable groups instead of one flat scroll of near-identical items.
+          const startsNewGroup = index > 0 && index % 3 === 0;
+
           return (
-            <li key={question}>
+            <li key={question} className={startsNewGroup ? 'mt-1 border-t border-line pt-3' : undefined}>
               <button
                 type="button"
                 data-testid={`review-edit-${index}`}
@@ -43,7 +46,7 @@ export function AssessmentReview({
               >
                 <span className="flex-none font-mono text-mono-data text-muted">{index + 1}</span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-caption text-muted">{question}</span>
+                  <span className="block line-clamp-2 text-caption text-muted">{question}</span>
                   <span className="block text-label font-semibold text-ink">
                     {answer?.label ?? '—'}
                   </span>
