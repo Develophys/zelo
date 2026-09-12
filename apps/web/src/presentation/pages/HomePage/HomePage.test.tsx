@@ -366,6 +366,21 @@ describe("HomePage follow-up", () => {
     expect(screen.getAllByRole("button", { name: /Falar com um par/i })).toHaveLength(1);
   });
 
+  it("makes the ack's own reassurance an actual link to chat, not just words pointing at the row below", async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
+      { weekStart: OLD_ENOUGH_WEEK_START, severityFraction: 0.4 },
+    ]);
+    const user = userEvent.setup();
+    renderHome();
+    await screen.findByText("Só uma checagem rápida: tudo bem?");
+
+    await user.click(screen.getByRole("button", { name: "Não estou bem" }));
+    const ack = await screen.findByTestId("followup-ack");
+
+    await user.click(within(ack).getByRole("button", { name: "Falar com alguém" }));
+    expect(screen.getByText("Chat screen")).toBeInTheDocument();
+  });
+
   it("announces the acknowledgment to screen readers instead of relying on them to notice the swap", async () => {
     vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
       { weekStart: OLD_ENOUGH_WEEK_START, severityFraction: 0.4 },

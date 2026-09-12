@@ -67,4 +67,24 @@ describe("InstitutionLinkCard", () => {
     renderCard();
     expect(screen.getByText("Ainda não vinculado a um hospital")).toBeInTheDocument();
   });
+
+  it("acknowledges the dismissal in place instead of leaving the card silently gone", async () => {
+    const user = userEvent.setup();
+    renderCard();
+    await user.click(screen.getByRole("button", { name: "Agora não" }));
+
+    // Announced, not just removed: a screen-reader user gets told the
+    // dismissal landed, the same pattern already used for the follow-up ack.
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent(/tudo bem/i);
+  });
+
+  it("moves keyboard focus into the acknowledgment instead of dropping it to <body>", async () => {
+    const user = userEvent.setup();
+    renderCard();
+    await user.click(screen.getByRole("button", { name: "Agora não" }));
+
+    const status = screen.getByRole("status");
+    expect(status.contains(document.activeElement)).toBe(true);
+  });
 });

@@ -31,6 +31,12 @@ export function InstitutionLinkCard({
 
   const ctaRef = useRef<HTMLButtonElement>(null);
   const [shouldFocusCta, setShouldFocusCta] = useState(false);
+  const dismissAckRef = useRef<HTMLDivElement>(null);
+  // Scoped to this mount, same reasoning as FollowUpCard's justAnswered: the
+  // persisted dismissedAt is what actually suppresses the nudge on a later
+  // visit, so returning to this screen later shows nothing, not a replayed
+  // acknowledgment.
+  const [justDismissedNudge, setJustDismissedNudge] = useState(false);
 
   useEffect(() => {
     if (!shouldFocusCta) {
@@ -40,7 +46,27 @@ export function InstitutionLinkCard({
     setShouldFocusCta(false);
   }, [shouldFocusCta]);
 
+  useEffect(() => {
+    if (!justDismissedNudge) {
+      return;
+    }
+    dismissAckRef.current?.focus();
+  }, [justDismissedNudge]);
+
   if (institutionId === null) {
+    if (justDismissedNudge) {
+      return (
+        <div className={className} role="status" aria-live="polite" aria-atomic="true">
+          <Card tone="brand-tint">
+            <div ref={dismissAckRef} tabIndex={-1}>
+              <p className="text-body font-extrabold text-ink">Tudo bem, sem pressa.</p>
+              <p className="mt-1 text-caption text-muted">Perguntamos de novo em alguns dias.</p>
+            </div>
+          </Card>
+        </div>
+      );
+    }
+
     const showNudge = shouldShowInstitutionNudgeUseCase.execute({
       dismissedAt: nudgeDismissedAt ? new Date(nudgeDismissedAt) : null,
       now: new Date(),
@@ -65,7 +91,14 @@ export function InstitutionLinkCard({
             >
               Vincular agora
             </Button>
-            <Button variant="ghost" full={false} onClick={dismissNudge}>
+            <Button
+              variant="ghost"
+              full={false}
+              onClick={() => {
+                dismissNudge();
+                setJustDismissedNudge(true);
+              }}
+            >
               Agora não
             </Button>
           </div>

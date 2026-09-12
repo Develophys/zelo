@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 import { Button } from '@/presentation/ui/Button';
+import { routes } from '@/presentation/lib/routes';
 import { Card } from '@/presentation/ui/Card';
 import { useAssessmentHistory } from '@/presentation/hooks/useAssessmentHistory';
 import { EMPTY_POINTS } from '@/presentation/lib/home.constants';
@@ -14,6 +16,7 @@ interface FollowUpCardProps {
 }
 
 export function FollowUpCard({ className = '' }: FollowUpCardProps) {
+  const navigate = useNavigate();
   const { data: history } = useAssessmentHistory();
   const recordAnswer = useFollowUpStore((state) => state.recordAnswer);
   const answer = useFollowUpStore((state) => state.answer);
@@ -44,13 +47,25 @@ export function FollowUpCard({ className = '' }: FollowUpCardProps) {
           {justAnswered === 'no' ? (
             <>
               <p className="text-body font-extrabold text-ink">Obrigado por dizer.</p>
-              {/* No longer repeats "Conversar agora"/"Falar com um par" here —
-                  that accented row sits right below on Home, so restating it
-                  in a different shape was the same action shown twice at the
-                  one moment composure matters most. */}
+              {/* No longer repeats "Conversar agora"/"Falar com um par" as
+                  buttons here — that accented row sits right below on Home,
+                  so restating it in a different shape was the same action
+                  shown twice at the one moment composure matters most. The
+                  promise still needs its own affordance, though: proximity
+                  to the row below breaks under scroll, zoom or a short
+                  viewport, so "Falar com alguém" is a real link, not just
+                  words pointing downward. */}
               <p className="mt-1 text-pretty text-caption text-muted">
-                Não precisa carregar isso sozinho(a). Falar com alguém costuma ajudar mais do que
-                esperar passar.
+                Não precisa carregar isso sozinho(a).{' '}
+                <Button
+                  variant="unstyled"
+                  full={false}
+                  className="font-semibold text-brand underline underline-offset-2 hover:text-brand-hover"
+                  onClick={() => navigate(routes.chat)}
+                >
+                  Falar com alguém
+                </Button>{' '}
+                costuma ajudar mais do que esperar passar.
               </p>
             </>
           ) : (
