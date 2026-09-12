@@ -19,7 +19,7 @@ export function FollowUpCard({ className = '' }: FollowUpCardProps) {
   const navigate = useNavigate();
   const { data: history } = useAssessmentHistory();
   const recordAnswer = useFollowUpStore((state) => state.recordAnswer);
-  const answer = useFollowUpStore((state) => state.answer);
+  const answeredAt = useFollowUpStore((state) => state.answeredAt);
   // Scoped to this mount on purpose. The persisted answer is what suppresses
   // the prompt on a later visit; this is only the immediate reply to the tap,
   // so returning to Home later does not re-open a conversation already had.
@@ -32,7 +32,10 @@ export function FollowUpCard({ className = '' }: FollowUpCardProps) {
 
   const shouldShow = shouldShowFollowUpPromptUseCase.execute({
     mostRecentAssessmentAt: mostRecentAssessmentDate(history ?? EMPTY_POINTS),
-    alreadyAnswered: answer !== null,
+    // A past answer only suppresses the prompt for the assessment cycle it
+    // responded to — see the use-case's own comment. Passing the timestamp
+    // instead of a boolean is what lets a brand new assessment re-arm this.
+    answeredAt: answeredAt ? new Date(answeredAt) : null,
     now: new Date(),
   });
 

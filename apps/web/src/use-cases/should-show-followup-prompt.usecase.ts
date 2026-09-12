@@ -4,13 +4,21 @@ export const FOLLOWUP_INTERVAL_DAYS = 3;
 
 export interface ShouldShowFollowUpPromptInput {
   mostRecentAssessmentAt: Date | null;
-  alreadyAnswered: boolean;
+  answeredAt: Date | null;
   now: Date;
 }
 
 export class ShouldShowFollowUpPromptUseCase {
-  execute({ mostRecentAssessmentAt, alreadyAnswered, now }: ShouldShowFollowUpPromptInput): boolean {
-    if (alreadyAnswered || mostRecentAssessmentAt === null) return false;
+  execute({ mostRecentAssessmentAt, answeredAt, now }: ShouldShowFollowUpPromptInput): boolean {
+    if (mostRecentAssessmentAt === null) return false;
+
+    // A recorded answer only suppresses the prompt for the assessment cycle
+    // it actually responded to. Without this, a boolean "already answered"
+    // would retire the prompt forever after a single tap, even once a brand
+    // new assessment — the thing the interval is timed from — has happened.
+    const answeredThisCycle =
+      answeredAt !== null && answeredAt.getTime() >= mostRecentAssessmentAt.getTime();
+    if (answeredThisCycle) return false;
 
     const elapsedMs = now.getTime() - mostRecentAssessmentAt.getTime();
     const elapsedDays = elapsedMs / (1000 * 60 * 60 * 24);

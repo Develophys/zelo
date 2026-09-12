@@ -414,5 +414,26 @@ describe("HomePage follow-up", () => {
 
     expect(await screen.findByTestId("followup-ack")).toHaveTextContent(/que bom/i);
   });
+
+  it("re-arms after a newer assessment, instead of retiring for the rest of the install's life after one answer", async () => {
+    const now = new Date();
+    const oldAssessment = new Date(now);
+    oldAssessment.setUTCDate(oldAssessment.getUTCDate() - 30);
+    // Answered shortly after that old assessment — this is the stale record
+    // that used to suppress the prompt forever, for every later assessment.
+    const staleAnswer = new Date(oldAssessment);
+    staleAnswer.setUTCHours(staleAnswer.getUTCHours() + 1);
+    const newerAssessment = new Date(now);
+    newerAssessment.setUTCDate(newerAssessment.getUTCDate() - 10); // well past FOLLOWUP_INTERVAL_DAYS (3), but newer than the stale answer
+
+    useFollowUpStore.setState({ answer: "yes", answeredAt: staleAnswer.toISOString() });
+    vi.spyOn(container.getAssessmentHistoryUseCase, "execute").mockResolvedValue([
+      { weekStart: newerAssessment.toISOString(), severityFraction: 0.2 },
+    ]);
+
+    renderHome();
+
+    expect(await screen.findByText("Só uma checagem rápida: tudo bem?")).toBeInTheDocument();
+  });
 });
 
