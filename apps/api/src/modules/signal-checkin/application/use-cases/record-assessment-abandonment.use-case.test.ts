@@ -7,7 +7,14 @@ import type {
   SignalCounters,
 } from "../ports/signal-checkin-repository.port.ts";
 
-const ZERO_COUNTERS: SignalCounters = { checkIns: 0, concerning: 0, abandoned: 0, unsentChatDrafts: 0 };
+const ZERO_COUNTERS: SignalCounters = {
+  checkIns: 0,
+  concerning: 0,
+  abandoned: 0,
+  unsentChatDrafts: 0,
+  followUpSent: 0,
+  followUpAnswered: 0,
+};
 
 class FakeSignalCheckinRepository implements SignalCheckinRepository {
   public calls: RecordSignalIncrementParams[] = [];

@@ -8,7 +8,14 @@ import type {
 import type { NotificationEvent, NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
 import { K_ANONYMITY_THRESHOLD } from "@/modules/manager/application/constants.js";
 
-const ZERO_COUNTERS: SignalCounters = { checkIns: 0, concerning: 0, abandoned: 0, unsentChatDrafts: 0 };
+const ZERO_COUNTERS: SignalCounters = {
+  checkIns: 0,
+  concerning: 0,
+  abandoned: 0,
+  unsentChatDrafts: 0,
+  followUpSent: 0,
+  followUpAnswered: 0,
+};
 
 class FakeSignalCheckinRepository implements SignalCheckinRepository {
   public calls: RecordSignalIncrementParams[] = [];

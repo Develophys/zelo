@@ -13,6 +13,9 @@ class FakeSignalCheckinPort implements SignalCheckinPort {
   async chatDraft(): Promise<void> {
     throw new Error("not used in this test");
   }
+  async followUp(): Promise<void> {
+    throw new Error("not used in this test");
+  }
 }
 
 describe("RecordAssessmentAbandonmentUseCase", () => {
@@ -45,6 +48,9 @@ describe("RecordAssessmentAbandonmentUseCase", () => {
         throw new Error("network down");
       }
       async chatDraft(): Promise<void> {
+        throw new Error("not used in this test");
+      }
+      async followUp(): Promise<void> {
         throw new Error("not used in this test");
       }
     }

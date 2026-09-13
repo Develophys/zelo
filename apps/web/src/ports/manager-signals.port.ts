@@ -15,6 +15,8 @@ export const ManagerSignalsResponseSchema = z.object({
   ),
   segments: z.array(z.object({ label: z.string(), value: z.number(), n: z.number() })),
   followUpResponseRate: z.number(),
+  followUpSent: z.number().default(0),
+  followUpAnswered: z.number().default(0),
   sectorCoverage: z.object({ visible: z.number(), total: z.number() }),
   referenceWeekStart: z.string().nullable(),
 });

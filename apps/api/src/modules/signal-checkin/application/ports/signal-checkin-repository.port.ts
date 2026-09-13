@@ -3,7 +3,14 @@ export interface RecordSignalIncrementParams {
   sectorId: string;
   weekStart: Date;
   dedupKey: string;
-  increments: Partial<{ checkIns: number; concerning: number; abandoned: number; unsentChatDrafts: number }>;
+  increments: Partial<{
+    checkIns: number;
+    concerning: number;
+    abandoned: number;
+    unsentChatDrafts: number;
+    followUpSent: number;
+    followUpAnswered: number;
+  }>;
 }
 
 export interface SignalCounters {
@@ -11,6 +18,8 @@ export interface SignalCounters {
   concerning: number;
   abandoned: number;
   unsentChatDrafts: number;
+  followUpSent: number;
+  followUpAnswered: number;
 }
 
 export interface SignalCheckinRepository {

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildFollowUpSeedRows,
   buildManagerInviteSeedRows,
   buildSeedRows,
   startOfIsoWeek,
@@ -60,24 +59,24 @@ describe("buildSeedRows", () => {
   });
 });
 
-describe("buildFollowUpSeedRows", () => {
+describe("real follow-up counters on ZELO_DEMO_SCENARIOS", () => {
   const reference = new Date("2026-07-08T12:00:00.000Z"); // a Wednesday, week of 2026-07-06
 
-  it("produces exactly 6 weeks of rows", () => {
-    expect(buildFollowUpSeedRows(reference)).toHaveLength(6);
-  });
-
-  it("the most recent week's rate is neither 0% nor 100% (demo credibility)", () => {
-    const rows = buildFollowUpSeedRows(reference).sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
+  it("gives Pronto-socorro a believable, improving-but-imperfect response rate in the most recent week", () => {
+    const rows = buildSeedRows(reference, ZELO_DEMO_SCENARIOS)
+      .filter((r) => r.sectorName === "Pronto-socorro")
+      .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
     const mostRecent = rows[rows.length - 1]!;
-    const rate = mostRecent.responded / mostRecent.sent;
+
+    expect(mostRecent.followUpSent).toBeGreaterThan(0);
+    const rate = mostRecent.followUpAnswered / mostRecent.followUpSent;
     expect(rate).toBeGreaterThan(0);
     expect(rate).toBeLessThan(1);
   });
 
-  it("the most recent week's weekStart is the Monday of the reference date's week", () => {
-    const rows = buildFollowUpSeedRows(reference).sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
-    expect(rows[rows.length - 1]!.weekStart.toISOString()).toBe("2026-07-06T00:00:00.000Z");
+  it("leaves sectors with no follow-up scenario at zero, rather than fabricating a rate for them", () => {
+    const rows = buildSeedRows(reference, ZELO_DEMO_SCENARIOS).filter((r) => r.sectorName === "UTI");
+    expect(rows.every((r) => r.followUpSent === 0 && r.followUpAnswered === 0)).toBe(true);
   });
 });
 

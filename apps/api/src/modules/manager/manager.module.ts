@@ -10,7 +10,6 @@ import { ManagerAdminController } from "./infrastructure/manager-admin.controlle
 import { ManagerAuthGuard } from "./infrastructure/manager-auth.guard.ts";
 import { HospitalAdminGuard } from "./infrastructure/hospital-admin.guard.ts";
 import { PrismaSignalRepository } from "./infrastructure/persistence/prisma-signal.repository.ts";
-import { PrismaSimulatedFollowUpRepository } from "./infrastructure/persistence/prisma-simulated-follow-up.repository.ts";
 import { PrismaManagerInsightRepository } from "./infrastructure/persistence/prisma-manager-insight.repository.ts";
 import { PrismaManagerRepository } from "./infrastructure/persistence/prisma-manager.repository.ts";
 import { GroqInsightAdapter } from "./infrastructure/ai-providers/groq-insight.adapter.ts";
@@ -33,7 +32,6 @@ import { SendPeerPartnerSetPasswordEmailUseCase } from "./application/use-cases/
 import { ManagerTokenService } from "./application/services/manager-token.service.ts";
 import { ManagerPasswordService } from "./application/services/manager-password.service.ts";
 import { SIGNAL_REPOSITORY } from "./application/ports/signal-repository.port.ts";
-import { SIMULATED_FOLLOW_UP_REPOSITORY } from "./application/ports/simulated-follow-up-repository.port.ts";
 import { AI_INSIGHT_PORT } from "./application/ports/ai-insight.port.ts";
 import { MANAGER_INSIGHT_REPOSITORY } from "./application/ports/manager-insight-repository.port.ts";
 import { MANAGER_REPOSITORY } from "./application/ports/manager-repository.port.ts";
@@ -70,7 +68,6 @@ const aiInsightPortProvider =
     ManagerAuthGuard,
     HospitalAdminGuard,
     { provide: SIGNAL_REPOSITORY, useClass: PrismaSignalRepository },
-    { provide: SIMULATED_FOLLOW_UP_REPOSITORY, useClass: PrismaSimulatedFollowUpRepository },
     aiInsightPortProvider,
     { provide: MANAGER_INSIGHT_REPOSITORY, useClass: PrismaManagerInsightRepository },
     { provide: MANAGER_REPOSITORY, useClass: PrismaManagerRepository },

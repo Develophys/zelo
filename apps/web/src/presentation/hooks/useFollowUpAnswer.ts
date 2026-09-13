@@ -1,9 +1,12 @@
+import { useEffect } from 'react';
 import { useAssessmentHistory } from '@/presentation/hooks/useAssessmentHistory';
 import { EMPTY_POINTS } from '@/presentation/lib/home.constants';
 import { bandForSeverityFraction } from '@/presentation/lib/band-for';
 import { mostRecentAssessmentPoint } from '@/presentation/lib/weekly-history-chart';
 import { ShouldShowFollowUpPromptUseCase } from '@/use-cases/should-show-followup-prompt.usecase';
 import { useFollowUpStore } from '@/stores/followup.store';
+import { recordFollowUpUseCase } from '@/app/container';
+import { getLinkedAndOptedIn } from '@/presentation/lib/institution-link-gate';
 
 const shouldShowFollowUpPromptUseCase = new ShouldShowFollowUpPromptUseCase();
 
@@ -33,6 +36,22 @@ export function useFollowUpAnswer() {
     now: new Date(),
   });
 
+  // Fires once per cycle the prompt actually becomes visible — a real signal
+  // the manager dashboard's "sent" counter can count, mirroring how a real
+  // check-in reports itself. The server-side dedup (per device/sector/week)
+  // absorbs any re-fire from a remount, so this doesn't need its own guard.
+  useEffect(() => {
+    if (!shouldShowPrompt) return;
+    const link = getLinkedAndOptedIn();
+    void recordFollowUpUseCase.execute({ link, event: 'sent' }).catch(() => {});
+  }, [shouldShowPrompt]);
+
+  const recordAnswerAndReport = (value: 'yes' | 'no') => {
+    recordAnswer(value);
+    const link = getLinkedAndOptedIn();
+    void recordFollowUpUseCase.execute({ link, event: 'answered' }).catch(() => {});
+  };
+
   const answeredRecently =
     answeredAtDate !== null &&
     Date.now() - answeredAtDate.getTime() < ACKNOWLEDGMENT_WINDOW_HOURS * 60 * 60 * 1000;
@@ -53,7 +72,7 @@ export function useFollowUpAnswer() {
     showAcknowledgment,
     answeredThisCycle,
     shouldShowPrompt,
-    recordAnswer,
+    recordAnswer: recordAnswerAndReport,
     recentSevereAssessment,
   };
 }

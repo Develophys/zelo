@@ -1,6 +1,31 @@
 # Follow-up mechanism — design spec
 
-**Status:** design, ready to implement. Derived from `general-documentations/documentacao-produto/prd.md` FR-17 and `general-documentations/documentacao-produto/user-stories.md` US-009, both added 19/07/2026 from the ACM's answer: *"os KPIs prioritários para esta fase são, essencialmente, o número de questionários respondidos e a taxa de resposta da pesquisa de seguimento (follow-up)"* and *"o critério de avaliação está na robustez desse fluxo de triagem → direcionamento → follow-up"*.
+**Status: SUPERSEDED — (A) reimplemented as a real metric on 13/09/2026.** Everything below
+through §2 describes the *original* two-pieces-that-never-talk-to-each-other design and the
+reasoning that justified it at the time. That reasoning did not hold up: §2's claim that closing
+the loop "would require the identity/auth layer `identity-and-aggregation.md` describes as not
+yet built" was checked against the actual code and found overstated — by the time this was
+revisited, the app already had `deviceSignalId` (`apps/web/src/stores/institution-link.store.ts`),
+a per-device, no-PII, k-anonymous identifier created for signal-checkin dedup
+(`record-signal-checkin.use-case.ts`) that is exactly the kind of anonymous key
+`identity-and-aggregation.md` was trying to avoid needing — not a `User` model, and not what that
+spec meant by "identity." Sending a "follow-up shown" / "follow-up answered" event carries no
+assessment content, so it doesn't touch the encrypted-`Assessment` invariant either.
+
+**What actually shipped:** `FollowUpCard`'s prompt (§5 below, unchanged) now also reports itself
+to the API the same way a real check-in does — `POST /signals/follow-up` with
+`{ institutionId, sectorId, deviceSignalId, event: "sent" | "answered" }`, deduplicated per
+device/sector/week exactly like `checkIns`. Two new columns on `Signal`
+(`followUpSent`, `followUpAnswered`) replaced the `SimulatedFollowUp` model in §3 entirely — there
+is no separate fabricated table anymore. `GetManagerSignalsUseCase` computes
+`followUpResponseRate` (plus the raw `followUpSent`/`followUpAnswered` counts, for a real
+"X of Y" reading) from the same visible-sectors-at-the-reference-week set every other real metric
+on the dashboard uses, so it inherits the same k=5 suppression. `packages/domain`'s
+`MANAGER_METRICS.followUpRate` no longer carries `provenance: "demonstration"`. See
+`apps/api/src/modules/signal-checkin/application/use-cases/record-follow-up.use-case.ts` and
+`apps/web/src/presentation/hooks/useFollowUpAnswer.ts` for the real implementation.
+
+**Original status line (historical):** design, ready to implement. Derived from `general-documentations/documentacao-produto/prd.md` FR-17 and `general-documentations/documentacao-produto/user-stories.md` US-009, both added 19/07/2026 from the ACM's answer: *"os KPIs prioritários para esta fase são, essencialmente, o número de questionários respondidos e a taxa de resposta da pesquisa de seguimento (follow-up)"* and *"o critério de avaliação está na robustez desse fluxo de triagem → direcionamento → follow-up"*.
 
 ## 1. Scope-reduction finding (read this before writing any code)
 

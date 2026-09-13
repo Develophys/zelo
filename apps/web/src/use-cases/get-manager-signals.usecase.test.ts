@@ -11,6 +11,8 @@ const SAMPLE_RESPONSE: ManagerSignalsResponse = {
   weeklyTrend: [{ weekStart: "2026-06-01T00:00:00.000Z", concerningRate: 0.3, checkIns: 20, concerning: 6 }],
   segments: [{ label: "UTI", value: 44, n: 9 }],
   followUpResponseRate: 0.7,
+  followUpSent: 20,
+  followUpAnswered: 14,
   sectorCoverage: { visible: 1, total: 3 },
   referenceWeekStart: "2026-06-01T00:00:00.000Z",
 };

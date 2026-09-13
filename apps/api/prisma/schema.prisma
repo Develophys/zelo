@@ -82,6 +82,8 @@ model Signal {
   concerning    Int         @default(0)
   abandoned     Int         @default(0)
   unsentChatDrafts Int      @default(0)
+  followUpSent     Int      @default(0)
+  followUpAnswered Int      @default(0)
   createdAt     DateTime    @default(now())
 
   @@unique([institutionId, sectorId, weekStart])
@@ -134,17 +136,6 @@ model ManagerInsight {
   institution          Institution @relation(fields: [institutionId], references: [id])
 
   @@map("manager_insights")
-}
-
-model SimulatedFollowUp {
-  id         String   @id @default(cuid())
-  weekStart  DateTime
-  sent       Int
-  responded  Int
-  createdAt  DateTime @default(now())
-
-  @@unique([weekStart])
-  @@map("simulated_follow_ups")
 }
 
 model SignalDedupKey {

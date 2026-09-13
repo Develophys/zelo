@@ -27,13 +27,9 @@ describe("MANAGER_METRICS", () => {
     }
   });
 
-  it("marks the follow-up rate as demonstration data", () => {
-    expect(MANAGER_METRICS.followUpRate.provenance).toBe("demonstration");
-  });
-
-  it("marks nothing else as demonstration data", () => {
+  it("marks nothing as demonstration data — the follow-up mechanism now records real events", () => {
     const demo = Object.values(MANAGER_METRICS).filter((m) => m.provenance === "demonstration");
-    expect(demo.map((m) => m.id)).toEqual(["followUpRate"]);
+    expect(demo).toEqual([]);
   });
 
   it("carries a methodology version, so a change of rule is datable", () => {
@@ -83,8 +79,16 @@ describe("plain-language readings", () => {
     );
   });
 
-  it("says outright that the follow-up rate is not this institution's data", () => {
-    expect(followUpReading()).toContain("demonstração");
+  it("states how many of the sent follow-up contacts were answered", () => {
+    expect(followUpReading({ sent: 20, answered: 15 })).toBe(
+      "15 de 20 contatos de reengajamento respondidos, na semana de referência",
+    );
+  });
+
+  it("says outright that nothing has been sent yet, rather than reading as a measured 0%", () => {
+    expect(followUpReading({ sent: 0, answered: 0 })).toBe(
+      "Nenhum contato de reengajamento enviado ainda nesta semana",
+    );
   });
 
   it("states visible, total and hidden sectors", () => {

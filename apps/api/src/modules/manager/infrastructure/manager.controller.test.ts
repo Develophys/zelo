@@ -18,9 +18,7 @@ import { ManagerPasswordService } from "../application/services/manager-password
 import { MANAGER_REPOSITORY } from "../application/ports/manager-repository.port.ts";
 import type { ManagerRepository, ManagerRow } from "../application/ports/manager-repository.port.ts";
 import { SIGNAL_REPOSITORY } from "../application/ports/signal-repository.port.ts";
-import type { SignalRepository, SignalRow, WeeklySignalRow } from "../application/ports/signal-repository.port.ts";
-import { SIMULATED_FOLLOW_UP_REPOSITORY } from "../application/ports/simulated-follow-up-repository.port.ts";
-import type { SimulatedFollowUpRepository, SimulatedFollowUpRow } from "../application/ports/simulated-follow-up-repository.port.ts";
+import type { FollowUpTotals, SignalRepository, SignalRow, WeeklySignalRow } from "../application/ports/signal-repository.port.ts";
 import { AI_INSIGHT_PORT, InsightGenerationFailedError } from "../application/ports/ai-insight.port.ts";
 import type { AiInsightPort, ManagerInsightResponse } from "../application/ports/ai-insight.port.ts";
 import { MANAGER_INSIGHT_REPOSITORY } from "../application/ports/manager-insight-repository.port.ts";
@@ -102,6 +100,10 @@ class FakeSignalRepository implements SignalRepository {
   async countBySector(): Promise<never> {
     throw new Error("not used in this test");
   }
+  public followUpTotals: FollowUpTotals = { sent: 0, answered: 0 };
+  async findFollowUpTotals(): Promise<FollowUpTotals> {
+    return this.followUpTotals;
+  }
 }
 
 class FakeSectorRepository implements SectorRepository {
@@ -138,13 +140,6 @@ class FakeSectorRepository implements SectorRepository {
   }
   async delete(): Promise<never> {
     throw new Error("not used in this test");
-  }
-}
-
-class FakeSimulatedFollowUpRepository implements SimulatedFollowUpRepository {
-  public rows: SimulatedFollowUpRow[] = [];
-  async findAll(): Promise<SimulatedFollowUpRow[]> {
-    return this.rows;
   }
 }
 
@@ -191,7 +186,6 @@ describe("manager controller", () => {
   let institutionRepository: FakeInstitutionRepository;
   let signalRepository: FakeSignalRepository;
   let sectorRepository: FakeSectorRepository;
-  let followUpRepository: FakeSimulatedFollowUpRepository;
   let aiInsightPort: FakeAiInsightPort;
   let insightRepository: FakeManagerInsightRepository;
 
@@ -227,7 +221,6 @@ describe("manager controller", () => {
     ];
     signalRepository = new FakeSignalRepository();
     sectorRepository = new FakeSectorRepository();
-    followUpRepository = new FakeSimulatedFollowUpRepository();
     aiInsightPort = new FakeAiInsightPort();
     insightRepository = new FakeManagerInsightRepository();
     const moduleRef = await Test.createTestingModule({
@@ -247,7 +240,6 @@ describe("manager controller", () => {
         { provide: INSTITUTION_REPOSITORY, useValue: institutionRepository },
         { provide: SIGNAL_REPOSITORY, useValue: signalRepository },
         { provide: SECTOR_REPOSITORY, useValue: sectorRepository },
-        { provide: SIMULATED_FOLLOW_UP_REPOSITORY, useValue: followUpRepository },
         { provide: AI_INSIGHT_PORT, useValue: aiInsightPort },
         { provide: MANAGER_INSIGHT_REPOSITORY, useValue: insightRepository },
         { provide: NOTIFICATION_PUBLISHER, useValue: new FakeNotificationPublisher() },
@@ -432,6 +424,8 @@ describe("manager controller", () => {
       weeklyTrend: [],
       segments: [],
       followUpResponseRate: 0,
+      followUpSent: 0,
+      followUpAnswered: 0,
       sectorCoverage: { visible: 0, total: 0 },
       referenceWeekStart: null,
     });

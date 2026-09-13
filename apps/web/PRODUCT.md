@@ -55,18 +55,26 @@ breakpoint at 768px).
   (Mind Garden) and not procured. It's shown as "em breve" and disabled; do not wire it up.
 - Anonymity is visible, not just real: every authenticated screen shows an "anônimo" privacy
   badge. Identity is only ever revealed by explicit user action (crisis accept).
-- Manager dashboard aggregation is currently built on fabricated/seeded demo data
-  (`SimulatedSignal`), not real doctor assessments — real assessments are end-to-end encrypted
-  and structurally cannot feed it as currently architected. This is a known, deliberate gap, not
-  a bug to silently "fix" by inventing a data path.
+- Manager dashboard aggregation is **real**, not fabricated/demo data (this superseded an
+  earlier, now-stale claim in this file that it ran on a `SimulatedSignal` placeholder — verify
+  the current state in code, not in old docs, before assuming otherwise). Every real check-in
+  increments an anonymous, k-anonymized (k=5) per-sector-per-week counter on the server (the
+  `Signal` model, `apps/api/src/modules/signal-checkin`), deduplicated per device via
+  `deviceSignalId` — never the assessment's raw answers or score, which stay on-device. The
+  follow-up response rate (`followUpSent`/`followUpAnswered`) works the same real way as of
+  13/09/2026 — see `docs/superpowers/specs/2026-07-19-followup-mechanism-design.md`'s
+  "SUPERSEDED" note. Before describing any manager-facing metric as demo/simulated data, check
+  that metric's `provenance` field in `packages/domain/src/manager/metric-glossary.ts` — as of
+  13/09/2026 none of them carry `provenance: "demonstration"`.
 - Manager auth session lives in `sessionStorage` + bearer token (not an `HttpOnly` cookie) —
   an accepted, documented trade-off (see `docs/superpowers/specs/technical-debt.md` TD-001), not
   an oversight.
 - Undecided / open product questions (do not resolve unilaterally): the exact metric behind the
   manager-facing "burnout signal" aggregate; whether `department`/sector is free text or a fixed
   picklist per institution; how a user is granted the `MANAGER` role; doctor-side identity for
-  real (non-simulated) peer matching and manager aggregation is designed
-  (`docs/superpowers/specs/identity-and-aggregation.md`) but not built.
+  real (non-anonymous) peer matching is designed (`docs/superpowers/specs/identity-and-aggregation.md`)
+  but not built — this is unrelated to manager aggregation, which is already real without needing
+  doctor-side identity (see above).
 
 ## Brand Commitments
 
@@ -78,9 +86,10 @@ design tokens, not here.
 ## Evidence on Hand
 
 No real customer testimonials, case studies, or hospital-partner logos exist yet — do not
-fabricate any. The manager dashboard's numbers are seeded/simulated demo data by design (see
-Capabilities and Constraints); do not present them as real outcomes in any future copy or
-marketing surface without an explicit product decision to do so.
+fabricate any. The manager dashboard's numbers are real (see Capabilities and Constraints) but
+still come from pilot/demo institutions with small, early sample sizes — treat them as real
+early data, not as a mature-adoption outcome, without an explicit product decision to present
+them that way in marketing.
 
 ## Product Principles
 
@@ -92,8 +101,10 @@ marketing surface without an explicit product decision to do so.
 3. **Aggregate, never re-identify.** Manager-facing data is k-anonymous (k=5) enforced
    server-side; no drill-down to individuals, ever, by design.
 4. **Building for real adoption, not a demo.** Decisions should move this toward a product a
-   hospital would actually deploy and a doctor would actually trust — even where the current
-   implementation is still simulated or PoC-scoped in places.
+   hospital would actually deploy and a doctor would actually trust — even where some corners
+   (doctor-side login/identity for Peers, the exact "burnout signal" metric definition) are still
+   PoC-scoped. Manager-facing aggregation itself is real, not simulated — see Capabilities and
+   Constraints.
 
 ## Accessibility & Inclusion
 

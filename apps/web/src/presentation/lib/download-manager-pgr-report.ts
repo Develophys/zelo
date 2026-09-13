@@ -4,8 +4,6 @@ import type { ManagerSignalsResponse } from "@/ports/manager-signals.port";
 const DISCLAIMER =
   "Isto é um insumo para a gestão de risco psicossocial do empregador, não uma certificação de conformidade com a NR-1.";
 
-const DEMONSTRATION_SUFFIX = " (dado de demonstração — não usar como evidência)";
-
 function formatDate(generatedAt: Date): string {
   return generatedAt.toLocaleDateString("pt-BR", { year: "numeric", month: "long", day: "numeric" });
 }
@@ -41,7 +39,7 @@ export function buildPgrCsvLines(data: ManagerSignalsResponse, generatedAt: Date
     `${MANAGER_METRICS.checkIns.label} (4 semanas),${data.checkInsLast4Weeks}`,
     `${MANAGER_METRICS.abandoned.label} (4 semanas),${data.abandonedLast4Weeks}`,
     `${MANAGER_METRICS.unsentChatDrafts.label} (4 semanas),${data.unsentChatDraftsLast4Weeks}`,
-    `${MANAGER_METRICS.followUpRate.label}${DEMONSTRATION_SUFFIX},${Math.round(data.followUpResponseRate * 100)}%`,
+    `${MANAGER_METRICS.followUpRate.label},${Math.round(data.followUpResponseRate * 100)}%`,
     "",
     "Setor,Sinais (%),n",
     ...data.segments.map((segment) => `${segment.label},${segment.value}%,${segment.n}`),
@@ -87,7 +85,7 @@ export async function downloadPgrReportAsPdf(
   doc.text(`${MANAGER_METRICS.unsentChatDrafts.label} (4 semanas): ${data.unsentChatDraftsLast4Weeks}`, 14, y);
   y += LINE_HEIGHT;
   const followUpLines = doc.splitTextToSize(
-    `${MANAGER_METRICS.followUpRate.label}${DEMONSTRATION_SUFFIX}: ${Math.round(data.followUpResponseRate * 100)}%`,
+    `${MANAGER_METRICS.followUpRate.label}: ${Math.round(data.followUpResponseRate * 100)}%`,
     180,
   );
   doc.text(followUpLines, 14, y);

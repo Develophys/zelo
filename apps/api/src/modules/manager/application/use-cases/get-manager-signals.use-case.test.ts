@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { GetManagerSignalsUseCase } from "./get-manager-signals.use-case.ts";
-import type { SignalRepository, SignalRow, WeeklySignalRow } from "../ports/signal-repository.port.ts";
-import type { SimulatedFollowUpRepository, SimulatedFollowUpRow } from "../ports/simulated-follow-up-repository.port.ts";
+import type { FollowUpTotals, SignalRepository, SignalRow, WeeklySignalRow } from "../ports/signal-repository.port.ts";
 
 class FakeSignalRepository implements SignalRepository {
   public lastCall: { institutionId: string; sectorIds: string[] } | null = null;
+  public lastFollowUpCall: { institutionId: string; sectorIds: string[]; weekStart: Date } | null = null;
+  public followUpTotals: FollowUpTotals = { sent: 0, answered: 0 };
   constructor(private readonly rows: SignalRow[]) {}
   async findAll(institutionId: string, sectorIds: string[]): Promise<SignalRow[]> {
     this.lastCall = { institutionId, sectorIds };
@@ -16,12 +17,9 @@ class FakeSignalRepository implements SignalRepository {
   async countBySector(): Promise<never> {
     throw new Error("not used in this test");
   }
-}
-
-class FakeSimulatedFollowUpRepository implements SimulatedFollowUpRepository {
-  constructor(private readonly rows: SimulatedFollowUpRow[]) {}
-  async findAll(): Promise<SimulatedFollowUpRow[]> {
-    return this.rows;
+  async findFollowUpTotals(institutionId: string, sectorIds: string[], weekStart: Date): Promise<FollowUpTotals> {
+    this.lastFollowUpCall = { institutionId, sectorIds, weekStart };
+    return this.followUpTotals;
   }
 }
 
@@ -29,13 +27,13 @@ const WEEK_1 = new Date("2026-06-15T00:00:00.000Z");
 const WEEK_2 = new Date("2026-06-22T00:00:00.000Z"); // most recent
 
 function makeUseCase(rows: SignalRow[]) {
-  return new GetManagerSignalsUseCase(new FakeSignalRepository(rows), new FakeSimulatedFollowUpRepository([]));
+  return new GetManagerSignalsUseCase(new FakeSignalRepository(rows));
 }
 
 describe("GetManagerSignalsUseCase", () => {
   it("passes the given institutionId and sectorIds through to the repository", async () => {
     const repository = new FakeSignalRepository([]);
-    const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
+    const useCase = new GetManagerSignalsUseCase(repository);
 
     await useCase.execute("institution-1", ["sector-a", "sector-b"]);
 
@@ -44,7 +42,7 @@ describe("GetManagerSignalsUseCase", () => {
 
   it("returns the all-zero response without calling the repository when sectorIds is empty", async () => {
     const repository = new FakeSignalRepository([{ sectorId: "x", sectorName: "X", weekStart: WEEK_1, checkIns: 10, concerning: 5, abandoned: 0, unsentChatDrafts: 0 }]);
-    const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
+    const useCase = new GetManagerSignalsUseCase(repository);
 
     const result = await useCase.execute("institution-1", []);
 
@@ -56,6 +54,8 @@ describe("GetManagerSignalsUseCase", () => {
       weeklyTrend: [],
       segments: [],
       followUpResponseRate: 0,
+      followUpSent: 0,
+      followUpAnswered: 0,
       sectorCoverage: { visible: 0, total: 0 },
       referenceWeekStart: null,
     });
@@ -71,7 +71,7 @@ describe("GetManagerSignalsUseCase", () => {
       { sectorId: "c", sectorName: "C", weekStart: WEEK_2, checkIns: 4, concerning: 2, abandoned: 0, unsentChatDrafts: 0 },
       { sectorId: "b", sectorName: "B", weekStart: WEEK_1, checkIns: 10, concerning: 4, abandoned: 0, unsentChatDrafts: 0 },
     ]);
-    const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
+    const useCase = new GetManagerSignalsUseCase(repository);
 
     const result = await useCase.execute("institution-1", ["a", "b", "c"]);
 
@@ -90,7 +90,7 @@ describe("GetManagerSignalsUseCase", () => {
       { sectorId: "b", sectorName: "B", weekStart: WEEK_2, checkIns: 10, concerning: 4, abandoned: 0, unsentChatDrafts: 0 },
       { sectorId: "c", sectorName: "C", weekStart: WEEK_2, checkIns: 4, concerning: 2, abandoned: 0, unsentChatDrafts: 0 },
     ]);
-    const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
+    const useCase = new GetManagerSignalsUseCase(repository);
 
     const result = await useCase.execute("institution-1", ["a", "b", "c"]);
 
@@ -106,7 +106,7 @@ describe("GetManagerSignalsUseCase", () => {
       { sectorId: "c", sectorName: "C", weekStart: WEEK_1, checkIns: 4, concerning: 2, abandoned: 0, unsentChatDrafts: 0 },
       { sectorId: "c", sectorName: "C", weekStart: WEEK_2, checkIns: 4, concerning: 2, abandoned: 0, unsentChatDrafts: 0 },
     ]);
-    const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
+    const useCase = new GetManagerSignalsUseCase(repository);
 
     const result = await useCase.execute("institution-1", ["a", "b", "c"]);
 
@@ -123,7 +123,7 @@ describe("GetManagerSignalsUseCase", () => {
       { sectorId: "a", sectorName: "A", weekStart: WEEK_1, checkIns: 2, concerning: 1, abandoned: 0, unsentChatDrafts: 0 },
       { sectorId: "a", sectorName: "A", weekStart: WEEK_2, checkIns: 10, concerning: 5, abandoned: 0, unsentChatDrafts: 0 },
     ]);
-    const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
+    const useCase = new GetManagerSignalsUseCase(repository);
 
     const result = await useCase.execute("institution-1", ["a"]);
 
@@ -138,7 +138,7 @@ describe("GetManagerSignalsUseCase", () => {
     const repository = new FakeSignalRepository([
       { sectorId: "tiny", sectorName: "Tiny", weekStart: WEEK_2, checkIns: 2, concerning: 1, abandoned: 0, unsentChatDrafts: 0 },
     ]);
-    const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
+    const useCase = new GetManagerSignalsUseCase(repository);
 
     const result = await useCase.execute("institution-1", ["tiny"]);
 
@@ -152,7 +152,7 @@ describe("GetManagerSignalsUseCase", () => {
       { sectorId: "c", sectorName: "C", weekStart: WEEK_1, checkIns: 3, concerning: 2, abandoned: 0, unsentChatDrafts: 0 },
       { sectorId: "c", sectorName: "C", weekStart: WEEK_2, checkIns: 4, concerning: 3, abandoned: 0, unsentChatDrafts: 0 },
     ]);
-    const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
+    const useCase = new GetManagerSignalsUseCase(repository);
 
     const result = await useCase.execute("institution-1", ["c"]);
 
@@ -374,17 +374,55 @@ describe("GetManagerSignalsUseCase", () => {
 });
 
 describe("GetManagerSignalsUseCase - followUpResponseRate", () => {
-  it("computes the rate from the most recent week only", async () => {
-    const repository = new FakeSignalRepository([]);
-    const followUpRepository = new FakeSimulatedFollowUpRepository([
-      { weekStart: WEEK_1, sent: 20, responded: 5 },
-      { weekStart: WEEK_2, sent: 20, responded: 15 },
+  it("computes the rate from the visible sectors' real totals at the reference week", async () => {
+    const repository = new FakeSignalRepository([
+      { sectorId: "a", sectorName: "A", weekStart: WEEK_2, checkIns: 10, concerning: 3, abandoned: 0, unsentChatDrafts: 0 },
     ]);
-    const useCase = new GetManagerSignalsUseCase(repository, followUpRepository);
+    repository.followUpTotals = { sent: 20, answered: 15 };
+    const useCase = new GetManagerSignalsUseCase(repository);
 
     const result = await useCase.execute("institution-1", ["a"]);
 
     expect(result.followUpResponseRate).toBe(0.75);
+    expect(repository.lastFollowUpCall).toEqual({
+      institutionId: "institution-1",
+      sectorIds: ["a"],
+      weekStart: WEEK_2,
+    });
+  });
+
+  it("returns 0, not NaN, when nothing has been sent yet", async () => {
+    const repository = new FakeSignalRepository([
+      { sectorId: "a", sectorName: "A", weekStart: WEEK_2, checkIns: 10, concerning: 3, abandoned: 0, unsentChatDrafts: 0 },
+    ]);
+    repository.followUpTotals = { sent: 0, answered: 0 };
+    const useCase = new GetManagerSignalsUseCase(repository);
+
+    const result = await useCase.execute("institution-1", ["a"]);
+
+    expect(result.followUpResponseRate).toBe(0);
+  });
+
+  it("returns 0 without querying follow-up totals when there is no reference week yet", async () => {
+    const repository = new FakeSignalRepository([]);
+    const useCase = new GetManagerSignalsUseCase(repository);
+
+    const result = await useCase.execute("institution-1", ["a"]);
+
+    expect(result.followUpResponseRate).toBe(0);
+    expect(repository.lastFollowUpCall).toBeNull();
+  });
+
+  it("scopes the follow-up totals query to only the visible sectors, excluding suppressed ones", async () => {
+    const repository = new FakeSignalRepository([
+      { sectorId: "visible", sectorName: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 3, abandoned: 0, unsentChatDrafts: 0 },
+      { sectorId: "hidden", sectorName: "PS", weekStart: WEEK_2, checkIns: 2, concerning: 1, abandoned: 0, unsentChatDrafts: 0 },
+    ]);
+    const useCase = new GetManagerSignalsUseCase(repository);
+
+    await useCase.execute("institution-1", ["visible", "hidden"]);
+
+    expect(repository.lastFollowUpCall?.sectorIds).toEqual(["visible"]);
   });
 
   it("does not blank the whole dashboard because one sector has a fresh under-k week", async () => {
@@ -402,7 +440,7 @@ describe("GetManagerSignalsUseCase - followUpResponseRate", () => {
       // One doctor checked in this week in a different sector.
       { sectorId: "fresh", sectorName: "UTI", weekStart: WEEK_3, checkIns: 1, concerning: 1, abandoned: 0, unsentChatDrafts: 0 },
     ]);
-    const useCase = new GetManagerSignalsUseCase(repository, new FakeSimulatedFollowUpRepository([]));
+    const useCase = new GetManagerSignalsUseCase(repository);
 
     const result = await useCase.execute("institution-1", ["busy", "fresh"]);
 
@@ -420,14 +458,10 @@ describe("GetManagerSignalsUseCase - followUpResponseRate", () => {
     ];
     const useCase = new GetManagerSignalsUseCase(
       new FakeSignalRepository(rows.filter((r) => r.sectorId === "busy")),
-      new FakeSimulatedFollowUpRepository([]),
     );
     const subset = await useCase.execute("institution-1", ["busy"]);
 
-    const allUseCase = new GetManagerSignalsUseCase(
-      new FakeSignalRepository(rows),
-      new FakeSimulatedFollowUpRepository([]),
-    );
+    const allUseCase = new GetManagerSignalsUseCase(new FakeSignalRepository(rows));
     const all = await allUseCase.execute("institution-1", ["busy", "fresh"]);
 
     expect(all.checkInsLast4Weeks).toBeGreaterThanOrEqual(subset.checkInsLast4Weeks);

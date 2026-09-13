@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import { MANAGER_METRICS, sectorCoverageReading } from "@zelo/domain";
 import { GenerateManagerInsightUseCase } from "./generate-manager-insight.use-case.ts";
 import { GetManagerSignalsUseCase } from "./get-manager-signals.use-case.ts";
-import type { SignalRepository, SignalRow, WeeklySignalRow } from "../ports/signal-repository.port.ts";
-import type { SimulatedFollowUpRepository, SimulatedFollowUpRow } from "../ports/simulated-follow-up-repository.port.ts";
+import type { FollowUpTotals, SignalRepository, SignalRow, WeeklySignalRow } from "../ports/signal-repository.port.ts";
 import type { AiInsightPort, ManagerInsightResponse } from "../ports/ai-insight.port.ts";
 import { MANAGER_INSIGHT_SYSTEM_PROMPT } from "../prompts/manager-insight-system-prompt.ts";
 import type { ManagerInsightRepository, StoredManagerInsight } from "../ports/manager-insight-repository.port.ts";
 
 class FakeSignalRepository implements SignalRepository {
   public lastSectorIds: string[] | null = null;
+  public followUpTotals: FollowUpTotals = { sent: 0, answered: 0 };
   constructor(private readonly rows: SignalRow[]) {}
   async findAll(_institutionId: string, sectorIds: string[]): Promise<SignalRow[]> {
     this.lastSectorIds = sectorIds;
@@ -21,6 +21,9 @@ class FakeSignalRepository implements SignalRepository {
   async countBySector(): Promise<never> {
     throw new Error("not used in this test");
   }
+  async findFollowUpTotals(): Promise<FollowUpTotals> {
+    return this.followUpTotals;
+  }
 }
 
 // Institution-wide by design: insight generation always resolves every
@@ -30,13 +33,6 @@ class FakeSectorRepository {
   constructor(private readonly active: { id: string; name: string }[]) {}
   async findActiveByInstitution() {
     return this.active;
-  }
-}
-
-class FakeSimulatedFollowUpRepository implements SimulatedFollowUpRepository {
-  constructor(private readonly rows: SimulatedFollowUpRow[] = []) {}
-  async findAll(): Promise<SimulatedFollowUpRow[]> {
-    return this.rows;
   }
 }
 
@@ -84,7 +80,7 @@ describe("GenerateManagerInsightUseCase", () => {
       { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_1, checkIns: 10, concerning: 3, abandoned: 0, unsentChatDrafts: 0 },
       { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 6, abandoned: 0, unsentChatDrafts: 0 },
     ]);
-    const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository, new FakeSimulatedFollowUpRepository());
+    const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository);
     const aiInsight = new FakeAiInsightPort({ interpretation: "texto", suggestedActions: ["ação 1"] });
     const insightRepository = new FakeManagerInsightRepository();
     const sectorRepository = new FakeSectorRepository([{ id: "sector-uti", name: "UTI" }, { id: "sector-er", name: "Pronto-Socorro" }]);
@@ -107,12 +103,28 @@ describe("GenerateManagerInsightUseCase", () => {
     expect(aiInsight.lastParams?.summary).toContain(
       "1 de 2 setores · 1 oculto por ter menos de 5 respostas",
     );
-    expect(aiInsight.lastParams?.summary).toContain(
-      "Taxa de resposta do follow-up: 0% — dado de demonstração, não reflete esta instituição",
-    );
+    expect(aiInsight.lastParams?.summary).toContain("Taxa de resposta do follow-up: 0%");
     // Institution-wide, not scoped to any one manager's accessible sectors:
     // every active sector id gets resolved and forwarded unconditionally.
     expect(signalsRepository.lastSectorIds).toEqual(["sector-uti", "sector-er"]);
+  });
+
+  it("carries a real, non-zero follow-up response rate into the summary, with no demonstration caveat", async () => {
+    const signalsRepository = new FakeSignalRepository([
+      { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_1, checkIns: 10, concerning: 3, abandoned: 0, unsentChatDrafts: 0 },
+    ]);
+    signalsRepository.followUpTotals = { sent: 20, answered: 15 };
+    const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository);
+    const aiInsight = new FakeAiInsightPort({ interpretation: "texto", suggestedActions: [] });
+    const insightRepository = new FakeManagerInsightRepository();
+    const sectorRepository = new FakeSectorRepository([{ id: "sector-uti", name: "UTI" }]);
+    const useCase = new GenerateManagerInsightUseCase(getManagerSignals, aiInsight, insightRepository, sectorRepository as never);
+
+    await useCase.execute("Ana Konder", "institution-1");
+
+    const summary = aiInsight.lastParams?.summary ?? "";
+    expect(summary).toContain("Taxa de resposta do follow-up: 75%");
+    expect(summary).not.toContain("demonstração");
   });
 
   it("keeps a sub-threshold sector out of every number in the summary, but still reports it was suppressed", async () => {
@@ -120,7 +132,7 @@ describe("GenerateManagerInsightUseCase", () => {
       { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 4, abandoned: 0, unsentChatDrafts: 0 },
       { sectorId: "sector-peq", sectorName: "Pediatria", weekStart: WEEK_2, checkIns: 3, concerning: 1, abandoned: 0, unsentChatDrafts: 0 },
     ]);
-    const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository, new FakeSimulatedFollowUpRepository());
+    const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository);
     const aiInsight = new FakeAiInsightPort({ interpretation: "texto", suggestedActions: [] });
     const insightRepository = new FakeManagerInsightRepository();
     const sectorRepository = new FakeSectorRepository([
@@ -146,7 +158,7 @@ describe("GenerateManagerInsightUseCase", () => {
     const signalsRepository = new FakeSignalRepository([
       { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 6, abandoned: 0, unsentChatDrafts: 0 },
     ]);
-    const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository, new FakeSimulatedFollowUpRepository());
+    const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository);
     class ThrowingAiInsightPort implements AiInsightPort {
       async generateInsight(): Promise<ManagerInsightResponse> {
         throw new Error("boom");
@@ -169,7 +181,7 @@ describe("GenerateManagerInsightUseCase", () => {
     const signalsRepository = new FakeSignalRepository([
       { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 6, abandoned: 0, unsentChatDrafts: 0 },
     ]);
-    const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository, new FakeSimulatedFollowUpRepository());
+    const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository);
     const aiInsight = new FakeAiInsightPort({ interpretation: "texto", suggestedActions: ["ação 1"] });
     const insightRepository = new FakeManagerInsightRepository();
     const sectorRepository = new FakeSectorRepository([{ id: "sector-uti", name: "UTI" }]);
@@ -192,7 +204,7 @@ describe("GenerateManagerInsightUseCase", () => {
     const signalsRepository = new FakeSignalRepository([
       { sectorId: "sector-uti", sectorName: "UTI", weekStart: WEEK_2, checkIns: 10, concerning: 6, abandoned: 0, unsentChatDrafts: 0 },
     ]);
-    const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository, new FakeSimulatedFollowUpRepository());
+    const getManagerSignals = new GetManagerSignalsUseCase(signalsRepository);
     const aiInsight = new FakeAiInsightPort({ interpretation: "texto", suggestedActions: ["ação 1"] });
     const insightRepository = new FakeManagerInsightRepository();
     insightRepository.shouldFailSave = true;

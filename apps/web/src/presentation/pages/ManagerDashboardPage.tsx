@@ -323,17 +323,14 @@ export function ManagerDashboardPage() {
   const abandonedLast4Weeks = data?.abandonedLast4Weeks ?? 0;
   const unsentChatDraftsLast4Weeks = data?.unsentChatDraftsLast4Weeks ?? 0;
   const followUpResponseRate = data?.followUpResponseRate ?? 0;
+  const followUpSent = data?.followUpSent ?? 0;
+  const followUpAnswered = data?.followUpAnswered ?? 0;
   const sectorCoverage = data?.sectorCoverage ?? { visible: 0, total: 0 };
   const concerningPercent = Math.round(overallConcerningRate * 100);
   const followUpPercent = Math.round(followUpResponseRate * 100);
   // A faixa lê o mesmo inteiro que o card imprime: classificar a fração crua
   // faria 0,804 e 0,7996 exibirem ambos "80%" em faixas diferentes.
   const followUpBand = followUpBandFor(followUpPercent);
-  // A faixa lia o número como se fosse real: dizia "vale acompanhar se a taxa
-  // cai nas próximas semanas" sobre um valor fixo, igual para toda
-  // instituição, que nunca vai cair. Volta sozinha quando o follow-up passar
-  // a coletar dado de verdade.
-  const followUpBandApplies = MANAGER_METRICS.followUpRate.provenance !== "demonstration";
   // O KPI principal é da semana de referência, que a API nomeia — não uma
   // média da série e não necessariamente a última entrada: uma semana em curso
   // entra na tendência sem ter atingido o mínimo por conta própria, e lê-la
@@ -451,18 +448,13 @@ export function ManagerDashboardPage() {
               <KpiCard
                 metric={MANAGER_METRICS.followUpRate}
                 value={`${followUpPercent}%`}
-                valueClass="text-muted"
-                reading={followUpReading()}
-                extraHelp={followUpBandApplies ? followUpBand.meaning : undefined}
+                valueClass="text-ink"
+                reading={followUpReading({ sent: followUpSent, answered: followUpAnswered })}
+                extraHelp={followUpSent > 0 ? followUpBand.meaning : undefined}
                 badge={
-                  <span className="flex items-center justify-center gap-2">
-                    <Pill tone="neutral">demonstração</Pill>
-                    {followUpBandApplies && (
-                      <Pill tone={followUpBand.tone === "poor" ? "warning" : "neutral"}>
-                        {followUpBand.label}
-                      </Pill>
-                    )}
-                  </span>
+                  followUpSent > 0 ? (
+                    <Pill tone={followUpBand.tone === "poor" ? "warning" : "neutral"}>{followUpBand.label}</Pill>
+                  ) : undefined
                 }
               />
             </>

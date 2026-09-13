@@ -6,6 +6,7 @@ import { SignalCheckinController } from "./signal-checkin.controller.ts";
 import { RecordSignalCheckinUseCase } from "../application/use-cases/record-signal-checkin.use-case.ts";
 import { RecordAssessmentAbandonmentUseCase } from "../application/use-cases/record-assessment-abandonment.use-case.ts";
 import { RecordUnsentChatDraftUseCase } from "../application/use-cases/record-unsent-chat-draft.use-case.ts";
+import { RecordFollowUpUseCase } from "../application/use-cases/record-follow-up.use-case.ts";
 import {
   SIGNAL_CHECKIN_REPOSITORY,
   UnknownInstitutionOrSectorError,
@@ -17,7 +18,14 @@ import type {
 } from "../application/ports/signal-checkin-repository.port.ts";
 import { NOTIFICATION_PUBLISHER, type NotificationEvent, type NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
 
-const ZERO_COUNTERS: SignalCounters = { checkIns: 0, concerning: 0, abandoned: 0, unsentChatDrafts: 0 };
+const ZERO_COUNTERS: SignalCounters = {
+  checkIns: 0,
+  concerning: 0,
+  abandoned: 0,
+  unsentChatDrafts: 0,
+  followUpSent: 0,
+  followUpAnswered: 0,
+};
 
 class FakeSignalCheckinRepository implements SignalCheckinRepository {
   public calls: RecordSignalIncrementParams[] = [];
@@ -47,6 +55,7 @@ describe("signal-checkin controller", () => {
         RecordSignalCheckinUseCase,
         RecordAssessmentAbandonmentUseCase,
         RecordUnsentChatDraftUseCase,
+        RecordFollowUpUseCase,
         { provide: SIGNAL_CHECKIN_REPOSITORY, useValue: repository },
         { provide: NOTIFICATION_PUBLISHER, useValue: fakeNotificationPublisher },
       ],
@@ -184,6 +193,75 @@ describe("signal-checkin controller", () => {
       institutionId: "inst-1",
       sectorId: "UTI",
       deviceSignalId: "device-8",
+    });
+
+    expect(response.status).not.toBe(401);
+  });
+
+  it("POST /signals/follow-up returns 204 for a valid 'sent' body and forwards it to the repository", async () => {
+    const response = await request(app.getHttpServer()).post("/signals/follow-up").send({
+      institutionId: "inst-1",
+      sectorId: "UTI",
+      deviceSignalId: "device-9",
+      event: "sent",
+    });
+
+    expect(response.status).toBe(204);
+    expect(repository.calls).toContainEqual(
+      expect.objectContaining({ institutionId: "inst-1", sectorId: "UTI", increments: { followUpSent: 1 } }),
+    );
+  });
+
+  it("POST /signals/follow-up returns 204 for a valid 'answered' body and forwards it to the repository", async () => {
+    const response = await request(app.getHttpServer()).post("/signals/follow-up").send({
+      institutionId: "inst-1",
+      sectorId: "UTI",
+      deviceSignalId: "device-10",
+      event: "answered",
+    });
+
+    expect(response.status).toBe(204);
+    expect(repository.calls).toContainEqual(
+      expect.objectContaining({ institutionId: "inst-1", sectorId: "UTI", increments: { followUpAnswered: 1 } }),
+    );
+  });
+
+  it("POST /signals/follow-up returns 400 for a malformed body", async () => {
+    const response = await request(app.getHttpServer()).post("/signals/follow-up").send({ institutionId: "inst-1" });
+
+    expect(response.status).toBe(400);
+  });
+
+  it("POST /signals/follow-up returns 400 for an unknown event value", async () => {
+    const response = await request(app.getHttpServer()).post("/signals/follow-up").send({
+      institutionId: "inst-1",
+      sectorId: "UTI",
+      deviceSignalId: "device-11",
+      event: "maybe",
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it("POST /signals/follow-up returns 400 when the institution is unknown", async () => {
+    repository.shouldThrowUnknownInstitution = true;
+    const response = await request(app.getHttpServer()).post("/signals/follow-up").send({
+      institutionId: "does-not-exist",
+      sectorId: "UTI",
+      deviceSignalId: "device-12",
+      event: "sent",
+    });
+
+    expect(response.status).toBe(400);
+    repository.shouldThrowUnknownInstitution = false;
+  });
+
+  it("POST /signals/follow-up requires no authentication", async () => {
+    const response = await request(app.getHttpServer()).post("/signals/follow-up").send({
+      institutionId: "inst-1",
+      sectorId: "UTI",
+      deviceSignalId: "device-13",
+      event: "sent",
     });
 
     expect(response.status).not.toBe(401);

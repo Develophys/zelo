@@ -134,6 +134,8 @@ describe("onboarding router flow", () => {
       weeklyTrend: [],
       segments: [],
       followUpResponseRate: 0,
+      followUpSent: 0,
+      followUpAnswered: 0,
       sectorCoverage: { visible: 0, total: 0 },
       referenceWeekStart: null,
     });
@@ -175,6 +177,8 @@ describe("onboarding router flow", () => {
       weeklyTrend: [],
       segments: [],
       followUpResponseRate: 0,
+      followUpSent: 0,
+      followUpAnswered: 0,
       sectorCoverage: { visible: 0, total: 0 },
       referenceWeekStart: null,
     });

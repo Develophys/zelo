@@ -63,7 +63,7 @@ returned by `GET /api/manager/signals` for weeks where it has at least this many
 
 | Sector | checkIns/week | Concerning rate | Purpose |
 |---|---|---|---|
-| Pronto-socorro | 24 | flat 37.5% | baseline "normal" department |
+| Pronto-socorro | 24 | flat 37.5% | baseline "normal" department; also the only sector with a seeded follow-up trend (see below) |
 | Plantão noturno | 18 | flat 50% | baseline "elevated but stable" |
 | UTI | 10 | climbing 30% → 60% | demo narrative — visibly worsening trend |
 | Ambulatório | 3 | irrelevant | always below k=5, proves suppression works |
@@ -75,17 +75,22 @@ returned by `GET /api/manager/signals` for weeks where it has at least this many
 |---|---|---|---|
 | UTI | 8 | climbing 12.5% → 25% | deliberately overlaps "Zelo Demo"'s UTI sector name with different numbers, so a running app visibly proves the two institutions' `UTI` data never merges |
 
-## Seeding simulated follow-up KPI data
+## Seeding follow-up counters (real metric, not demo data)
 
-The same `prisma:seed` run also populates `simulated_follow_ups` with 6 weeks of fabricated
-"crisis follow-up" send/response counts — **demo data, not real follow-up records**. It exists
-so a follow-up response-rate KPI has believable history to render without needing real crisis
-protocol usage yet.
+`followUpSent`/`followUpAnswered` are real per-sector-per-week columns on `Signal` — the same
+table and the same recording path as `checkIns` (`POST /signals/follow-up`, deduplicated per
+device/sector/week). There is no separate fabricated table for this anymore; the old
+`SimulatedFollowUp` model and `simulated_follow_ups` table were dropped in the
+`add_followup_counters_drop_simulated` migration. See
+`docs/superpowers/specs/2026-07-19-followup-mechanism-design.md`'s "SUPERSEDED" note for why.
 
-Like `signals`, the script is idempotent: it deletes all existing `SimulatedFollowUp` rows
-and regenerates them relative to today's date via `buildFollowUpSeedRows` in
-`seed-data.ts`. Unlike `signals`, `SimulatedFollowUp` rows are not institution-scoped —
-there is a single shared 6-week follow-up KPI history, not one per institution.
+For the demo, only **Pronto-socorro** in "Zelo Demo" carries a seeded follow-up trend
+(`ZELO_DEMO_SCENARIOS`'s optional `followUpSent`/`followUpAnswered` arrays), climbing from
+20 sent / 9 answered (45%) to 30 sent / 21 answered (70%) — a believable,
+improving-but-imperfect response rate, chosen the same way the old demo data was, just attached
+to a real sector/week row instead of a standalone table. Every other seeded sector has
+`followUpSent: 0, followUpAnswered: 0` (the real default), not a fabricated rate — the dashboard
+correctly reads that as "nothing sent yet" rather than a 0% score.
 
 **Seed scenario** (`seed-data.ts`'s `FOLLOW_UP_SCENARIO`): 6 weeks, oldest first, with the
 sent/responded counts climbing from 20 sent / 9 responded (45%) to 30 sent / 21 responded

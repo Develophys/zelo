@@ -58,6 +58,8 @@ const SIGNALS_RESPONSE = {
     { label: "UTI", value: 44, n: 9 },
   ],
   followUpResponseRate: 0.7,
+  followUpSent: 20,
+  followUpAnswered: 14,
   sectorCoverage: { visible: 3, total: 4 },
   referenceWeekStart: "2026-06-08T00:00:00.000Z",
 };
@@ -207,6 +209,8 @@ describe("ManagerDashboardPage", () => {
       weeklyTrend: [],
       segments: [],
       followUpResponseRate: 0.7,
+      followUpSent: 20,
+      followUpAnswered: 14,
       sectorCoverage: { visible: 0, total: 0 },
       referenceWeekStart: null,
     });
@@ -291,20 +295,31 @@ describe("ManagerDashboardPage", () => {
     });
   });
 
-  // A faixa julga o número ("boa parte respondeu", "vale acompanhar se cai nas
-  // próximas semanas") sobre um valor fixo, igual para toda instituição, que
-  // nunca vai cair. Enquanto o follow-up for demonstração, o card diz que é
-  // demonstração e para por aí.
-  it("does not band the follow-up rate while it is demonstration data", async () => {
+  it("bands the follow-up rate and states how many of the sent contacts were answered, now that it's real data", async () => {
     renderManager();
 
     await waitFor(() => {
-      expect(screen.getByText("Dado de demonstração — não reflete esta instituição")).toBeInTheDocument();
+      expect(screen.getByText("14 de 20 contatos de reengajamento respondidos, na semana de referência")).toBeInTheDocument();
     });
-    expect(screen.getByText("demonstração")).toBeInTheDocument();
-    // 70% cairia em "Média": a regra é "abaixo de 70 é baixa".
-    expect(screen.queryByText("Média")).not.toBeInTheDocument();
-    expect(screen.queryByText(/vale acompanhar se a taxa cai/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("demonstração")).not.toBeInTheDocument();
+    // 70% cai em "Média": a regra é "abaixo de 70 é baixa".
+    expect(screen.getByText("Média")).toBeInTheDocument();
+  });
+
+  it("withholds the follow-up band when nothing has been sent yet, instead of reading 0% as a poor score", async () => {
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
+      ...SIGNALS_RESPONSE,
+      followUpResponseRate: 0,
+      followUpSent: 0,
+      followUpAnswered: 0,
+    });
+
+    renderManager();
+
+    await waitFor(() => {
+      expect(screen.getByText("Nenhum contato de reengajamento enviado ainda nesta semana")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Baixa")).not.toBeInTheDocument();
   });
 
   it("offers a help trigger for every KPI card", async () => {

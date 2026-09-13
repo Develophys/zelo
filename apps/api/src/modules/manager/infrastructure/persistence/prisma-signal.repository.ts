@@ -1,5 +1,10 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { SignalRepository, SignalRow, WeeklySignalRow } from "@/modules/manager/application/ports/signal-repository.port.js";
+import type {
+  FollowUpTotals,
+  SignalRepository,
+  SignalRow,
+  WeeklySignalRow,
+} from "@/modules/manager/application/ports/signal-repository.port.js";
 import { PrismaService } from "@/shared/prisma/prisma.service.js";
 
 @Injectable()
@@ -54,5 +59,13 @@ export class PrismaSignalRepository implements SignalRepository {
 
   async countBySector(sectorId: string): Promise<number> {
     return this.prisma.signal.count({ where: { sectorId } });
+  }
+
+  async findFollowUpTotals(institutionId: string, sectorIds: string[], weekStart: Date): Promise<FollowUpTotals> {
+    const result = await this.prisma.signal.aggregate({
+      where: { institutionId, sectorId: { in: sectorIds }, weekStart },
+      _sum: { followUpSent: true, followUpAnswered: true },
+    });
+    return { sent: result._sum.followUpSent ?? 0, answered: result._sum.followUpAnswered ?? 0 };
   }
 }

@@ -1,18 +1,22 @@
 # Identity & Aggregation — design spec (not yet implemented)
 
-**Status:** design-only, **partially superseded, twice over**. The full multi-user `User` model
-+ magic-link auth designed below was never built. Instead, three narrower, incremental specs
+**Status:** design-only, **partially superseded, three times over**. The full multi-user `User`
+model + magic-link auth designed below was never built. Instead, four narrower, incremental specs
 shipped real pieces of this problem without ever building doctor-side identity:
 `2026-07-11-manager-login-simulated-dashboard-design.md` (a single shared manager code gating
 simulated aggregate data), `2026-08-01-manager-individual-accounts-design.md` (individual named
-manager accounts, replacing the shared code), and
+manager accounts, replacing the shared code),
 `2026-08-02-multi-institution-data-partitioning-design.md` (a real `Institution` model, real
 per-institution manager scoping, and a real — if fully anonymous, no-login — signal pipeline
-from médicos' devices). Each solved a real, narrower problem than this spec's full `User` model
-without needing one. **What remains genuinely unbuilt, exactly as this spec left it:** any
-doctor-side login/identity (`PeersPage` is still on its placeholder), and the full `User` model
-below is still the design to pick back up if/when that's greenlit — nothing below was
-invalidated, just not all of it was needed yet.
+from médicos' devices), and `2026-07-19-followup-mechanism-design.md` (real follow-up
+sent/answered counters, reusing that same signal pipeline's `deviceSignalId` — see that spec's
+"SUPERSEDED" note for why this spec's own "not yet built" framing turned out to be overstated for
+that specific case: an anonymous per-device key, not a `User` model, was all that case needed).
+Each solved a real, narrower problem than this spec's full `User` model without needing one.
+**What remains genuinely unbuilt, exactly as this spec left it:** any doctor-side login/identity
+(`PeersPage` is still on its placeholder), and the full `User` model below is still the design to
+pick back up if/when that's greenlit — nothing below was invalidated, just not all of it was
+needed yet.
 
 **Why this is separate from the data-implementation plan being written alongside it:** that
 plan wires `HomePage`'s history chart to real (on-device) data with zero backend or auth

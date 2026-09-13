@@ -25,7 +25,7 @@ export interface MetricDefinition {
 }
 
 /** Muda sempre que um limiar, uma janela ou uma regra de supressão mudar. */
-export const MANAGER_METHODOLOGY_VERSION = "1.2 — 9 de setembro de 2026";
+export const MANAGER_METHODOLOGY_VERSION = "1.3 — 13 de setembro de 2026";
 
 export const MANAGER_METRICS: Record<ManagerMetricId, MetricDefinition> = {
   concerningRate: {
@@ -68,11 +68,10 @@ export const MANAGER_METRICS: Record<ManagerMetricId, MetricDefinition> = {
     id: "followUpRate",
     label: "Taxa de resposta do follow-up",
     method:
-      "A parte dos contatos de reengajamento que foi respondida, na semana mais recente. O mecanismo de follow-up ainda não coleta dado real por instituição: este valor vem de um conjunto de demonstração, igual para todas as instituições, e não deve ser usado em relatório, apresentação ou documento de conformidade.",
-    window: "Semana mais recente do conjunto de demonstração.",
+      "A parte dos contatos de reengajamento (a checagem \"tudo bem?\" que aparece no app do médico alguns dias após o último check-in) que foi respondida, entre os setores visíveis, na semana de referência. Contado do mesmo jeito que as demais respostas: um evento anônimo por aparelho, deduplicado por setor e por semana.",
+    window: "Semana de referência — a mesma usada pelo indicador de sofrimento relevante, no topo da página.",
     suppression:
-      "Este indicador ainda não aplica o mínimo de 5 respostas que os demais aplicam. Enquanto for dado de demonstração isso não descreve ninguém; quando passar a ser real, o mínimo entra junto.",
-    provenance: "demonstration",
+      "Conta apenas os setores que já têm 5 respostas ou mais na semana de referência — o mesmo critério de \"Respostas\", nunca um critério próprio. Um setor não fica visível por follow-up sozinho.",
   },
   sectorCoverage: {
     id: "sectorCoverage",
@@ -104,8 +103,9 @@ export function checkInsReading(input: { total: number; visibleSectors: number }
   return `${respostas(input.total)} em ${sectors}, nas últimas 4 semanas`;
 }
 
-export function followUpReading(): string {
-  return "Dado de demonstração — não reflete esta instituição";
+export function followUpReading(input: { sent: number; answered: number }): string {
+  if (input.sent === 0) return "Nenhum contato de reengajamento enviado ainda nesta semana";
+  return `${input.answered} de ${input.sent} contatos de reengajamento respondidos, na semana de referência`;
 }
 
 export function sectorCoverageReading(input: { visible: number; total: number }): string {

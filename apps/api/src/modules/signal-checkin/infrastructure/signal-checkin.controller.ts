@@ -3,6 +3,7 @@ import { z } from "zod";
 import { RecordSignalCheckinUseCase } from "../application/use-cases/record-signal-checkin.use-case.ts";
 import { RecordAssessmentAbandonmentUseCase } from "../application/use-cases/record-assessment-abandonment.use-case.ts";
 import { RecordUnsentChatDraftUseCase } from "../application/use-cases/record-unsent-chat-draft.use-case.ts";
+import { RecordFollowUpUseCase } from "../application/use-cases/record-follow-up.use-case.ts";
 import { UnknownInstitutionOrSectorError } from "../application/ports/signal-checkin-repository.port.ts";
 
 const SignalCheckinSchema = z.object({
@@ -24,12 +25,20 @@ const SignalChatDraftSchema = z.object({
   deviceSignalId: z.string().min(1),
 });
 
+const SignalFollowUpSchema = z.object({
+  institutionId: z.string().min(1),
+  sectorId: z.string().min(1),
+  deviceSignalId: z.string().min(1),
+  event: z.enum(["sent", "answered"]),
+});
+
 @Controller("signals")
 export class SignalCheckinController {
   constructor(
     @Inject(RecordSignalCheckinUseCase) private readonly recordSignalCheckin: RecordSignalCheckinUseCase,
     @Inject(RecordAssessmentAbandonmentUseCase) private readonly recordAbandonment: RecordAssessmentAbandonmentUseCase,
     @Inject(RecordUnsentChatDraftUseCase) private readonly recordUnsentChatDraft: RecordUnsentChatDraftUseCase,
+    @Inject(RecordFollowUpUseCase) private readonly recordFollowUp: RecordFollowUpUseCase,
   ) {}
 
   @Post("checkin")
@@ -78,6 +87,24 @@ export class SignalCheckinController {
 
     try {
       await this.recordUnsentChatDraft.execute(parsed.data);
+    } catch (error) {
+      if (error instanceof UnknownInstitutionOrSectorError) {
+        throw new BadRequestException("Unknown institutionId or sectorId");
+      }
+      throw error;
+    }
+  }
+
+  @Post("follow-up")
+  @HttpCode(204)
+  async followUp(@Body() body: unknown): Promise<void> {
+    const parsed = SignalFollowUpSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    try {
+      await this.recordFollowUp.execute(parsed.data);
     } catch (error) {
       if (error instanceof UnknownInstitutionOrSectorError) {
         throw new BadRequestException("Unknown institutionId or sectorId");

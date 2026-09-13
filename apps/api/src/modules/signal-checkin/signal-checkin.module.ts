@@ -3,6 +3,7 @@ import { SignalCheckinController } from "./infrastructure/signal-checkin.control
 import { RecordSignalCheckinUseCase } from "./application/use-cases/record-signal-checkin.use-case.ts";
 import { RecordAssessmentAbandonmentUseCase } from "./application/use-cases/record-assessment-abandonment.use-case.ts";
 import { RecordUnsentChatDraftUseCase } from "./application/use-cases/record-unsent-chat-draft.use-case.ts";
+import { RecordFollowUpUseCase } from "./application/use-cases/record-follow-up.use-case.ts";
 import { PrismaSignalCheckinRepository } from "./infrastructure/persistence/prisma-signal-checkin.repository.ts";
 import { SIGNAL_CHECKIN_REPOSITORY } from "./application/ports/signal-checkin-repository.port.ts";
 import { NotificationModule } from "../notification/notification.module.ts";
@@ -14,6 +15,7 @@ import { NotificationModule } from "../notification/notification.module.ts";
     RecordSignalCheckinUseCase,
     RecordAssessmentAbandonmentUseCase,
     RecordUnsentChatDraftUseCase,
+    RecordFollowUpUseCase,
     { provide: SIGNAL_CHECKIN_REPOSITORY, useClass: PrismaSignalCheckinRepository },
   ],
 })

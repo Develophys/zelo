@@ -2,7 +2,6 @@ import { PrismaService } from "../src/shared/prisma/prisma.service.ts";
 import { ManagerPasswordService } from "../src/modules/manager/application/services/manager-password.service.ts";
 import { AdminPasswordService } from "../src/modules/admin/application/services/admin-password.service.ts";
 import {
-  buildFollowUpSeedRows,
   buildManagerInviteSeedRows,
   buildSeedRows,
   INSTITUTION_SEED_ROSTER,
@@ -18,7 +17,6 @@ async function main() {
   const prisma = new PrismaService();
   const managerPasswordService = new ManagerPasswordService();
   const adminPasswordService = new AdminPasswordService();
-  const followUpRows = buildFollowUpSeedRows(new Date());
 
   const institutionsByName = new Map<string, { id: string; name: string }>();
   for (const institution of INSTITUTION_SEED_ROSTER) {
@@ -65,6 +63,8 @@ async function main() {
       weekStart: row.weekStart,
       checkIns: row.checkIns,
       concerning: row.concerning,
+      followUpSent: row.followUpSent,
+      followUpAnswered: row.followUpAnswered,
     })),
   });
 
@@ -76,11 +76,10 @@ async function main() {
       weekStart: row.weekStart,
       checkIns: row.checkIns,
       concerning: row.concerning,
+      followUpSent: row.followUpSent,
+      followUpAnswered: row.followUpAnswered,
     })),
   });
-
-  await prisma.simulatedFollowUp.deleteMany();
-  await prisma.simulatedFollowUp.createMany({ data: followUpRows });
 
   const managersByName = new Map<string, { id: string; name: string }>();
   for (const manager of MANAGER_SEED_ROSTER) {
@@ -172,7 +171,7 @@ async function main() {
   }
 
   console.log(
-    `Seeded ${INSTITUTION_SEED_ROSTER.length} Institution rows, ${SECTOR_SEED_ROSTER.length} Sector rows, Signal rows for each institution, ${followUpRows.length} SimulatedFollowUp rows, ${MANAGER_SEED_ROSTER.length} Manager accounts, ${managerInviteRows.length} pending/expired invite Manager accounts, ${PEER_PARTNER_SEED_ROSTER.length} PeerPartner account(s), and ${SUPER_ADMIN_SEED_ROSTER.length} SuperAdmin account(s).`,
+    `Seeded ${INSTITUTION_SEED_ROSTER.length} Institution rows, ${SECTOR_SEED_ROSTER.length} Sector rows, Signal rows (including real follow-up counters) for each institution, ${MANAGER_SEED_ROSTER.length} Manager accounts, ${managerInviteRows.length} pending/expired invite Manager accounts, ${PEER_PARTNER_SEED_ROSTER.length} PeerPartner account(s), and ${SUPER_ADMIN_SEED_ROSTER.length} SuperAdmin account(s).`,
   );
   await prisma.$disconnect();
 }

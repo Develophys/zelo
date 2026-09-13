@@ -1,10 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { K_ANONYMITY_THRESHOLD } from "../constants.ts";
 import { SIGNAL_REPOSITORY, type SignalRepository, type SignalRow } from "../ports/signal-repository.port.ts";
-import {
-  SIMULATED_FOLLOW_UP_REPOSITORY,
-  type SimulatedFollowUpRepository,
-} from "../ports/simulated-follow-up-repository.port.ts";
 
 export interface ManagerSignalsResponse {
   overallConcerningRate: number;
@@ -14,6 +10,8 @@ export interface ManagerSignalsResponse {
   weeklyTrend: { weekStart: string; concerningRate: number; checkIns: number; concerning: number }[];
   segments: { label: string; value: number; n: number }[];
   followUpResponseRate: number;
+  followUpSent: number;
+  followUpAnswered: number;
   sectorCoverage: { visible: number; total: number };
   /**
    * The week `overallConcerningRate`, `segments` and `sectorCoverage` were all
@@ -32,6 +30,8 @@ const EMPTY_RESPONSE: Omit<ManagerSignalsResponse, "followUpResponseRate"> = {
   unsentChatDraftsLast4Weeks: 0,
   weeklyTrend: [],
   segments: [],
+  followUpSent: 0,
+  followUpAnswered: 0,
   sectorCoverage: { visible: 0, total: 0 },
   referenceWeekStart: null,
 };
@@ -57,21 +57,20 @@ function referenceWeek(bySector: Map<string, SignalRow[]>): number | null {
 
 @Injectable()
 export class GetManagerSignalsUseCase {
-  constructor(
-    @Inject(SIGNAL_REPOSITORY) private readonly repository: SignalRepository,
-    @Inject(SIMULATED_FOLLOW_UP_REPOSITORY) private readonly followUpRepository: SimulatedFollowUpRepository,
-  ) {}
+  constructor(@Inject(SIGNAL_REPOSITORY) private readonly repository: SignalRepository) {}
 
   async execute(institutionId: string, sectorIds: string[]): Promise<ManagerSignalsResponse> {
-    const followUpResponseRate = await this.computeFollowUpResponseRate();
-
     if (sectorIds.length === 0) {
-      return { ...EMPTY_RESPONSE, followUpResponseRate };
+      return { ...EMPTY_RESPONSE, followUpResponseRate: 0 };
     }
 
     const rows = await this.repository.findAll(institutionId, sectorIds);
     if (rows.length === 0) {
-      return { ...EMPTY_RESPONSE, sectorCoverage: { visible: 0, total: sectorIds.length }, followUpResponseRate };
+      return {
+        ...EMPTY_RESPONSE,
+        sectorCoverage: { visible: 0, total: sectorIds.length },
+        followUpResponseRate: 0,
+      };
     }
 
     const bySector = new Map<string, SignalRow[]>();
@@ -97,7 +96,11 @@ export class GetManagerSignalsUseCase {
       // `total` is the count of sectors this query is scoped to, not zero:
       // "0 of 4 sectors" says the week hasn't reached the minimum yet, while
       // "0 of 0" would read as "this institution has no sectors".
-      return { ...EMPTY_RESPONSE, sectorCoverage: { visible: 0, total: sectorIds.length }, followUpResponseRate };
+      return {
+        ...EMPTY_RESPONSE,
+        sectorCoverage: { visible: 0, total: sectorIds.length },
+        followUpResponseRate: 0,
+      };
     }
 
     // A sector is either fully visible or fully suppressed, decided solely by
@@ -129,6 +132,18 @@ export class GetManagerSignalsUseCase {
     }
 
     const overallConcerningRate = visibleCheckIns === 0 ? 0 : visibleConcerning / visibleCheckIns;
+
+    // Scoped to the same visible-sectors-at-the-reference-week set as every
+    // other real number on this page: a suppressed sector's follow-up counts
+    // must not leak through here any more than its check-in counts do.
+    // `mostRecentWeek` being non-null already guarantees visibleSectorIds is
+    // non-empty (that's exactly what makes it "the reference week").
+    const followUpTotals = await this.repository.findFollowUpTotals(
+      institutionId,
+      [...visibleSectorIds],
+      new Date(mostRecentWeek),
+    );
+    const followUpResponseRate = followUpTotals.sent === 0 ? 0 : followUpTotals.answered / followUpTotals.sent;
 
     const visibleRows = rows.filter((r) => visibleSectorIds.has(r.sectorId));
     const weekTimes = [
@@ -168,6 +183,8 @@ export class GetManagerSignalsUseCase {
       weeklyTrend,
       segments,
       followUpResponseRate,
+      followUpSent: followUpTotals.sent,
+      followUpAnswered: followUpTotals.answered,
       // `total` is sectorIds.length, not bySector.size: a sector with rows
       // that never clear k must count the same as a sector with zero rows at
       // all, or "total" would leak whether a suppressed sector has any
@@ -175,13 +192,5 @@ export class GetManagerSignalsUseCase {
       sectorCoverage: { visible: visibleSectorIds.size, total: sectorIds.length },
       referenceWeekStart: new Date(mostRecentWeek).toISOString(),
     };
-  }
-
-  private async computeFollowUpResponseRate(): Promise<number> {
-    const rows = await this.followUpRepository.findAll();
-    if (rows.length === 0) return 0;
-
-    const mostRecent = rows.reduce((latest, row) => (row.weekStart > latest.weekStart ? row : latest));
-    return mostRecent.sent === 0 ? 0 : mostRecent.responded / mostRecent.sent;
   }
 }

@@ -16,7 +16,14 @@ export class PrismaSignalCheckinRepository implements SignalCheckinRepository {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async recordIncrement(params: RecordSignalIncrementParams): Promise<SignalCounters | null> {
-    const { checkIns = 0, concerning = 0, abandoned = 0, unsentChatDrafts = 0 } = params.increments;
+    const {
+      checkIns = 0,
+      concerning = 0,
+      abandoned = 0,
+      unsentChatDrafts = 0,
+      followUpSent = 0,
+      followUpAnswered = 0,
+    } = params.increments;
 
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -34,6 +41,8 @@ export class PrismaSignalCheckinRepository implements SignalCheckinRepository {
             concerning: { increment: concerning },
             abandoned: { increment: abandoned },
             unsentChatDrafts: { increment: unsentChatDrafts },
+            followUpSent: { increment: followUpSent },
+            followUpAnswered: { increment: followUpAnswered },
           },
           create: {
             institutionId: params.institutionId,
@@ -43,8 +52,17 @@ export class PrismaSignalCheckinRepository implements SignalCheckinRepository {
             concerning,
             abandoned,
             unsentChatDrafts,
+            followUpSent,
+            followUpAnswered,
           },
-          select: { checkIns: true, concerning: true, abandoned: true, unsentChatDrafts: true },
+          select: {
+            checkIns: true,
+            concerning: true,
+            abandoned: true,
+            unsentChatDrafts: true,
+            followUpSent: true,
+            followUpAnswered: true,
+          },
         });
         return signal;
       });

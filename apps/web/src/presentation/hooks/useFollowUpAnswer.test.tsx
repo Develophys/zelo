@@ -5,6 +5,8 @@ import type { ReactNode } from 'react';
 import { useFollowUpAnswer, ACKNOWLEDGMENT_WINDOW_HOURS } from './useFollowUpAnswer';
 import * as container from '@/app/container';
 import { useFollowUpStore } from '@/stores/followup.store';
+import { useInstitutionLinkStore } from '@/stores/institution-link.store';
+import { useConsentStore } from '@/stores/consent.store';
 import { FOLLOWUP_INTERVAL_DAYS } from '@/use-cases/should-show-followup-prompt.usecase';
 
 function wrapper({ children }: { children: ReactNode }) {
@@ -143,5 +145,75 @@ describe('useFollowUpAnswer', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.recentSevereAssessment).toBe(false);
+  });
+
+  describe('reporting real follow-up events', () => {
+    beforeEach(() => {
+      useInstitutionLinkStore.setState({
+        institutionId: 'inst-1',
+        institutionName: 'Hospital X',
+        sectorId: 'UTI',
+        sectorName: 'UTI',
+        deviceSignalId: 'device-1',
+      });
+      useConsentStore.setState({ aggregateOptIn: true });
+    });
+
+    it("reports a 'sent' event once the prompt becomes visible, scoped to the linked institution/sector", async () => {
+      const recordFollowUp = vi.spyOn(container.recordFollowUpUseCase, 'execute').mockResolvedValue(undefined);
+      const stale = new Date();
+      stale.setUTCDate(stale.getUTCDate() - (FOLLOWUP_INTERVAL_DAYS + 1));
+      vi.spyOn(container.getAssessmentHistoryUseCase, 'execute').mockResolvedValue([
+        { weekStart: stale.toISOString(), severityFraction: 0.4 },
+      ]);
+
+      const { result } = renderHook(() => useFollowUpAnswer(), { wrapper });
+
+      await waitFor(() => expect(result.current.shouldShowPrompt).toBe(true));
+      await waitFor(() =>
+        expect(recordFollowUp).toHaveBeenCalledWith({
+          link: { institutionId: 'inst-1', sectorId: 'UTI', deviceSignalId: 'device-1' },
+          event: 'sent',
+        }),
+      );
+    });
+
+    it('reports a null link when the device is not linked, so the use case is a no-op', async () => {
+      useInstitutionLinkStore.setState({
+        institutionId: null,
+        institutionName: null,
+        sectorId: null,
+        sectorName: null,
+        deviceSignalId: null,
+      });
+      const recordFollowUp = vi.spyOn(container.recordFollowUpUseCase, 'execute').mockResolvedValue(undefined);
+      const stale = new Date();
+      stale.setUTCDate(stale.getUTCDate() - (FOLLOWUP_INTERVAL_DAYS + 1));
+      vi.spyOn(container.getAssessmentHistoryUseCase, 'execute').mockResolvedValue([
+        { weekStart: stale.toISOString(), severityFraction: 0.4 },
+      ]);
+
+      const { result } = renderHook(() => useFollowUpAnswer(), { wrapper });
+
+      await waitFor(() => expect(result.current.shouldShowPrompt).toBe(true));
+      await waitFor(() => expect(recordFollowUp).toHaveBeenCalledWith({ link: null, event: 'sent' }));
+    });
+
+    it("reports an 'answered' event when the answer is recorded", async () => {
+      const recordFollowUp = vi.spyOn(container.recordFollowUpUseCase, 'execute').mockResolvedValue(undefined);
+      vi.spyOn(container.getAssessmentHistoryUseCase, 'execute').mockResolvedValue([]);
+
+      const { result } = renderHook(() => useFollowUpAnswer(), { wrapper });
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      result.current.recordAnswer('yes');
+
+      await waitFor(() =>
+        expect(recordFollowUp).toHaveBeenCalledWith({
+          link: { institutionId: 'inst-1', sectorId: 'UTI', deviceSignalId: 'device-1' },
+          event: 'answered',
+        }),
+      );
+    });
   });
 });

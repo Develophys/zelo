@@ -5,6 +5,8 @@ export interface SignalSeedRow {
   weekStart: Date;
   checkIns: number;
   concerning: number;
+  followUpSent: number;
+  followUpAnswered: number;
 }
 
 const WEEKS_TO_SEED = 6;
@@ -22,6 +24,11 @@ export interface SignalScenario {
   sectorName: string;
   checkIns: number;
   concerning: number[];
+  // Real per-sector-per-week follow-up ("tudo bem?" pulse-check) counters —
+  // optional because most seeded sectors have none; only Pronto-socorro
+  // carries a believable, improving-but-imperfect trend for the demo.
+  followUpSent?: number[];
+  followUpAnswered?: number[];
 }
 
 // Per-sector, per-week checkIns and concerning counts, oldest week first (index 0 = 5
@@ -30,7 +37,13 @@ export interface SignalScenario {
 // "concerning" means and why these specific numbers were chosen. Edit ONLY this table (and
 // the mirrored numbers in prisma/README.md) to change the Zelo Demo scenario.
 export const ZELO_DEMO_SCENARIOS: SignalScenario[] = [
-  { sectorName: "Pronto-socorro", checkIns: 24, concerning: [9, 9, 9, 9, 9, 9] },
+  {
+    sectorName: "Pronto-socorro",
+    checkIns: 24,
+    concerning: [9, 9, 9, 9, 9, 9],
+    followUpSent: [20, 22, 25, 26, 28, 30],
+    followUpAnswered: [9, 11, 13, 15, 17, 21],
+  },
   { sectorName: "Plantão noturno", checkIns: 18, concerning: [9, 9, 9, 9, 9, 9] },
   { sectorName: "UTI", checkIns: 10, concerning: [3, 4, 4, 5, 6, 6] },
   { sectorName: "Ambulatório", checkIns: 3, concerning: [1, 1, 1, 1, 1, 1] },
@@ -56,39 +69,10 @@ export function buildSeedRows(referenceDate: Date, scenarios: SignalScenario[]):
         weekStart,
         checkIns: scenario.checkIns,
         concerning: scenario.concerning[i]!,
+        followUpSent: scenario.followUpSent?.[i] ?? 0,
+        followUpAnswered: scenario.followUpAnswered?.[i] ?? 0,
       });
     }
-  }
-
-  return rows;
-}
-
-export interface SimulatedFollowUpSeedRow {
-  weekStart: Date;
-  sent: number;
-  responded: number;
-}
-
-const FOLLOW_UP_WEEKS_TO_SEED = 6;
-// oldest week first; last entry is the current week. Chosen to read as a believable,
-// improving-but-imperfect response rate for the demo (see seed-data.test.ts).
-const FOLLOW_UP_SCENARIO: { sent: number; responded: number }[] = [
-  { sent: 20, responded: 9 },
-  { sent: 22, responded: 11 },
-  { sent: 25, responded: 13 },
-  { sent: 26, responded: 15 },
-  { sent: 28, responded: 17 },
-  { sent: 30, responded: 21 },
-];
-
-export function buildFollowUpSeedRows(referenceDate: Date): SimulatedFollowUpSeedRow[] {
-  const currentWeekStart = startOfIsoWeek(referenceDate);
-  const rows: SimulatedFollowUpSeedRow[] = [];
-
-  for (let i = 0; i < FOLLOW_UP_WEEKS_TO_SEED; i++) {
-    const weekStart = new Date(currentWeekStart);
-    weekStart.setUTCDate(weekStart.getUTCDate() - (FOLLOW_UP_WEEKS_TO_SEED - 1 - i) * 7);
-    rows.push({ weekStart, sent: FOLLOW_UP_SCENARIO[i]!.sent, responded: FOLLOW_UP_SCENARIO[i]!.responded });
   }
 
   return rows;

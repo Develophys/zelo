@@ -17,6 +17,11 @@ export interface WeeklySignalRow {
   concerning: number;
 }
 
+export interface FollowUpTotals {
+  sent: number;
+  answered: number;
+}
+
 export interface SignalRepository {
   findAll(institutionId: string, sectorIds: string[]): Promise<SignalRow[]>;
 
@@ -24,6 +29,13 @@ export interface SignalRepository {
   findAllForWeek(weekStarts: Date[]): Promise<WeeklySignalRow[]>;
 
   countBySector(sectorId: string): Promise<number>;
+
+  /**
+   * Summed real follow-up counters for exactly the given (already-visible)
+   * sectors, at one week — kept separate from `findAll`'s heavier per-row
+   * shape since only the reference week's total is ever needed here.
+   */
+  findFollowUpTotals(institutionId: string, sectorIds: string[], weekStart: Date): Promise<FollowUpTotals>;
 }
 
 export const SIGNAL_REPOSITORY = Symbol("SIGNAL_REPOSITORY");

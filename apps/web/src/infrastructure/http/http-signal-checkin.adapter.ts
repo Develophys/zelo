@@ -3,6 +3,7 @@ import type {
   SignalChatDraftParams,
   SignalCheckinParams,
   SignalCheckinPort,
+  SignalFollowUpParams,
 } from "@/ports/signal-checkin.port";
 import { API_BASE_URL } from './api-base-url';
 
@@ -40,6 +41,18 @@ export class HttpSignalCheckinAdapter implements SignalCheckinPort {
 
     if (!response.ok) {
       throw new Error(`signal chat draft failed with status ${response.status}`);
+    }
+  }
+
+  async followUp(params: SignalFollowUpParams): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/signals/follow-up`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      throw new Error(`signal follow-up failed with status ${response.status}`);
     }
   }
 }

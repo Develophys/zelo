@@ -64,7 +64,7 @@ export class GenerateManagerInsightUseCase {
       `- ${MANAGER_METRICS.concerningRate.label}: ${Math.round(signals.overallConcerningRate * 100)}%`,
       `- ${MANAGER_METRICS.checkIns.label} (4 semanas): ${signals.checkInsLast4Weeks}`,
       `- Tendência semanal (taxa e base por semana, ${signals.weeklyTrend.length} semanas): ${trendLine}`,
-      `- ${MANAGER_METRICS.followUpRate.label}: ${Math.round(signals.followUpResponseRate * 100)}% — dado de demonstração, não reflete esta instituição; não baseie nenhuma recomendação nele.`,
+      `- ${MANAGER_METRICS.followUpRate.label}: ${Math.round(signals.followUpResponseRate * 100)}%`,
       "- Por setor (apenas setores com 5+ respostas, por privacidade):",
       segmentLines,
     ].join("\n");

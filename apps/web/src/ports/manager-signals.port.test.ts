@@ -9,6 +9,8 @@ const VALID = {
   weeklyTrend: [{ weekStart: "2026-08-31T00:00:00.000Z", concerningRate: 0.47, checkIns: 62, concerning: 29 }],
   segments: [{ label: "UTI", value: 44, n: 20 }],
   followUpResponseRate: 0.72,
+  followUpSent: 25,
+  followUpAnswered: 18,
   sectorCoverage: { visible: 4, total: 7 },
   referenceWeekStart: "2026-08-31T00:00:00.000Z",
 };
@@ -44,6 +46,18 @@ describe("ManagerSignalsResponseSchema", () => {
     delete stale.abandonedLast4Weeks;
 
     expect(ManagerSignalsResponseSchema.parse(stale)).toEqual(VALID);
+  });
+
+  it("falls back to zero follow-up totals when the API has not deployed the fields yet", () => {
+    const stale: Partial<typeof VALID> = { ...VALID };
+    delete stale.followUpSent;
+    delete stale.followUpAnswered;
+
+    expect(ManagerSignalsResponseSchema.parse(stale)).toEqual({
+      ...VALID,
+      followUpSent: 0,
+      followUpAnswered: 0,
+    });
   });
 
   // Null é diferente de ausente: nenhuma semana atingiu o mínimo.

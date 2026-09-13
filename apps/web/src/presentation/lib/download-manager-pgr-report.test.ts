@@ -2,8 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import { MANAGER_METHODOLOGY_VERSION, MANAGER_METRICS, sectorCoverageReading } from "@zelo/domain";
 import type { ManagerSignalsResponse } from "@/ports/manager-signals.port";
 
-const DEMONSTRATION_SUFFIX = " (dado de demonstração — não usar como evidência)";
-
 const { textMock, saveMock, setFontSizeMock, splitTextToSizeMock } = vi.hoisted(() => ({
   textMock: vi.fn(),
   saveMock: vi.fn(),
@@ -41,6 +39,8 @@ const DATA: ManagerSignalsResponse = {
     { label: "UTI", value: 44, n: 9 },
   ],
   followUpResponseRate: 0.7,
+  followUpSent: 20,
+  followUpAnswered: 14,
   sectorCoverage: { visible: 4, total: 7 },
   // Este fixture não tem tendência alguma, então não há semana de referência
   // para nomear.
@@ -58,7 +58,7 @@ describe("buildPgrCsvLines", () => {
     expect(lines).toContain(`${MANAGER_METRICS.checkIns.label} (4 semanas),111`);
     expect(lines).toContain(`${MANAGER_METRICS.abandoned.label} (4 semanas),9`);
     expect(lines).toContain(`${MANAGER_METRICS.unsentChatDrafts.label} (4 semanas),4`);
-    expect(lines).toContain(`${MANAGER_METRICS.followUpRate.label}${DEMONSTRATION_SUFFIX},70%`);
+    expect(lines).toContain(`${MANAGER_METRICS.followUpRate.label},70%`);
     expect(lines).toContain("Plantão noturno,52%,18");
     expect(lines).toContain("Pronto-socorro,38%,24");
     expect(lines).toContain("UTI,44%,9");
@@ -77,14 +77,7 @@ describe("buildPgrCsvLines", () => {
     expect(lines.some((line) => line.includes("4 de 7 setores"))).toBe(true);
   });
 
-  it("marks the follow-up line as demonstration data", () => {
-    const lines = buildPgrCsvLines(DATA, new Date("2026-09-07T00:00:00.000Z"));
-    const followUp = lines.find((line) => line.includes(MANAGER_METRICS.followUpRate.label))!;
-
-    expect(followUp).toContain("dado de demonstração — não usar como evidência");
-  });
-
-  it("never writes an interpretation band while the follow-up is demonstration data", () => {
+  it("never writes a qualitative interpretation band into the machine-readable export", () => {
     const lines = buildPgrCsvLines(DATA, new Date("2026-09-07T00:00:00.000Z"));
 
     for (const band of ["Ótima", "Média", "Baixa"]) {
@@ -175,15 +168,8 @@ describe("downloadPgrReportAsPdf", () => {
     expect(textMock).toHaveBeenCalledWith(`${MANAGER_METRICS.checkIns.label} (4 semanas): 111`, 14, 58);
     expect(textMock).toHaveBeenCalledWith(`${MANAGER_METRICS.abandoned.label} (4 semanas): 9`, 14, 64);
     expect(textMock).toHaveBeenCalledWith(`${MANAGER_METRICS.unsentChatDrafts.label} (4 semanas): 4`, 14, 70);
-    expect(splitTextToSizeMock).toHaveBeenCalledWith(
-      `${MANAGER_METRICS.followUpRate.label}${DEMONSTRATION_SUFFIX}: 70%`,
-      180,
-    );
-    expect(textMock).toHaveBeenCalledWith(
-      [`${MANAGER_METRICS.followUpRate.label}${DEMONSTRATION_SUFFIX}: 70%`],
-      14,
-      76,
-    );
+    expect(splitTextToSizeMock).toHaveBeenCalledWith(`${MANAGER_METRICS.followUpRate.label}: 70%`, 180);
+    expect(textMock).toHaveBeenCalledWith([`${MANAGER_METRICS.followUpRate.label}: 70%`], 14, 76);
     expect(textMock).toHaveBeenCalledWith(sectorCoverageReading(DATA.sectorCoverage), 14, 82);
     expect(textMock).toHaveBeenCalledWith("Sinais por setor:", 14, 94);
     expect(textMock).toHaveBeenCalledWith("- Plantão noturno: 52% (n=18)", 14, 102);
@@ -198,7 +184,7 @@ describe("downloadPgrReportAsPdf", () => {
     expect(saveMock).toHaveBeenCalledWith("pgr-zelo-2026-07-01.pdf");
   });
 
-  it("never writes an interpretation band next to the demonstration follow-up line", async () => {
+  it("never writes a qualitative interpretation band next to the follow-up line", async () => {
     await downloadPgrReportAsPdf(DATA, GENERATED_AT);
 
     for (const band of ["Ótima", "Média", "Baixa"]) {

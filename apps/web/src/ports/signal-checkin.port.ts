@@ -17,8 +17,16 @@ export interface SignalChatDraftParams {
   deviceSignalId: string;
 }
 
+export interface SignalFollowUpParams {
+  institutionId: string;
+  sectorId: string;
+  deviceSignalId: string;
+  event: "sent" | "answered";
+}
+
 export interface SignalCheckinPort {
   checkin(params: SignalCheckinParams): Promise<void>;
   abandon(params: SignalAbandonmentParams): Promise<void>;
   chatDraft(params: SignalChatDraftParams): Promise<void>;
+  followUp(params: SignalFollowUpParams): Promise<void>;
 }
