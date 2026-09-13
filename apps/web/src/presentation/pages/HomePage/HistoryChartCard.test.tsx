@@ -230,4 +230,16 @@ describe('HistoryChartCard', () => {
       screen.getByText(/% da escala de sintomas.*maior.*mais intenso/i),
     ).toBeInTheDocument();
   });
+
+  it("offers a tooltip explaining this chart is personal and never seen by the hospital", async () => {
+    vi.spyOn(container.getAssessmentHistoryUseCase, 'execute').mockResolvedValue(SIX_NULL_POINTS);
+    const user = userEvent.setup();
+
+    renderCard();
+    await waitFor(() => expect(screen.queryAllByTestId('history-bar')).toHaveLength(6));
+
+    await user.click(screen.getByRole('button', { name: 'Sobre: Seu histórico' }));
+
+    expect(screen.getByTestId('tooltip')).toHaveTextContent('O hospital nunca vê estes números');
+  });
 });

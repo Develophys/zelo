@@ -1,5 +1,6 @@
 import { Button } from '@/presentation/ui/Button';
 import { Card } from '@/presentation/ui/Card';
+import { MetricHelp } from '@/presentation/ui/MetricHelp';
 import { Skeleton } from '@/presentation/ui/Skeleton';
 import { useAssessmentHistory } from '@/presentation/hooks/useAssessmentHistory';
 import { EMPTY_POINTS } from '@/presentation/lib/home.constants';
@@ -20,10 +21,18 @@ const BAND_BAR_CLASS: Record<ScoreBandTone, string> = {
   severe: 'bg-band-severe',
 };
 
+const HISTORY_HELP =
+  'Este é o seu histórico pessoal, calculado e guardado só neste aparelho. ' +
+  'O hospital nunca vê estes números — ele só recebe uma contagem anônima de ' +
+  'check-ins por setor, sem nenhum resultado individual.';
+
 function ChartHeader() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
-      <p className="text-body font-extrabold text-ink">Seu histórico</p>
+      <p className="flex items-center gap-1 text-body font-extrabold text-ink">
+        <span>Seu histórico</span>
+        <MetricHelp label="Seu histórico" content={HISTORY_HELP} />
+      </p>
       <p className="font-mono text-mono-data text-muted-2">últimas 6 semanas</p>
     </div>
   );
