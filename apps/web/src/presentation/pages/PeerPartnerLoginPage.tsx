@@ -1,5 +1,5 @@
 import { useState, type SubmitEvent } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BackButton } from "@/presentation/ui/BackButton";
 import { Button } from "@/presentation/ui/Button";
@@ -98,6 +98,12 @@ export function PeerPartnerLoginPage() {
             </Button>
           </div>
         </form>
+
+        <p className="mt-5 text-pretty text-center text-caption text-muted">
+          <Link to={routes.peerPartnerForgotPassword} className="font-semibold text-brand">
+            Esqueceu a senha?
+          </Link>
+        </p>
       </div>
     </PhoneShell>
   );

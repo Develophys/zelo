@@ -10,6 +10,9 @@ class FakePeerPartnerAuthPort implements PeerPartnerAuthPort {
   async finishSetup(token: string, password: string): Promise<void> {
     this.lastArgs = { token, password };
   }
+  async requestPasswordReset(): Promise<void> {
+    throw new Error("not used in this test");
+  }
 }
 
 describe("FinishPeerPartnerSetupUseCase", () => {

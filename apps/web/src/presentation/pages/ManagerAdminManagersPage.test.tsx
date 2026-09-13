@@ -149,7 +149,7 @@ describe("ManagerAdminManagersPage", () => {
     );
   });
 
-  it("shows account status as a pill and lets an admin resend a set-password email for an active manager", async () => {
+  it("asks for confirmation before resending a set-password email to an active manager, and does nothing until confirmed", async () => {
     vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
       { id: "manager-5", name: "Paulo", email: "paulo@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorIds: ["sector-1"], sectorNames: ["UTI"], hasPassword: true, setPasswordTokenExpiresAt: null },
@@ -164,6 +164,11 @@ describe("ManagerAdminManagersPage", () => {
     const table = within(await screen.findByRole("table"));
     expect(table.getByText("Ativa")).toBeInTheDocument();
     await user.click(table.getByRole("button", { name: "Redefinir senha de Paulo" }));
+
+    expect(await screen.findByRole("heading", { name: /redefinir a senha de paulo/i })).toBeInTheDocument();
+    expect(container.sendManagerSetPasswordEmailUseCase.execute).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Redefinir senha" }));
 
     await waitFor(() => expect(container.sendManagerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("token", "manager-5"));
     await waitFor(() =>
@@ -186,7 +191,10 @@ describe("ManagerAdminManagersPage", () => {
     expect(table.getByText("Convite pendente")).toBeInTheDocument();
     await user.click(table.getByRole("button", { name: "Reenviar convite de Renata" }));
 
+    // Unlike resetting an active manager's password, resending a pending
+    // invite fires right away — there is no account access to protect yet.
     await waitFor(() => expect(container.sendManagerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("token", "manager-6"));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("edits an existing manager's role and sectors from the edit modal, pre-filled from their current assignment", async () => {

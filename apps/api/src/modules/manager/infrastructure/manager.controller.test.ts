@@ -13,6 +13,10 @@ import { GetManagerInsightHistoryUseCase } from "../application/use-cases/get-ma
 import { ResolveAccessibleSectorIdsUseCase } from "../application/use-cases/resolve-accessible-sector-ids.use-case.ts";
 import { GetAccessibleSectorsUseCase } from "../application/use-cases/get-accessible-sectors.use-case.ts";
 import { FinishManagerSetupUseCase } from "../application/use-cases/finish-manager-setup.use-case.ts";
+import { RequestManagerPasswordResetUseCase } from "../application/use-cases/request-manager-password-reset.use-case.ts";
+import { SendManagerSetPasswordEmailUseCase } from "../application/use-cases/send-manager-set-password-email.use-case.ts";
+import { EMAIL_PORT } from "@/shared/email/email.port.js";
+import type { EmailPort, EmailTemplate, SendEmailParams } from "@/shared/email/email.port.js";
 import { ManagerTokenService } from "../application/services/manager-token.service.ts";
 import { ManagerPasswordService } from "../application/services/manager-password.service.ts";
 import { MANAGER_REPOSITORY } from "../application/ports/manager-repository.port.ts";
@@ -175,6 +179,13 @@ class FakeManagerInsightRepository implements ManagerInsightRepository {
   }
 }
 
+class FakeEmailPort implements EmailPort {
+  lastSend: { to: string; template: EmailTemplate; params: SendEmailParams } | null = null;
+  async send(to: string, template: EmailTemplate, params: SendEmailParams): Promise<void> {
+    this.lastSend = { to, template, params };
+  }
+}
+
 function fakeConfig(): ConfigService {
   const values: Record<string, string> = { MANAGER_TOKEN_SECRET: "test-secret" };
   return { getOrThrow: (key: string) => values[key], get: () => undefined } as unknown as ConfigService;
@@ -188,6 +199,7 @@ describe("manager controller", () => {
   let sectorRepository: FakeSectorRepository;
   let aiInsightPort: FakeAiInsightPort;
   let insightRepository: FakeManagerInsightRepository;
+  let emailPort: FakeEmailPort;
 
   beforeAll(async () => {
     const passwordService = new ManagerPasswordService();
@@ -223,6 +235,7 @@ describe("manager controller", () => {
     sectorRepository = new FakeSectorRepository();
     aiInsightPort = new FakeAiInsightPort();
     insightRepository = new FakeManagerInsightRepository();
+    emailPort = new FakeEmailPort();
     const moduleRef = await Test.createTestingModule({
       controllers: [ManagerController],
       providers: [
@@ -233,6 +246,8 @@ describe("manager controller", () => {
         ResolveAccessibleSectorIdsUseCase,
         GetAccessibleSectorsUseCase,
         FinishManagerSetupUseCase,
+        RequestManagerPasswordResetUseCase,
+        SendManagerSetPasswordEmailUseCase,
         ManagerTokenService,
         ManagerPasswordService,
         ManagerAuthGuard,
@@ -243,6 +258,7 @@ describe("manager controller", () => {
         { provide: AI_INSIGHT_PORT, useValue: aiInsightPort },
         { provide: MANAGER_INSIGHT_REPOSITORY, useValue: insightRepository },
         { provide: NOTIFICATION_PUBLISHER, useValue: new FakeNotificationPublisher() },
+        { provide: EMAIL_PORT, useValue: emailPort },
         { provide: ConfigService, useValue: fakeConfig() },
       ],
     }).compile();
@@ -321,6 +337,27 @@ describe("manager controller", () => {
 
   it("POST /manager/finish-setup rejects a malformed body with 400", async () => {
     const response = await request(app.getHttpServer()).post("/manager/finish-setup").send({ token: "x" });
+    expect(response.status).toBe(400);
+  });
+
+  it("POST /manager/forgot-password sends the set-password email for a known, active manager", async () => {
+    const response = await request(app.getHttpServer()).post("/manager/forgot-password").send({ email: "ana@zelo-demo.local" });
+
+    expect(response.status).toBe(200);
+    expect(emailPort.lastSend?.to).toBe("ana@zelo-demo.local");
+  });
+
+  it("POST /manager/forgot-password returns 200 for an unknown email too, without sending anything", async () => {
+    emailPort.lastSend = null;
+    const response = await request(app.getHttpServer()).post("/manager/forgot-password").send({ email: "unknown@zelo-demo.local" });
+
+    expect(response.status).toBe(200);
+    expect(emailPort.lastSend).toBeNull();
+  });
+
+  it("POST /manager/forgot-password rejects a malformed body with 400", async () => {
+    const response = await request(app.getHttpServer()).post("/manager/forgot-password").send({ email: "not-an-email" });
+
     expect(response.status).toBe(400);
   });
 

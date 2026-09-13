@@ -98,7 +98,9 @@ export function ManagerAdminPeersPage() {
     noun: { singular: "par" },
   });
 
-  const isAnyModalOpen = formMode !== null || bulkDelete.deleteTarget !== null;
+  const [resetPasswordTarget, setResetPasswordTarget] = useState<PeerPartnerSummary | null>(null);
+
+  const isAnyModalOpen = formMode !== null || bulkDelete.deleteTarget !== null || resetPasswordTarget !== null;
 
   const openCreate = () => {
     setName("");
@@ -154,6 +156,18 @@ export function ManagerAdminPeersPage() {
     });
   };
 
+  const closeResetPasswordConfirm = () => setResetPasswordTarget(null);
+
+  const confirmResetPassword = () => {
+    if (!resetPasswordTarget) return;
+    sendSetPasswordEmail.mutate(resetPasswordTarget.id, {
+      onSuccess: () => {
+        toast.success(`Convite enviado para ${resetPasswordTarget.email}.`);
+        closeResetPasswordConfirm();
+      },
+    });
+  };
+
   const handleBulkPause = async () => {
     const { failedIds } = await bulkStatus.run(selection.selectedIds, false);
     if (failedIds.length === 0) selection.clear();
@@ -195,7 +209,7 @@ export function ManagerAdminPeersPage() {
         <IconButton
           label={isInvite ? `Reenviar convite de ${peerPartner.name}` : `Redefinir senha de ${peerPartner.name}`}
           icon={isInvite ? <Mail size={16} aria-hidden="true" /> : <KeyRound size={16} aria-hidden="true" />}
-          onClick={() => handleSendSetPasswordEmail(peerPartner)}
+          onClick={() => (isInvite ? handleSendSetPasswordEmail(peerPartner) : setResetPasswordTarget(peerPartner))}
         />
         <IconButton
           label={`Excluir ${peerPartner.name}`}
@@ -474,6 +488,32 @@ export function ManagerAdminPeersPage() {
             {bulkDelete.deleteMessage}
           </p>
         )}
+      </Modal>
+
+      <Modal
+        isOpen={resetPasswordTarget !== null}
+        onClose={closeResetPasswordConfirm}
+        title={resetPasswordTarget ? `Redefinir a senha de ${resetPasswordTarget.name}?` : ""}
+        size="sm"
+        footer={
+          <>
+            <Button variant="outline" full={false} onClick={closeResetPasswordConfirm}>
+              Cancelar
+            </Button>
+            <Button
+              variant="primary"
+              full={false}
+              isLoading={sendSetPasswordEmail.isPending}
+              onClick={confirmResetPassword}
+            >
+              Redefinir senha
+            </Button>
+          </>
+        }
+      >
+        <p className="text-label text-ink">
+          A senha atual deixa de funcionar e {resetPasswordTarget?.name} recebe um email para criar uma nova.
+        </p>
       </Modal>
     </div>
   );

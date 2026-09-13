@@ -434,19 +434,27 @@ XSS que de fato importaria dado esse desenho.
 
 ### Endpoints deliberadamente sem autenticação
 
-Cinco endpoints não exigem autenticação nenhuma: `POST /assessments`, `POST /chat/*`,
-`GET /institutions/by-code/:code`, `POST /signals/checkin`, e o próprio `login` do gestor. Para
-os dois primeiros, esse é o ponto central — um médico nunca prova identidade a este app. Para os
-endpoints de instituição e check-in, isso decorre do §7: vincular não é um login, então não há
-nada para autenticar ainda naquele ponto do fluxo.
+Sete endpoints não exigem autenticação nenhuma: `POST /assessments`, `POST /chat/*`,
+`GET /institutions/by-code/:code`, `POST /signals/checkin`, o `login` de gestor/par anônimo, e
+`POST /manager/forgot-password` / `POST /peer-partner/forgot-password`. Para os dois primeiros,
+esse é o ponto central — um médico nunca prova identidade a este app. Para os endpoints de
+instituição e check-in, isso decorre do §7: vincular não é um login, então não há nada para
+autenticar ainda naquele ponto do fluxo. O par de "esqueceu a senha" permite que um gestor ou par
+anônimo recupere a própria conta em vez de precisar pedir a um administrador do hospital para
+disparar o reset — mesmo mecanismo de token com hash e TTL de 48h que um reset feito pelo admin já
+usava, e a mesma regra de não revelar do login: email desconhecido ou desativado recebe um no-op
+silencioso, resposta 200 idêntica nos dois casos.
 
-**Lacuna conhecida — ainda sem rate limit por endpoint.** Só um `ThrottlerModule` global (100
-requisições/60s por IP, via `APP_GUARD` em `app.module.ts`) protege toda rota de forma uniforme.
-Os dois endpoints públicos e sem autenticação acima não têm limite *mais apertado* próprio, mesmo
-um dispositivo real fazendo check-in no máximo uma vez por semana. Um código de convite de baixa
-entropia e adivinhável (os semeados se parecem com `hospital-2026`) somado a um `deviceSignalId`
-rotativo poderia inflar os contadores de um departamento bem além do que o throttle pega.
-Sinalizado, ainda não corrigido — ver §12.
+**Lacuna conhecida — ainda sem rate limit por endpoint, exceto o de esqueceu a senha.** Só um
+`ThrottlerModule` global (100 requisições/60s por IP, via `APP_GUARD` em `app.module.ts`) protege
+a maioria das rotas de forma uniforme. Os endpoints de instituição e check-in acima não têm
+limite *mais apertado* próprio, mesmo um dispositivo real fazendo check-in no máximo uma vez por
+semana. Um código de convite de baixa entropia e adivinhável (os semeados se parecem com
+`hospital-2026`) somado a um `deviceSignalId` rotativo poderia inflar os contadores de um
+departamento bem além do que o throttle pega. Sinalizado, ainda não corrigido — ver §12. Os
+endpoints de esqueceu a senha são a exceção: por serem as primeiras rotas sem autenticação que
+aceitam um email puro — um alvo de spam/enumeração que o código nunca precisou proteger antes —
+cada um carrega seu próprio `@Throttle` (5 requisições a cada 15 minutos por IP).
 
 ### Transporte e infraestrutura
 

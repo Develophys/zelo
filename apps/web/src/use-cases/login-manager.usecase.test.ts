@@ -14,6 +14,9 @@ class FakeManagerAuthPort implements ManagerAuthPort {
   async finishSetup(): Promise<void> {
     throw new Error("not used in this test");
   }
+  async requestPasswordReset(): Promise<void> {
+    throw new Error("not used in this test");
+  }
 }
 
 describe("LoginManagerUseCase", () => {

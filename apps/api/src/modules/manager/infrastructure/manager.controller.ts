@@ -12,6 +12,7 @@ import {
   UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import type { Request } from "express";
 import { z } from "zod";
 import { LoginManagerUseCase, InvalidManagerCredentialsError } from "../application/use-cases/login-manager.use-case.ts";
@@ -21,12 +22,14 @@ import { DEFAULT_LIMIT, GetManagerInsightHistoryUseCase, MAX_LIMIT } from "../ap
 import { ResolveAccessibleSectorIdsUseCase } from "../application/use-cases/resolve-accessible-sector-ids.use-case.ts";
 import { GetAccessibleSectorsUseCase } from "../application/use-cases/get-accessible-sectors.use-case.ts";
 import { FinishManagerSetupUseCase, InvalidOrExpiredManagerSetupTokenError } from "../application/use-cases/finish-manager-setup.use-case.ts";
+import { RequestManagerPasswordResetUseCase } from "../application/use-cases/request-manager-password-reset.use-case.ts";
 import { InsightGenerationFailedError, type ManagerInsightResponse } from "../application/ports/ai-insight.port.ts";
 import type { IssuedManagerToken } from "../application/services/manager-token.service.ts";
 import { ManagerAuthGuard } from "./manager-auth.guard.ts";
 
 const LoginRequestSchema = z.object({ email: z.string().email().max(200), password: z.string().min(1).max(200) });
 const FinishSetupRequestSchema = z.object({ token: z.string().min(1), password: z.string().min(8).max(200) });
+const ForgotPasswordRequestSchema = z.object({ email: z.string().email().max(200) });
 
 interface StoredManagerInsightDto {
   id: string;
@@ -59,6 +62,7 @@ export class ManagerController {
     @Inject(ResolveAccessibleSectorIdsUseCase) private readonly resolveAccessibleSectorIds: ResolveAccessibleSectorIdsUseCase,
     @Inject(GetAccessibleSectorsUseCase) private readonly getAccessibleSectors: GetAccessibleSectorsUseCase,
     @Inject(FinishManagerSetupUseCase) private readonly finishManagerSetup: FinishManagerSetupUseCase,
+    @Inject(RequestManagerPasswordResetUseCase) private readonly requestPasswordReset: RequestManagerPasswordResetUseCase,
   ) {}
 
   @Post("login")
@@ -95,6 +99,22 @@ export class ManagerController {
       }
       throw error;
     }
+  }
+
+  @Post("forgot-password")
+  @HttpCode(200)
+  // Stricter than the global 100/60s: this is the one unauthenticated route
+  // that takes a bare email address, so it needs its own cooldown against
+  // both inbox-spamming a specific target and brute-force email enumeration
+  // (the handler itself never discloses whether the email matched anyone).
+  @Throttle({ default: { limit: 5, ttl: 900_000 } })
+  async forgotPassword(@Body() body: unknown): Promise<void> {
+    const parsed = ForgotPasswordRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    await this.requestPasswordReset.execute(parsed.data.email);
   }
 
   @Get("sectors")

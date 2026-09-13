@@ -1,17 +1,21 @@
 import { BadRequestException, Body, Controller, HttpCode, Inject, Post, UnauthorizedException } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { z } from "zod";
 import { LoginPeerPartnerUseCase, InvalidPeerPartnerCredentialsError } from "../application/use-cases/login-peer-partner.use-case.ts";
 import { FinishPeerPartnerSetupUseCase, InvalidOrExpiredPeerPartnerSetupTokenError } from "../application/use-cases/finish-peer-partner-setup.use-case.ts";
+import { RequestPeerPartnerPasswordResetUseCase } from "../application/use-cases/request-peer-partner-password-reset.use-case.ts";
 import type { IssuedPeerPartnerToken } from "../application/services/peer-partner-token.service.ts";
 
 const LoginRequestSchema = z.object({ email: z.string().email().max(200), password: z.string().min(1).max(200) });
 const FinishSetupRequestSchema = z.object({ token: z.string().min(1), password: z.string().min(8).max(200) });
+const ForgotPasswordRequestSchema = z.object({ email: z.string().email().max(200) });
 
 @Controller("peer-partner")
 export class PeerPartnerController {
   constructor(
     @Inject(LoginPeerPartnerUseCase) private readonly loginPeerPartner: LoginPeerPartnerUseCase,
     @Inject(FinishPeerPartnerSetupUseCase) private readonly finishPeerPartnerSetup: FinishPeerPartnerSetupUseCase,
+    @Inject(RequestPeerPartnerPasswordResetUseCase) private readonly requestPasswordReset: RequestPeerPartnerPasswordResetUseCase,
   ) {}
 
   @Post("login")
@@ -48,5 +52,21 @@ export class PeerPartnerController {
       }
       throw error;
     }
+  }
+
+  @Post("forgot-password")
+  @HttpCode(200)
+  // Stricter than the global 100/60s: this is the one unauthenticated route
+  // that takes a bare email address, so it needs its own cooldown against
+  // both inbox-spamming a specific target and brute-force email enumeration
+  // (the handler itself never discloses whether the email matched anyone).
+  @Throttle({ default: { limit: 5, ttl: 900_000 } })
+  async forgotPassword(@Body() body: unknown): Promise<void> {
+    const parsed = ForgotPasswordRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    await this.requestPasswordReset.execute(parsed.data.email);
   }
 }

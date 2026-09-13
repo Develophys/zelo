@@ -7,6 +7,9 @@ import { PeerPartnerController } from "./peer-partner.controller.ts";
 import { hashSetPasswordToken } from "@/shared/tokens/hash-set-password-token.js";
 import { LoginPeerPartnerUseCase } from "../application/use-cases/login-peer-partner.use-case.ts";
 import { FinishPeerPartnerSetupUseCase } from "../application/use-cases/finish-peer-partner-setup.use-case.ts";
+import { RequestPeerPartnerPasswordResetUseCase } from "../application/use-cases/request-peer-partner-password-reset.use-case.ts";
+import { EMAIL_PORT } from "@/shared/email/email.port.js";
+import type { EmailPort, EmailTemplate, SendEmailParams } from "@/shared/email/email.port.js";
 import { PeerPartnerTokenService } from "../application/services/peer-partner-token.service.ts";
 import { PeerPartnerPasswordService } from "../application/services/peer-partner-password.service.ts";
 import { PEER_PARTNER_REPOSITORY } from "../application/ports/peer-partner-repository.port.ts";
@@ -65,6 +68,13 @@ class FakePeerPartnerRepository implements PeerPartnerRepository {
   }
 }
 
+class FakeEmailPort implements EmailPort {
+  lastSend: { to: string; template: EmailTemplate; params: SendEmailParams } | null = null;
+  async send(to: string, template: EmailTemplate, params: SendEmailParams): Promise<void> {
+    this.lastSend = { to, template, params };
+  }
+}
+
 function fakeConfig(): ConfigService {
   const values: Record<string, string> = { PEER_PARTNER_TOKEN_SECRET: "test-secret" };
   return { getOrThrow: (key: string) => values[key], get: () => undefined } as unknown as ConfigService;
@@ -73,22 +83,26 @@ function fakeConfig(): ConfigService {
 describe("peer partner controller", () => {
   let app: INestApplication;
   let repository: FakePeerPartnerRepository;
+  let emailPort: FakeEmailPort;
 
   beforeAll(async () => {
     const passwordService = new PeerPartnerPasswordService();
     repository = new FakePeerPartnerRepository();
     repository.rows = [{ id: "peer-1", name: "Dra. Ana", email: "ana@zelo-demo.local", passwordHash: await passwordService.hash("test-password"), setPasswordTokenExpiresAt: null, institutionId: "institution-1", specialty: "Clínica médica", isActive: true }];
+    emailPort = new FakeEmailPort();
 
     const moduleRef = await Test.createTestingModule({
       controllers: [PeerPartnerController],
       providers: [
         LoginPeerPartnerUseCase,
         FinishPeerPartnerSetupUseCase,
+        RequestPeerPartnerPasswordResetUseCase,
         PeerPartnerTokenService,
         PeerPartnerPasswordService,
         { provide: PEER_PARTNER_REPOSITORY, useValue: repository },
         { provide: INSTITUTION_REPOSITORY, useValue: new FakeInstitutionRepository() },
         { provide: NOTIFICATION_PUBLISHER, useValue: new FakeNotificationPublisher() },
+        { provide: EMAIL_PORT, useValue: emailPort },
         { provide: ConfigService, useValue: fakeConfig() },
       ],
     }).compile();
@@ -151,6 +165,26 @@ describe("peer partner controller", () => {
 
   it("POST /peer-partner/finish-setup rejects a malformed body with 400", async () => {
     const response = await request(app.getHttpServer()).post("/peer-partner/finish-setup").send({ token: "x" });
+    expect(response.status).toBe(400);
+  });
+
+  it("POST /peer-partner/forgot-password sends the set-password email for a known, active peer partner", async () => {
+    const response = await request(app.getHttpServer()).post("/peer-partner/forgot-password").send({ email: "ana@zelo-demo.local" });
+
+    expect(response.status).toBe(200);
+    expect(emailPort.lastSend?.to).toBe("ana@zelo-demo.local");
+  });
+
+  it("POST /peer-partner/forgot-password returns 200 for an unknown email too, without sending anything", async () => {
+    emailPort.lastSend = null;
+    const response = await request(app.getHttpServer()).post("/peer-partner/forgot-password").send({ email: "unknown@zelo-demo.local" });
+
+    expect(response.status).toBe(200);
+    expect(emailPort.lastSend).toBeNull();
+  });
+
+  it("POST /peer-partner/forgot-password rejects a malformed body with 400", async () => {
+    const response = await request(app.getHttpServer()).post("/peer-partner/forgot-password").send({ email: "not-an-email" });
     expect(response.status).toBe(400);
   });
 });

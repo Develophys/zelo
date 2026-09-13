@@ -76,4 +76,12 @@ describe("PeerPartnerLoginPage", () => {
     renderPage();
     expect(screen.getByTestId("theme-switch")).toBeInTheDocument();
   });
+
+  it("lets a peer partner who cannot get in start a self-service password reset", () => {
+    renderPage();
+    expect(screen.getByRole("link", { name: /esqueceu a senha/i })).toHaveAttribute(
+      "href",
+      "/peer/forgot-password",
+    );
+  });
 });

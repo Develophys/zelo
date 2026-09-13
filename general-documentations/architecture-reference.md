@@ -425,18 +425,26 @@ would matter given this design.
 
 ### Deliberately unauthenticated endpoints
 
-Five endpoints require no auth at all: `POST /assessments`, `POST /chat/*`,
-`GET /institutions/by-code/:code`, `POST /signals/checkin`, and manager `login` itself. For the
-first two, this is the entire point — a médico never proves identity to this app. For the
-institution and check-in endpoints, it follows from §7: linking isn't a login, so nothing to
-authenticate exists yet at that point in the flow.
+Seven endpoints require no auth at all: `POST /assessments`, `POST /chat/*`,
+`GET /institutions/by-code/:code`, `POST /signals/checkin`, manager/peer-partner `login`, and
+`POST /manager/forgot-password` / `POST /peer-partner/forgot-password`. For the first two, this
+is the entire point — a médico never proves identity to this app. For the institution and
+check-in endpoints, it follows from §7: linking isn't a login, so nothing to authenticate exists
+yet at that point in the flow. The forgot-password pair lets a manager or peer partner recover
+their own account instead of asking a hospital admin to trigger a reset for them — same
+hashed-token/48h-TTL mechanism an admin-triggered reset already used, and the same non-disclosure
+rule as login: unknown or deactivated emails get a silent no-op, identical 200 response either
+way.
 
-**Known gap — no per-endpoint rate limit yet.** Only a global `ThrottlerModule` (100 req/60s per
-IP, via `APP_GUARD` in `app.module.ts`) protects every route uniformly. The two public,
-unauthenticated endpoints above have no *tighter* limit of their own, even though a real device
-checks in at most once a week. A low-entropy, guessable invite code (seeded ones look like
-`hospital-2026`) plus a rotating `deviceSignalId` could inflate a department's counters well past
-what the throttle catches. Flagged, not yet fixed — see §12.
+**Known gap — no per-endpoint rate limit yet, except forgot-password.** Only a global
+`ThrottlerModule` (100 req/60s per IP, via `APP_GUARD` in `app.module.ts`) protects most routes
+uniformly. The institution-by-code and check-in endpoints above have no *tighter* limit of their
+own, even though a real device checks in at most once a week. A low-entropy, guessable invite
+code (seeded ones look like `hospital-2026`) plus a rotating `deviceSignalId` could inflate a
+department's counters well past what the throttle catches. Flagged, not yet fixed — see §12. The
+forgot-password endpoints are the exception: as the first unauthenticated routes that accept a
+bare email — a spam/enumeration target the codebase never had to guard against before — each
+carries its own `@Throttle` override (5 requests per 15 minutes per IP).
 
 ### Transport & infrastructure
 

@@ -1,5 +1,5 @@
 import { useState, type SubmitEvent } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useLocation } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BackButton } from "@/presentation/ui/BackButton";
@@ -106,10 +106,10 @@ export function ManagerLoginPage() {
           </div>
         </form>
 
-        {/* There is no self-service reset: the set-password email can only be
-            sent by a hospital admin, so the honest answer is who to ask. */}
         <p className="mt-5 text-pretty text-center text-caption text-muted">
-          Esqueceu a senha? Peça ao administrador do Zelo no seu hospital para reenviar o acesso.
+          <Link to={routes.managerForgotPassword} className="font-semibold text-brand">
+            Esqueceu a senha?
+          </Link>
         </p>
       </div>
     </PhoneShell>

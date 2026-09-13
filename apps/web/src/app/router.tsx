@@ -21,6 +21,7 @@ import { ManagerNotificationsPage } from "@/presentation/pages/ManagerNotificati
 import { ManagerSettingsPage } from "@/presentation/pages/ManagerSettingsPage";
 import { ManagerShell } from "@/presentation/layout/ManagerShell";
 import { ManagerLoginPage } from "@/presentation/pages/ManagerLoginPage";
+import { ManagerForgotPasswordPage } from "@/presentation/pages/ManagerForgotPasswordPage";
 import { ManagerFinishSetupPage } from "@/presentation/pages/ManagerFinishSetupPage";
 import { ManagerInsightHistoryPage } from "@/presentation/pages/ManagerInsightHistoryPage";
 import { ManagerMethodologyPage } from "@/presentation/pages/ManagerMethodologyPage";
@@ -30,6 +31,7 @@ import { LinkInstitutionPage } from "@/presentation/pages/LinkInstitutionPage";
 import { AdminLoginPage } from "@/presentation/pages/AdminLoginPage";
 import { AdminInstitutionsPage } from "@/presentation/pages/AdminInstitutionsPage";
 import { PeerPartnerLoginPage } from "@/presentation/pages/PeerPartnerLoginPage";
+import { PeerPartnerForgotPasswordPage } from "@/presentation/pages/PeerPartnerForgotPasswordPage";
 import { PeerPartnerFinishSetupPage } from "@/presentation/pages/PeerPartnerFinishSetupPage";
 import { PeerPartnerInboxPage } from "@/presentation/pages/PeerPartnerInboxPage";
 import { PeerPartnerSettingsPage } from "@/presentation/pages/PeerPartnerSettingsPage";
@@ -121,6 +123,7 @@ export const routeChildren: RouteObject[] = [
     loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
   },
   { path: "manager/login", Component: ManagerLoginPage },
+  { path: "manager/forgot-password", Component: ManagerForgotPasswordPage },
   { path: "manager/finish-setup/:token", Component: ManagerFinishSetupPage },
   {
     // One layout route for the whole panel: the shell, and the session guard,
@@ -164,6 +167,7 @@ export const routeChildren: RouteObject[] = [
     loader: () => (useAdminSessionStore.getState().isValid() ? null : redirect(routes.adminLogin)),
   },
   { path: "peer/login", Component: PeerPartnerLoginPage },
+  { path: "peer/forgot-password", Component: PeerPartnerForgotPasswordPage },
   { path: "peer/finish-setup/:token", Component: PeerPartnerFinishSetupPage },
   {
     path: "peer",

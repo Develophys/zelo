@@ -87,7 +87,7 @@ describe("ManagerAdminPeersPage", () => {
     expect(createPeerPartner).not.toHaveBeenCalled();
   });
 
-  it("resends a set-password email for an active peer partner", async () => {
+  it("asks for confirmation before resending a set-password email to an active peer partner, and does nothing until confirmed", async () => {
     vi.spyOn(container.listPeerPartnersUseCase, "execute").mockResolvedValue([
       { id: "peer-5", name: "Dr. Paulo", email: "paulo@zelo-demo.local", specialty: "Clínica médica", isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
@@ -102,12 +102,36 @@ describe("ManagerAdminPeersPage", () => {
     expect(table.getByText("Ativa")).toBeInTheDocument();
     await user.click(table.getByRole("button", { name: "Redefinir senha de Dr. Paulo" }));
 
+    expect(await screen.findByRole("heading", { name: /redefinir a senha de dr\. paulo/i })).toBeInTheDocument();
+    expect(container.sendPeerPartnerSetPasswordEmailUseCase.execute).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Redefinir senha" }));
+
     await waitFor(() => expect(container.sendPeerPartnerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("token", "peer-5"));
     await waitFor(() =>
       expect(useToastStore.getState().toasts).toEqual([
         expect.objectContaining({ tone: "success", message: "Convite enviado para paulo@zelo-demo.local." }),
       ]),
     );
+  });
+
+  it("resends a pending invite immediately, with no confirmation modal", async () => {
+    vi.spyOn(container.listPeerPartnersUseCase, "execute").mockResolvedValue([
+      { id: "peer-6", name: "Dra. Renata", email: "renata@zelo-demo.local", specialty: "Clínica médica", isActive: true, hasPassword: false, setPasswordTokenExpiresAt: new Date(Date.now() + 60_000).toISOString() },
+    ]);
+    vi.spyOn(container.sendPeerPartnerSetPasswordEmailUseCase, "execute").mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+
+    const table = within(await screen.findByRole("table"));
+    expect(table.getByText("Convite pendente")).toBeInTheDocument();
+    await user.click(table.getByRole("button", { name: "Reenviar convite de Dra. Renata" }));
+
+    // Unlike resetting an active peer partner's password, resending a
+    // pending invite fires right away — there is no account access to
+    // protect yet.
+    await waitFor(() => expect(container.sendPeerPartnerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("token", "peer-6"));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("deletes a single peer partner from its own row, without needing to select it first", async () => {

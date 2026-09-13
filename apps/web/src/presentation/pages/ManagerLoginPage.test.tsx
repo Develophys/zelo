@@ -124,11 +124,12 @@ describe("ManagerLoginPage", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("tells a manager who cannot get in what the recovery path actually is", () => {
-    // useSendManagerSetPasswordEmail exists but only an admin can fire it, so
-    // "forgot password" is a person, not a button. Saying so beats a dead end.
+  it("lets a manager who cannot get in start a self-service password reset", () => {
     renderPage();
-    expect(screen.getByText(/administrador/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /esqueceu a senha/i })).toHaveAttribute(
+      "href",
+      "/manager/forgot-password",
+    );
   });
 
   it("offers the theme toggle before the manager has even logged in", () => {

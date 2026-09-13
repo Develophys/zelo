@@ -13,4 +13,5 @@ export class InvalidOrExpiredPeerPartnerSetupTokenError extends Error {}
 export interface PeerPartnerAuthPort {
   login(email: string, password: string): Promise<PeerPartnerLoginResult>;
   finishSetup(token: string, password: string): Promise<void>;
+  requestPasswordReset(email: string): Promise<void>;
 }

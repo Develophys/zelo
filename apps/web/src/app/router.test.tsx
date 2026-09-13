@@ -123,6 +123,18 @@ describe("onboarding router flow", () => {
     expect(await screen.findByText("Acesso do gestor")).toBeInTheDocument();
   });
 
+  it("the manager forgot-password screen is reachable by its own route", async () => {
+    buildTestRouter("/manager/forgot-password");
+
+    expect(await screen.findByText("Esqueceu a senha?")).toBeInTheDocument();
+  });
+
+  it("the peer partner forgot-password screen is reachable by its own route", async () => {
+    buildTestRouter("/peer/forgot-password");
+
+    expect(await screen.findByText("Esqueceu a senha?")).toBeInTheDocument();
+  });
+
   it("an authenticated manager session reaches the dashboard directly", async () => {
     useConsentStore.setState({ hasConsented: true, consentedAt: "2026-01-01T00:00:00.000Z" });
     useManagerSessionStore.setState({ token: "abc.def", expiresAt: new Date(Date.now() + 60_000).toISOString() });

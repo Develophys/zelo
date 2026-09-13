@@ -35,4 +35,16 @@ export class HttpManagerAuthAdapter implements ManagerAuthPort {
       throw new Error(`manager finish-setup failed with status ${response.status}`);
     }
   }
+
+  async requestPasswordReset(email: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/manager/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`manager forgot-password failed with status ${response.status}`);
+    }
+  }
 }

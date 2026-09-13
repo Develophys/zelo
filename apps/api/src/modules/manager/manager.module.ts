@@ -24,6 +24,7 @@ import { CreateManagerUseCase } from "./application/use-cases/create-manager.use
 import { UpdateManagerUseCase } from "./application/use-cases/update-manager.use-case.ts";
 import { SendManagerSetPasswordEmailUseCase } from "./application/use-cases/send-manager-set-password-email.use-case.ts";
 import { FinishManagerSetupUseCase } from "./application/use-cases/finish-manager-setup.use-case.ts";
+import { RequestManagerPasswordResetUseCase } from "./application/use-cases/request-manager-password-reset.use-case.ts";
 import { DeleteManagerUseCase } from "./application/use-cases/delete-manager.use-case.ts";
 import { DeleteSectorUseCase } from "./application/use-cases/delete-sector.use-case.ts";
 import { DeletePeerPartnerUseCase } from "./application/use-cases/delete-peer-partner.use-case.ts";
@@ -58,6 +59,7 @@ const aiInsightPortProvider =
     UpdateManagerUseCase,
     SendManagerSetPasswordEmailUseCase,
     FinishManagerSetupUseCase,
+    RequestManagerPasswordResetUseCase,
     DeleteManagerUseCase,
     DeleteSectorUseCase,
     DeletePeerPartnerUseCase,

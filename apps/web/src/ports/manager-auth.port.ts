@@ -13,4 +13,5 @@ export class InvalidOrExpiredManagerSetupTokenError extends Error {}
 export interface ManagerAuthPort {
   login(email: string, password: string): Promise<ManagerLoginResult>;
   finishSetup(token: string, password: string): Promise<void>;
+  requestPasswordReset(email: string): Promise<void>;
 }
