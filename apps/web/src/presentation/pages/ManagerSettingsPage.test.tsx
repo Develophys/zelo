@@ -113,7 +113,7 @@ describe('ManagerSettingsPage', () => {
 
     expect(screen.queryByTestId('settings-grid')).not.toBeInTheDocument();
     const rows = screen.getAllByTestId('settings-row');
-    expect(rows).toHaveLength(6);
+    expect(rows).toHaveLength(7);
     rows.forEach((row) => {
       expect(row.className).toContain('border-b');
       expect(row.className).not.toContain('rounded-card');
@@ -146,6 +146,18 @@ describe('ManagerSettingsPage', () => {
   it('has no axe violations', async () => {
     const { container } = render(<ManagerSettingsPage />);
     expect(await axe(container, { rules: { region: { enabled: false } } })).toHaveNoViolations();
+  });
+
+  it('offers the gestor guide PDFs for download', () => {
+    render(<ManagerSettingsPage />);
+    expect(screen.getByRole('link', { name: /guia de bolso/i })).toHaveAttribute(
+      'href',
+      '/guides/zelo-guia-de-bolso-gestor.pdf',
+    );
+    expect(screen.getByRole('link', { name: /guia completo/i })).toHaveAttribute(
+      'href',
+      '/guides/zelo-guia-completo-gestor.pdf',
+    );
   });
 
 });

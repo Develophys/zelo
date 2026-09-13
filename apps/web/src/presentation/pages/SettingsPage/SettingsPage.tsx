@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { PhoneShell } from '@/presentation/layout/PhoneShell';
 import { AppearanceSettings } from '@/presentation/components/settings/AppearanceSettings';
 import { InstallAppRow } from '@/presentation/components/settings/InstallAppRow';
+import { GuideDownloadsRow } from '@/presentation/components/settings/GuideDownloadsRow';
 import { STAFF_NAV_ITEMS } from '@/presentation/layout/nav-tabs';
 
 export function SettingsPage() {
@@ -14,6 +15,12 @@ export function SettingsPage() {
 
       <AppearanceSettings />
       <InstallAppRow />
+      <div className="border-t border-line">
+        <GuideDownloadsRow
+          pocketHref="/guides/zelo-guia-de-bolso-usuario.pdf"
+          completeHref="/guides/zelo-guia-completo-usuario.pdf"
+        />
+      </div>
 
       <div className="mt-8 border-t border-line pt-6">
         <p className="text-label font-extrabold text-ink">Sou gestor ou par voluntário</p>

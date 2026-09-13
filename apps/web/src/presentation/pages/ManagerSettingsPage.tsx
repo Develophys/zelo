@@ -1,5 +1,6 @@
 import { AppearanceSettings } from "@/presentation/components/settings/AppearanceSettings";
 import { InstallAppRow } from "@/presentation/components/settings/InstallAppRow";
+import { GuideDownloadsRow } from "@/presentation/components/settings/GuideDownloadsRow";
 
 export function ManagerSettingsPage() {
   return (
@@ -11,6 +12,12 @@ export function ManagerSettingsPage() {
 
       <AppearanceSettings includeDensity />
       <InstallAppRow />
+      <div className="border-t border-line">
+        <GuideDownloadsRow
+          pocketHref="/guides/zelo-guia-de-bolso-gestor.pdf"
+          completeHref="/guides/zelo-guia-completo-gestor.pdf"
+        />
+      </div>
     </div>
   );
 }

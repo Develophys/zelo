@@ -84,4 +84,16 @@ describe('SettingsPage', () => {
     const { container } = renderSettings();
     expect(await axe(container, { rules: { region: { enabled: false } } })).toHaveNoViolations();
   });
+
+  it('offers the user guide PDFs for download', () => {
+    renderSettings();
+    expect(screen.getByRole('link', { name: /guia de bolso/i })).toHaveAttribute(
+      'href',
+      '/guides/zelo-guia-de-bolso-usuario.pdf',
+    );
+    expect(screen.getByRole('link', { name: /guia completo/i })).toHaveAttribute(
+      'href',
+      '/guides/zelo-guia-completo-usuario.pdf',
+    );
+  });
 });
