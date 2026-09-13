@@ -189,6 +189,12 @@ common/temp/
 # ---------- Superpowers brainstorming companion ----------
 .superpowers/
 
+# Claude Code project skills live in .github/skills/; .claude/skills/ only
+# holds junctions pointing there so Claude Code can discover them. Git
+# doesn't see Windows junctions as links, so without this it would track
+# the same files twice.
+.claude/skills/
+
 node_modules/
 dist/
 .turbo/
