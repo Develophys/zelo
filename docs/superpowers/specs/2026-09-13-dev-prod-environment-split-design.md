@@ -40,11 +40,18 @@ machine) from this deployed dev environment.
 ### 1. Branching & branch protection
 
 - Create `develop` from current `main`.
+- Rename `api.yml`'s and `web.yml`'s `test` jobs to `api-test`/`web-test` — both files
+  currently name their test job `test`, which collides as an ambiguous status-check name
+  once two workflows exist side by side.
 - GitHub branch protection on both `main` and `develop`:
   - Require a pull request before merging (no direct pushes to either branch).
-  - Require the existing CI status checks to pass before merge: the `test` job in
-    `api.yml` (lint + test + build) and the `test` job in `web.yml` (lint + test + build —
-    distinct from that file's GitHub-Pages-only `build`/`deploy` jobs, see §4).
+  - Do **not** mark `api-test`/`web-test` as required status checks: both workflows are
+    `paths:`-filtered at the trigger level, so a PR touching only one app never runs the
+    other workflow at all — requiring both would block that PR forever waiting on a check
+    that never fires. Making CI genuinely required needs moving the path filter from the
+    trigger down to a job-level condition first (so the workflow always runs and always
+    posts a status); that refactor is out of scope here. The checks still run and show
+    their result on PRs that touch the relevant paths — they're just not merge-blocking.
   - No minimum-approval-count requirement (solo dev) — the PR is the gate, not a second
     reviewer.
 - Flow going forward: work lands on `develop` via PR → auto-deploys to dev → once
