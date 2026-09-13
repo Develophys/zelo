@@ -5,7 +5,6 @@ import { PHQ9_QUESTIONS } from './phq9';
 
 export interface AssessmentScale {
   type: Exclude<AssessmentScaleType, 'MBI-HSS'>;
-  // One line naming what the scale measures — shared by the picker screen and the assessment header so the two never drift apart.
   description: string;
   prompt: string;
   questions: readonly string[];

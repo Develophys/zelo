@@ -35,6 +35,16 @@ export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
   const [submitError, setSubmitError] = useState(false);
   const [showResumed, setShowResumed] = useState(() => (resumed.current?.questionIndex ?? 0) > 0);
 
+  // False only for the page's very first question/review view, so mount
+  // doesn't steal focus from wherever the page put it on arrival. Every later
+  // (re)mount of QuestionCard or AssessmentReview — including coming back
+  // from review — is an in-page navigation the same way advancing is, so it
+  // should get focus like any other question change does.
+  const pageJustMountedRef = useRef(true);
+  useEffect(() => {
+    pageJustMountedRef.current = false;
+  }, []);
+
   const total = scale.questions.length;
 
   // "Iniciado" = pelo menos 1 resposta dada. A navegação para a tela de
@@ -160,6 +170,8 @@ export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
                 answers={answers}
                 onEdit={setQuestionIndex}
                 disabled={isPending}
+                riskItemIndex={scale.type === 'PHQ-9' ? PHQ9_RISK_ITEM_INDEX : undefined}
+                focusOnMount={!pageJustMountedRef.current}
               />
               <div className="mt-8">
                 <Button variant="primary" onClick={handleSubmit} disabled={isPending}>
@@ -176,6 +188,7 @@ export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
               onCommit={commitAnswer}
               advanceLabel={questionIndex === total - 1 ? 'Revisar respostas' : 'Próxima'}
               disabled={isPending}
+              focusOnMount={!pageJustMountedRef.current}
             />
           )}
           {isRiskItem && (
@@ -207,7 +220,11 @@ export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
           </div>
         )}
       </div>
-      <AbandonAssessmentModal blocker={blocker} onConfirmLeave={handleConfirmLeave} />
+      <AbandonAssessmentModal
+        blocker={blocker}
+        onConfirmLeave={handleConfirmLeave}
+        showCrisisLine={scale.type === 'PHQ-9' && (answers[PHQ9_RISK_ITEM_INDEX] ?? 0) > 0}
+      />
     </PhoneShell>
   );
 }

@@ -13,6 +13,11 @@ interface QuestionCardProps {
   onCommit: (value: number) => void;
   advanceLabel?: string;
   disabled?: boolean;
+  // False only for the page's very first question view, so mount doesn't
+  // steal focus from wherever the page put it on arrival. True for every
+  // later (re)mount of this component — including coming back from review —
+  // since those are in-page navigations the same way advancing is.
+  focusOnMount?: boolean;
 }
 
 export function QuestionCard({
@@ -23,6 +28,7 @@ export function QuestionCard({
   onCommit,
   advanceLabel = 'Próxima',
   disabled = false,
+  focusOnMount = true,
 }: QuestionCardProps) {
   const headingId = useId();
   // Scoped per question so a revisited answer cannot bleed across items.
@@ -31,12 +37,16 @@ export function QuestionCard({
 
   const headingRef = useRef<HTMLHeadingElement>(null);
   const isFirstRender = useRef(true);
+  // Captured once at mount: later re-renders of this same instance (e.g. a
+  // keyboard selection that records an answer without advancing) must not
+  // reopen the "was this the page's first view" question and yank focus back
+  // to the heading mid-interaction.
+  const focusOnMountRef = useRef(focusOnMount);
 
   useEffect(() => {
-    // Skips the initial mount so it doesn't steal focus from wherever the page put it on arrival.
     if (isFirstRender.current) {
       isFirstRender.current = false;
-      return;
+      if (!focusOnMountRef.current) return;
     }
     headingRef.current?.focus();
   }, [question]);

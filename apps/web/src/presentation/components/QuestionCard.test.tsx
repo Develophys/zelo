@@ -111,8 +111,8 @@ describe('QuestionCard', () => {
     expect(other.className).toMatch(/\bopacity-50\b/);
   });
 
-  it('does not steal focus on first mount', () => {
-    renderCard();
+  it('does not steal focus on the page\'s very first view', () => {
+    renderCard({ focusOnMount: false });
     expect(screen.getByRole('heading')).not.toHaveFocus();
   });
 
@@ -124,5 +124,23 @@ describe('QuestionCard', () => {
     );
 
     expect(screen.getByRole('heading', { name: 'Segunda pergunta' })).toHaveFocus();
+  });
+
+  it('focuses a fresh mount too, so returning from review to edit an answer is not a dead end for keyboard/AT users', () => {
+    renderCard({ question: 'Pergunta 9' });
+    expect(screen.getByRole('heading', { name: 'Pergunta 9' })).toHaveFocus();
+  });
+
+  it('does not re-focus the heading when only the answer changes on the same question', async () => {
+    const onSelect = vi.fn();
+    const user = userEvent.setup();
+    renderCard({ onSelect });
+
+    screen.getByRole('heading').blur();
+    await user.tab();
+    await user.keyboard('{ArrowDown}');
+
+    expect(onSelect).toHaveBeenCalled();
+    expect(screen.getByRole('heading')).not.toHaveFocus();
   });
 });

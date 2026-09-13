@@ -5,11 +5,16 @@ import { CardButton } from '@/presentation/ui/CardButton';
 import { routes } from '@/presentation/lib/routes';
 import { GAD7_SCALE, PHQ9_SCALE } from '@/domain/assessment-scales/scales';
 
-const SECONDS_PER_QUESTION = 20;
+// A range, not a point estimate: a flat per-question rate can't account for
+// the self-harm item reading slower than the rest, so a single rounded
+// number risks feeling broken exactly when it matters most.
+const SECONDS_PER_QUESTION_LOW = 15;
+const SECONDS_PER_QUESTION_HIGH = 30;
 
 function estimate(questionCount: number): string {
-  const minutes = Math.max(1, Math.round((questionCount * SECONDS_PER_QUESTION) / 60));
-  return `${questionCount} perguntas · cerca de ${minutes} minutos`;
+  const low = Math.max(1, Math.floor((questionCount * SECONDS_PER_QUESTION_LOW) / 60));
+  const high = Math.max(low + 1, Math.ceil((questionCount * SECONDS_PER_QUESTION_HIGH) / 60));
+  return `${questionCount} perguntas · ${low}–${high} minutos`;
 }
 
 export function AssessmentSelectPage() {

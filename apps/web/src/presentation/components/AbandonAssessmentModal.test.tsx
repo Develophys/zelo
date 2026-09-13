@@ -60,4 +60,25 @@ describe("AbandonAssessmentModal", () => {
     expect(proceed).toHaveBeenCalledOnce();
     expect(reset).not.toHaveBeenCalled();
   });
+
+  it("omits the crisis line by default", () => {
+    render(
+      <AbandonAssessmentModal blocker={blockedBlocker({ proceed: vi.fn(), reset: vi.fn() })} onConfirmLeave={vi.fn()} />,
+    );
+
+    expect(screen.queryByRole("link", { name: /188/ })).not.toBeInTheDocument();
+  });
+
+  it("offers the crisis line when showCrisisLine is set, so leaving mid-flow doesn't lose the safety net shown on the question screen", () => {
+    render(
+      <AbandonAssessmentModal
+        blocker={blockedBlocker({ proceed: vi.fn(), reset: vi.fn() })}
+        onConfirmLeave={vi.fn()}
+        showCrisisLine
+      />,
+    );
+
+    const link = screen.getByRole("link", { name: /188/ });
+    expect(link).toHaveAttribute("href", "tel:188");
+  });
 });

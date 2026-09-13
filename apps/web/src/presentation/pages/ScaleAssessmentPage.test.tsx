@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider, useLocation, useNavigate } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -211,7 +211,7 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
     expect(firstQuestionText).not.toHaveClass('truncate');
   });
 
-  it('chunks the review list into groups of 3 with a divider, instead of one flat scroll of near-identical rows', async () => {
+  it('chunks the review list into groups of at most 4, instead of one flat scroll of near-identical rows or a group of its own for a trailing single item', async () => {
     const user = userEvent.setup();
     renderScale(scale, path);
 
@@ -221,7 +221,8 @@ describe.each(SCALES)('ScaleAssessmentPage — $name', ({ scale, path, total, ma
 
     scale.questions.forEach((_, index) => {
       const row = screen.getByTestId(`review-edit-${index}`).closest('li')!;
-      if (index > 0 && index % 3 === 0) {
+      const startsNewGroup = index > 0 && index % 3 === 0 && total - index > 1;
+      if (startsNewGroup) {
         expect(row.className).toMatch(/border-t/);
       } else {
         expect(row.className).not.toMatch(/border-t/);
@@ -631,7 +632,7 @@ describe('ScaleAssessmentPage — the self-harm item', () => {
     expect(link).toHaveAttribute("href", "tel:188");
   });
 
-  it("keeps the crisis line on the self-harm item after a zero answer, and drops it on later items", async () => {
+  it("keeps the crisis line on the self-harm item after a zero answer, and swaps its full question-screen framing for the review's compact version once past it", async () => {
     const user = userEvent.setup();
     renderScale(PHQ9_SCALE, routes.phq9);
 
@@ -639,8 +640,74 @@ describe('ScaleAssessmentPage — the self-harm item', () => {
       await user.click(screen.getAllByRole("radio")[0]!);
     }
     expect(screen.getByRole("link", { name: /188/ })).toBeInTheDocument();
+    expect(screen.getByText(/a qualquer hora, em qualquer resposta/)).toBeInTheDocument();
 
     await user.click(screen.getAllByRole("radio")[0]!);
-    expect(screen.queryByRole("link", { name: /188/ })).not.toBeInTheDocument();
+    // The question screen's full framing is gone (we've moved to review)...
+    expect(screen.queryByText(/a qualquer hora, em qualquer resposta/)).not.toBeInTheDocument();
+    // ...but the line itself persists, now on the risk item's own review row.
+    expect(screen.getByRole("link", { name: /188/ })).toBeInTheDocument();
+  });
+
+  it("repeats the crisis line next to the self-harm item's own row in the review list, not just on the question screen", async () => {
+    const user = userEvent.setup();
+    renderScale(PHQ9_SCALE, routes.phq9);
+
+    for (let index = 0; index < PHQ9_SCALE.questions.length; index += 1) {
+      await user.click(screen.getAllByRole("radio")[0]!);
+    }
+
+    const riskRow = screen.getByTestId(`review-edit-${PHQ9_RISK_ITEM_INDEX}`).closest("li")!;
+    expect(within(riskRow).getByRole("link", { name: /188/ })).toBeInTheDocument();
+
+    const otherRow = screen.getByTestId("review-edit-0").closest("li")!;
+    expect(within(otherRow).queryByRole("link", { name: /188/ })).not.toBeInTheDocument();
+  });
+
+  it("restores focus to the self-harm question's own heading when editing it back in from review, instead of dropping focus entirely", async () => {
+    const user = userEvent.setup();
+    renderScale(PHQ9_SCALE, routes.phq9);
+
+    for (let index = 0; index < PHQ9_SCALE.questions.length; index += 1) {
+      await user.click(screen.getAllByRole("radio")[0]!);
+    }
+
+    await user.click(screen.getByTestId(`review-edit-${PHQ9_RISK_ITEM_INDEX}`));
+
+    expect(
+      screen.getByRole("heading", { name: PHQ9_SCALE.questions[PHQ9_RISK_ITEM_INDEX] }),
+    ).toHaveFocus();
+  });
+
+  it("offers the crisis line on the exit-confirmation modal too, when the self-harm item currently holds a non-zero answer", async () => {
+    const user = userEvent.setup();
+    renderScale(PHQ9_SCALE, routes.phq9);
+
+    for (let index = 0; index < PHQ9_RISK_ITEM_INDEX; index += 1) {
+      await user.click(screen.getAllByRole("radio")[0]!);
+    }
+    await user.click(screen.getAllByRole("radio")[1]!);
+
+    await user.click(screen.getByTestId("back-button"));
+
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("Sair sem terminar?")).toBeInTheDocument();
+    expect(within(dialog).getByRole("link", { name: /188/ })).toBeInTheDocument();
+  });
+
+  it("leaves the crisis line off the exit-confirmation modal itself when the self-harm item was answered zero", async () => {
+    const user = userEvent.setup();
+    renderScale(PHQ9_SCALE, routes.phq9);
+
+    for (let index = 0; index < PHQ9_SCALE.questions.length; index += 1) {
+      await user.click(screen.getAllByRole("radio")[0]!);
+    }
+    await user.click(screen.getByTestId("back-button"));
+
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("Sair sem terminar?")).toBeInTheDocument();
+    // The review row's own crisis line (answered or not) lives outside the
+    // dialog; the assertion here is scoped to what the modal itself adds.
+    expect(within(dialog).queryByRole("link", { name: /188/ })).not.toBeInTheDocument();
   });
 });
