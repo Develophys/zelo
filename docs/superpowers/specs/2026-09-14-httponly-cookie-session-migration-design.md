@@ -1,0 +1,124 @@
+# HttpOnly Cookie Session Migration (Manager, PeerPartner, Admin)
+
+**Date:** 2026-09-14
+
+## Problem
+
+All three of Zelo's authenticated roles — Manager, PeerPartner, SuperAdmin/admin — use
+an identical session pattern: an HMAC-signed opaque token, issued in the login response
+body, held client-side in `sessionStorage` (`apps/web/src/stores/{manager,peer-partner,
+admin}-session.store.ts`), and sent back as `Authorization: Bearer <token>`. This was
+accepted as deliberate debt for the hackathon (`docs/superpowers/specs/technical-
+debt.md`, TD-001, Manager only): if an XSS vector is ever introduced, injected JS can
+read `sessionStorage` and exfiltrate the token, impersonating that user until it expires
+(8h).
+
+The admin account is now real (a genuine SuperAdmin created for institution management
+and app-level config, not a demo seed), which raises the blast radius of that specific
+token being stolen. This migration closes the gap for all three roles at once: move the
+session token into an `HttpOnly; Secure; SameSite=Lax` cookie, invisible to JavaScript
+entirely, with the server as the only thing that ever reads it.
+
+## Approach
+
+### 1. Same-site cookies via dedicated API subdomains
+
+`zelohealth.app`/`dev.zelohealth.app` (Vercel) and `zelo-api.fly.dev`/`zelo-api-
+dev.fly.dev` (Fly) are different registrable domains today — a cookie set by the API
+would be inherently cross-site, forcing `SameSite=None` and a CSRF-token system built
+from scratch (nothing like that exists in the repo currently).
+
+Instead, attach a custom domain to each Fly API app, sharing `zelohealth.app`'s
+registrable domain with the frontend:
+
+- `api.zelohealth.app` → Fly app `zelo-api` (prod)
+- `api-dev.zelohealth.app` → Fly app `zelo-api-dev` (dev)
+
+Provisioned the same way as `dev.zelohealth.app` was: `fly certs add <domain> --app
+<app>`, then a DNS record at Cloudflare (Fly will print the exact A/AAAA or CNAME target
+once `certs add` runs). Both API domains end up same-site with both frontend domains
+(all four share the `zelohealth.app` registrable domain), so `SameSite=Lax` is valid
+everywhere, including between the dev frontend and dev API.
+
+`VITE_API_BASE_URL` changes to `https://api.zelohealth.app` (prod Vercel project) /
+`https://api-dev.zelohealth.app` (dev Vercel project) once each domain's cert is live.
+`CORS_ALLOWED_ORIGINS` is untouched (it already lists frontend origins).
+
+### 2. Backend: cookie issuance, guards, logout, `/me`
+
+- Add `cookie-parser` (`apps/api/package.json`), wired in `main.ts`.
+- `app.enableCors({ origin: resolveAllowedOrigins(), credentials: true })` — required for
+  the browser to send/receive the cookie cross-subdomain; `credentials: true` also means
+  `origin` must stay an explicit list, never `*` (already the case).
+- Each role's login use-case/controller (`manager.controller.ts`, `peer-
+  partner.controller.ts`, `admin.controller.ts`) stops returning `{token, expiresAt}` in
+  the body. Instead it calls `res.cookie(<name>, token, { httpOnly: true, secure: true,
+  sameSite: "lax", maxAge: 8 * 60 * 60 * 1000, path: "/" })` — no explicit `domain`
+  attribute, so the cookie is scoped strictly to the issuing API subdomain, not shared
+  across `*.zelohealth.app`. Cookie names, one per role to avoid collision: `manager_session`,
+  `peer_partner_session`, `admin_session`. The body still returns non-sensitive profile
+  info (`{name, role}` or equivalent) — the frontend needs *something* to show
+  immediately after login and to derive its optimistic flag from (§4).
+- Each guard (`manager-auth.guard.ts`, `peer-partner-auth.guard.ts`, `admin-
+  auth.guard.ts`) reads `req.cookies[<name>]` instead of parsing the `Authorization`
+  header. Verification logic (HMAC check, expiry, manager's live DB re-check) is
+  unchanged — only where the token comes from changes.
+- New `POST /manager/logout` (+ `/peer-partner/logout`, `/admin/logout`): clears the
+  cookie (`res.clearCookie(<name>, { path: "/" })`).
+- New `GET /manager/me` (+ `/peer-partner/me`, `/admin/me`): behind the same guard:
+  returns `200 {name, role, ...}` if the cookie is valid, relies on the guard's existing
+  `401` otherwise. This is what the frontend's route loader calls to confirm a session
+  it's optimistically trusting (§4).
+
+### 3. No CSRF token system
+
+`SameSite=Lax` already blocks the classic CSRF vector (a cross-site page triggering a
+state-changing request that carries the victim's cookie) for everything except top-level
+GET navigations, which don't mutate state here. Given the domain-sharing choice in §1,
+this is accepted as sufficient — no double-submit-cookie or synchronizer-token pattern
+is built. (If a role ever needs a legitimately cross-site integration later, that's the
+trigger to revisit.)
+
+### 4. Frontend: adapters, stores, router guards
+
+- Every HTTP adapter that calls a protected endpoint
+  (`http-manager-auth.adapter.ts`, `http-peer-partner-auth.adapter.ts`, the admin
+  equivalent, and any other adapter hitting a guarded route) adds `credentials:
+  "include"` to its `fetch` calls, so the browser attaches the cookie automatically.
+- The three zustand session stores drop `token`/`expiresAt` entirely — there is nothing
+  sensitive left to hold client-side. Each keeps a single non-sensitive flag (e.g.
+  `{loggedIn: boolean, name?: string}`), still `zustand persist` to `sessionStorage`
+  (tab-scoped, matches today), set from the login response body and cleared on
+  logout/401. This flag authenticates nothing by itself — it only exists so the router
+  can make an instant UI decision instead of blocking on a network round-trip.
+- Router loaders (`apps/web/src/app/router.tsx` — manager ~line 133, admin ~line 167,
+  peer-partner ~lines 175/180): read the local flag first for an immediate
+  render-or-redirect decision (no loading flash), and separately call the new `GET /me`
+  to confirm. If `/me` comes back 401, redirect to login even though the flag said
+  logged-in — the flag is a hint, `/me` is truth. Exact wiring (await vs.
+  fire-and-forget-then-correct) is an implementation-plan-level decision, not fixed here.
+- A shared 401 interceptor (new, or extending whatever the adapters already do) clears
+  the relevant store's flag and redirects to that role's login on any `401` from a
+  protected call — needed now because there's no client-side expiry to check ahead of
+  time anymore.
+
+### 5. Migration cutover
+
+Deploying this logs out every currently-active session with no migration path (old
+`sessionStorage` tokens become meaningless once guards stop reading the `Authorization`
+header) — accepted, since sessions expire in 8h anyway and this is a low-traffic app
+mid-buildout, not a live product with sessions that matter to preserve.
+
+## Out of scope
+
+- Fixing the pre-existing inconsistency where the manager guard re-checks the DB (live
+  deactivation) on every request while peer-partner/admin guards trust the token alone —
+  unrelated to storage mechanism, gets its own debt entry if pursued.
+- Peer-chat's WebSocket gateway auth — not yet confirmed whether it reads the same
+  session token. Verify during implementation; if it does, decide then whether the
+  Socket.IO handshake needs the same cookie treatment (`withCredentials`) as a follow-up
+  inside this same plan, or a separate one.
+- A CSRF-token system — deliberately not built (§3); revisit only if a role needs a
+  legitimately cross-site integration.
+- Rotating today's `MANAGER_TOKEN_SECRET`/`ADMIN_TOKEN_SECRET`/`PEER_PARTNER_TOKEN_SECRET`
+  — unrelated to where the token is stored client-side; out of scope here.
