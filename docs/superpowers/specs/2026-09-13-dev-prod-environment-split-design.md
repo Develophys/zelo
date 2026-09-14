@@ -30,7 +30,7 @@ project, own secrets) so nothing in dev can leak into or corrupt prod:
 | Domain | `zelohealth.app` | `dev.zelohealth.app` |
 | Deploy branch | `main` | `develop` |
 | Migrations | manual (`prisma migrate deploy`, run by hand) | automatic in CI |
-| `EMAIL_PROVIDER` | `resend` | `mock` (no real sends from a dev environment) |
+| `EMAIL_PROVIDER` | `resend` | `resend` (`env.validation.ts` requires `resend` whenever `NODE_ENV=production`, and dev boots with `NODE_ENV=production` too, same as prod — `mock` fails startup; discovered during rollout 2026-09-13) |
 | Token secrets | existing Fly secrets | freshly generated, independent values |
 
 Local day-to-day development (docker-compose Postgres via
@@ -54,6 +54,10 @@ machine) from this deployed dev environment.
     their result on PRs that touch the relevant paths — they're just not merge-blocking.
   - No minimum-approval-count requirement (solo dev) — the PR is the gate, not a second
     reviewer.
+  - `enforce_admins: true` on both — GitHub's default exempts repo admins from their own
+    branch protection, which would let the owner account keep pushing directly. Confirmed
+    the gap for real during rollout (a non-dry-run push to `main` succeeded with a
+    "Bypassed rule violations" notice before this was set) and closed it.
 - Flow going forward: work lands on `develop` via PR → auto-deploys to dev → once
   validated, PR `develop → main` → auto-deploys to prod.
 
@@ -69,8 +73,11 @@ machine) from this deployed dev environment.
   2026-08-04 secret-management spec used for prod) — a dev session token must never be
   valid against prod or vice versa.
 - `CORS_ALLOWED_ORIGINS` on `zelo-api-dev` contains only the dev Vercel domain.
-- `EMAIL_PROVIDER=mock` by default on dev (invite/reset links log to the Fly console
-  instead of sending real email).
+- `EMAIL_PROVIDER=resend` on dev, with its own `RESEND_API_KEY` — `mock` was the original
+  intent but `env.validation.ts` rejects it whenever `NODE_ENV=production`, and dev boots
+  with `NODE_ENV=production` too (same Dockerfile/fly.toml pattern as prod, discovered
+  when the first dev deploy crash-looped on this exact guard). Invite/reset emails from
+  dev are real sends — worth knowing when testing those flows there.
 - Migrations: a new CI job runs `prisma migrate deploy` automatically against the dev
   database on every push to `develop`, before the Fly deploy step. This differs from
   prod, where migrations stay manual — dev is lower-stakes and this removes a manual step

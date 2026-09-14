@@ -2,7 +2,7 @@ name: Web
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     paths: &web-paths
       - 'apps/web/**'
       - 'packages/domain/**'
@@ -16,19 +16,16 @@ on:
       - '.github/workflows/web.yml'
   pull_request:
     paths: *web-paths
-  workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages-${{ github.event_name == 'push' && 'prod' || github.ref }}
-  cancel-in-progress: false
+  group: web-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  test:
+  web-test:
     runs-on: ubuntu-latest
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
@@ -60,55 +57,3 @@ jobs:
 
       - name: Build
         run: pnpm turbo run build --filter=@zelo/web...
-
-  build:
-    needs: test
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'pnpm'
-
-      - name: Install dependencies (web + shared packages only)
-        run: pnpm install --frozen-lockfile --filter=@zelo/web...
-
-      - name: Configure Pages
-        id: pages
-        uses: actions/configure-pages@v5
-
-      - name: Build web (and its workspace deps) for deploy
-        run: pnpm turbo run build --filter=@zelo/web...
-        env:
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
-          VITE_BASE_PATH: ${{ steps.pages.outputs.base_path }}
-
-      - name: SPA fallback for deep-link refreshes
-        run: cp apps/web/dist/index.html apps/web/dist/404.html
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: apps/web/dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
