@@ -2,7 +2,7 @@ name: API
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     paths: &api-paths
       - 'apps/api/**'
       - 'packages/domain/**'
@@ -28,7 +28,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  test:
+  api-test:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -84,7 +84,7 @@ jobs:
         run: pnpm turbo run build --filter=@zelo/api...
 
   deploy:
-    needs: test
+    needs: api-test
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
@@ -101,3 +101,43 @@ jobs:
 
       - name: Verify deployment
         run: curl -sf https://zelo-api.fly.dev/health | grep -q '"status":"ok"'
+
+  deploy-dev:
+    needs: api-test
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
+      DIRECT_DATABASE_URL: ${{ secrets.DEV_DIRECT_DATABASE_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies (api + shared packages only)
+        run: pnpm install --frozen-lockfile --filter=@zelo/api...
+
+      - name: Generate Prisma Client
+        run: pnpm --filter @zelo/api exec prisma generate
+
+      - name: Apply database migrations (dev)
+        run: pnpm --filter @zelo/api exec prisma migrate deploy
+
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io (dev)
+        run: flyctl deploy --remote-only --config fly.dev.toml
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Verify deployment
+        run: curl -sf https://zelo-api-dev.fly.dev/health | grep -q '"status":"ok"'
