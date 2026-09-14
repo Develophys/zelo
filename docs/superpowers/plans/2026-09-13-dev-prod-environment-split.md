@@ -525,30 +525,42 @@ Vercel's UI itself failed to save).
   CNAME (`dev` → the target `vercel domains verify` printed, proxy OFF) was applied via
   Vercel's one-click Domain Connect URL and is now verified (✓ in the Domains panel).
 
-- [ ] **Step 4 — PARKED, Vercel-side issue, not resolved this session:** Production Branch
-  tracking. Project Settings → Environments → Production → Branch Tracking still reads
-  `main`. Tried: the dashboard UI (fails with "Failed to save branch tracking. Try again",
-  twice, different Request IDs), the legacy `PATCH /v9/projects/zelo-dev` API with
-  `link.productionBranch`/`gitConfig.productionBranch`/`productionBranch` (all rejected:
-  "should NOT have additional property"), and the newer
-  `GET /v9/projects/zelo-dev/environments` → confirmed the real field is
-  `branchMatcher: {type: "equals", pattern: "main"}` on the `production` system
-  environment, but `PATCH /v9/projects/zelo-dev/environments/production` 404s — no
-  working write path found. This looks like a genuine bug/incomplete rollout on Vercel's
-  side for this project, not a permissions or scope problem (the CLI token has full
-  account access). **Ruling:** proceed without it — it doesn't block anything else in this
-  plan (see Task 8/11 notes on the actual consequence) — and leave it for Mauricio to
-  retry later or raise with Vercel support (Request IDs:
-  `gru1:gru1:gru1:sfo1::p8qlk-1789347627263-b631561c9e4d`,
-  `gru1:gru1:gru1:sfo1::h5hzl-1789347664056-a67245b06b4f`).
+- [x] **Step 4 — RESOLVED with a different mechanism, not the one originally planned:**
+  Production Branch tracking itself is still broken (Project Settings → Environments →
+  Production → Branch Tracking still reads `main`, still fails to save via the dashboard
+  or any API path tried — `PATCH /v9/projects/zelo-dev` with `link.productionBranch` /
+  `gitConfig.productionBranch` / `productionBranch` all rejected as "should NOT have
+  additional property"; `POST /v9/projects/zelo-dev/link` returns 200 but silently
+  ignores `productionBranch`; `PATCH /v9/projects/zelo-dev/environments/production`
+  404s. Confirmed a genuine platform-side bug for this project, not a permissions
+  problem — Request IDs `gru1:gru1:gru1:sfo1::p8qlk-1789347627263-b631561c9e4d`,
+  `gru1:gru1:gru1:sfo1::h5hzl-1789347664056-a67245b06b4f`, left for Mauricio to raise with
+  Vercel support if he wants it fixed properly).
 
-**Consequence of the parked item:** the *first* deployment Vercel built for this project
-(triggered by a `develop` push right after `git connect`, before any branch-tracking
-config existed) was auto-treated as Production and got the custom domain — so
-`dev.zelohealth.app` is live and correct right now. But *future* pushes to `develop` will
-be treated as Preview deployments (a `vercel.app` preview URL, not the custom domain)
-until branch tracking is fixed. Task 11's "push a trivial change" step will surface this
-concretely.
+  Worked around it instead: `dev.zelohealth.app` doesn't need to be a *Production*
+  domain at all — Vercel domains support a `gitBranch` field that binds a domain
+  directly to a branch's Preview deployments, independent of which branch is configured
+  as Production. Set via API (no CLI flag exists for it):
+  `PATCH /v9/projects/zelo-dev/domains/dev.zelohealth.app` with `{"gitBranch":"develop"}`.
+  This is arguably a better fit for a solo-owner project than relying on
+  Production-Branch tracking anyway.
+
+  One side effect: binding a custom domain via `gitBranch` does **not** inherit
+  Production's "skip deployment protection for custom domains" exemption — the domain
+  immediately started redirecting to a Vercel SSO login page. Disabled SSO protection
+  for the whole project (`vercel project protection disable zelo-dev --sso`), acceptable
+  since dev is not sensitive data (same posture as prod being public).
+
+  Verified for real: pushed a commit to `develop` (via PR, branches are protected),
+  confirmed `vercel inspect https://dev.zelohealth.app` resolved to that new deployment,
+  and `curl` returned `200` with the actual app HTML (no SSO redirect).
+
+**Consequence, now closed:** `dev.zelohealth.app` tracks `develop` correctly on every
+push, via the domain's own `gitBranch` binding rather than the project's Production
+Branch setting. The Production Branch setting remaining stuck on `main` is now
+cosmetic/irrelevant to this domain — it just means this project's own default
+`zelo-dev.vercel.app` domain (unbound, `gitBranch: null`) still tracks `main` instead,
+which nothing depends on.
 
 ---
 
@@ -733,14 +745,12 @@ Result: `api-test` and `deploy-dev` both green (run `34795437290`).
 
 - [x] **Step 2: Confirm the dev site works end-to-end**
 
-`https://dev.zelohealth.app` returns `200`. **Known gap tied to Task 7's parked item:**
-this push landed as a Vercel *Preview* deployment (branch tracking still points at
-`main`, not `develop`), so the custom domain is still serving the earlier bootstrap
-Production deployment rather than this latest commit — functionally fine for now (same
-app), but new frontend changes on `develop` won't reach `dev.zelohealth.app` until
-Mauricio's branch-tracking fix lands. Full login-flow click-through in a browser wasn't
-done in this session (no browser tool available here) — worth Mauricio doing manually
-once branch tracking is fixed.
+`https://dev.zelohealth.app` returns `200`. At the time this step first ran, the site was
+still serving the earlier bootstrap Production deployment rather than this push (Task 7
+Step 4 was still broken then) — resolved afterward via the `gitBranch` domain-binding
+workaround; re-verified with a follow-up push that the domain now updates on every
+`develop` push. Full login-flow click-through in a browser still wasn't done in this
+session (no browser tool available here) — worth Mauricio doing manually.
 
 - [x] **Step 3: Confirm the protected-branch PR flow**
 
@@ -768,5 +778,5 @@ it's why the bypass was caught before it could matter.
 ## Post-plan cleanup (optional, not a task — ask Mauricio)
 
 - `VITE_API_BASE_URL` GitHub repo secret is now unused (only the removed Pages `build` job read it) — safe to `gh secret delete VITE_API_BASE_URL --repo Develophys/zelo` if Mauricio confirms nothing else depends on it.
-- Vercel `zelo-dev` project's Production Branch tracking (parked in Task 7) still needs a retry — see that task's notes and Request IDs.
+- Vercel `zelo-dev` project's Production Branch tracking still reads `main` and still can't be changed (Task 7 Step 4) — cosmetic now that `dev.zelohealth.app` no longer depends on it (works via `gitBranch` domain binding instead), but worth raising with Vercel support with the logged Request IDs if Mauricio wants it fixed properly. Its only live consequence: the project's own default `zelo-dev.vercel.app` domain still points at whatever's on `main`.
 - Rename the claimed Prisma Postgres dev project from its default timestamp name to something like `zelo-dev` (cosmetic, Prisma Console → Settings).

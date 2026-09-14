@@ -87,12 +87,21 @@ machine) from this deployed dev environment.
 
 ### 3. Frontend: Vercel + DNS
 
-- New Vercel project (created via the Vercel dashboard — this is a one-time manual step,
-  not something expressible as a repo file), same `apps/web/vercel.json` build config,
-  with:
-  - Production Branch set to `develop`.
-  - Custom domain `dev.zelohealth.app` (Vercel provides the exact CNAME target to add on
-    the registrar/DNS side once the domain is attached to the project).
+- New Vercel project — created via CLI (`vercel project add`/`link`/`git connect`), not
+  the dashboard as originally planned; Mauricio has the CLI installed and authenticated,
+  making this fully automatable — same `apps/web/vercel.json` build config, with:
+  - Custom domain `dev.zelohealth.app` bound directly to the `develop` branch's Preview
+    deployments via the domain's `gitBranch` field
+    (`PATCH /v9/projects/{id}/domains/{domain}` → `{"gitBranch":"develop"}`), **not**
+    Production Branch tracking. Production Branch tracking (`link.productionBranch` /
+    the newer per-environment `branchMatcher`) turned out to be broken for this
+    project on Vercel's side — confirmed via the dashboard and every API write path
+    tried — so the domain-level `gitBranch` binding is used instead; it doesn't depend
+    on that setting at all and arguably fits a solo-owner project better.
+  - SSO deployment protection disabled for the project (`vercel project protection
+    disable --sso`) — binding a domain via `gitBranch` doesn't inherit Production's
+    protection-exemption for custom domains, so without this the domain redirected to a
+    Vercel login page.
   - `VITE_API_BASE_URL` pointed at the dev API.
 - The dev API itself is reached at its default `zelo-api-dev.fly.dev` hostname — no custom
   domain or cert needed for the API, only the frontend gets the friendly subdomain.
