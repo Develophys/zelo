@@ -24,7 +24,7 @@
 
 **Files:** none (git branch only)
 
-- [ ] **Step 1: Create and push the branch**
+- [x] **Step 1: Create and push the branch**
 
 ```bash
 git checkout main
@@ -34,7 +34,7 @@ git push -u origin develop
 git checkout main
 ```
 
-- [ ] **Step 2: Verify it exists on GitHub**
+- [x] **Step 2: Verify it exists on GitHub**
 
 ```bash
 gh api repos/Develophys/zelo/branches/develop -q .name
@@ -52,7 +52,7 @@ Expected: prints `develop`.
 **Interfaces:**
 - Produces: `DATABASE_URL` / `DIRECT_DATABASE_URL` values in `apps/api/.env.dev-remote.local`, consumed by Task 3 (Fly secrets), Task 4 (CI migration secrets), and Task 9 (seeding).
 
-- [ ] **Step 1 (CONFIRM with Mauricio before running — creates a real cloud resource): Provision the database**
+- [x] **Step 1 (CONFIRM with Mauricio before running — creates a real cloud resource): Provision the database**
 
 Run from `apps/api/`:
 
@@ -62,7 +62,7 @@ npx create-db@latest --json --region us-east-1 --env .env.dev-remote.local
 
 This writes `DATABASE_URL` and `CLAIM_URL` into `apps/api/.env.dev-remote.local` and prints the same JSON to stdout. The database is temporary (auto-deletes in ~24h) until claimed.
 
-- [ ] **Step 2: Add the direct URL alongside it**
+- [x] **Step 2: Add the direct URL alongside it**
 
 `prisma.config.ts` reads `DIRECT_DATABASE_URL` for migrations, `PrismaService` reads `DATABASE_URL` at runtime — prod sets both to the identical connection string, so do the same here. Open `apps/api/.env.dev-remote.local` and duplicate the value:
 
@@ -80,11 +80,11 @@ cat apps/api/.env.dev-remote.local
 
 Expected: file now has `DATABASE_URL`, `CLAIM_URL`, and `DIRECT_DATABASE_URL` (same value as `DATABASE_URL`).
 
-- [ ] **Step 3: Hand the claim URL to Mauricio**
+- [x] **Step 3: Hand the claim URL to Mauricio**
 
 Read the `CLAIM_URL` line from `apps/api/.env.dev-remote.local` and tell Mauricio to open it in a browser and claim the database into his existing Prisma workspace — this is the one step only he can do (it's tied to his Prisma account login). Without this, the database auto-deletes in ~24h.
 
-- [ ] **Step 4: Verify connectivity**
+- [x] **Step 4: Verify connectivity**
 
 ```bash
 cd apps/api
@@ -105,7 +105,7 @@ Expected: no error (empty success output).
 - Consumes: `apps/api/.env.dev-remote.local`'s `DATABASE_URL`/`DIRECT_DATABASE_URL` (Task 2).
 - Produces: a running `zelo-api-dev` Fly app reachable at `https://zelo-api-dev.fly.dev/health`, consumed by Task 4's CI job and Task 8's CORS update.
 
-- [ ] **Step 1 (CONFIRM with Mauricio — creates a billable Fly app): Create the Fly app**
+- [x] **Step 1 (CONFIRM with Mauricio — creates a billable Fly app): Create the Fly app**
 
 ```bash
 fly apps create zelo-api-dev --org personal
@@ -113,7 +113,7 @@ fly apps create zelo-api-dev --org personal
 
 Expected: `New app created: zelo-api-dev`.
 
-- [ ] **Step 2: Add `fly.dev.toml`**
+- [x] **Step 2: Add `fly.dev.toml`**
 
 ```toml
 app = "zelo-api-dev"
@@ -138,7 +138,7 @@ primary_region = "gru"
     timeout = "5s"
 ```
 
-- [ ] **Step 3: Generate three fresh token secrets**
+- [x] **Step 3: Generate three fresh token secrets**
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
@@ -148,7 +148,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 Keep the three printed values — they go to `MANAGER_TOKEN_SECRET`, `ADMIN_TOKEN_SECRET`, `PEER_PARTNER_TOKEN_SECRET` respectively in the next step. They must be different from prod's values.
 
-- [ ] **Step 4: Set the Fly secrets**
+- [x] **Step 4: Set the Fly secrets**
 
 Run from `apps/api/`, with `.env.dev-remote.local` sourced (Task 2):
 
@@ -160,16 +160,24 @@ fly secrets set \
   MANAGER_TOKEN_SECRET="<value 1 from Step 3>" \
   ADMIN_TOKEN_SECRET="<value 2 from Step 3>" \
   PEER_PARTNER_TOKEN_SECRET="<value 3 from Step 3>" \
-  EMAIL_PROVIDER=mock \
+  EMAIL_PROVIDER=resend \
+  RESEND_API_KEY="<a real Resend API key — see note below>" \
   AI_PROVIDER=mock \
   CORS_ALLOWED_ORIGINS=http://localhost:5173 \
   WEB_APP_BASE_URL=https://zelo-api-dev.fly.dev \
   --app zelo-api-dev
 ```
 
+`EMAIL_PROVIDER=mock` was the original plan for dev, but `env.validation.ts` requires
+`resend` whenever `NODE_ENV=production` — and `fly.dev.toml` sets `NODE_ENV=production`
+just like prod's `fly.toml` does, so `mock` fails validation at boot and crash-loops the
+machine. Use `resend` with a real `RESEND_API_KEY` (a dedicated dev key, or reuse prod's —
+Fly secrets are write-only so prod's value can't be read back; get it from Mauricio or the
+Resend dashboard). Invite/reset emails sent from dev are real sends as a result.
+
 `CORS_ALLOWED_ORIGINS` and `WEB_APP_BASE_URL` are temporary values here — Task 8 updates both once the real dev frontend domain exists (`env.validation.ts` requires `WEB_APP_BASE_URL` to not be the localhost default in production, so it needs *some* non-localhost value from the start; the Fly hostname is a safe placeholder until Task 7/8).
 
-- [ ] **Step 5: Apply the first migration manually**
+- [x] **Step 5: Apply the first migration manually**
 
 ```bash
 cd apps/api
@@ -180,13 +188,13 @@ NODE_ENV=production DATABASE_URL="$DATABASE_URL" DIRECT_DATABASE_URL="$DIRECT_DA
 
 Expected: `All migrations have been successfully applied.`
 
-- [ ] **Step 6: Deploy**
+- [x] **Step 6: Deploy**
 
 ```bash
 flyctl deploy --remote-only --config fly.dev.toml --app zelo-api-dev
 ```
 
-- [ ] **Step 7: Verify**
+- [x] **Step 7: Verify**
 
 ```bash
 curl -sf https://zelo-api-dev.fly.dev/health
@@ -194,12 +202,20 @@ curl -sf https://zelo-api-dev.fly.dev/health
 
 Expected: `{"status":"ok"}` (or equivalent — matches what `zelo-api.fly.dev/health` returns today).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add fly.dev.toml
 git commit -m "feat(deploy): add zelo-api-dev Fly app config"
 ```
+
+Also fixed along the way: the repo's root `.dockerignore` already existed (excluding
+`.env`/`.env.*` to prevent secret leaks into images) but a stray command earlier in this
+task's execution ran from `apps/api/` instead of repo root, didn't find it there, and
+wrote a replacement that dropped those exclusions. Verified via `fly ssh console` that no
+`.env` actually leaked into the built image (turbo prune respects `.gitignore`
+independently), then restored the original exclusions (commit `a0ba361`) and redeployed
+clean.
 
 ---
 
@@ -209,9 +225,9 @@ git commit -m "feat(deploy): add zelo-api-dev Fly app config"
 - Modify: `.github/workflows/api.yml`
 
 **Interfaces:**
-- Consumes: `zelo-api-dev` Fly app (Task 3), `DEV_DATABASE_URL`/`DEV_DIRECT_DATABASE_URL` GitHub secrets (this task creates them from Task 2's values), existing `FLY_API_TOKEN` repo secret (reused as-is — same Fly account owns both apps).
+- Consumes: `zelo-api-dev` Fly app (Task 3), `DEV_DATABASE_URL`/`DEV_DIRECT_DATABASE_URL` GitHub secrets (this task creates them from Task 2's values), a new `FLY_API_TOKEN_DEV` repo secret (Fly deploy tokens are app-scoped — the existing `FLY_API_TOKEN` is scoped to `zelo-api` only and returns "unauthorized" against `zelo-api-dev`; discovered on the first real CI run, fixed by minting a token scoped to `zelo-api-dev` via `fly tokens create deploy -a zelo-api-dev`).
 
-- [ ] **Step 1: Add the dev DB GitHub secrets**
+- [x] **Step 1: Add the dev DB GitHub secrets**
 
 ```bash
 cd apps/api
@@ -220,7 +236,7 @@ gh secret set DEV_DATABASE_URL --repo Develophys/zelo --body "$DATABASE_URL"
 gh secret set DEV_DIRECT_DATABASE_URL --repo Develophys/zelo --body "$DIRECT_DATABASE_URL"
 ```
 
-- [ ] **Step 2: Allow `develop` to trigger the workflow, and rename the `test` job**
+- [x] **Step 2: Allow `develop` to trigger the workflow, and rename the `test` job**
 
 `web.yml` also has a job called `test` (unqualified) — GitHub Actions reports a check run's
 name from the job id, so two same-named jobs in different workflows produce an ambiguous
@@ -245,7 +261,7 @@ on:
 
 and rename the job id `test:` (the line right after `jobs:`) to `api-test:`.
 
-- [ ] **Step 3: Add the `deploy-dev` job**
+- [x] **Step 3: Add the `deploy-dev` job**
 
 Also update the existing `deploy` job's `needs: test` to `needs: api-test`. Then append
 this new job at the end of `.github/workflows/api.yml` (sibling to `deploy`):
@@ -286,20 +302,23 @@ this new job at the end of `.github/workflows/api.yml` (sibling to `deploy`):
       - name: Deploy to Fly.io (dev)
         run: flyctl deploy --remote-only --config fly.dev.toml
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_DEV }}
 
       - name: Verify deployment
         run: curl -sf https://zelo-api-dev.fly.dev/health | grep -q '"status":"ok"'
 ```
 
-- [ ] **Step 4: Commit**
+(Note: this brief originally said `secrets.FLY_API_TOKEN` — corrected to `FLY_API_TOKEN_DEV`
+after the first real run failed with "unauthorized"; see the Interfaces note above.)
+
+- [x] **Step 4: Commit**
 
 ```bash
 git add .github/workflows/api.yml
 git commit -m "ci(api): auto-deploy zelo-api-dev on push to develop"
 ```
 
-- [ ] **Step 5: Push and watch a real run (do not skip — CI changes are only verified by a real Actions run)**
+- [x] **Step 5: Push and watch a real run (do not skip — CI changes are only verified by a real Actions run)**
 
 ```bash
 git push origin develop
@@ -319,7 +338,7 @@ curl -sf https://zelo-api-dev.fly.dev/health
 **Files:**
 - Modify: `.github/workflows/web.yml`
 
-- [ ] **Step 1: Replace the file's `on`/`permissions`/`concurrency` header, and rename the `test` job**
+- [x] **Step 1: Replace the file's `on`/`permissions`/`concurrency` header, and rename the `test` job**
 
 Also rename this file's job id `test:` (the line right after `jobs:`) to `web-test:` —
 `api.yml`'s job is being renamed to `api-test` in Task 4 for the same reason: two
@@ -384,18 +403,18 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 ```
 
-- [ ] **Step 2: Delete the `build` and `deploy` jobs**
+- [x] **Step 2: Delete the `build` and `deploy` jobs**
 
 Remove everything from `  build:` (the job that runs `actions/configure-pages`, builds with `VITE_API_BASE_URL`, and uploads the Pages artifact) through the end of the `  deploy:` job (the `actions/deploy-pages@v4` step) — i.e. delete from the line `  build:` to the end of the file. The file should end with the `test` job's `Build` step.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add .github/workflows/web.yml
 git commit -m "ci(web): retire the unused GitHub Pages deploy (Vercel is the live frontend)"
 ```
 
-- [ ] **Step 4: Push and watch a real run**
+- [x] **Step 4: Push and watch a real run**
 
 ```bash
 git push origin develop
@@ -406,7 +425,7 @@ Expected: only the `web-test` job runs, no Pages deploy job appears, and it succ
 
 ---
 
-### Task 6: Protect `main` and `develop`
+### Task 6: Protect `main` and `develop` (DEFERRED — Mauricio asked to do this last, after every other adjustment in this session lands, so the remaining tasks aren't slowed by required PRs mid-flight)
 
 **Files:** none (GitHub repo settings only)
 
@@ -542,7 +561,7 @@ Then, in a browser, load `https://dev.zelohealth.app`, and log in with a seeded 
 **Interfaces:**
 - Consumes: `apps/api/.env.dev-remote.local` (Task 2).
 
-- [ ] **Step 1: Run the seed**
+- [x] **Step 1: Run the seed**
 
 ```bash
 cd apps/api
@@ -552,19 +571,12 @@ NODE_ENV=production pnpm prisma:seed
 
 (`NODE_ENV=production` here only affects `env.validation.ts`'s startup guards if the seed script went through Nest's `ConfigModule` — it doesn't, `seed.ts` constructs `PrismaService` directly like `create-super-admin.ts` did for prod — so `NODE_ENV` isn't actually required for this command to work; setting it is harmless and keeps the invocation consistent with how prod scripts are run. If it's simpler, plain `pnpm prisma:seed` with `.env.dev-remote.local` sourced works identically.)
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
-```bash
-pnpm exec tsx -e "
-import { PrismaService } from './src/shared/prisma/prisma.service.ts';
-const prisma = new PrismaService();
-const institutions = await prisma.institution.findMany({ select: { name: true } });
-console.log(institutions);
-await prisma.\$disconnect();
-"
-```
-
-Expected: prints the demo institutions (`Zelo Demo`, `Hospital São Lucas (Demo)`).
+`tsx -e` with top-level `await` doesn't work as written above (esbuild treats `-e` input as
+CJS and rejects top-level await) — use a small `.mts` file with the query wrapped in an
+`async function main() { ... } main();` instead. Confirmed: dev has `Zelo Demo` and
+`Hospital São Lucas (Demo)`.
 
 ---
 
@@ -575,14 +587,14 @@ Expected: prints the demo institutions (`Zelo Demo`, `Hospital São Lucas (Demo)
 - Create: new `apps/api/.env` (dev-safe defaults)
 - Modify: `README.md` (Deployment section)
 
-- [ ] **Step 1: Rename the prod file**
+- [x] **Step 1: Rename the prod file**
 
 ```bash
 cd apps/api
 mv .env .env.production.local
 ```
 
-- [ ] **Step 2: Create a new, dev-safe `.env`**
+- [x] **Step 2: Create a new, dev-safe `.env`**
 
 Copy the current `apps/api/.env.development.local` content into the new `apps/api/.env` (same docker-Postgres defaults), so a bare command run without `NODE_ENV` set can never reach prod:
 
@@ -590,7 +602,7 @@ Copy the current `apps/api/.env.development.local` content into the new `apps/ap
 cp .env.development.local .env
 ```
 
-- [ ] **Step 3: Verify nothing broke**
+- [x] **Step 3: Verify nothing broke**
 
 ```bash
 pnpm dev &
@@ -601,7 +613,7 @@ kill %1
 
 Expected: `{"status":"ok"}` — confirms local dev still boots against the docker Postgres, not prod.
 
-- [ ] **Step 4: Update `README.md`'s Deployment section**
+- [x] **Step 4: Update `README.md`'s Deployment section**
 
 Replace:
 
@@ -655,7 +667,7 @@ credentials), `.env.production.local` (prod secrets, only loaded when
 against it).
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add README.md
