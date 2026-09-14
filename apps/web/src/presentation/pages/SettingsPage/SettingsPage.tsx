@@ -22,7 +22,7 @@ export function SettingsPage() {
         />
       </div>
 
-      <div className="mt-8 border-t border-line pt-6">
+      <div className="mt-8 border-t border-line pt-6 pb-6">
         <p className="text-label font-extrabold text-ink">Sou gestor ou par voluntário</p>
         <p className="mt-1 text-caption text-muted">Acesso separado, fora da sua conta anônima.</p>
         <div className="mt-3 flex flex-col gap-2">
