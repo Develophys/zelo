@@ -160,15 +160,23 @@ Deploying this logs out every currently-active session with no migration path (o
 header) — accepted, since sessions expire in 8h anyway and this is a low-traffic app
 mid-buildout, not a live product with sessions that matter to preserve.
 
+## Resolved during plan-writing
+
+- **Peer-chat's WebSocket gateway auth is in scope, not out of it.** Confirmed:
+  `peer-chat.gateway.ts`'s `handleConnection` reads `client.handshake.auth?.token` —
+  the *only* place PeerPartner's session is checked after login; PeerPartner has no
+  authenticated REST surface of its own beyond login/logout/`me`. Left unmigrated, the
+  chat would have no way to authenticate at all once the token stops living in
+  client-side JS. The gateway now reads the token from the handshake's `Cookie` header
+  instead (parsed with the `cookie` package — Socket.IO doesn't parse cookies itself),
+  the client connects with `withCredentials: true` instead of `auth: { token }`, and the
+  gateway's own CORS gets `credentials: true` too. See the implementation plan's Task 5.
+
 ## Out of scope
 
 - Fixing the pre-existing inconsistency where the manager guard re-checks the DB (live
   deactivation) on every request while peer-partner/admin guards trust the token alone —
   unrelated to storage mechanism, gets its own debt entry if pursued.
-- Peer-chat's WebSocket gateway auth — not yet confirmed whether it reads the same
-  session token. Verify during implementation; if it does, decide then whether the
-  Socket.IO handshake needs the same cookie treatment (`withCredentials`) as a follow-up
-  inside this same plan, or a separate one.
 - A CSRF-token system — deliberately not built (§3); revisit only if a role needs a
   legitimately cross-site integration.
 - Rotating today's `MANAGER_TOKEN_SECRET`/`ADMIN_TOKEN_SECRET`/`PEER_PARTNER_TOKEN_SECRET`
