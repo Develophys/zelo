@@ -742,16 +742,31 @@ Mauricio's branch-tracking fix lands. Full login-flow click-through in a browser
 done in this session (no browser tool available here) — worth Mauricio doing manually
 once branch tracking is fixed.
 
-- [ ] **Step 3 — DEFERRED alongside Task 6: Confirm the protected-branch PR flow**
+- [x] **Step 3: Confirm the protected-branch PR flow**
 
-```bash
-gh pr create --repo Develophys/zelo --base main --head develop --title "Verify develop -> main protected flow" --body "One-time verification that the develop -> main promotion path works under branch protection."
-```
+Also caught for real here (not just Task 6's own check): the tracking-doc commit for
+Task 6 itself couldn't be pushed straight to `develop` anymore — protection applies to
+every branch it's set on, including the one currently checked out. Went through a real
+PR (`#23`, `chore/task6-tracking` → `develop`) to land it, which incidentally is a second,
+independent confirmation that the PR-only flow works.
 
-Merge it via `gh pr merge` (or the GitHub UI) once its required check passes, and confirm the prod `deploy` job on `api.yml` fires and `https://zelo-api.fly.dev/health` still returns OK afterward (prod code didn't change, so this should be a no-op deploy — the point is confirming the merge mechanics work, not that anything changed).
+Then the actual Step 3 verification: PR `#24` (`develop` → `main`), merged via
+`gh pr merge 24 --merge`. Triggered a real `push` to `main`: `api-test` and `deploy` both
+green, `deploy-dev` correctly skipped (`if` condition didn't match `main`'s ref), `web`
+workflow green, and `https://zelo-api.fly.dev/health` confirmed healthy afterward — a
+true no-op deploy, prod app code untouched.
+
+One side effect worth recording: before Task 6's `enforce_admins` fix landed, the
+*first* protection smoke-test push (an empty commit) got through as an admin-bypassed
+direct push to `main` and actually triggered a real (harmless, no-op) prod deploy —
+visible in Actions history as `chore: protection smoke test (should be rejected)`. No
+consequence (zero file changes, prod already confirmed healthy before and after), but
+it's why the bypass was caught before it could matter.
 
 ---
 
 ## Post-plan cleanup (optional, not a task — ask Mauricio)
 
 - `VITE_API_BASE_URL` GitHub repo secret is now unused (only the removed Pages `build` job read it) — safe to `gh secret delete VITE_API_BASE_URL --repo Develophys/zelo` if Mauricio confirms nothing else depends on it.
+- Vercel `zelo-dev` project's Production Branch tracking (parked in Task 7) still needs a retry — see that task's notes and Request IDs.
+- Rename the claimed Prisma Postgres dev project from its default timestamp name to something like `zelo-dev` (cosmetic, Prisma Console → Settings).
