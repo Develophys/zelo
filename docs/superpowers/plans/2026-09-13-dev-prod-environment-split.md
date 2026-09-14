@@ -501,27 +501,55 @@ git push origin HEAD:main --dry-run
 
 ---
 
-### Task 7: Vercel dev project + DNS (manual — Mauricio only)
+### Task 7: Vercel dev project + DNS
 
 **Files:** none (external dashboards)
 
-This task cannot be done by an agent — it needs interactive access to the Vercel dashboard and the domain registrar. Hand these exact instructions to Mauricio:
+Revised in execution: Mauricio has the Vercel CLI installed and authenticated, so this
+turned out mostly automatable — only two sub-steps genuinely needed his own
+account/browser (domain DNS approval, and — it turned out — branch tracking, which
+Vercel's UI itself failed to save).
 
-- [ ] **Step 1: Create the Vercel project**
+- [x] **Step 1: Create the Vercel project** — done via CLI: `vercel project add zelo-dev`,
+  `vercel project update zelo-dev --root-directory apps/web --framework vite --yes`,
+  `vercel link --project zelo-dev --yes` (from a scratch dir, to avoid touching
+  `apps/web/.vercel/project.json`, which stays linked to prod), then
+  `vercel git connect https://github.com/Develophys/zelo.git --yes`.
 
-In the Vercel dashboard: New Project → import the same `Develophys/zelo` repo again as a second project. Root directory / build settings: leave as whatever `apps/web/vercel.json` already specifies (same repo, same config file is picked up automatically). Set **Production Branch** to `develop` in the new project's Settings → Git.
+- [x] **Step 2: Set the env var** — done via CLI:
+  `vercel env add VITE_API_BASE_URL production --value "https://zelo-api-dev.fly.dev" --yes --project zelo-dev`
+  and the same for `preview --git-branch develop` (belt-and-suspenders while branch
+  tracking below was unresolved).
 
-- [ ] **Step 2: Set the env var**
+- [x] **Step 3: Add the custom domain** — done via CLI:
+  `vercel domains add dev.zelohealth.app zelo-dev`. DNS is Cloudflare-hosted; the
+  CNAME (`dev` → the target `vercel domains verify` printed, proxy OFF) was applied via
+  Vercel's one-click Domain Connect URL and is now verified (✓ in the Domains panel).
 
-In the new project's Settings → Environment Variables, add `VITE_API_BASE_URL` = `https://zelo-api-dev.fly.dev` (or the custom API domain, if Mauricio later adds one — out of scope here per the spec).
+- [ ] **Step 4 — PARKED, Vercel-side issue, not resolved this session:** Production Branch
+  tracking. Project Settings → Environments → Production → Branch Tracking still reads
+  `main`. Tried: the dashboard UI (fails with "Failed to save branch tracking. Try again",
+  twice, different Request IDs), the legacy `PATCH /v9/projects/zelo-dev` API with
+  `link.productionBranch`/`gitConfig.productionBranch`/`productionBranch` (all rejected:
+  "should NOT have additional property"), and the newer
+  `GET /v9/projects/zelo-dev/environments` → confirmed the real field is
+  `branchMatcher: {type: "equals", pattern: "main"}` on the `production` system
+  environment, but `PATCH /v9/projects/zelo-dev/environments/production` 404s — no
+  working write path found. This looks like a genuine bug/incomplete rollout on Vercel's
+  side for this project, not a permissions or scope problem (the CLI token has full
+  account access). **Ruling:** proceed without it — it doesn't block anything else in this
+  plan (see Task 8/11 notes on the actual consequence) — and leave it for Mauricio to
+  retry later or raise with Vercel support (Request IDs:
+  `gru1:gru1:gru1:sfo1::p8qlk-1789347627263-b631561c9e4d`,
+  `gru1:gru1:gru1:sfo1::h5hzl-1789347664056-a67245b06b4f`).
 
-- [ ] **Step 3: Add the custom domain**
-
-In the new project's Settings → Domains, add `dev.zelohealth.app`. Vercel will display a CNAME target (e.g. `cname.vercel-dns.com`) — add that as a CNAME record for the `dev` subdomain at whatever registrar/DNS provider hosts `zelohealth.app`.
-
-- [ ] **Step 4: Verify**
-
-Once DNS propagates (can take a few minutes to a few hours), Mauricio confirms `https://dev.zelohealth.app` loads the app shell (login page will still fail until Task 8 updates the API's CORS/`WEB_APP_BASE_URL`).
+**Consequence of the parked item:** the *first* deployment Vercel built for this project
+(triggered by a `develop` push right after `git connect`, before any branch-tracking
+config existed) was auto-treated as Production and got the custom domain — so
+`dev.zelohealth.app` is live and correct right now. But *future* pushes to `develop` will
+be treated as Preview deployments (a `vercel.app` preview URL, not the custom domain)
+until branch tracking is fixed. Task 11's "push a trivial change" step will surface this
+concretely.
 
 ---
 
@@ -532,7 +560,7 @@ Once DNS propagates (can take a few minutes to a few hours), Mauricio confirms `
 **Interfaces:**
 - Consumes: `dev.zelohealth.app` being live (Task 7).
 
-- [ ] **Step 1: Update the Fly secrets**
+- [x] **Step 1: Update the Fly secrets**
 
 ```bash
 fly secrets set \
@@ -543,7 +571,7 @@ fly secrets set \
 
 (`fly secrets set` triggers an automatic rolling restart — same behavior as documented in the README for prod.)
 
-- [ ] **Step 2: Verify end-to-end**
+- [x] **Step 2: Verify end-to-end**
 
 ```bash
 fly status --app zelo-api-dev
@@ -682,24 +710,40 @@ git commit -m "docs(deploy): document the dev/prod environment split and reorgan
 
 **Files:** none
 
-- [ ] **Step 1: Push a trivial change through the full dev pipeline**
+- [x] **Step 1: Push a trivial change through the full dev pipeline**
+
+Correction while executing: `git commit --allow-empty` with nothing staged produces a
+commit that touches zero files — it never triggers a `paths:`-filtered workflow at all.
+`echo "" >> apps/api/README.md` also silently did nothing useful the first time because
+the created file was never `git add`ed. Fixed by actually creating
+`apps/api/README.md` (a real pointer-stub file, not a throwaway blank line) and
+committing it for real:
 
 ```bash
 git checkout develop
 git pull origin develop
-echo "" >> apps/api/README.md 2>/dev/null || true
-git commit --allow-empty -m "chore: verify dev pipeline end-to-end"
+# create/edit an actual file under apps/api/, then:
+git add apps/api/README.md
+git commit -m "chore: verify dev pipeline end-to-end"
 git push origin develop
 gh run watch --repo Develophys/zelo
 ```
 
-Expected: `test` and `deploy-dev` both green.
+Result: `api-test` and `deploy-dev` both green (run `34795437290`).
+`curl https://zelo-api-dev.fly.dev/health` → `{"status":"ok","database":true}`.
 
-- [ ] **Step 2: Confirm the dev site works end-to-end**
+- [x] **Step 2: Confirm the dev site works end-to-end**
 
-Open `https://dev.zelohealth.app` in a browser, log in as one of the seeded demo managers (from Task 9's seed roster), confirm the dashboard loads.
+`https://dev.zelohealth.app` returns `200`. **Known gap tied to Task 7's parked item:**
+this push landed as a Vercel *Preview* deployment (branch tracking still points at
+`main`, not `develop`), so the custom domain is still serving the earlier bootstrap
+Production deployment rather than this latest commit — functionally fine for now (same
+app), but new frontend changes on `develop` won't reach `dev.zelohealth.app` until
+Mauricio's branch-tracking fix lands. Full login-flow click-through in a browser wasn't
+done in this session (no browser tool available here) — worth Mauricio doing manually
+once branch tracking is fixed.
 
-- [ ] **Step 3: Confirm the protected-branch PR flow**
+- [ ] **Step 3 — DEFERRED alongside Task 6: Confirm the protected-branch PR flow**
 
 ```bash
 gh pr create --repo Develophys/zelo --base main --head develop --title "Verify develop -> main protected flow" --body "One-time verification that the develop -> main promotion path works under branch protection."
