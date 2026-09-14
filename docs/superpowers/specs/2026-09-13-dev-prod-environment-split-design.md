@@ -54,6 +54,10 @@ machine) from this deployed dev environment.
     their result on PRs that touch the relevant paths — they're just not merge-blocking.
   - No minimum-approval-count requirement (solo dev) — the PR is the gate, not a second
     reviewer.
+  - `enforce_admins: true` on both — GitHub's default exempts repo admins from their own
+    branch protection, which would let the owner account keep pushing directly. Confirmed
+    the gap for real during rollout (a non-dry-run push to `main` succeeded with a
+    "Bypassed rule violations" notice before this was set) and closed it.
 - Flow going forward: work lands on `develop` via PR → auto-deploys to dev → once
   validated, PR `develop → main` → auto-deploys to prod.
 
