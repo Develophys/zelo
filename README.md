@@ -117,15 +117,35 @@ Tear down with `docker compose down` (add `-v` to also wipe the Postgres volume)
 
 ## Deployment
 
-- **`apps/api`** deploys to Fly.io (`zelo-api`), backed by Neon Postgres.
-- **`apps/web`** deploys to GitHub Pages.
-- **`apps/web`** also packages as an installable Android APK via Capacitor — see [`docs/android-apk.md`](docs/android-apk.md).
+Two independent environments, each with its own Fly app, Prisma Postgres database, and
+Vercel project:
 
-Both auto-deploy from `main` via `.github/workflows/api.yml` / `web.yml`, gated on changes to the relevant app plus `packages/domain`/`packages/config`. Migrations are **not** run on container boot — apply them manually before deploying a schema change:
+| | Prod | Dev |
+|---|---|---|
+| Branch | `main` | `develop` |
+| API | `zelo-api` (Fly) | `zelo-api-dev` (Fly) |
+| Web | `zelohealth.app` (Vercel) | `dev.zelohealth.app` (Vercel) |
+| Migrations | manual (see below) | automatic in CI |
+
+`main` and `develop` are both protected — all changes land via PR. `apps/web` also
+packages as an installable Android APK via Capacitor — see
+[`docs/android-apk.md`](docs/android-apk.md).
+
+Both apps auto-deploy from their branch via `.github/workflows/api.yml` (`deploy` /
+`deploy-dev` jobs); the Vercel projects deploy via Vercel's own git integration, not
+GitHub Actions. Prod migrations are **not** run on container boot — apply them manually
+before deploying a schema change:
 
 ```bash
-pnpm --filter @zelo/api exec prisma migrate deploy   # DIRECT_DATABASE_URL must point at Neon
+pnpm --filter @zelo/api exec prisma migrate deploy   # DIRECT_DATABASE_URL must point at prod (apps/api/.env.production.local)
 ```
+
+Local `apps/api` env files: `.env` (safe dev defaults, used by bare `pnpm dev`),
+`.env.development.local` (per-developer local overrides, e.g. docker Postgres
+credentials), `.env.production.local` (prod secrets, only loaded when
+`NODE_ENV=production` — used for the manual migration command above), and
+`.env.dev-remote.local` (the deployed dev environment's database, for one-off scripts
+against it).
 
 ### Secrets (Fly.io)
 
