@@ -1,25 +1,26 @@
 import { useState } from "react";
-import { isValidEmail } from "@/presentation/lib/validate-email";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "@/stores/toast.store";
 import { useCreateManager } from "@/presentation/hooks/useCreateManager";
 import { useCreateSector } from "@/presentation/hooks/useCreateSector";
+import { managerFormSchema, type ManagerFormValues } from "./manager-form-schema";
 import type { ManagerRole } from "./manager-columns";
 
 /** `form` is the manager fields; the other two are the no-sector detour. */
 export type CreateStep = "form" | "confirm-no-sector" | "create-sector";
 
-/**
- * The "add manager" wizard: the manager fields, plus the detour a
- * SECTOR_MANAGER with no sector takes — confirm the pending registration, or
- * create a sector inline and come back with it selected.
- */
+/** The "add manager" wizard: the manager fields, plus the no-sector detour. */
 export function useManagerCreateFlow({ onCreated }: { onCreated(): void }) {
   const createManager = useCreateManager();
   const createSector = useCreateSector();
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [emailTouched, setEmailTouched] = useState(false);
+  const form = useForm<ManagerFormValues>({
+    resolver: zodResolver(managerFormSchema),
+    defaultValues: { name: "", email: "" },
+    mode: "onBlur",
+  });
+
   const [role, setRole] = useState<ManagerRole>("SECTOR_MANAGER");
   const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
   const [step, setStep] = useState<CreateStep>("form");
@@ -27,9 +28,7 @@ export function useManagerCreateFlow({ onCreated }: { onCreated(): void }) {
   const [newSectorInviteCode, setNewSectorInviteCode] = useState("");
 
   const reset = () => {
-    setName("");
-    setEmail("");
-    setEmailTouched(false);
+    form.reset({ name: "", email: "" });
     setRole("SECTOR_MANAGER");
     setSelectedSectorIds([]);
     setStep("form");
@@ -43,10 +42,10 @@ export function useManagerCreateFlow({ onCreated }: { onCreated(): void }) {
     );
   };
 
-  const submit = () => {
+  const submit = (values: ManagerFormValues) => {
     const isPendingSectorAssignment = role === "SECTOR_MANAGER" && selectedSectorIds.length === 0;
     createManager.mutate(
-      { name, email, role, sectorIds: role === "SECTOR_MANAGER" ? selectedSectorIds : undefined },
+      { ...values, role, sectorIds: role === "SECTOR_MANAGER" ? selectedSectorIds : undefined },
       {
         onSuccess: (result) => {
           toast.success(
@@ -60,17 +59,17 @@ export function useManagerCreateFlow({ onCreated }: { onCreated(): void }) {
     );
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = form.handleSubmit((values) => {
     if (role === "SECTOR_MANAGER" && selectedSectorIds.length === 0) {
       setStep("confirm-no-sector");
       return;
     }
-    submit();
-  };
+    submit(values);
+  });
 
   const confirmWithoutSector = () => {
     setStep("form");
-    submit();
+    submit(form.getValues());
   };
 
   const openCreateSectorStep = () => {
@@ -94,20 +93,11 @@ export function useManagerCreateFlow({ onCreated }: { onCreated(): void }) {
     );
   };
 
-  const emailFormatError =
-    emailTouched && email.length > 0 && !isValidEmail(email) ? "Digite um email válido." : null;
-  // A SECTOR_MANAGER with no sector selected is still a valid submission — it
-  // just routes through the no-sector confirmation step (handleSubmit) instead
-  // of saving directly.
-  const isSubmitDisabled = name.trim().length === 0 || !isValidEmail(email);
+  const [nameValue, emailValue] = form.watch(["name", "email"]);
+  const isSubmitDisabled = !managerFormSchema.safeParse({ name: nameValue, email: emailValue }).success;
 
   return {
-    name,
-    setName,
-    email,
-    setEmail,
-    markEmailTouched: () => setEmailTouched(true),
-    emailFormatError,
+    form,
     role,
     setRole,
     selectedSectorIds,

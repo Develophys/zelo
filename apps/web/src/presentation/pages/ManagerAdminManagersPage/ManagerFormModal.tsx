@@ -95,16 +95,16 @@ export function ManagerFormModal({
     <Modal isOpen={mode !== null} onClose={onClose} title={title} footer={footer}>
       {mode === "create" ? (
         create.step === "confirm-no-sector" ? (
-          <>
+          <div key="confirm-no-sector">
             <p className="text-label font-semibold text-ink">
               Quer adicionar um setor novo para vincular a esse gestor?
             </p>
             <p className="mt-2 text-label text-muted">
               Sem um setor, o cadastro fica pendente: o convite só é enviado quando um setor for vinculado a ele.
             </p>
-          </>
+          </div>
         ) : create.step === "create-sector" ? (
-          <>
+          <div key="create-sector">
             <label htmlFor="new-sector-name-input" className="text-label font-semibold text-ink-2">
               Nome do setor
             </label>
@@ -125,19 +125,13 @@ export function ManagerFormModal({
               onChange={(event) => create.setNewSectorInviteCode(event.target.value)}
               className="mt-2"
             />
-          </>
+          </div>
         ) : (
-          <>
+          <div key="form">
             <label htmlFor="manager-name-input" className="text-label font-semibold text-ink-2">
               Nome do gestor
             </label>
-            <TextField
-              id="manager-name-input"
-              required
-              value={create.name}
-              onChange={(event) => create.setName(event.target.value)}
-              className="mt-2"
-            />
+            <TextField id="manager-name-input" required className="mt-2" {...create.form.register("name")} />
 
             <label htmlFor="manager-email-input" className="mt-4 block text-label font-semibold text-ink-2">
               Email do gestor
@@ -146,16 +140,14 @@ export function ManagerFormModal({
               id="manager-email-input"
               type="email"
               required
-              value={create.email}
-              onChange={(event) => create.setEmail(event.target.value)}
-              onBlur={create.markEmailTouched}
               className="mt-2"
-              aria-invalid={create.emailFormatError ? true : undefined}
-              aria-describedby={create.emailFormatError ? "manager-email-input-error" : undefined}
+              aria-invalid={create.form.formState.errors.email ? true : undefined}
+              aria-describedby={create.form.formState.errors.email ? "manager-email-input-error" : undefined}
+              {...create.form.register("email")}
             />
-            {create.emailFormatError && (
+            {create.form.formState.errors.email && (
               <p id="manager-email-input-error" role="alert" className="mt-2 text-label text-danger">
-                {create.emailFormatError}
+                {create.form.formState.errors.email.message}
               </p>
             )}
 
@@ -169,7 +161,7 @@ export function ManagerFormModal({
               sectorsPending={sectorsPending}
               sectorsFailed={sectorsFailed}
             />
-          </>
+          </div>
         )
       ) : (
         edit.editingManager && (
