@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Button } from "@/presentation/ui/Button";
 import { Card } from "@/presentation/ui/Card";
@@ -11,10 +11,12 @@ import { DataTableEmpty } from "@/presentation/ui/DataTable/DataTableEmpty";
 import { DataTableError } from "@/presentation/ui/DataTable/DataTableError";
 import { DataTableToolbar } from "@/presentation/ui/DataTable/DataTableToolbar";
 import { BulkActionButton } from "@/presentation/ui/DataTable/BulkActionButton";
+import { BulkDeleteConfirmModal } from "@/presentation/ui/DataTable/BulkDeleteConfirmModal";
+import { DataTableMobileCard } from "@/presentation/ui/DataTable/DataTableMobileCard";
 import { useDataTableSelection } from "@/presentation/ui/DataTable/useDataTableSelection";
 import { useBulkDelete } from "@/presentation/ui/DataTable/useBulkDelete";
 import { useBulkStatusUpdate } from "@/presentation/ui/DataTable/useBulkStatusUpdate";
-import { normalize } from "@/presentation/lib/normalize-search";
+import { useDebouncedSearch } from "@/presentation/hooks/useDebouncedSearch";
 import { useAdminSectors } from "@/presentation/hooks/useAdminSectors";
 import { useAdminManagers } from "@/presentation/hooks/useAdminManagers";
 import { useCreateSector } from "@/presentation/hooks/useCreateSector";
@@ -176,25 +178,13 @@ export function ManagerAdminSectorsPage() {
   const [editManagerId, setEditManagerId] = useState<string | null>(null);
   const [qrSector, setQrSector] = useState<{ name: string; inviteCode: string } | null>(null);
 
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
   const managerList = useMemo(() => managersQuery.data ?? [], [managersQuery.data]);
   const sectorList = useMemo(() => sectorsQuery.data ?? [], [sectorsQuery.data]);
 
-  const filteredSectors = useMemo(() => {
-    const query = normalize(debouncedSearch.trim());
-    if (query === "") return sectorList;
-    return sectorList.filter((sector) => {
-      const haystack = normalize([sector.name, sector.managerName ?? ""].join(" "));
-      return haystack.includes(query);
-    });
-  }, [sectorList, debouncedSearch]);
+  const { search, setSearch, hasQuery, filtered: filteredSectors } = useDebouncedSearch(
+    sectorList,
+    (sector) => [sector.name, sector.managerName ?? ""].join(" "),
+  );
 
   const selection = useDataTableSelection(filteredSectors, { singular: "setor", article: "um" });
 
@@ -208,6 +198,7 @@ export function ManagerAdminSectorsPage() {
   const bulkStatus = useBulkStatusUpdate({
     updateOne: (id, isActive) => updateSector.mutateAsync({ id, patch: { isActive } }),
     noun: { singular: "setor" },
+    onSuccess: () => selection.clear(),
   });
 
   const isAnyModalOpen = formMode !== null || bulkDelete.deleteTarget !== null || qrSector !== null;
@@ -268,15 +259,8 @@ export function ManagerAdminSectorsPage() {
     updateSector.mutate({ id: editingSector.id, patch }, { onSuccess: () => closeModal() });
   };
 
-  const handleBulkPause = async () => {
-    const { failedIds } = await bulkStatus.run(selection.selectedIds, false);
-    if (failedIds.length === 0) selection.clear();
-  };
-
-  const handleBulkActivate = async () => {
-    const { failedIds } = await bulkStatus.run(selection.selectedIds, true);
-    if (failedIds.length === 0) selection.clear();
-  };
+  const handleBulkPause = () => bulkStatus.run(selection.selectedIds, false);
+  const handleBulkActivate = () => bulkStatus.run(selection.selectedIds, true);
 
   useHotkey("a", openCreate, "Adicionar setor", { enabled: !isAnyModalOpen });
   useHotkey("e", () => selection.selectedRows[0] && openEdit(selection.selectedRows[0]), "Editar", {
@@ -359,7 +343,7 @@ export function ManagerAdminSectorsPage() {
             <DataTableEmpty title="Carregando setores…" hint="Isso deve levar só um instante." />
           ) : sectorsQuery.isError ? (
             <DataTableError message="Não foi possível carregar os setores." onRetry={() => sectorsQuery.refetch()} />
-          ) : debouncedSearch.trim().length > 0 ? (
+          ) : hasQuery ? (
             <DataTableEmpty
               title="Nada encontrado para esta busca"
               hint="Tente outro termo ou revise a ortografia."
@@ -372,38 +356,19 @@ export function ManagerAdminSectorsPage() {
           <ul data-testid="sector-card-list" className="flex flex-col gap-2 md:hidden">
             {filteredSectors.map((sector) => {
               const status = STATUS_PILL[sectorStatus(sector)];
-              const selected = selection.isSelected(sector.id);
               return (
-                <li
+                <DataTableMobileCard
                   key={sector.id}
-                  className={`overflow-hidden rounded-card border ${
-                    selected ? "border-brand bg-brand/5" : "border-line bg-surface"
-                  }`}
-                >
-                  <button
-                    type="button"
-                    aria-label={`${sector.name}, ${status.text}`}
-                    aria-pressed={selected}
-                    onClick={() => selection.toggle(sector.id)}
-                    className="flex w-full flex-col gap-2 rounded-card p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
-                  >
-                    <div className="flex justify-between gap-3">
-                      <span className="text-caption text-muted">Nome</span>
-                      <span className="text-label font-semibold text-ink">{sector.name}</span>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <span className="text-caption text-muted">Gestor responsável</span>
-                      <span className="text-label text-ink">{sector.managerName ?? "—"}</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-caption text-muted">Status</span>
-                      <Pill tone={status.tone}>{status.text}</Pill>
-                    </div>
-                  </button>
-                  <div className="flex items-center justify-end gap-1 border-t border-line px-4 py-2">
-                    {renderRowActions(sector)}
-                  </div>
-                </li>
+                  label={`${sector.name}, ${status.text}`}
+                  selected={selection.isSelected(sector.id)}
+                  onToggle={() => selection.toggle(sector.id)}
+                  status={status}
+                  fields={[
+                    { label: "Nome", value: sector.name },
+                    { label: "Gestor responsável", value: sector.managerName ?? "—" },
+                  ]}
+                  actions={renderRowActions(sector)}
+                />
               );
             })}
           </ul>
@@ -489,29 +454,7 @@ export function ManagerAdminSectorsPage() {
         )}
       </Modal>
 
-      <Modal
-        isOpen={bulkDelete.deleteTarget !== null}
-        onClose={bulkDelete.closeDeleteConfirm}
-        title={bulkDelete.deleteTitle}
-        size="sm"
-        footer={
-          <>
-            <Button variant="outline" full={false} onClick={bulkDelete.closeDeleteConfirm}>
-              Cancelar
-            </Button>
-            <Button variant="danger" full={false} isLoading={bulkDelete.deleteBusy} onClick={bulkDelete.confirmDelete}>
-              Excluir
-            </Button>
-          </>
-        }
-      >
-        <p className="text-label text-ink">Esta ação não pode ser desfeita.</p>
-        {bulkDelete.deleteMessage && (
-          <p role="alert" className="mt-3 text-label text-danger">
-            {bulkDelete.deleteMessage}
-          </p>
-        )}
-      </Modal>
+      <BulkDeleteConfirmModal bulk={bulkDelete} />
 
       <SectorQrCodeModal
         isOpen={qrSector !== null}

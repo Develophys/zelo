@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/presentation/ui/Button";
 import { IconButton } from "@/presentation/ui/IconButton";
 import { Modal } from "@/presentation/ui/Modal";
@@ -9,10 +9,12 @@ import { DataTableEmpty } from "@/presentation/ui/DataTable/DataTableEmpty";
 import { DataTableError } from "@/presentation/ui/DataTable/DataTableError";
 import { DataTableToolbar } from "@/presentation/ui/DataTable/DataTableToolbar";
 import { BulkActionButton } from "@/presentation/ui/DataTable/BulkActionButton";
+import { BulkDeleteConfirmModal } from "@/presentation/ui/DataTable/BulkDeleteConfirmModal";
+import { DataTableMobileCard } from "@/presentation/ui/DataTable/DataTableMobileCard";
 import { useDataTableSelection } from "@/presentation/ui/DataTable/useDataTableSelection";
 import { useBulkDelete } from "@/presentation/ui/DataTable/useBulkDelete";
 import { useBulkStatusUpdate } from "@/presentation/ui/DataTable/useBulkStatusUpdate";
-import { normalize } from "@/presentation/lib/normalize-search";
+import { useDebouncedSearch } from "@/presentation/hooks/useDebouncedSearch";
 import { isValidEmail } from "@/presentation/lib/validate-email";
 import { accountStatusPill } from "@/presentation/lib/account-status-pill";
 import { toast } from "@/stores/toast.store";
@@ -65,24 +67,12 @@ export function ManagerAdminPeersPage() {
   const [editSpecialty, setEditSpecialty] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
 
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
   const peerPartnerList = useMemo(() => peerPartners.data ?? [], [peerPartners.data]);
 
-  const filteredPeerPartners = useMemo(() => {
-    const query = normalize(debouncedSearch.trim());
-    if (query === "") return peerPartnerList;
-    return peerPartnerList.filter((peerPartner) => {
-      const haystack = normalize([peerPartner.name, peerPartner.email, peerPartner.specialty].join(" "));
-      return haystack.includes(query);
-    });
-  }, [peerPartnerList, debouncedSearch]);
+  const { search, setSearch, hasQuery, filtered: filteredPeerPartners } = useDebouncedSearch(
+    peerPartnerList,
+    (peerPartner) => [peerPartner.name, peerPartner.email, peerPartner.specialty].join(" "),
+  );
 
   const selection = useDataTableSelection(filteredPeerPartners, { singular: "par", article: "um" });
 
@@ -96,6 +86,7 @@ export function ManagerAdminPeersPage() {
   const bulkStatus = useBulkStatusUpdate({
     updateOne: (id, isActive) => updatePeerPartner.mutateAsync({ id, patch: { isActive } }),
     noun: { singular: "par" },
+    onSuccess: () => selection.clear(),
   });
 
   const [resetPasswordTarget, setResetPasswordTarget] = useState<PeerPartnerSummary | null>(null);
@@ -168,15 +159,8 @@ export function ManagerAdminPeersPage() {
     });
   };
 
-  const handleBulkPause = async () => {
-    const { failedIds } = await bulkStatus.run(selection.selectedIds, false);
-    if (failedIds.length === 0) selection.clear();
-  };
-
-  const handleBulkActivate = async () => {
-    const { failedIds } = await bulkStatus.run(selection.selectedIds, true);
-    if (failedIds.length === 0) selection.clear();
-  };
+  const handleBulkPause = () => bulkStatus.run(selection.selectedIds, false);
+  const handleBulkActivate = () => bulkStatus.run(selection.selectedIds, true);
 
   useHotkey("a", openCreate, "Adicionar par", { enabled: !isAnyModalOpen });
   useHotkey("e", () => selection.selectedRows[0] && openEdit(selection.selectedRows[0]), "Editar", {
@@ -270,7 +254,7 @@ export function ManagerAdminPeersPage() {
             <DataTableEmpty title="Carregando pares…" hint="Isso deve levar só um instante." />
           ) : peerPartners.isError ? (
             <DataTableError message="Não foi possível carregar os pares." onRetry={() => peerPartners.refetch()} />
-          ) : debouncedSearch.trim().length > 0 ? (
+          ) : hasQuery ? (
             <DataTableEmpty
               title="Nada encontrado para esta busca"
               hint="Tente outro termo ou revise a ortografia."
@@ -286,42 +270,20 @@ export function ManagerAdminPeersPage() {
           <ul data-testid="peer-partner-card-list" className="flex flex-col gap-2 md:hidden">
             {filteredPeerPartners.map((peerPartner) => {
               const status = accountStatusPill(peerPartner);
-              const selected = selection.isSelected(peerPartner.id);
               return (
-                <li
+                <DataTableMobileCard
                   key={peerPartner.id}
-                  className={`overflow-hidden rounded-card border ${
-                    selected ? "border-brand bg-brand/5" : "border-line bg-surface"
-                  }`}
-                >
-                  <button
-                    type="button"
-                    aria-label={`${peerPartner.name}, ${status.text}`}
-                    aria-pressed={selected}
-                    onClick={() => selection.toggle(peerPartner.id)}
-                    className="flex w-full flex-col gap-2 rounded-card p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
-                  >
-                    <div className="flex justify-between gap-3">
-                      <span className="text-caption text-muted">Nome</span>
-                      <span className="text-label font-semibold text-ink">{peerPartner.name}</span>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <span className="text-caption text-muted">Email</span>
-                      <span className="text-label text-ink break-all">{peerPartner.email}</span>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <span className="text-caption text-muted">Especialidade</span>
-                      <span className="text-label text-ink">{peerPartner.specialty}</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-caption text-muted">Status</span>
-                      <Pill tone={status.tone}>{status.text}</Pill>
-                    </div>
-                  </button>
-                  <div className="flex items-center justify-end gap-1 border-t border-line px-4 py-2">
-                    {renderRowActions(peerPartner)}
-                  </div>
-                </li>
+                  label={`${peerPartner.name}, ${status.text}`}
+                  selected={selection.isSelected(peerPartner.id)}
+                  onToggle={() => selection.toggle(peerPartner.id)}
+                  status={status}
+                  fields={[
+                    { label: "Nome", value: peerPartner.name },
+                    { label: "Email", value: peerPartner.email, breakAll: true },
+                    { label: "Especialidade", value: peerPartner.specialty },
+                  ]}
+                  actions={renderRowActions(peerPartner)}
+                />
               );
             })}
           </ul>
@@ -466,29 +428,7 @@ export function ManagerAdminPeersPage() {
         )}
       </Modal>
 
-      <Modal
-        isOpen={bulkDelete.deleteTarget !== null}
-        onClose={bulkDelete.closeDeleteConfirm}
-        title={bulkDelete.deleteTitle}
-        size="sm"
-        footer={
-          <>
-            <Button variant="outline" full={false} onClick={bulkDelete.closeDeleteConfirm}>
-              Cancelar
-            </Button>
-            <Button variant="danger" full={false} isLoading={bulkDelete.deleteBusy} onClick={bulkDelete.confirmDelete}>
-              Excluir
-            </Button>
-          </>
-        }
-      >
-        <p className="text-label text-ink">Esta ação não pode ser desfeita.</p>
-        {bulkDelete.deleteMessage && (
-          <p role="alert" className="mt-3 text-label text-danger">
-            {bulkDelete.deleteMessage}
-          </p>
-        )}
-      </Modal>
+      <BulkDeleteConfirmModal bulk={bulkDelete} />
 
       <Modal
         isOpen={resetPasswordTarget !== null}

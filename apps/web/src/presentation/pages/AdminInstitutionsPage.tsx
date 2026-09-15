@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { Pencil, QrCode } from "lucide-react";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
@@ -12,8 +12,9 @@ import { DataTableEmpty } from "@/presentation/ui/DataTable/DataTableEmpty";
 import { DataTableError } from "@/presentation/ui/DataTable/DataTableError";
 import { DataTableToolbar } from "@/presentation/ui/DataTable/DataTableToolbar";
 import { BulkActionButton } from "@/presentation/ui/DataTable/BulkActionButton";
+import { DataTableMobileCard } from "@/presentation/ui/DataTable/DataTableMobileCard";
 import { useDataTableSelection } from "@/presentation/ui/DataTable/useDataTableSelection";
-import { normalize } from "@/presentation/lib/normalize-search";
+import { useDebouncedSearch } from "@/presentation/hooks/useDebouncedSearch";
 import { routes } from "@/presentation/lib/routes";
 import { useAdminInstitutions } from "@/presentation/hooks/useAdminInstitutions";
 import { useCreateInstitution } from "@/presentation/hooks/useCreateInstitution";
@@ -121,29 +122,16 @@ export function AdminInstitutionsPage() {
   const [qrSector, setQrSector] = useState<{ name: string; inviteCode: string } | null>(null);
   const expandedSectors = useAdminInstitutionSectors(expandedInstitutionId);
 
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
   const institutionList = useMemo(
     () => institutions.data?.pages.flatMap((page) => page.items) ?? [],
     [institutions.data],
   );
 
-  const filteredInstitutions = useMemo(() => {
-    const query = normalize(debouncedSearch.trim());
-    if (query === "") return institutionList;
-    return institutionList.filter((institution) => {
-      const haystack = normalize(
-        [institution.name, institution.inviteCode, institution.hospitalAdminNames.join(" ")].join(" "),
-      );
-      return haystack.includes(query);
-    });
-  }, [institutionList, debouncedSearch]);
+  const { search, setSearch, hasQuery, filtered: filteredInstitutions } = useDebouncedSearch(
+    institutionList,
+    (institution) =>
+      [institution.name, institution.inviteCode, institution.hospitalAdminNames.join(" ")].join(" "),
+  );
 
   const selection = useDataTableSelection(filteredInstitutions, { singular: "instituição", article: "uma" });
 
@@ -343,7 +331,7 @@ export function AdminInstitutionsPage() {
                 // A failed load is not an empty register. Rendering both as "no
                 // institutions" tells a platform admin the opposite of the truth.
                 <DataTableError message="Não foi possível carregar as instituições." onRetry={() => institutions.refetch()} />
-              ) : debouncedSearch.trim().length > 0 ? (
+              ) : hasQuery ? (
                 <DataTableEmpty title="Nada encontrado para esta busca" hint="Tente outro termo ou revise a ortografia." />
               ) : (
                 <DataTableEmpty title="Nenhuma instituição cadastrada ainda." hint="Adicione a primeira acima." />
@@ -351,47 +339,24 @@ export function AdminInstitutionsPage() {
             }
             mobileList={
               <ul data-testid="institution-card-list" className="flex flex-col gap-2 md:hidden">
-                {filteredInstitutions.map((institution) => {
-                  const selected = selection.isSelected(institution.id);
-                  return (
-                    <li
-                      key={institution.id}
-                      className={`overflow-hidden rounded-card border ${
-                        selected ? "border-brand bg-brand/5" : "border-line bg-surface"
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        aria-label={`${institution.name}, ${institution.isActive ? "ativa" : "inativa"}`}
-                        aria-pressed={selected}
-                        onClick={() => selection.toggle(institution.id)}
-                        className="flex w-full flex-col gap-2 rounded-card p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
-                      >
-                        <div className="flex justify-between gap-3">
-                          <span className="text-caption text-muted">Nome</span>
-                          <span className="text-label font-semibold text-ink">{institution.name}</span>
-                        </div>
-                        <div className="flex justify-between gap-3">
-                          <span className="text-caption text-muted">Código</span>
-                          <span className="text-label text-ink">{institution.inviteCode}</span>
-                        </div>
-                        <div className="flex justify-between gap-3">
-                          <span className="text-caption text-muted">Gestores</span>
-                          <span className="text-label text-ink">{institution.hospitalAdminNames.join(", ") || "—"}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-caption text-muted">Status</span>
-                          <Pill tone={institution.isActive ? "positive" : "neutral"}>
-                            {institution.isActive ? "Ativa" : "Inativa"}
-                          </Pill>
-                        </div>
-                      </button>
-                      <div className="flex items-center justify-end gap-1 border-t border-line px-4 py-2">
-                        {renderRowActions(institution)}
-                      </div>
-                    </li>
-                  );
-                })}
+                {filteredInstitutions.map((institution) => (
+                  <DataTableMobileCard
+                    key={institution.id}
+                    label={`${institution.name}, ${institution.isActive ? "ativa" : "inativa"}`}
+                    selected={selection.isSelected(institution.id)}
+                    onToggle={() => selection.toggle(institution.id)}
+                    status={{
+                      tone: institution.isActive ? "positive" : "neutral",
+                      text: institution.isActive ? "Ativa" : "Inativa",
+                    }}
+                    fields={[
+                      { label: "Nome", value: institution.name },
+                      { label: "Código", value: institution.inviteCode },
+                      { label: "Gestores", value: institution.hospitalAdminNames.join(", ") || "—" },
+                    ]}
+                    actions={renderRowActions(institution)}
+                  />
+                ))}
               </ul>
             }
           />
