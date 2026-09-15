@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CreateInstitutionUseCase } from "./create-institution.use-case.ts";
 import { EmailDeliveryError, type EmailPort, type EmailTemplate, type SendEmailParams } from "@/shared/email/email.port.js";
+import { hashSetPasswordToken } from "@/shared/tokens/hash-set-password-token.js";
 import {
   DuplicateInstitutionOrManagerError,
   type AdminInstitutionPage,
@@ -62,11 +63,16 @@ describe("CreateInstitutionUseCase", () => {
 
     expect(result.institution).toEqual({ id: "institution-1", name: "Hospital Teste", inviteCode: "teste-2026" });
     expect(result.hospitalAdmin).toEqual({ id: "manager-1", name: "Mauricio", email: "mauricio@zelo-demo.local" });
-    expect(repository.lastCreateParams!.setPasswordToken).toEqual(expect.any(String));
     expect(repository.lastCreateParams!.setPasswordTokenExpiresAt).toBeInstanceOf(Date);
     expect(emailPort.lastSend?.to).toBe("mauricio@zelo-demo.local");
     expect(emailPort.lastSend?.template).toBe("invite");
-    expect(emailPort.lastSend?.params.setPasswordUrl).toContain(repository.lastCreateParams!.setPasswordToken);
+
+    // The email carries the raw token; the repository must only ever see its
+    // hash, so a database leak cannot be replayed as a live invite link
+    // (same contract as CreateManagerUseCase).
+    const rawToken = emailPort.lastSend!.params.setPasswordUrl.split("/").pop()!;
+    expect(repository.lastCreateParams!.setPasswordToken).toBe(hashSetPasswordToken(rawToken));
+    expect(repository.lastCreateParams!.setPasswordToken).not.toBe(rawToken);
   });
 
   it("propagates DuplicateInstitutionOrManagerError from the repository", async () => {
