@@ -365,7 +365,12 @@ export function ManagerDashboardPage() {
         <p className="text-label text-muted">{DASHBOARD_DISCLOSURE}</p>
         {data && (
           <p className="flex items-center gap-1 text-label text-ink-2" data-testid="sector-coverage">
-            <span>{sectorCoverageReading(sectorCoverage)}</span>
+            <span>
+              {sectorCoverageReading(
+                sectorCoverage,
+                sectorsQuery.data?.length === 1 ? sectorsQuery.data[0]!.name : undefined,
+              )}
+            </span>
             <MetricHelp
               label={MANAGER_METRICS.sectorCoverage.label}
               content={metricHelpContent(MANAGER_METRICS.sectorCoverage)}

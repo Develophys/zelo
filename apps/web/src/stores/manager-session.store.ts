@@ -10,7 +10,8 @@ interface ManagerSessionState {
   token: string | null;
   expiresAt: string | null;
   role: ManagerRole | null;
-  setSession: (token: string, expiresAt: string, role: ManagerRole) => void;
+  name: string | null;
+  setSession: (token: string, expiresAt: string, role: ManagerRole, name: string) => void;
   clearSession: () => void;
   isValid: () => boolean;
 }
@@ -21,8 +22,9 @@ export const useManagerSessionStore = create<ManagerSessionState>()(
       token: null,
       expiresAt: null,
       role: null,
-      setSession: (token, expiresAt, role) => set({ token, expiresAt, role }),
-      clearSession: () => set({ token: null, expiresAt: null, role: null }),
+      name: null,
+      setSession: (token, expiresAt, role, name) => set({ token, expiresAt, role, name }),
+      clearSession: () => set({ token: null, expiresAt: null, role: null, name: null }),
       isValid: () => {
         const { token, expiresAt } = get();
         if (!token || !expiresAt) return false;

@@ -44,7 +44,7 @@ beforeEach(() => {
   sessionStorage.clear();
   useManagerSessionStore
     .getState()
-    .setSession("token", new Date(Date.now() + 60_000).toISOString(), "HOSPITAL_ADMIN");
+    .setSession("token", new Date(Date.now() + 60_000).toISOString(), "HOSPITAL_ADMIN", "Ana Konder");
   useToastStore.getState().clear();
   useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
   vi.restoreAllMocks();
