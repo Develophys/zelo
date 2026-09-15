@@ -1,6 +1,4 @@
 import { useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router";
 import { Pencil, QrCode } from "lucide-react";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";

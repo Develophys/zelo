@@ -31,7 +31,6 @@ export function useDebouncedSearch<T>(
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const toHaystackRef = useRef(toHaystack);
-  // eslint-disable-next-line react-hooks/refs -- must be read synchronously inside useMemo below; a useLayoutEffect write would be one render stale
   toHaystackRef.current = toHaystack;
 
   useEffect(() => {
@@ -43,7 +42,6 @@ export function useDebouncedSearch<T>(
 
   const filtered = useMemo(() => {
     if (query === "") return rows;
-    // eslint-disable-next-line react-hooks/refs -- toHaystackRef is written synchronously above, before this render's useMemo runs
     return rows.filter((row) => normalize(toHaystackRef.current(row)).includes(query));
   }, [rows, query]);
 
