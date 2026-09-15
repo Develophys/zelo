@@ -7,6 +7,7 @@ import {
 import { EMAIL_PORT, type EmailPort } from "@/shared/email/email.port.js";
 import { sendInviteEmailOrRecord } from "@/shared/email/send-invite-email.js";
 import { buildSetPasswordUrl } from "@/shared/email/build-set-password-url.js";
+import { hashSetPasswordToken } from "@/shared/tokens/hash-set-password-token.js";
 
 const SET_PASSWORD_TOKEN_BYTES = 32;
 const SET_PASSWORD_TOKEN_TTL_MS = 48 * 60 * 60 * 1000;
@@ -41,7 +42,7 @@ export class CreateInstitutionUseCase {
       inviteCode: input.inviteCode,
       hospitalAdminName: input.hospitalAdminName,
       hospitalAdminEmail: input.hospitalAdminEmail,
-      setPasswordToken,
+      setPasswordToken: hashSetPasswordToken(setPasswordToken),
       setPasswordTokenExpiresAt,
     });
 
