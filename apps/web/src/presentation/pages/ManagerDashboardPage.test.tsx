@@ -965,6 +965,21 @@ describe("ManagerDashboardPage", () => {
     expect(screen.queryByTestId('dashboard-filter-row')).not.toBeInTheDocument();
   });
 
+  it('names the sole sector in the coverage line, since a single-sector manager otherwise can\'t tell which sector "0 de 1" refers to', async () => {
+    vi.spyOn(container.listAccessibleSectorsUseCase, 'execute').mockResolvedValue([{ id: 'sector-1', name: 'UTI' }]);
+    vi.spyOn(container.getManagerSignalsUseCase, 'execute').mockResolvedValue({
+      ...SIGNALS_RESPONSE,
+      sectorCoverage: { visible: 0, total: 1 },
+    });
+    renderManager();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('sector-coverage')).toHaveTextContent(
+        '0 de 1 setores (UTI) · 1 oculto por ter menos de 5 respostas',
+      ),
+    );
+  });
+
   it("says the trend has no data instead of drawing an empty card", async () => {
     vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
       ...SIGNALS_RESPONSE,

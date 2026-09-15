@@ -32,6 +32,7 @@ describe("ManagerLoginPage", () => {
       token: "abc.def",
       expiresAt: new Date(Date.now() + 60_000).toISOString(),
       role: "HOSPITAL_ADMIN",
+      name: "Ana Konder",
     });
     const user = userEvent.setup();
     renderPage();

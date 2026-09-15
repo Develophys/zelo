@@ -35,7 +35,7 @@ function renderPage() {
 describe("ManagerAdminPeersPage", () => {
   beforeEach(() => {
     sessionStorage.clear();
-    useManagerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString(), "HOSPITAL_ADMIN");
+    useManagerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString(), "HOSPITAL_ADMIN", "Ana Konder");
     useToastStore.getState().clear();
     useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
   });

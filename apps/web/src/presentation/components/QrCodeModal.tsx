@@ -48,10 +48,13 @@ export function QrCodeModal({
 
     let cancelled = false;
     (async () => {
-      const { default: QRCode } = await import("qrcode");
-      const canvas = canvasRef.current;
-      if (!canvas || cancelled) return;
       try {
+        // The dynamic import can fail on its own — e.g. a stale deploy leaves
+        // this chunk 404ing — not just the toCanvas call below, so both must
+        // share this try/catch.
+        const { default: QRCode } = await import("qrcode");
+        const canvas = canvasRef.current;
+        if (!canvas || cancelled) return;
         await QRCode.toCanvas(canvas, payload, { width: QR_SIZE, margin: 1 });
         if (!cancelled) setIsReady(true);
       } catch {

@@ -108,13 +108,14 @@ export function followUpReading(input: { sent: number; answered: number }): stri
   return `${input.answered} de ${input.sent} contatos de reengajamento respondidos, na semana de referência`;
 }
 
-export function sectorCoverageReading(input: { visible: number; total: number }): string {
+export function sectorCoverageReading(input: { visible: number; total: number }, soleSectorName?: string): string {
   const hidden = input.total - input.visible;
   const tail =
     hidden === 0
       ? "nenhum oculto"
       : `${hidden} ${hidden === 1 ? "oculto" : "ocultos"} por ${hidden === 1 ? "ter" : "terem"} menos de 5 respostas`;
-  return `${input.visible} de ${input.total} setores · ${tail}`;
+  const sectorsLabel = input.total === 1 && soleSectorName ? `${input.total} setores (${soleSectorName})` : `${input.total} setores`;
+  return `${input.visible} de ${sectorsLabel} · ${tail}`;
 }
 
 function questionariosAbandonados(count: number): string {

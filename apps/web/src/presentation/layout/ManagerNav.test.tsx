@@ -59,7 +59,7 @@ beforeEach(() => {
   sessionStorage.clear();
   useManagerSessionStore
     .getState()
-    .setSession('token', new Date(Date.now() + 60_000).toISOString(), 'HOSPITAL_ADMIN');
+    .setSession('token', new Date(Date.now() + 60_000).toISOString(), 'HOSPITAL_ADMIN', 'Ana Konder');
   vi.spyOn(container.listManagerNotificationsUseCase, 'unreadCount').mockResolvedValue(0);
 });
 
@@ -174,6 +174,41 @@ describe('ManagerSidebar', () => {
 
     await user.hover(screen.getByTestId('manager-account'));
     expect(screen.getByTestId('tooltip')).toHaveTextContent('Administração do hospital');
+  });
+
+  it('shows the signed-in manager\'s own name in the account row, not the generic role label', () => {
+    mount(<ManagerSidebar />);
+
+    expect(screen.getByText('Ana Konder')).toBeInTheDocument();
+    expect(screen.queryByText('Administração do hospital')).not.toBeInTheDocument();
+  });
+
+  it('names the sole managed sector in the account tooltip for a SECTOR_MANAGER, since "Gestão de setor" alone does not say which one', async () => {
+    useManagerSessionStore
+      .getState()
+      .setSession('token', new Date(Date.now() + 60_000).toISOString(), 'SECTOR_MANAGER', 'Paulo Reis');
+    vi.spyOn(container.listAccessibleSectorsUseCase, 'execute').mockResolvedValue([{ id: 'sector-1', name: 'UTI' }]);
+    const user = userEvent.setup();
+    mount(<ManagerSidebar />);
+
+    await user.hover(screen.getByTestId('manager-account'));
+    expect(await screen.findByTestId('tooltip')).toHaveTextContent("Gestão de setor 'UTI'");
+  });
+
+  it('falls back to the generic label for a SECTOR_MANAGER with more than one sector', async () => {
+    useManagerSessionStore
+      .getState()
+      .setSession('token', new Date(Date.now() + 60_000).toISOString(), 'SECTOR_MANAGER', 'Paulo Reis');
+    vi.spyOn(container.listAccessibleSectorsUseCase, 'execute').mockResolvedValue([
+      { id: 'sector-1', name: 'UTI' },
+      { id: 'sector-2', name: 'Pronto-Socorro' },
+    ]);
+    const user = userEvent.setup();
+    mount(<ManagerSidebar />);
+
+    await user.hover(screen.getByTestId('manager-account'));
+    expect(await screen.findByTestId('tooltip')).toHaveTextContent('Gestão de setor');
+    expect(screen.getByTestId('tooltip')).not.toHaveTextContent('UTI');
   });
 
   it('shrinks the unread badge to a dot in the rail, where a number would not fit', async () => {

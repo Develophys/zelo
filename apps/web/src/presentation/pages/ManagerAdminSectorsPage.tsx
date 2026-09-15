@@ -80,17 +80,6 @@ function SectorFields({
         className="mt-2"
       />
 
-      <label htmlFor={inviteCodeFieldId} className="mt-4 block text-label font-semibold text-ink-2">
-        Código de convite (opcional)
-      </label>
-      <TextField
-        id={inviteCodeFieldId}
-        value={inviteCode}
-        disabled={inviteCodeDisabled}
-        onChange={onInviteCodeChange ? (event) => onInviteCodeChange(event.target.value) : undefined}
-        className="mt-2"
-      />
-
       {showSuggestions && (
         <div className="mt-2 flex flex-wrap gap-2">
           {SUGGESTED_SECTOR_NAMES.map((suggestion) => (
@@ -105,6 +94,17 @@ function SectorFields({
           ))}
         </div>
       )}
+
+      <label htmlFor={inviteCodeFieldId} className="mt-4 block text-label font-semibold text-ink-2">
+        Código de convite (opcional)
+      </label>
+      <TextField
+        id={inviteCodeFieldId}
+        value={inviteCode}
+        disabled={inviteCodeDisabled}
+        onChange={onInviteCodeChange ? (event) => onInviteCodeChange(event.target.value) : undefined}
+        className="mt-2"
+      />
 
       {managers.length === 0 ? (
         <>
