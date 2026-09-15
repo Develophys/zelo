@@ -51,8 +51,8 @@ describe("FinishSetupForm", () => {
 
     await waitFor(() => expect(useToastStore.getState().toasts).toHaveLength(1));
     const [toast] = useToastStore.getState().toasts;
-    expect(toast.tone).toBe("success");
-    expect(toast.message).toBe("Senha cadastrada com sucesso.");
+    expect(toast!.tone).toBe("success");
+    expect(toast!.message).toBe("Senha cadastrada com sucesso.");
   });
 
   it("disables submit until both password fields match and are at least 8 characters", async () => {
