@@ -3,6 +3,7 @@ import { useParams } from "react-router";
 import { Button } from "@/presentation/ui/Button";
 import { Card } from "@/presentation/ui/Card";
 import { PasswordField } from "@/presentation/ui/PasswordField";
+import { toast } from "@/stores/toast.store";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -27,6 +28,7 @@ export function FinishSetupForm({ onSubmit, onSuccess }: FinishSetupFormProps) {
     setIsPending(true);
     try {
       await onSubmit({ token, password });
+      toast.success("Senha cadastrada com sucesso.");
       onSuccess();
     } catch {
       setError("Não foi possível concluir. O link pode ter expirado — peça um novo convite.");

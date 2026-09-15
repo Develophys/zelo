@@ -100,4 +100,17 @@ describe("plain-language readings", () => {
   it("drops the hidden clause when nothing is hidden", () => {
     expect(sectorCoverageReading({ visible: 7, total: 7 })).toBe("7 de 7 setores · nenhum oculto");
   });
+
+  // A manager scoped to a single sector otherwise reads "0 de 1 setores" with
+  // no way to tell which sector that is — the name is the only sector-scoped
+  // manager can see anyway, so naming it here costs no privacy.
+  it("names the sector when the manager can only ever see one", () => {
+    expect(sectorCoverageReading({ visible: 0, total: 1 }, "UTI")).toBe(
+      "0 de 1 setores (UTI) · 1 oculto por ter menos de 5 respostas",
+    );
+  });
+
+  it("ignores the sole-sector name when there is more than one sector", () => {
+    expect(sectorCoverageReading({ visible: 2, total: 2 }, "UTI")).toBe("2 de 2 setores · nenhum oculto");
+  });
 });

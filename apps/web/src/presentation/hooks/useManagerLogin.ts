@@ -13,7 +13,7 @@ export function useManagerLogin() {
   return useMutation({
     mutationFn: ({ email, password }: LoginVariables) => loginManagerUseCase.execute(email, password),
     onSuccess: (result) => {
-      setSession(result.token, result.expiresAt, result.role);
+      setSession(result.token, result.expiresAt, result.role, result.name);
     },
   });
 }

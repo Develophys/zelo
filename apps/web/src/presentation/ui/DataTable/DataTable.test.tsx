@@ -196,15 +196,14 @@ describe('DataTable', () => {
     expect(toolbar.className).toContain('max-md:min-h-14');
   });
 
-  it('wraps the bulk-action row on a phone instead of scrolling it, but keeps it a single non-wrapping scrollable row from the tablet breakpoint up', async () => {
+  it('always wraps the bulk-action row instead of scrolling it, on phone and desktop alike', async () => {
     const user = userEvent.setup();
     render(<Harness />);
     await user.click(screen.getByRole('checkbox', { name: 'Selecionar Ana' }));
 
     const actionsRow = screen.getByTestId('data-table-toolbar-actions');
     expect(actionsRow.className).toContain('flex-wrap');
-    expect(actionsRow.className).toContain('md:flex-nowrap');
-    expect(actionsRow.className).toContain('md:overflow-x-auto');
+    expect(actionsRow.className).not.toContain('overflow-x-auto');
     expect(within(actionsRow).getByRole('button', { name: 'Editar' })).toBeInTheDocument();
     expect(within(actionsRow).getByRole('button', { name: 'Excluir' })).toBeInTheDocument();
   });

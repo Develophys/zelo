@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { FinishSetupForm } from "./FinishSetupForm";
+import { useToastStore } from "@/stores/toast.store";
 
 function renderWithToken(token: string, onSubmit: (params: { token: string; password: string }) => Promise<void>) {
   return render(
@@ -15,6 +16,10 @@ function renderWithToken(token: string, onSubmit: (params: { token: string; pass
 }
 
 describe("FinishSetupForm", () => {
+  beforeEach(() => {
+    useToastStore.getState().clear();
+  });
+
   it("calls onSubmit with the token from the URL and the entered password, then onSuccess", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     const onSuccess = vi.fn();
@@ -33,6 +38,21 @@ describe("FinishSetupForm", () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledWith({ token: "abc123", password: "new-password-123" }));
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+  });
+
+  it("shows a success toast before redirecting, so the identical-looking finish-setup and login screens don't leave the user unsure anything happened", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderWithToken("abc123", onSubmit);
+
+    await user.type(screen.getByLabelText("Senha"), "new-password-123");
+    await user.type(screen.getByLabelText("Confirme a senha"), "new-password-123");
+    await user.click(screen.getByRole("button", { name: "Definir senha" }));
+
+    await waitFor(() => expect(useToastStore.getState().toasts).toHaveLength(1));
+    const [toast] = useToastStore.getState().toasts;
+    expect(toast.tone).toBe("success");
+    expect(toast.message).toBe("Senha cadastrada com sucesso.");
   });
 
   it("disables submit until both password fields match and are at least 8 characters", async () => {

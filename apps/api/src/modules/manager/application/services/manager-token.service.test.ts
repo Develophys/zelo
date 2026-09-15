@@ -7,11 +7,12 @@ function fakeConfig(secret: string): ConfigService {
 }
 
 describe("ManagerTokenService", () => {
-  it("issues a token (echoing role in the plaintext response) that verify() decodes back to the same manager id/name/institutionId/role", () => {
+  it("issues a token (echoing role and name in the plaintext response) that verify() decodes back to the same manager id/name/institutionId/role", () => {
     const service = new ManagerTokenService(fakeConfig("test-secret"));
-    const { token, expiresAt, role } = service.issue("manager-1", "Ana Konder", "institution-1", "HOSPITAL_ADMIN");
+    const { token, expiresAt, role, name } = service.issue("manager-1", "Ana Konder", "institution-1", "HOSPITAL_ADMIN");
 
     expect(role).toBe("HOSPITAL_ADMIN");
+    expect(name).toBe("Ana Konder");
     expect(service.verify(token)).toEqual({
       managerId: "manager-1",
       managerName: "Ana Konder",

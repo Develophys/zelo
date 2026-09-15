@@ -192,15 +192,13 @@ describe('DataTableToolbar', () => {
     await user.click(screen.getByRole('checkbox', { name: 'Selecionar todos' }));
     expect(screen.getByTestId('data-table-toolbar-action').className).toBe(classesBefore);
   });
-  it('wraps the bulk actions on a phone instead of scrolling them, keeping the desktop scroll cue for the rare overflow there', async () => {
+  it('always wraps the bulk actions instead of scrolling them, on phone and desktop alike — a handful of icon buttons has no business scrolling', async () => {
     render(<Selectable actions={<button type="button">Excluir</button>} />);
     await userEvent.click(screen.getByLabelText('Selecionar todos'));
 
-    // A horizontally scrolling row with no visible scrollbar (the previous
-    // design) gave a phone user no sign that more actions existed off-screen.
     const scroller = screen.getByTestId('data-table-toolbar-actions');
     expect(scroller.className).toContain('flex-wrap');
-    expect(scroller.className).toContain('md:overflow-x-auto');
+    expect(scroller.className).not.toContain('overflow-x-auto');
     expect(scroller.className).not.toContain('no-scrollbar');
   });
 

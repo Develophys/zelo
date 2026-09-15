@@ -6,6 +6,7 @@ import { routes } from '@/presentation/lib/routes';
 import { useManagerPrefsStore } from '@/stores/manager-prefs.store';
 import { useManagerSessionStore } from '@/stores/manager-session.store';
 import { useManagerUnreadCount } from '@/presentation/hooks/useManagerNotifications';
+import { useManagerSectors } from '@/presentation/hooks/useManagerSectors';
 import { ManagerUnreadBadge } from './ManagerUnreadBadge';
 import { useManagerNavHotkeys } from './useManagerNavHotkeys';
 import {
@@ -21,6 +22,15 @@ const ROLE_LABEL: Record<string, string> = {
   HOSPITAL_ADMIN: 'Administração do hospital',
   SECTOR_MANAGER: 'Gestão de setor',
 };
+
+/** Names the sole managed sector when there is exactly one — the only case
+ * where "Gestão de setor" alone leaves a SECTOR_MANAGER unable to tell which
+ * one it refers to. A manager scoped to several sectors gets the generic
+ * label instead, same as before. */
+function accountTooltipFor(role: string | null, soleSectorName: string | undefined): string {
+  if (role === 'SECTOR_MANAGER' && soleSectorName) return `Gestão de setor '${soleSectorName}'`;
+  return (role && ROLE_LABEL[role]) || 'Sessão do gestor';
+}
 
 function Item({
   item,
@@ -75,9 +85,14 @@ export function ManagerSidebar({ className = '' }: ManagerSidebarProps) {
   const collapsed = useManagerPrefsStore((state) => state.sidebarCollapsed);
   const toggleSidebar = useManagerPrefsStore((state) => state.toggleSidebar);
   const role = useManagerSessionStore((state) => state.role);
+  const managerName = useManagerSessionStore((state) => state.name);
   const nav = managerNavFor(role);
   const clearSession = useManagerSessionStore((state) => state.clearSession);
   const unread = useManagerUnreadCount();
+  const sectorsQuery = useManagerSectors({ enabled: role === 'SECTOR_MANAGER' });
+  const soleSectorName = sectorsQuery.data?.length === 1 ? sectorsQuery.data[0]!.name : undefined;
+  const accountLabel = managerName || (role ? ROLE_LABEL[role] : 'Sessão do gestor');
+  const accountTooltip = accountTooltipFor(role, soleSectorName);
 
   return (
     <aside
@@ -140,7 +155,7 @@ export function ManagerSidebar({ className = '' }: ManagerSidebarProps) {
         <div
           className={`flex min-h-11 items-center gap-3 px-3 ${collapsed ? 'justify-center' : 'justify-center lg:justify-start'}`}
         >
-          <Tooltip content={role ? ROLE_LABEL[role] : 'Sessão do gestor'}>
+          <Tooltip content={accountTooltip}>
             <span
               aria-hidden="true"
               data-testid="manager-account"
@@ -154,7 +169,7 @@ export function ManagerSidebar({ className = '' }: ManagerSidebarProps) {
               collapsed ? 'sr-only' : 'sr-only lg:not-sr-only'
             }`}
           >
-            {role ? ROLE_LABEL[role] : 'Sessão do gestor'}
+            {accountLabel}
           </span>
         </div>
 

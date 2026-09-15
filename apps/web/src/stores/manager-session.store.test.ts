@@ -4,7 +4,7 @@ import { useManagerSessionStore } from "./manager-session.store";
 describe("useManagerSessionStore", () => {
   beforeEach(() => {
     sessionStorage.clear();
-    useManagerSessionStore.setState({ token: null, expiresAt: null, role: null });
+    useManagerSessionStore.setState({ token: null, expiresAt: null, role: null, name: null });
   });
 
   it("starts with no session", () => {
@@ -14,7 +14,7 @@ describe("useManagerSessionStore", () => {
 
   it("setSession stores a token, persisted to sessionStorage", () => {
     const future = new Date(Date.now() + 60_000).toISOString();
-    useManagerSessionStore.getState().setSession("abc.def", future, "HOSPITAL_ADMIN");
+    useManagerSessionStore.getState().setSession("abc.def", future, "HOSPITAL_ADMIN", "Ana Konder");
 
     expect(useManagerSessionStore.getState().token).toBe("abc.def");
     expect(useManagerSessionStore.getState().isValid()).toBe(true);
@@ -25,13 +25,13 @@ describe("useManagerSessionStore", () => {
 
   it("isValid() returns false once expiresAt is in the past", () => {
     const past = new Date(Date.now() - 60_000).toISOString();
-    useManagerSessionStore.getState().setSession("abc.def", past, "HOSPITAL_ADMIN");
+    useManagerSessionStore.getState().setSession("abc.def", past, "HOSPITAL_ADMIN", "Ana Konder");
 
     expect(useManagerSessionStore.getState().isValid()).toBe(false);
   });
 
   it("clearSession() removes the token", () => {
-    useManagerSessionStore.getState().setSession("abc.def", new Date(Date.now() + 60_000).toISOString(), "HOSPITAL_ADMIN");
+    useManagerSessionStore.getState().setSession("abc.def", new Date(Date.now() + 60_000).toISOString(), "HOSPITAL_ADMIN", "Ana Konder");
     useManagerSessionStore.getState().clearSession();
 
     expect(useManagerSessionStore.getState().token).toBeNull();
@@ -39,7 +39,12 @@ describe("useManagerSessionStore", () => {
   });
 
   it("stores and exposes the manager's role", () => {
-    useManagerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString(), "SECTOR_MANAGER");
+    useManagerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString(), "SECTOR_MANAGER", "Paulo Reis");
     expect(useManagerSessionStore.getState().role).toBe("SECTOR_MANAGER");
+  });
+
+  it("stores and exposes the manager's name", () => {
+    useManagerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString(), "SECTOR_MANAGER", "Paulo Reis");
+    expect(useManagerSessionStore.getState().name).toBe("Paulo Reis");
   });
 });

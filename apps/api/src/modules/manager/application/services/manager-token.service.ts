@@ -10,6 +10,7 @@ export interface IssuedManagerToken {
   token: string;
   expiresAt: string;
   role: ManagerRole;
+  name: string;
 }
 
 export interface DecodedManagerToken {
@@ -39,7 +40,7 @@ export class ManagerTokenService {
     const payloadB64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
     const signature = this.sign(payloadB64);
 
-    return { token: `${payloadB64}.${signature}`, expiresAt: new Date(expiresAtEpoch).toISOString(), role };
+    return { token: `${payloadB64}.${signature}`, expiresAt: new Date(expiresAtEpoch).toISOString(), role, name: managerName };
   }
 
   verify(token: string): DecodedManagerToken | null {
