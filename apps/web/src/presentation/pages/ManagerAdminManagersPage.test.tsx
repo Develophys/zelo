@@ -73,6 +73,110 @@ describe("ManagerAdminManagersPage", () => {
     );
   });
 
+  it("asks to create a sector before saving a SECTOR_MANAGER with none selected, and creates the manager pending when declined", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.createManagerAdminUseCase, "execute").mockResolvedValue({
+      manager: { id: "manager-8", name: "Renata", email: "renata@zelo-demo.local" },
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "+ Adicionar gestor" }));
+    await user.type(await screen.findByLabelText("Nome do gestor"), "Renata");
+    await user.type(screen.getByLabelText("Email do gestor"), "renata@zelo-demo.local");
+    await user.click(screen.getByRole("button", { name: "Adicionar gestor" }));
+
+    expect(
+      await screen.findByText("Quer adicionar um setor novo para vincular a esse gestor?"),
+    ).toBeInTheDocument();
+    expect(container.createManagerAdminUseCase.execute).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Não, criar sem setor" }));
+
+    await waitFor(() =>
+      expect(container.createManagerAdminUseCase.execute).toHaveBeenCalledWith("token", {
+        name: "Renata",
+        email: "renata@zelo-demo.local",
+        role: "SECTOR_MANAGER",
+        sectorIds: [],
+      }),
+    );
+    await waitFor(() =>
+      expect(useToastStore.getState().toasts).toEqual([
+        expect.objectContaining({
+          tone: "success",
+          message: "Gestor criado. O convite será enviado quando um setor for vinculado a ele.",
+        }),
+      ]),
+    );
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("creates a sector from the no-sector prompt and links it to the new manager automatically", async () => {
+    // The picker reflects whatever the sector list query holds — the first
+    // load has none, and the refetch that invalidateQueries triggers after
+    // the sector is created is what makes it selectable at all.
+    vi.spyOn(container.listSectorsUseCase, "execute")
+      .mockResolvedValueOnce([])
+      .mockResolvedValue([{ id: "sector-new", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: null }]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.createSectorUseCase, "execute").mockResolvedValue({ id: "sector-new", name: "UTI" });
+    vi.spyOn(container.createManagerAdminUseCase, "execute").mockResolvedValue({
+      manager: { id: "manager-8", name: "Renata", email: "renata@zelo-demo.local" },
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "+ Adicionar gestor" }));
+    await user.type(await screen.findByLabelText("Nome do gestor"), "Renata");
+    await user.type(screen.getByLabelText("Email do gestor"), "renata@zelo-demo.local");
+    await user.click(screen.getByRole("button", { name: "Adicionar gestor" }));
+    await user.click(await screen.findByRole("button", { name: "Sim, criar setor" }));
+
+    await user.type(await screen.findByLabelText("Nome do setor"), "UTI");
+    await user.click(screen.getByRole("button", { name: "Criar setor" }));
+
+    await waitFor(() =>
+      expect(container.createSectorUseCase.execute).toHaveBeenCalledWith("token", { name: "UTI", inviteCode: undefined }),
+    );
+    // Back on the create-gestor form, with the freshly created sector already
+    // selected — the whole point of the detour.
+    expect(await screen.findByLabelText("Nome do gestor")).toHaveValue("Renata");
+    expect(screen.getByRole("button", { name: "UTI" })).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByRole("button", { name: "Adicionar gestor" }));
+
+    await waitFor(() =>
+      expect(container.createManagerAdminUseCase.execute).toHaveBeenCalledWith("token", {
+        name: "Renata",
+        email: "renata@zelo-demo.local",
+        role: "SECTOR_MANAGER",
+        sectorIds: ["sector-new"],
+      }),
+    );
+  });
+
+  it("returns to the create form without creating a sector when the sector-creation step is cancelled", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+    const createSectorSpy = vi.spyOn(container.createSectorUseCase, "execute");
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "+ Adicionar gestor" }));
+    await user.type(await screen.findByLabelText("Nome do gestor"), "Renata");
+    await user.type(screen.getByLabelText("Email do gestor"), "renata@zelo-demo.local");
+    await user.click(screen.getByRole("button", { name: "Adicionar gestor" }));
+    await user.click(await screen.findByRole("button", { name: "Sim, criar setor" }));
+    await user.type(await screen.findByLabelText("Nome do setor"), "UTI");
+
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(await screen.findByLabelText("Nome do gestor")).toHaveValue("Renata");
+    expect(createSectorSpy).not.toHaveBeenCalled();
+  });
+
   it("rejects a malformed manager email, keeping Adicionar gestor disabled", async () => {
     vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([
       { id: "sector-1", name: "UTI", isActive: true, managerId: null, managerName: null, inviteCode: null },
@@ -131,10 +235,6 @@ describe("ManagerAdminManagersPage", () => {
     await user.click(await screen.findByRole("button", { name: "+ Adicionar gestor" }));
     await user.type(await screen.findByLabelText("Nome do gestor"), "Ana");
     await user.type(screen.getByLabelText("Email do gestor"), "ana@zelo-demo.local");
-
-    // The default cannot be submitted into a hospital with no sectors, which is
-    // the point: it fails closed rather than granting everything.
-    expect(screen.getByRole("button", { name: "Adicionar gestor" })).toBeDisabled();
 
     await user.click(screen.getByLabelText("Gestor do hospital"));
     await user.click(screen.getByRole("button", { name: "Adicionar gestor" }));
@@ -195,6 +295,20 @@ describe("ManagerAdminManagersPage", () => {
     // invite fires right away — there is no account access to protect yet.
     await waitFor(() => expect(container.sendManagerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("token", "manager-6"));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("shows Cadastro pendente and no row action for a SECTOR_MANAGER created with no sector", async () => {
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([
+      { id: "manager-9", name: "Renata", email: "renata@zelo-demo.local", role: "SECTOR_MANAGER", isActive: true, sectorIds: [], sectorNames: [], hasPassword: false, setPasswordTokenExpiresAt: null },
+    ]);
+    renderPage();
+
+    const table = within(await screen.findByRole("table"));
+    expect(table.getByText("Cadastro pendente")).toBeInTheDocument();
+    expect(table.queryByRole("button", { name: "Reenviar convite de Renata" })).not.toBeInTheDocument();
+    expect(table.queryByRole("button", { name: "Redefinir senha de Renata" })).not.toBeInTheDocument();
+    expect(table.getByRole("button", { name: "Editar Renata" })).toBeInTheDocument();
   });
 
   it("edits an existing manager's role and sectors from the edit modal, pre-filled from their current assignment", async () => {

@@ -1,7 +1,14 @@
 import { describe, expect, it, afterEach, vi } from 'vitest';
 import { accountStatus, accountStatusPill } from './account-status-pill';
 
-function account(overrides: Partial<{ isActive: boolean; hasPassword: boolean; setPasswordTokenExpiresAt: string | null }> = {}) {
+function account(
+  overrides: Partial<{
+    isActive: boolean;
+    hasPassword: boolean;
+    setPasswordTokenExpiresAt: string | null;
+    isPendingSectorAssignment: boolean;
+  }> = {},
+) {
   return {
     isActive: true,
     hasPassword: true,
@@ -31,6 +38,12 @@ describe('accountStatus', () => {
 
   it('is expired when there is no token at all', () => {
     expect(accountStatus(account({ hasPassword: false, setPasswordTokenExpiresAt: null }))).toBe('expired');
+  });
+
+  it('is pending_registration for a SECTOR_MANAGER created with no sector yet, even though there is no token', () => {
+    expect(
+      accountStatus(account({ hasPassword: false, setPasswordTokenExpiresAt: null, isPendingSectorAssignment: true })),
+    ).toBe('pending_registration');
   });
 
   describe('the pending/expired boundary', () => {
@@ -77,5 +90,8 @@ describe('accountStatusPill', () => {
       tone: 'danger',
       text: 'Convite expirado',
     });
+    expect(
+      accountStatusPill(account({ hasPassword: false, setPasswordTokenExpiresAt: null, isPendingSectorAssignment: true })),
+    ).toEqual({ status: 'pending_registration', tone: 'neutral', text: 'Cadastro pendente' });
   });
 });

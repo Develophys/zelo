@@ -22,6 +22,7 @@ import { toast } from "@/stores/toast.store";
 import { useAdminSectors } from "@/presentation/hooks/useAdminSectors";
 import { useAdminManagers } from "@/presentation/hooks/useAdminManagers";
 import { useCreateManager } from "@/presentation/hooks/useCreateManager";
+import { useCreateSector } from "@/presentation/hooks/useCreateSector";
 import { useUpdateManager } from "@/presentation/hooks/useUpdateManager";
 import { useSendManagerSetPasswordEmail } from "@/presentation/hooks/useSendManagerSetPasswordEmail";
 import { useDeleteManager } from "@/presentation/hooks/useDeleteManager";
@@ -33,6 +34,21 @@ type ManagerRole = "HOSPITAL_ADMIN" | "SECTOR_MANAGER";
 
 function roleLabel(role: ManagerRole): string {
   return role === "HOSPITAL_ADMIN" ? "Gestor do hospital" : "Gestor de setor";
+}
+
+// A SECTOR_MANAGER created with no sector stays a pending registration — no
+// invite has gone out, so there's no set-password token to read a
+// pending/expired status off of (see account-status-pill). A manager who once
+// had a sector and lost it, but was already invited, is not this case — the
+// token check is what tells the two apart.
+function withPendingSectorFlag(manager: ManagerSummary) {
+  return {
+    ...manager,
+    isPendingSectorAssignment:
+      manager.role === "SECTOR_MANAGER" &&
+      manager.sectorIds.length === 0 &&
+      manager.setPasswordTokenExpiresAt === null,
+  };
 }
 
 const ROLE_CHOICES: { value: ManagerRole; label: string; description: string }[] = [
@@ -147,7 +163,7 @@ const COLUMNS: DataTableColumn<ManagerSummary>[] = [
     header: "Status",
     width: "w-[23%]",
     cell: (row) => {
-      const status = accountStatusPill(row);
+      const status = accountStatusPill(withPendingSectorFlag(row));
       return (
         <Pill tone={status.tone} title={status.text}>
           {status.text}
@@ -161,6 +177,7 @@ export function ManagerAdminManagersPage() {
   const sectors = useAdminSectors();
   const managers = useAdminManagers();
   const createManager = useCreateManager();
+  const createSector = useCreateSector();
   const updateManager = useUpdateManager();
   const sendSetPasswordEmail = useSendManagerSetPasswordEmail();
   const deleteManager = useDeleteManager();
@@ -170,6 +187,9 @@ export function ManagerAdminManagersPage() {
   const [emailTouched, setEmailTouched] = useState(false);
   const [role, setRole] = useState<ManagerRole>("SECTOR_MANAGER");
   const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
+  const [createStep, setCreateStep] = useState<"form" | "confirm-no-sector" | "create-sector">("form");
+  const [newSectorName, setNewSectorName] = useState("");
+  const [newSectorInviteCode, setNewSectorInviteCode] = useState("");
 
   const [formMode, setFormMode] = useState<"create" | "edit" | null>(null);
   const [editingManager, setEditingManager] = useState<ManagerSummary | null>(null);
@@ -231,6 +251,9 @@ export function ManagerAdminManagersPage() {
     setEmailTouched(false);
     setRole("SECTOR_MANAGER");
     setSelectedSectorIds([]);
+    setCreateStep("form");
+    setNewSectorName("");
+    setNewSectorInviteCode("");
     setFormMode("create");
   };
 
@@ -244,15 +267,54 @@ export function ManagerAdminManagersPage() {
   const closeModal = () => {
     setFormMode(null);
     setEditingManager(null);
+    setCreateStep("form");
   };
 
-  const handleCreateSubmit = () => {
+  const submitCreateManager = () => {
+    const isPendingSectorAssignment = role === "SECTOR_MANAGER" && selectedSectorIds.length === 0;
     createManager.mutate(
       { name, email, role, sectorIds: role === "SECTOR_MANAGER" ? selectedSectorIds : undefined },
       {
         onSuccess: (result) => {
-          toast.success(`Convite enviado para ${result.manager.email}.`);
+          toast.success(
+            isPendingSectorAssignment
+              ? "Gestor criado. O convite será enviado quando um setor for vinculado a ele."
+              : `Convite enviado para ${result.manager.email}.`,
+          );
           closeModal();
+        },
+      },
+    );
+  };
+
+  const handleCreateSubmit = () => {
+    if (role === "SECTOR_MANAGER" && selectedSectorIds.length === 0) {
+      setCreateStep("confirm-no-sector");
+      return;
+    }
+    submitCreateManager();
+  };
+
+  const confirmCreateWithoutSector = () => {
+    setCreateStep("form");
+    submitCreateManager();
+  };
+
+  const openCreateSectorStep = () => {
+    setNewSectorName("");
+    setNewSectorInviteCode("");
+    setCreateStep("create-sector");
+  };
+
+  const cancelCreateSectorStep = () => setCreateStep("form");
+
+  const handleCreateSectorForManager = () => {
+    createSector.mutate(
+      { name: newSectorName, inviteCode: newSectorInviteCode.trim() || undefined },
+      {
+        onSuccess: (created) => {
+          setSelectedSectorIds((ids) => [...ids, created.id]);
+          setCreateStep("form");
         },
       },
     );
@@ -306,8 +368,11 @@ export function ManagerAdminManagersPage() {
   });
 
   const emailFormatError = emailTouched && email.length > 0 && !isValidEmail(email) ? "Digite um email válido." : null;
-  const isSubmitDisabled =
-    name.trim().length === 0 || !isValidEmail(email) || (role === "SECTOR_MANAGER" && selectedSectorIds.length === 0);
+  // A SECTOR_MANAGER with no sector selected is still a valid submission — it
+  // just routes through the no-sector confirmation step (handleCreateSubmit)
+  // instead of saving directly.
+  const isSubmitDisabled = name.trim().length === 0 || !isValidEmail(email);
+  const isNewSectorNameEmpty = newSectorName.trim().length === 0;
   // Saving a SECTOR_MANAGER replaces their whole sector set, so it must not be
   // possible while the list those sectors come from is unknown.
   const sectorsUnknown = sectors.isPending || sectors.isError;
@@ -315,7 +380,7 @@ export function ManagerAdminManagersPage() {
     editRole === "SECTOR_MANAGER" && (editSectorIds.length === 0 || sectorsUnknown);
 
   const renderRowActions = (manager: ManagerSummary) => {
-    const status = accountStatusPill(manager);
+    const status = accountStatusPill(withPendingSectorFlag(manager));
     const isInvite = status.status === "pending" || status.status === "expired";
     return (
       <>
@@ -324,11 +389,13 @@ export function ManagerAdminManagersPage() {
           icon={<Pencil size={16} aria-hidden="true" />}
           onClick={() => openEdit(manager)}
         />
-        <IconButton
-          label={isInvite ? `Reenviar convite de ${manager.name}` : `Redefinir senha de ${manager.name}`}
-          icon={isInvite ? <Mail size={16} aria-hidden="true" /> : <KeyRound size={16} aria-hidden="true" />}
-          onClick={() => (isInvite ? handleSendSetPasswordEmail(manager) : setResetPasswordTarget(manager))}
-        />
+        {status.status !== "pending_registration" && (
+          <IconButton
+            label={isInvite ? `Reenviar convite de ${manager.name}` : `Redefinir senha de ${manager.name}`}
+            icon={isInvite ? <Mail size={16} aria-hidden="true" /> : <KeyRound size={16} aria-hidden="true" />}
+            onClick={() => (isInvite ? handleSendSetPasswordEmail(manager) : setResetPasswordTarget(manager))}
+          />
+        )}
       </>
     );
   };
@@ -389,7 +456,7 @@ export function ManagerAdminManagersPage() {
         mobileList={
           <ul data-testid="manager-card-list" className="flex flex-col gap-2 md:hidden">
             {filteredManagers.map((manager) => {
-              const status = accountStatusPill(manager);
+              const status = accountStatusPill(withPendingSectorFlag(manager));
               const selected = selection.isSelected(manager.id);
               return (
                 <li
@@ -444,20 +511,46 @@ export function ManagerAdminManagersPage() {
         title={modalTitle}
         footer={
           formMode === "create" ? (
-            <>
-              <Button variant="outline" full={false} onClick={closeModal}>
-                Cancelar
-              </Button>
-              <Button
-                variant="primary"
-                full={false}
-                isLoading={createManager.isPending}
-                disabled={isSubmitDisabled}
-                onClick={handleCreateSubmit}
-              >
-                Adicionar gestor
-              </Button>
-            </>
+            createStep === "confirm-no-sector" ? (
+              <>
+                <Button variant="outline" full={false} onClick={confirmCreateWithoutSector}>
+                  Não, criar sem setor
+                </Button>
+                <Button variant="primary" full={false} onClick={openCreateSectorStep}>
+                  Sim, criar setor
+                </Button>
+              </>
+            ) : createStep === "create-sector" ? (
+              <>
+                <Button variant="outline" full={false} onClick={cancelCreateSectorStep}>
+                  Cancelar
+                </Button>
+                <Button
+                  variant="primary"
+                  full={false}
+                  isLoading={createSector.isPending}
+                  disabled={isNewSectorNameEmpty}
+                  onClick={handleCreateSectorForManager}
+                >
+                  Criar setor
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" full={false} onClick={closeModal}>
+                  Cancelar
+                </Button>
+                <Button
+                  variant="primary"
+                  full={false}
+                  isLoading={createManager.isPending}
+                  disabled={isSubmitDisabled}
+                  onClick={handleCreateSubmit}
+                >
+                  Adicionar gestor
+                </Button>
+              </>
+            )
           ) : (
             <>
               <Button variant="outline" full={false} onClick={closeModal}>
@@ -477,49 +570,83 @@ export function ManagerAdminManagersPage() {
         }
       >
         {formMode === "create" ? (
-          <>
-            <label htmlFor="manager-name-input" className="text-label font-semibold text-ink-2">
-              Nome do gestor
-            </label>
-            <TextField
-              id="manager-name-input"
-              required
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              className="mt-2"
-            />
-
-            <label htmlFor="manager-email-input" className="mt-4 block text-label font-semibold text-ink-2">
-              Email do gestor
-            </label>
-            <TextField
-              id="manager-email-input"
-              type="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              onBlur={() => setEmailTouched(true)}
-              className="mt-2"
-              aria-invalid={emailFormatError ? true : undefined}
-              aria-describedby={emailFormatError ? "manager-email-input-error" : undefined}
-            />
-            {emailFormatError && (
-              <p id="manager-email-input-error" role="alert" className="mt-2 text-label text-danger">
-                {emailFormatError}
+          createStep === "confirm-no-sector" ? (
+            <>
+              <p className="text-label font-semibold text-ink">
+                Quer adicionar um setor novo para vincular a esse gestor?
               </p>
-            )}
+              <p className="mt-2 text-label text-muted">
+                Sem um setor, o cadastro fica pendente: o convite só é enviado quando um setor for vinculado a ele.
+              </p>
+            </>
+          ) : createStep === "create-sector" ? (
+            <>
+              <label htmlFor="new-sector-name-input" className="text-label font-semibold text-ink-2">
+                Nome do setor
+              </label>
+              <TextField
+                id="new-sector-name-input"
+                required
+                value={newSectorName}
+                onChange={(event) => setNewSectorName(event.target.value)}
+                className="mt-2"
+              />
 
-            <RoleAndSectorFields
-              idPrefix="create"
-              role={role}
-              onRoleChange={setRole}
-              sectors={sectorList}
-              selectedSectorIds={selectedSectorIds}
-              onToggleSector={toggleSector}
-              sectorsPending={sectors.isPending}
-              sectorsFailed={sectors.isError}
-            />
-          </>
+              <label htmlFor="new-sector-invite-code-input" className="mt-4 block text-label font-semibold text-ink-2">
+                Código de convite (opcional)
+              </label>
+              <TextField
+                id="new-sector-invite-code-input"
+                value={newSectorInviteCode}
+                onChange={(event) => setNewSectorInviteCode(event.target.value)}
+                className="mt-2"
+              />
+            </>
+          ) : (
+            <>
+              <label htmlFor="manager-name-input" className="text-label font-semibold text-ink-2">
+                Nome do gestor
+              </label>
+              <TextField
+                id="manager-name-input"
+                required
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                className="mt-2"
+              />
+
+              <label htmlFor="manager-email-input" className="mt-4 block text-label font-semibold text-ink-2">
+                Email do gestor
+              </label>
+              <TextField
+                id="manager-email-input"
+                type="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                onBlur={() => setEmailTouched(true)}
+                className="mt-2"
+                aria-invalid={emailFormatError ? true : undefined}
+                aria-describedby={emailFormatError ? "manager-email-input-error" : undefined}
+              />
+              {emailFormatError && (
+                <p id="manager-email-input-error" role="alert" className="mt-2 text-label text-danger">
+                  {emailFormatError}
+                </p>
+              )}
+
+              <RoleAndSectorFields
+                idPrefix="create"
+                role={role}
+                onRoleChange={setRole}
+                sectors={sectorList}
+                selectedSectorIds={selectedSectorIds}
+                onToggleSector={toggleSector}
+                sectorsPending={sectors.isPending}
+                sectorsFailed={sectors.isError}
+              />
+            </>
+          )
         ) : (
           editingManager && (
             <RoleAndSectorFields

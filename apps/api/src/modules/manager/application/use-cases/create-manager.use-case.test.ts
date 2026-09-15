@@ -121,6 +121,30 @@ describe("CreateManagerUseCase", () => {
     expect(sectorRepository.lastReassign).toEqual({ institutionId: "institution-1", managerId: "manager-new", sectorIds: ["sector-a", "sector-b"] });
   });
 
+  it("creates a SECTOR_MANAGER with no sector, sets no password-setup token, and sends no invite email", async () => {
+    const { useCase, managerRepository, sectorRepository, emailPort } = build();
+
+    const result = await useCase.execute({
+      institutionId: "institution-1",
+      name: "Paulo",
+      email: "paulo@zelo-demo.local",
+      role: "SECTOR_MANAGER",
+      sectorIds: [],
+    });
+
+    expect(result.manager).toEqual({ id: "manager-new", name: "Paulo", email: "paulo@zelo-demo.local" });
+    expect(managerRepository.lastCreateParams).toEqual({
+      name: "Paulo",
+      email: "paulo@zelo-demo.local",
+      institutionId: "institution-1",
+      role: "SECTOR_MANAGER",
+      setPasswordToken: undefined,
+      setPasswordTokenExpiresAt: undefined,
+    });
+    expect(sectorRepository.lastReassign).toBeNull();
+    expect(emailPort.lastSend).toBeNull();
+  });
+
   it("throws SectorNotInInstitutionError when a sectorId doesn't belong to the institution", async () => {
     const { useCase, sectorRepository } = build();
     sectorRepository.knownSectorIds = new Set(["sector-a"]);

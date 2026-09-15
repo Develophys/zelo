@@ -533,6 +533,36 @@ describe("manager admin controller — sectors", () => {
     expect(sectorRepository.rows[0]!.managerId).toBe("manager-9");
   });
 
+  it("PATCH /manager/admin/sectors/:id sends the invite email when a pending SECTOR_MANAGER gets their first sector", async () => {
+    const token = hospitalAdminToken();
+    sectorRepository.rows.push({ id: "sector-a", name: "UTI", isActive: true, managerId: null, managerName: null, institutionId: "institution-1" });
+    managerRepository.rows.push({ id: "manager-pending", name: "Renata", email: "renata2@institution-1.local", passwordHash: null, setPasswordTokenExpiresAt: null, institutionId: "institution-1", role: "SECTOR_MANAGER", isActive: true });
+
+    const response = await request(app.getHttpServer())
+      .patch("/manager/admin/sectors/sector-a")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ managerId: "manager-pending" });
+
+    expect(response.status).toBe(204);
+    expect(emailPort.lastSend?.to).toBe("renata2@institution-1.local");
+    expect(emailPort.lastSend?.template).toBe("invite");
+  });
+
+  it("PATCH /manager/admin/sectors/:id sends no email when the assigned manager already has a password", async () => {
+    const token = hospitalAdminToken();
+    sectorRepository.rows.push({ id: "sector-a", name: "UTI", isActive: true, managerId: null, managerName: null, institutionId: "institution-1" });
+    managerRepository.rows.push({ id: "manager-9", name: "Paulo", email: "paulo2@institution-1.local", passwordHash: "h", setPasswordTokenExpiresAt: null, institutionId: "institution-1", role: "SECTOR_MANAGER", isActive: true });
+    const sendBefore = emailPort.lastSend;
+
+    const response = await request(app.getHttpServer())
+      .patch("/manager/admin/sectors/sector-a")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ managerId: "manager-9" });
+
+    expect(response.status).toBe(204);
+    expect(emailPort.lastSend).toBe(sendBefore);
+  });
+
   it("PATCH /manager/admin/sectors/:id rejects a managerId belonging to a different institution and leaves the sector untouched", async () => {
     const token = hospitalAdminToken();
     sectorRepository.rows.push({ id: "sector-a", name: "UTI", isActive: true, managerId: null, managerName: null, institutionId: "institution-1" });
@@ -617,13 +647,16 @@ describe("manager admin controller — sectors", () => {
     expect(emailPort.lastSend?.template).toBe("invite");
   });
 
-  it("POST /manager/admin/managers rejects a SECTOR_MANAGER request with no sectorIds", async () => {
+  it("POST /manager/admin/managers creates a pending SECTOR_MANAGER with no sectorIds and sends no invite email", async () => {
+    const sendBefore = emailPort.lastSend;
+
     const response = await request(app.getHttpServer())
       .post("/manager/admin/managers")
       .set("Authorization", `Bearer ${hospitalAdminToken()}`)
-      .send({ name: "Paulo", role: "SECTOR_MANAGER" });
+      .send({ name: "Paulo", email: "paulo4@institution-1.local", role: "SECTOR_MANAGER" });
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(201);
+    expect(emailPort.lastSend).toBe(sendBefore);
   });
 
   it("PATCH /manager/admin/managers/:id returns 409 when deactivating the institution's last active HOSPITAL_ADMIN", async () => {

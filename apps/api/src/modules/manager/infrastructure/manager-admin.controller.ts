@@ -36,6 +36,7 @@ import {
   SectorNotInInstitutionError,
   PeerPartnerNotFoundError,
 } from "../application/use-cases/manager-admin-errors.ts";
+import { shouldTriggerPendingManagerInvite } from "../application/use-cases/should-trigger-pending-manager-invite.ts";
 import { PEER_PARTNER_REPOSITORY, PeerPartnerEmailConflictError, type PeerPartnerRepository, type PeerPartnerSummaryRow } from "@/modules/peer-partner/application/ports/peer-partner-repository.port.js";
 import { CreatePeerPartnerUseCase, type CreatePeerPartnerResult } from "../application/use-cases/create-peer-partner.use-case.ts";
 import { SendPeerPartnerSetPasswordEmailUseCase } from "../application/use-cases/send-peer-partner-set-password-email.use-case.ts";
@@ -51,17 +52,14 @@ const UpdateSectorSchema = z.object({
   inviteCode: z.string().trim().min(1).max(100).optional(),
 });
 
-const CreateManagerSchema = z
-  .object({
-    name: z.string().trim().min(1).max(200),
-    email: z.string().trim().email().max(200),
-    role: z.enum(["HOSPITAL_ADMIN", "SECTOR_MANAGER"]),
-    sectorIds: z.array(z.string()).optional(),
-  })
-  .refine((data) => data.role !== "SECTOR_MANAGER" || (data.sectorIds && data.sectorIds.length > 0), {
-    message: "sectorIds is required and non-empty when role is SECTOR_MANAGER",
-    path: ["sectorIds"],
-  });
+const CreateManagerSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  email: z.string().trim().email().max(200),
+  role: z.enum(["HOSPITAL_ADMIN", "SECTOR_MANAGER"]),
+  // A SECTOR_MANAGER created with no sectorIds stays pending registration —
+  // see CreateManagerUseCase.
+  sectorIds: z.array(z.string()).optional(),
+});
 
 const UpdateManagerSchema = z.object({
   isActive: z.boolean().optional(),
@@ -160,8 +158,9 @@ export class ManagerAdminController {
     // The DB foreign key only proves the manager exists, not that they belong
     // here — without this check an admin could assign another institution's
     // manager to one of their own sectors.
+    let assignee: Awaited<ReturnType<ManagerRepository["findById"]>> = null;
     if (parsed.data.managerId) {
-      const assignee = await this.managerRepository.findById(parsed.data.managerId);
+      assignee = await this.managerRepository.findById(parsed.data.managerId);
       if (!assignee || assignee.institutionId !== request.manager!.institutionId) {
         throw new BadRequestException("managerId does not belong to this institution");
       }
@@ -174,6 +173,16 @@ export class ManagerAdminController {
         throw new ConflictException({ conflict: "inviteCode" });
       }
       throw error;
+    }
+
+    // This sector is the manager's first (they had none before this call, or
+    // they wouldn't still be a pending, never-invited registration), so
+    // assigning it is always "at least one sector" for the guard.
+    if (assignee && shouldTriggerPendingManagerInvite(assignee, true)) {
+      await this.sendManagerSetPasswordEmail.execute({
+        institutionId: request.manager!.institutionId,
+        managerId: assignee.id,
+      });
     }
   }
 
