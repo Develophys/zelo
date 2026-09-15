@@ -9,6 +9,8 @@ export interface UseBulkStatusUpdateOptions {
   conflictMessage?(error: unknown): string | null;
   /** Singular noun used in the success toast, e.g. `{ singular: 'gestor' }`. */
   noun: { singular: string };
+  /** Called once, only when every id in the batch succeeds — the caller clears its own selection. */
+  onSuccess?(): void;
 }
 
 export interface UseBulkStatusUpdate {
@@ -22,7 +24,12 @@ function statusSuccessMessage(count: number, noun: { singular: string }, isActiv
   return count === 1 ? `1 ${noun.singular} ${participle}.` : `${count} ${plural(noun.singular)} ${participle}s.`;
 }
 
-export function useBulkStatusUpdate({ updateOne, conflictMessage, noun }: UseBulkStatusUpdateOptions): UseBulkStatusUpdate {
+export function useBulkStatusUpdate({
+  updateOne,
+  conflictMessage,
+  noun,
+  onSuccess,
+}: UseBulkStatusUpdateOptions): UseBulkStatusUpdate {
   const [busy, setBusy] = useState(false);
 
   const run = async (ids: string[], isActive: boolean): Promise<{ failedIds: string[] }> => {
@@ -44,6 +51,7 @@ export function useBulkStatusUpdate({ updateOne, conflictMessage, noun }: UseBul
 
     if (failedIds.length === 0) {
       toast.success(statusSuccessMessage(succeeded, noun, isActive));
+      onSuccess?.();
       return { failedIds };
     }
 

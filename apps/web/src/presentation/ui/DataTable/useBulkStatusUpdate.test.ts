@@ -6,9 +6,10 @@ import { useToastStore } from '@/stores/toast.store';
 function setup(
   updateOne: (id: string, isActive: boolean) => Promise<unknown>,
   conflictMessage?: (error: unknown) => string | null,
+  onSuccess?: () => void,
 ) {
   return renderHook(() =>
-    useBulkStatusUpdate({ updateOne, conflictMessage, noun: { singular: 'gestor' } }),
+    useBulkStatusUpdate({ updateOne, conflictMessage, noun: { singular: 'gestor' }, onSuccess }),
   );
 }
 
@@ -116,5 +117,35 @@ describe('useBulkStatusUpdate — failures', () => {
     expect(useToastStore.getState().toasts).toEqual([
       expect.objectContaining({ tone: 'error', message: 'Não foi possível atualizar. Tente de novo.' }),
     ]);
+  });
+});
+
+// Same contract as useBulkDelete's onSuccess: the caller hands over clearing
+// its selection, which must survive a partial failure so the rows that refused
+// can be retried.
+describe('useBulkStatusUpdate — onSuccess', () => {
+  it('fires once when every id succeeds', async () => {
+    const onSuccess = vi.fn();
+    const { result } = setup(vi.fn().mockResolvedValue(undefined), undefined, onSuccess);
+
+    await act(() => result.current.run(['a', 'b'], false));
+
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+  });
+
+  it('stays silent when any id failed', async () => {
+    const onSuccess = vi.fn();
+    const updateOne = vi.fn().mockImplementation((id: string) =>
+      id === 'b' ? Promise.reject(new Error('refused')) : Promise.resolve(undefined),
+    );
+    const { result } = setup(updateOne, undefined, onSuccess);
+
+    let failedIds: string[] = [];
+    await act(async () => {
+      ({ failedIds } = await result.current.run(['a', 'b'], false));
+    });
+
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(failedIds).toEqual(['b']);
   });
 });

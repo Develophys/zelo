@@ -1,6 +1,6 @@
 import type { HTMLAttributes, ReactNode, Ref } from 'react';
 
-type PillTone = 'neutral' | 'positive' | 'warning' | 'danger';
+export type PillTone = 'neutral' | 'positive' | 'warning' | 'danger';
 
 interface PillProps extends HTMLAttributes<HTMLSpanElement> {
   ref?: Ref<HTMLSpanElement>;
