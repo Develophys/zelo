@@ -1,6 +1,8 @@
-import { useState, type SubmitEvent } from "react";
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { useLocation } from "react-router";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Link } from "react-router";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BackButton } from "@/presentation/ui/BackButton";
 import { Button } from "@/presentation/ui/Button";
@@ -11,26 +13,30 @@ import { useManagerLogin } from "@/presentation/hooks/useManagerLogin";
 import { InvalidManagerCredentialsError } from "@/ports/manager-auth.port";
 import { TextField } from "@/presentation/ui/TextField";
 import { PasswordField } from "@/presentation/ui/PasswordField";
-import { isValidEmail } from "@/presentation/lib/validate-email";
+import { loginFormSchema, type LoginFormValues } from "@/presentation/lib/login-form-schema";
 
 export function ManagerLoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [emailTouched, setEmailTouched] = useState(false);
-  const [password, setPassword] = useState("");
   const login = useManagerLogin();
 
-  const handleSubmit = (event: SubmitEvent) => {
-    event.preventDefault();
-    login.mutate({ email, password }, { onSuccess: () => navigate(routes.manager) });
-  };
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginFormSchema),
+    defaultValues: { email: "", password: "" },
+    mode: "onBlur",
+  });
+
+  const onSubmit = form.handleSubmit((values) => {
+    login.mutate(values, { onSuccess: () => navigate(routes.manager) });
+  });
 
   const errorMessage = login.isError
     ? login.error instanceof InvalidManagerCredentialsError
       ? "Email ou senha incorretos."
       : "Não foi possível entrar agora. Tente novamente."
     : null;
-  const emailFormatError = emailTouched && email.length > 0 && !isValidEmail(email) ? "Digite um email válido." : null;
+
+  const [emailValue, passwordValue] = form.watch(["email", "password"]);
+  const isSubmitDisabled = !loginFormSchema.safeParse({ email: emailValue, password: passwordValue }).success;
 
   const { state } = useLocation() as { state?: { reason?: string } };
 
@@ -50,7 +56,7 @@ export function ManagerLoginPage() {
           </p>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={onSubmit}>
           <Card className="mt-5">
             <label htmlFor="manager-email" className="text-label font-semibold text-ink-2">
               Email
@@ -59,17 +65,17 @@ export function ManagerLoginPage() {
               id="manager-email"
               type="email"
               required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              onBlur={() => setEmailTouched(true)}
               placeholder="Digite seu email"
               className="mt-2"
-              aria-invalid={emailFormatError || errorMessage ? true : undefined}
-              aria-describedby={emailFormatError ? "manager-email-error" : errorMessage ? "manager-login-error" : undefined}
+              aria-invalid={form.formState.errors.email || errorMessage ? true : undefined}
+              aria-describedby={
+                form.formState.errors.email ? "manager-email-error" : errorMessage ? "manager-login-error" : undefined
+              }
+              {...form.register("email")}
             />
-            {emailFormatError && (
+            {form.formState.errors.email && (
               <p id="manager-email-error" role="alert" className="mt-2 text-label text-danger">
-                {emailFormatError}
+                {form.formState.errors.email.message}
               </p>
             )}
 
@@ -79,12 +85,11 @@ export function ManagerLoginPage() {
             <PasswordField
               id="manager-password"
               required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
               placeholder="Digite sua senha"
               className="mt-2"
               aria-invalid={errorMessage ? true : undefined}
               aria-describedby={errorMessage ? "manager-login-error" : undefined}
+              {...form.register("password")}
             />
 
             {errorMessage && (
@@ -95,12 +100,7 @@ export function ManagerLoginPage() {
           </Card>
 
           <div className="mt-6 px-4.5">
-            <Button
-              type="submit"
-              variant="primary"
-              isLoading={login.isPending}
-              disabled={!isValidEmail(email) || password.trim().length === 0}
-            >
+            <Button type="submit" variant="primary" isLoading={login.isPending} disabled={isSubmitDisabled}>
               Entrar
             </Button>
           </div>
