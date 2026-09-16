@@ -42,7 +42,7 @@ Splitting the 12 by who defines them:
   `matched` (:134-135), `message` (:154), `peer_left` (:78, :164), `no_peer_available` (:110,
   :221).
 - **Socket.io's own connection lifecycle, not app-defined but branched on for app state**:
-  `connect_error` and `disconnect` appear in both hooks (`usePeerRequest.ts:53-62`,
+  `connect_error` and `disconnect` appear in both hooks (`usePeerRequest.ts:53-63`,
   `usePeerPartnerConnection.ts:45-46`); `connect` appears only in
   `usePeerPartnerConnection.ts:44` — `usePeerRequest.ts` has no `connect` handler at all.
 
@@ -143,11 +143,20 @@ independent spellings of the same two strings, kept in sync by nothing but a hum
 both files. `useChatConversation.ts:146` then compares against one of those two literals
 (`event.error === 'crisis_fallback_required'`) with the same no-shared-source exposure.
 
-**The one unvalidated network response body in the app.** Every other HTTP adapter in
-`apps/web/src/infrastructure/http/` runs the response through a zod schema before returning it
-— `Schema.parse(await response.json())`, confirmed across all of `http-admin-auth.adapter.ts`,
-`http-admin-institution.adapter.ts`, `http-manager-admin.adapter.ts`, and eight more. The chat
-adapter doesn't:
+**Not the only unvalidated response body — but the only one in a stream.** Most HTTP adapters
+in `apps/web/src/infrastructure/http/` run the response through a zod schema before returning
+it — `Schema.parse(await response.json())`, true of all of `http-admin-auth.adapter.ts`,
+`http-admin-institution.adapter.ts`, `http-manager-auth.adapter.ts`, and seven more. But two
+sites in `http-manager-admin.adapter.ts` already skip validation the same way: `createSector`
+returns `response.json()` directly with no `.parse()` at all (`http-manager-admin.adapter.ts:60`),
+and `deleteResource` does a bare type assertion, `(await response.json().catch(() => null)) as
+{ message?: unknown } | null` (`http-manager-admin.adapter.ts:161`) — the identical
+trust-the-shape risk this section is about to flag in the chat adapter. Both predate this
+document and are out of scope for it; noted here only so "unvalidated response body" isn't
+overclaimed as unique to chat.
+
+The chat adapter's version of the same problem is worse in kind, not just another instance of
+it: it's a per-line cast inside a stream, not a one-shot response.
 
 ```ts
 return JSON.parse(trimmed) as ChatStreamEvent;
@@ -156,11 +165,11 @@ return JSON.parse(trimmed) as ChatStreamEvent;
 at `http-chat-gateway.adapter.ts:10`. It's a bare type assertion on `JSON.parse`'s `any`, not a
 runtime check — a malformed or shape-shifted line from the stream would be trusted as a valid
 `ChatToken` or `ChatErrorEvent` with nothing to catch the mismatch before it reaches
-`useChatConversation.ts`. This is the sole site of that pattern for a network response body in
-the frontend; the other three `JSON.parse` call sites in `apps/web/src`
-(`assessment-draft.ts:56`, `last-result.ts:32`, `get-assessment-history.usecase.ts:41`) parse
-local storage or decrypted-locally data, not a server response, so they're a different risk
-shape and out of scope here.
+`useChatConversation.ts`, and it runs once per streamed token rather than once per request. The
+other three `JSON.parse` call sites in `apps/web/src` (`assessment-draft.ts:56`,
+`last-result.ts:32`, `get-assessment-history.usecase.ts:41`) parse local storage or
+decrypted-locally data, not a server response, so they're a different risk shape and out of
+scope here.
 
 ## 5. If you're adding a new real-time feature
 
