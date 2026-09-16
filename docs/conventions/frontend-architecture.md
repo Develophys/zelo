@@ -8,10 +8,12 @@ hand-wired `export const xUseCase = new XUseCase(adapter)`, one feature file per
 `manager-admin.ts`, `manager-auth.ts`, `manager-dashboard.ts`, `manager-notifications.ts`,
 `peer-partner-auth.ts`, `signal-checkin.ts` — 11 files), re-exported through
 `app/container/index.ts`, which is exactly 11 `export * from "./<feature>"` lines and nothing
-else. `general-documentations/architecture-reference.md:104-105` still describes this as
-`apps/web/src/app/container.ts`, "one file of plain `new X(new Y())` constructor wiring" — the
-doc is stale on the filename (it's a directory now), but the underlying description of the
-wiring style is accurate and is the rule to follow.
+else. `general-documentations/architecture-reference.md:133-138` describes the same shape and is
+current as of this branch: `apps/web/src/app/container/` is plain `new X(new Y())` constructor
+wiring "split into 11 feature files plus a re-exporting `index.ts`", and it says outright that
+"there is no `container.ts` any more." Earlier drafts of this playbook flagged that reference as
+stale on the filename; it isn't any more — import from `@/app/container`, never from a
+`container.ts`.
 
 A use-case's constructor takes port interfaces **and/or sibling use-cases** — composition is
 legal and used, not a violation: `SubmitAssessmentUseCase` takes `ScoreAssessmentUseCase` +
@@ -184,12 +186,12 @@ they're worth re-grepping rather than assumed.
 
 ## Traps
 
-- **The untested-admin-CRUD-use-case gap.** `architecture-reference.md:511-513` states the actual
-  convention: a use-case is unit-tested; only a thin, passthrough adapter is exempt, "the same
-  untested-by-convention rule as backend Prisma repositories" (its own words — the backend side of
-  that rule is the `application/`-layer exemption for Prisma repositories and thin HTTP adapters,
-  not written down in `docs/conventions/backend-modules.md` today, but the same idea). That
-  convention is currently violated on the frontend, not silently accepted: of the 47 files under
+- **The untested-admin-CRUD-use-case gap.** The convention — a use-case is unit-tested however
+  thin; only a passthrough `prisma-*.repository.ts` or `http-*.adapter.ts` is exempt — is owned by
+  [`testing.md` §1](./testing.md), which is also where the live-code evidence for it sits. (An
+  earlier draft of this playbook cited `architecture-reference.md:511-513` for it; that resync
+  moved those lines onto unrelated privacy prose and deleted the sentence, so don't cite it.)
+  The convention is currently violated on the frontend, not silently accepted: of the 47 files under
   `apps/web/src/use-cases/`, 18 have no colocated `*.usecase.test.ts` — every one of them is an
   admin CRUD use-case (`create-institution`, `create-manager`, `create-peer-partner`,
   `delete-manager`, `delete-peer-partner`, `delete-sector`, `list-accessible-sectors`,

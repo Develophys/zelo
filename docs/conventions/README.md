@@ -1,6 +1,6 @@
 # Conventions
 
-This directory holds **task playbooks** — concrete recipes that pair a rule set with a mirror file or pattern that shows what compliance looks like. Playbooks differ from `CLAUDE.md` (always-loaded laws that apply to all code and docs) and from `general-documentation/architecture-reference.md` (what exists, why, and how it works together). Think of playbooks as "if you're doing *X*, here's the checklist and the rationale behind each item."
+This directory holds **task playbooks** — concrete recipes that pair a rule set with a mirror file or pattern that shows what compliance looks like. Playbooks differ from `CLAUDE.md` (always-loaded laws that apply to all code and docs) and from `general-documentations/architecture-reference.md` (what exists, why, and how it works together). Think of playbooks as "if you're doing *X*, here's the checklist and the rationale behind each item."
 
 ## Which playbook to open
 

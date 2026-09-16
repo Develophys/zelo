@@ -20,16 +20,24 @@ producing it (see the design spec, `docs/superpowers/specs/2026-09-15-ai-convent
 
 ## 1. Production seed script targets the wrong database
 
-- **Why:** `apps/api/.env.production.local` sets `DIRECT_DATABASE_URL` but not `DATABASE_URL`,
-  so under `NODE_ENV=production` the load-env cascade falls through to `apps/api/.env`'s
-  localhost value. The Prisma CLI (which reads `DIRECT_DATABASE_URL`) targets production while
-  `seed.ts` and `create-super-admin.ts` (which go through `PrismaService`, reading
-  `DATABASE_URL`) target the local database. `seed.ts` is destructive by design — it deletes and
-  regenerates a rolling 6-week signal window — so the documented pre-demo re-seed wipes the
-  LOCAL database while printing a success message an operator reads as "production refreshed",
-  in the same session where `prisma migrate deploy` really did hit production. The one wrong
-  instruction sits in `apps/api/prisma/README.md`, which still says "Both connection strings are
-  already in `apps/api/.env`" — untrue since the dev/prod split landed.
+- **Why:** `apps/api/.env.production.local` is gitignored (`.gitignore:203`) — untracked,
+  machine-local — so nothing in the repo guarantees that `DATABASE_URL` is present there
+  alongside `DIRECT_DATABASE_URL`, and git history cannot confirm it either way for any given
+  machine. *If* it is missing on the machine running the script, then under `NODE_ENV=production`
+  the load-env cascade falls through to `apps/api/.env`'s localhost value: the Prisma CLI (which
+  reads `DIRECT_DATABASE_URL`) targets production while `seed.ts` and `create-super-admin.ts`
+  (which go through `PrismaService`, reading `DATABASE_URL`) target the local database.
+  `seed.ts` is destructive by design — it deletes and regenerates a rolling 6-week signal
+  window — so a pre-demo re-seed under that condition wipes the LOCAL database while printing a
+  success message an operator reads as "production refreshed", in the same session where
+  `prisma migrate deploy` really did hit production. This item is the *mechanism*, not an
+  assertion about the current contents of any one operator's file: the two vars are read by two
+  entirely separate code paths with no check that they agree, so it has to be verified per
+  machine before every prod run rather than assumed.
+  `docs/conventions/monorepo-tooling.md:170-193` states the same guard where an operator doing a
+  re-seed will actually hit it. The one flatly wrong instruction sits in
+  `apps/api/prisma/README.md:205`, which still says "Both connection strings are already in
+  `apps/api/.env`" — untrue since the dev/prod split landed.
 - **Effort:** small
 - **Kind:** security
 - **Files:** `apps/api/.env.production.local`, `apps/api/.env`, `apps/api/prisma/seed.ts`,
@@ -239,20 +247,26 @@ defect.
 
 - **Why:** `README.md` line 46's tech-stack table still says GitHub Pages and Neon under
   "Infra", contradicting its own Deployment section further down, which documents Vercel +
-  Prisma Postgres. `general-documentations/architecture-reference.md:104` and `:267` describe
-  `apps/web/src/app/container.ts` as a single file; it is now a 12-file directory
-  (`apps/web/src/app/container/`, verified: `index.ts` plus 11 sibling files). And
-  `docs/superpowers/specs/` (the July build-plan-era specs) describe React 18, a
+  Prisma Postgres. The `architecture-reference.md` half of this item is **resolved by this branch**:
+  it used to describe `apps/web/src/app/container.ts` as a single file, and `:133-138` now
+  describes the 12-file `apps/web/src/app/container/` directory (`index.ts` plus 11 sibling
+  files) and says outright "there is no `container.ts` any more" — re-verified: `grep -n
+  "container.ts" general-documentations/architecture-reference.md` returns only that line.
+  `docs/superpowers/specs/AGENTS.md` also now carries a "Historical" banner. What is still open
+  is the README and the remaining spec-era content: `docs/superpowers/specs/` (the July
+  build-plan-era specs) describe React 18, a
   `tailwind.config.ts`, Google Fonts CDN links, a `loading` Button prop and `bg-brand
   text-white` — all superseded. Also delete the dead `VITE_BASE_PATH` plumbing left behind by
   the retired GitHub Pages workflow. These files present themselves as "start here" and "source
-  of truth"; an agent following them wires a second, dead DI surface, ships a no-op Tailwind
-  config, breaks PWA offline precaching with external font links, and passes a prop that
-  silently does nothing.
-- **Effort:** medium
+  of truth"; an agent following them ships a no-op Tailwind config, breaks PWA offline
+  precaching with external font links, and passes a prop that silently does nothing. (The
+  "wires a second, dead DI surface" consequence this item used to list is gone with the
+  `container.ts` description.)
+- **Effort:** small (was medium — the `architecture-reference.md` portion is done)
 - **Kind:** technical-debt
-- **Files:** `README.md`, `general-documentations/architecture-reference.md`,
-  `apps/web/src/app/container/` (directory), `docs/superpowers/specs/AGENTS.md`
+- **Files:** `README.md` (the tech-stack table), `docs/superpowers/specs/` (React 18 / Tailwind
+  config / font-CDN / `loading`-prop / `bg-brand` references, beyond the banner
+  `AGENTS.md` already carries), `apps/web/vite.config.ts` + `turbo.json` (`VITE_BASE_PATH`)
 
 ## 14. Route-level code splitting (known to the maintainer)
 

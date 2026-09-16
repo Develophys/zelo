@@ -17,19 +17,38 @@ is a one-line passthrough** — cover them through the controller's supertest in
 convention got backwards, so it is worth stating flatly: a use-case gets a unit test against
 fakes even when its whole body is `return this.port.x(...)`.
 
-The documented source of the exemption, re-read fresh at the cited lines:
+**Where each half of this rule is actually documented — re-checked against the current files,
+not an earlier draft's line numbers.**
 
-- `general-documentations/architecture-reference.md:263` — the layer table's own row: `` `use-
-  cases/` | Orchestration classes, constructor-injected with ports, unit-tested against fakes.
-  ``
-- `general-documentations/architecture-reference.md:511-513` — the "Adding a new frontend
-  flow" recipe, step 2: `` `Http*Adapter` in `infrastructure/http/`, use-case in `use-cases/`,
-  both unit-tested (adapter usually isn't — thin passthroughs follow the same untested-by-
-  convention rule as backend Prisma repositories). ``
+The *use-case* half is stated in `general-documentations/architecture-reference.md`, and those
+two statements are current:
 
-Both lines name the adapter/repository as the untested-by-convention side and the use-case as
-unit-tested. Read literally, "adapter usually isn't" is descriptive of current coverage, not a
-second exemption class for use-cases.
+- `:108` — the three-layer table's own row: `` | **Use-case** — the actual logic, tested
+  against a fake port | `record-signal-checkin.use-case.ts` | `record-signal-checkin.usecase.ts`
+  | ``
+- `:403` — the `apps/web/src/` folder table: `` | `use-cases/` | 47 orchestration classes,
+  constructor-injected with ports, unit-tested against fakes. | ``
+
+The *exemption* half is no longer stated in `architecture-reference.md` at all. An earlier draft
+of this playbook cited `:263` and `:511-513` for it; that resync moved `:263` inside a mermaid
+ER diagram and `:511-513` into the "no per-person row, ever" privacy prose, and the sentence
+those lines used to hold was deleted rather than moved — `architecture-reference.md:728` now
+routes "Tests" to this file instead. So **this playbook is the exemption's source of record**,
+and the ground under it is the code, re-counted fresh:
+
+```bash
+$ find apps/api/src -name "prisma-*.repository.ts" | wc -l
+11
+$ find apps/api/src -name "prisma-*.repository.test.ts"
+apps/api/src/modules/sector/infrastructure/persistence/prisma-sector.repository.test.ts
+$ ls apps/web/src/infrastructure/http/http-*.adapter.ts | grep -v test | wc -l
+14
+$ ls apps/web/src/infrastructure/http/http-*.adapter.test.ts | wc -l
+8
+```
+
+10 of 11 Prisma repositories and 6 of 14 web HTTP adapters have no unit test, and that is the
+settled convention rather than a gap — don't read it as licence to skip a use-case test.
 
 **The gap this produces is real and is tracked separately, not folded into the exemption.**
 29 of 47 `apps/web/src/use-cases/*.ts` files have a matching `.test.ts` (re-counted fresh: `ls
@@ -44,10 +63,13 @@ neighbor concern in spirit but not its subject; the untested-use-case gap has no
 `docs/superpowers/specs/2026-09-15-ai-conventions-documentation-design.md` §6's "Use-cases get
 a unit test against fakes however thin" line.
 
-The same exemption, and the same non-exemption, apply on the backend: 10 of 11
-`prisma-*.repository.ts` files have no test (the exception, `prisma-sector.repository.ts`, has
-branching invite-code/conflict logic and is the only API test allowed to touch a real
-database — see §4), and every `*.use-case.test.ts` under `apps/api/src` exists.
+The same exemption, and the same non-exemption, apply on the backend. The one tested
+repository, `prisma-sector.repository.ts`, has branching invite-code/conflict logic and is the
+only API test allowed to touch a real database (see §4). The backend use-case side is close to
+complete but not total — re-counted fresh: 35 of 38 `apps/api/src/**/*.use-case.ts` files have a
+sibling `.test.ts`; the three without are `admin/.../list-institutions.use-case.ts`,
+`notification/.../list-notifications.use-case.ts` and
+`notification/.../mark-notification-read.use-case.ts`. Those three are the gap, not the rule.
 
 **Mirror files:** `apps/api/src/modules/institution/infrastructure/institution.controller.ts`
 + its `.controller.test.ts` for the "cover the repository through the controller" side;
