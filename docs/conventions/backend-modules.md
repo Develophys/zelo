@@ -6,14 +6,13 @@ constants) and `infrastructure/` (controllers, guards, persistence, ai-providers
 `<name>.module.ts` at the module root. `application/` never imports from `infrastructure/`
 or from Prisma — it only knows about *ports*: an interface plus a `Symbol` DI token declared
 in the same file. `infrastructure/` implements those ports and is where Nest, Prisma, and
-HTTP concerns live. This is a textbook Dependency Inversion boundary, enforced by
-`apps/api/.dependency-cruiser.cjs`'s `application-no-infrastructure-imports` and
-`application-no-prisma-imports` rules — both of which genuinely fire; see "How to verify"
-below for what a green run does and does not prove. Not every module needs every subfolder — `ports/`, `use-cases/`, `persistence/`,
+HTTP concerns live. This is a textbook Dependency Inversion boundary, and it is nominally
+enforced by `apps/api/.dependency-cruiser.cjs`'s `application-no-infrastructure-imports` and
+`application-no-prisma-imports` rules (see "How to verify" below for the gap in the second
+one). Not every module needs every subfolder — `ports/`, `use-cases/`, `persistence/`,
 `ai-providers/`, a controller, or a repository are all present only when the feature needs
-them (`sector` and `peer-chat` have no controller; `sector` also has no
-`application/services/`, though `peer-chat` does —
-`apps/api/src/modules/peer-chat/application/services/` exists).
+them (`sector` and `peer-chat` have no controller; `sector` and `peer-chat` also have no
+`application/services/`).
 
 Three mechanical rules hold across the whole tree, confirmed independently: every relative
 import specifier ends in `.ts` and every `@/`-aliased specifier ends in `.js` — confirmed by
@@ -80,12 +79,8 @@ Build a new capability in this order, one file per step:
    (`chat.controller.ts:29-38`) wraps its `for await` loop in try/catch, and on a caught error
    writes an NDJSON `{"error": code}` frame instead of rethrowing, then always `res.end()`s in
    a `finally`; and a handler with no domain error at all just throws the Nest exception
-   inline with no try/catch — `InstitutionController.byCode` (`institution.controller.ts:36`)
+   inline with no try/catch — `InstitutionController.byCode` (`institution.controller.ts:35`)
    throws a bare `NotFoundException()`.
-   This step is a summary, not the owner: the full validation recipe, the
-   `@Query()`/`@Param()` carve-out, the cross-tenant response semantics and the rate-limiting
-   picture all live in [`backend-http.md`](./backend-http.md) — read it before writing a
-   controller, and don't extend this step's rules in place of that file's.
    Mirror: `apps/api/src/modules/signal-checkin/infrastructure/signal-checkin.controller.ts`
    (validation) and `apps/api/src/modules/admin/infrastructure/admin.controller.ts`
    (error mapping).
@@ -106,9 +101,6 @@ Build a new capability in this order, one file per step:
    XRepository`, whose unused methods `throw new Error("not used in this test")`. Reserve
    `Test.createTestingModule` + `supertest` for controller and gateway tests. Colocate every
    test as a sibling `*.test.ts`.
-   The use-case-testing convention itself — including which files are exempt (a
-   `prisma-*.repository.ts` passthrough) and which never are (a use-case, however thin) — is
-   owned by [`testing.md` §1](./testing.md); this step just applies it.
    Mirror: `apps/api/src/modules/manager/application/use-cases/create-manager.use-case.test.ts`.
 
 ## Naming, exactly
@@ -121,12 +113,8 @@ Build a new capability in this order, one file per step:
   on one aggregate may add a second public method rather than a second file —
   `list-notifications.use-case.ts` exposes `execute` + `unreadCount`,
   `mark-notification-read.use-case.ts` exposes `execute` + `executeAll`. "One class per file"
-  is also not absolute: 7 of the 38 use-case files additionally export the error class(es) that
-  use-case throws — 8 classes across those 7 files, because
-  `chat/application/use-cases/send-chat-message.use-case.ts` exports two
-  (`AiProviderUnavailableError` and `CrisisFallbackRequiredError`). Re-counted fresh:
-  `grep -rln "^export class .*Error" apps/api/src --include=*.use-case.ts | wc -l` → 7;
-  the same grep without `-l` → 8.
+  is also not absolute: 8 of 38 use-case files additionally export the error class(es) that
+  use-case throws.
 
 - **Errors, never `HttpException`.** Model an expected failure as `export class SomethingError
   extends Error {}`. Place it in the use-case file that throws it, in the port file when a
@@ -155,11 +143,8 @@ Build a new capability in this order, one file per step:
   `notification/application/use-cases/sweep-*.use-case.ts` files.
 
 - **Guards split into two kinds by name and behavior.** An *authentication* guard is
-  `<role>-auth.guard.ts`: it injects that role's `TokenService` (and, for manager, the
-  repositories it re-reads on every request — confirmed:
-  `manager-auth.guard.ts` also `@Inject`s `MANAGER_REPOSITORY` and `INSTITUTION_REPOSITORY`
-  alongside `ManagerTokenService`), throws `UnauthorizedException`, and attaches
-  `request.<role>` (a field declared first in
+  `<role>-auth.guard.ts`: it injects that role's `TokenService`, throws
+  `UnauthorizedException`, and attaches `request.<role>` (a field declared first in
   `apps/api/src/types/express.d.ts`). An *authorization* guard is `<capability>.guard.ts` —
   no `-auth` suffix — takes no constructor dependencies, attaches nothing, throws
   `ForbiddenException`, and reads a field an authentication guard already populated, so it
@@ -192,20 +177,20 @@ pnpm --filter @zelo/api lint:boundaries
 
 This runs `depcruise src --config .dependency-cruiser.cjs` (confirmed at
 `apps/api/package.json:13`), which enforces two rules: `application/` may not import
-`infrastructure/`, and `application/` may not import the Prisma client. A green run proves both
-boundaries hold.
+`infrastructure/`, and `application/` may not import `node_modules/@prisma/client`. A green
+run proves the first boundary holds — no file under `application/` reaches into
+`infrastructure/`.
 
-The second rule was inert until recently: its `to` matched only
-`node_modules/@prisma/client`, a package this codebase never imports, because
-`apps/api/prisma/schema.prisma` sets `generator client { output = "../generated/prisma" }` and
-every repository imports from there instead. A file under `application/` importing
-`../../../generated/prisma/client.ts` — the exact violation the rule exists to catch — passed
-cleanly. It now targets `^generated/prisma|node_modules/@prisma/client`, verified by planting
-such an import and confirming `depcruise` errors and exits 1.
-
-Because that target is coupled to the generator's `output`, moving the output would silently
-make the rule stop matching again. `src/shared/config/prisma-boundary-rule.test.ts` asserts the
-two stay in step.
+It does **not** prove the second boundary holds, because the rule's `to: { path:
+"node_modules/@prisma/client" }` matches a package this codebase's `application/` code never
+imports in the first place (Prisma's client is generated to `apps/api/generated/prisma/`,
+outside `node_modules/@prisma/client`, since `apps/api/prisma/schema.prisma` sets `generator
+client { output = "../generated/prisma" }`). A file under `application/` that imported
+`../../../generated/prisma/client.ts` directly — the exact violation this rule exists to
+catch — would pass `lint:boundaries` cleanly today. See `docs/conventions/priorities.md` #2
+for the fix (`to: { path: "^generated/" }`) and the comment in
+`apps/api/src/modules/notification/application/ports/notification.port.ts:1-4` that currently
+(and incorrectly) tells the next reader this is already guarded.
 
 `lint:boundaries` also says nothing about import extensions, `@Inject()` coverage, naming
 conventions, or any of the other rules in this document — those have no automated check.
