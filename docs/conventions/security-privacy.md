@@ -123,12 +123,13 @@ already reaches.
 
 Never introduce `dangerouslySetInnerHTML`, `innerHTML`, `outerHTML`, `document.write`, `eval()`,
 `new Function`, or a `javascript:`/user-built `href` anywhere in `apps/web`. This is a
-project-wide prohibition, not specific to one screen — `CLAUDE.md` carries the same rule as a
-top-level law for anyone working in this repo; this file is where the fuller TD-001 rationale
-lives, since `CLAUDE.md`'s own version is necessarily a one-line summary. (As of this writing
-`CLAUDE.md` does not yet contain that line — it lands in the same documentation pass this file is
-part of — but the rule itself is already real and already enforced by convention, independent of
-which file states it.) Re-run just now:
+project-wide prohibition, not specific to one screen, and it is already real and already
+enforced by convention today (see the re-run grep below) regardless of where it's written down.
+A separate task in this same documentation pass will add a one-line summary of this rule to
+`CLAUDE.md` as a top-level law — as of this writing that line is **not yet there**
+(`grep -n "dangerouslySetInnerHTML\|innerHTML\|XSS" CLAUDE.md` returns nothing); this file is
+where the fuller TD-001 rationale lives regardless, since `CLAUDE.md`'s eventual version will
+necessarily be a one-line summary. Re-run just now:
 
 ```bash
 grep -rnE "dangerouslySetInnerHTML|innerHTML|outerHTML|document\.write|eval\(|new Function|javascript:" apps/web/src packages
@@ -154,7 +155,7 @@ an oversight to quietly work around mid-task.
 or an origin-reflecting function — frontend (Vercel) and API (Fly) are never same-origin, so this
 is load-bearing, not incidental. `main.ts:13-19` builds `resolveAllowedOrigins()`, applied at
 `:23` via `app.enableCors({ origin: resolveAllowedOrigins() })`. The WebSocket gateway duplicates
-the same resolver rather than importing it — `peer-chat.gateway.ts:21-24`, applied at `:40` in
+the same resolver rather than importing it — `peer-chat.gateway.ts:21-25`, applied at `:40` in
 `@WebSocketGateway({ cors: { origin: resolveAllowedOrigins() } })` — so a change to the allowed
 origins has to be made in both files or the socket and the REST API silently disagree.
 
