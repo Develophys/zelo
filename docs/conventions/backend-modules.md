@@ -82,6 +82,10 @@ Build a new capability in this order, one file per step:
    a `finally`; and a handler with no domain error at all just throws the Nest exception
    inline with no try/catch — `InstitutionController.byCode` (`institution.controller.ts:36`)
    throws a bare `NotFoundException()`.
+   This step is a summary, not the owner: the full validation recipe, the
+   `@Query()`/`@Param()` carve-out, the cross-tenant response semantics and the rate-limiting
+   picture all live in [`backend-http.md`](./backend-http.md) — read it before writing a
+   controller, and don't extend this step's rules in place of that file's.
    Mirror: `apps/api/src/modules/signal-checkin/infrastructure/signal-checkin.controller.ts`
    (validation) and `apps/api/src/modules/admin/infrastructure/admin.controller.ts`
    (error mapping).
@@ -102,6 +106,9 @@ Build a new capability in this order, one file per step:
    XRepository`, whose unused methods `throw new Error("not used in this test")`. Reserve
    `Test.createTestingModule` + `supertest` for controller and gateway tests. Colocate every
    test as a sibling `*.test.ts`.
+   The use-case-testing convention itself — including which files are exempt (a
+   `prisma-*.repository.ts` passthrough) and which never are (a use-case, however thin) — is
+   owned by [`testing.md` §1](./testing.md); this step just applies it.
    Mirror: `apps/api/src/modules/manager/application/use-cases/create-manager.use-case.test.ts`.
 
 ## Naming, exactly
@@ -114,8 +121,12 @@ Build a new capability in this order, one file per step:
   on one aggregate may add a second public method rather than a second file —
   `list-notifications.use-case.ts` exposes `execute` + `unreadCount`,
   `mark-notification-read.use-case.ts` exposes `execute` + `executeAll`. "One class per file"
-  is also not absolute: 8 of 38 use-case files additionally export the error class(es) that
-  use-case throws.
+  is also not absolute: 7 of the 38 use-case files additionally export the error class(es) that
+  use-case throws — 8 classes across those 7 files, because
+  `chat/application/use-cases/send-chat-message.use-case.ts` exports two
+  (`AiProviderUnavailableError` and `CrisisFallbackRequiredError`). Re-counted fresh:
+  `grep -rln "^export class .*Error" apps/api/src --include=*.use-case.ts | wc -l` → 7;
+  the same grep without `-l` → 8.
 
 - **Errors, never `HttpException`.** Model an expected failure as `export class SomethingError
   extends Error {}`. Place it in the use-case file that throws it, in the port file when a

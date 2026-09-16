@@ -17,8 +17,9 @@ nothing in the type system or a lint rule would catch that omission.
 3. `if (!parsed.success) throw new BadRequestException(parsed.error.flatten());`
 4. Consume `parsed.data` at the call site (whole, spread, or field-by-field) — never write
    `type X = z.infer<typeof Schema>` in `apps/api`. That prohibition is specific to this app: the
-   CLAUDE.md `z.infer` rule for `apps/web` forms is a different, narrower scope, and does not carry
-   over here.
+   `z.infer` rule for `apps/web` form schemas is a different, narrower scope and does not carry
+   over here — it lives at [`forms-and-ui.md:50`](./forms-and-ui.md) ("export both the schema and
+   `type X = z.infer<typeof schema>`"), not in `CLAUDE.md`, which no longer states it.
 
 Mirror: `apps/api/src/modules/signal-checkin/infrastructure/signal-checkin.controller.ts`.
 

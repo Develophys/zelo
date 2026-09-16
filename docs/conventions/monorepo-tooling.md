@@ -264,6 +264,39 @@ present, re-verified fresh:**
 
 **Mirror files:** `fly.toml`; `fly.dev.toml`; `apps/web/vercel.json`; `docs/android-apk.md`.
 
+## Traps
+
+Each of these is stated in full in the numbered section beside it; collected here because every
+one of them is a thing that looks routine and isn't.
+
+- **Don't run `apps/api/prisma/seed.ts` or `create-super-admin.ts` against production without
+  first confirming `DATABASE_URL` and `DIRECT_DATABASE_URL` point at the same host** (§5). They
+  are read by two entirely separate code paths, the env file is machine-local and gitignored so
+  the repo can't enforce agreement, and `seed.ts` is destructive. The success message looks
+  identical either way.
+- **Don't trust `apps/api/prisma/README.md:205`** ("Both connection strings are already in
+  `apps/api/.env`") — false since the dev/prod env split; `.env` now holds localhost credentials
+  (§5).
+- **Don't paste `docs/android-apk.md:35`'s `fly secrets set CORS_ALLOWED_ORIGINS=...` line
+  verbatim** (§6). It *replaces* the secret rather than appending, Fly secrets are write-only so
+  the old value can't be read back, and the omitted origins are CORS-blocked immediately.
+- **Don't assume an APK built from `develop` talks to the dev API** (§6).
+  `apps/web/package.json:9`'s `build:native` hardcodes the production `VITE_API_BASE_URL` with no
+  environment branch, and `android:sync` calls it unconditionally.
+- **Don't add a second deploy path for either app** (§6). The API deploys only through
+  `api.yml`'s flyctl jobs; the web app deploys only through Vercel's git integration. A deploy
+  job added to `web.yml` would be a second, competing publisher.
+- **Don't read `VITE_BASE_PATH` as live configuration** (§6). It survives in
+  `apps/web/vite.config.ts` and `turbo.json` but no workflow sets it any more; it's GitHub Pages
+  residue, tracked on `priorities.md` #13.
+- **Don't delete `PrismaService`'s `PrismaNeon` branch as dead code** (§6) without first
+  checking the live `DATABASE_URL` via `fly secrets` — it's *probably* unexercised, which is not
+  the same as provably unreachable.
+- **Don't run `prisma db push`** (§5, `:195`). Migrations are committed, timestamped folders
+  under `apps/api/prisma/migrations`. The companion rule for a required column on a table with
+  production rows — hand-edit the generated migration into nullable → backfill → `NOT NULL`
+  order — lives at `general-documentations/architecture-reference.md:734-737`, not here.
+
 ## How to verify
 
 ```bash

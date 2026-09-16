@@ -194,6 +194,31 @@ use-case or hook boundary that doesn't hold the raw socket/client directly, matc
 `chat-gateway.port.ts` + `http-chat-gateway.adapter.ts` are already structured for the chat
 feature in this same app.
 
+## Traps
+
+Every item here is stated in full in the section named beside it — collected so a reader
+skimming for "what will bite me" doesn't have to reconstruct the list.
+
+- **Don't normalize `request-peer` to `request_peer`** (§1). It's the one kebab-case name among
+  the app-defined events — every other custom one is snake_case or a single word — so it reads
+  like a typo. Renaming a wire-protocol
+  string is a coordinated gateway + two-hook + `peer-chat.gateway.test.ts` change, not a tidy-up;
+  it's carried on `priorities.md` #8.
+- **Don't remove or "simplify" the `unregistered &&` guard in `handleDisconnect`** (§2, path 3).
+  It is what stops a peer partner's superseded socket — the normal reconnect case — from
+  cancelling their own live pending request. The no-op fourth path exists *because* of that
+  guard; it is not dead code.
+- **Don't cite `usePeerRequest.ts` / `usePeerPartnerConnection.ts` as "how sockets are wired
+  here"** (§3). They hold a raw `Socket` in a ref with no port, no use-case and no container
+  entry — the one transport in the app that skipped the layering. Copy
+  `chat-gateway.port.ts` + `http-chat-gateway.adapter.ts` instead.
+- **Don't retrofit the shared-constants rule onto the existing peer-chat code as a side effect
+  of an unrelated change** (§5). The rule is prescriptive for new code; retrofitting it is a
+  scoped refactor of its own.
+- **Don't treat `JSON.parse(trimmed) as ChatStreamEvent` as validated input** (§4). It's a bare
+  assertion on `any`, run once per streamed token. If you add a field to the stream, nothing at
+  runtime will tell you when a producer and a consumer disagree about it.
+
 ## How to verify
 
 There is no automated check for anything in this document — no lint rule catches a hand-mirrored

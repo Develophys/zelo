@@ -138,7 +138,13 @@ migration** — do all five in the same change:
    comment admits the arrangement (:1-4): "A TS union rather than the Prisma enum: files under
    `application/` must not import from generated/prisma (lint:boundaries enforces this). The
    Prisma enum in schema.prisma mirrors this list — they are kept in step by hand, the same way
-   `ManagerRole` already is."
+   `ManagerRole` already is." **That comment's parenthetical is optimistic and should not be read
+   as fact:** `lint:boundaries` does *not* actually fire on this import path — the
+   `application-no-prisma-imports` rule forbids `node_modules/@prisma/client`, while the real
+   client is reached through the relative `generated/prisma/client.ts` path that no rule covers
+   (`priorities.md` #2, and the same finding in `CLAUDE.md` and
+   `docs/conventions/backend-http.md`). The *convention* the comment states is real and worth
+   following; the enforcement it claims is not there today.
 3. **`MANAGER_NOTIFICATION_TYPES`** — `apps/web/src/ports/manager-notifications.port.ts:3-11`,
    the `as const` array the frontend's `z.enum(...)` validates incoming notifications against.
 4. **The label map and the copy switch**, both in
@@ -206,3 +212,59 @@ risk-signal detection is a separate, not-yet-built feature
 `riskSignal` into `hasActiveRiskSignal` as a quick way to "finish" that feature — that would push
 PHQ-9 item 9 across the network under the guise of a bug fix, breaking the exact invariant this
 section documents.
+
+## Traps
+
+These five are each stated in full in the numbered section beside them. They're collected
+because every one of them is a change that looks like a small improvement and isn't.
+
+- **Don't add a crisis-adjacent screen without adding it to `CRISIS_SCREENS`** (§1). That
+  `describe.each` sweep is the *only* enforcement of the reachability invariant — no lint rule,
+  no shared component, no CI grep. A screen left off it fails silently, with zero coverage.
+  And don't hand-type `tel:188` or the CVV name into a new screen; go through `getCrisisLine()`.
+- **Don't conflate the two k-anonymity call sites** (§2). `GetManagerSignalsUseCase`'s threshold
+  check is a *read-time suppression* decision; `RecordSignalCheckinUseCase`'s is the
+  crossing-the-line trigger that fires a `SECTOR_BECAME_VISIBLE` notification. They share a
+  constant, not a purpose.
+- **Don't widen `onTell`'s signature to pass the offending text "for debugging"** (§3). It takes
+  a `ToneRule` label and nothing else, deliberately — passing the sentence would put a doctor's
+  chat content into the log stream.
+- **Don't ship a new `NotificationType` in fewer than all five places** (§4). TypeScript catches
+  only places 4 (and only once place 3 already moved); places 1, 2, 3 and 5 are hand-kept across
+  a deploy boundary. A type the backend emits but `MANAGER_NOTIFICATION_TYPES` doesn't know
+  throws inside `.parse()` and fails the *whole* notifications page fetch, not just that row.
+- **Don't wire a device's `riskSignal` into `hasActiveRiskSignal` to "finish" the crisis-aware
+  chat feature, and don't hoist `riskSignal` onto the shared `@zelo/domain` `Assessment` type to
+  deduplicate it** (§5). The shared package *is* the wire contract; widening it widens what
+  `AssessmentSchema` lets through, which is the one thing both enforcement points exist to
+  prevent.
+
+## How to verify
+
+Most of this file is enforced by tests rather than by lint, and one section (§4) is enforced by
+nothing at all. Re-run the check that matches what you touched:
+
+```bash
+# §1 crisis reachability — the single enforcement point, and the list a new screen joins
+pnpm --filter @zelo/web test -- crisis-call-reachability
+sed -n '19,24p' apps/web/src/presentation/pages/crisis-call-reachability.test.tsx
+
+# §2 k-anonymity — the constant and its two (different-purpose) call sites
+grep -rn "K_ANONYMITY_THRESHOLD" apps/api/src --include=*.ts | grep -v test
+pnpm --filter @zelo/api test -- get-manager-signals
+
+# §3 tone guard — the four-member union and the one production caller's log line
+pnpm --filter @zelo/api test -- tone
+grep -n "tone_guard rule=" apps/api/src/modules/chat/application/use-cases/send-chat-message.use-case.ts
+
+# §5 riskSignal never crosses the wire — both enforcement points
+# every hit here must be inside the doc comment (:6-17) — none inside the schema object
+grep -n "riskSignal" packages/domain/src/entities/assessment.ts
+grep -n "ciphertext" apps/web/src/use-cases/submit-assessment.usecase.ts
+```
+
+**§4 has no verification command, and that is the finding.** Nothing checks the Prisma enum, the
+backend TS union and the frontend `as const` array against each other — they sit on two sides of
+a deploy boundary with only a hand-kept comment between them. Verifying a notification-type
+change means opening all five files listed in §4 and reading them, and the confirmation that you
+got it right is a real notification of that type arriving in a running frontend.
