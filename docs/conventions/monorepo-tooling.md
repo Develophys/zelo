@@ -25,7 +25,7 @@ definition, not a pattern to replicate per package.
 
 **Any env var a build or test reads must be declared on that task's `env` array before it's used
 in code**, or a Turborepo cache hit can silently serve a build compiled against a different
-value. `turbo.json:7` declares `VITE_API_BASE_URL` on `build`; `turbo.json:19`
+value. `turbo.json:7` declares `VITE_API_BASE_URL` and `VITE_BASE_PATH` on `build`; `turbo.json:19`
 declares `DATABASE_URL` on `test` (the `api-test` CI job needs it to reach the ephemeral
 Postgres). Both were dedicated fixes, not there from the start (commits `5f061e7`, `f2a3c7d`) —
 so treat a new `import.meta.env.VITE_*` read the same way. One gap survives today:
@@ -131,11 +131,10 @@ explicit `prisma generate` step; `docker/web.Dockerfile:12` installs plain).
 
 **`api.yml`**'s `api-test` job runs against a real `postgres:16-alpine` service container, with
 `DATABASE_URL` and `DIRECT_DATABASE_URL` both set at job level (`api.yml:48-49`) and `prisma
-generate` then `prisma migrate deploy` run as explicit steps before `Test`. One deploy job
-follows, gated `needs: api-test`: `deploy-dev` (push to `develop` → `fly.dev.toml`, app
-`zelo-api-dev`, `FLY_API_TOKEN_DEV`). Production is deployed by `release.yml` on a `v*` tag (→
-`fly.toml`, app `zelo-api`, `FLY_API_TOKEN`; see `docs/releasing.md`), not by a push to `main`.
-Both end with a `curl .../health` assertion. Any new
+generate` then `prisma migrate deploy` run as explicit steps before `Test`. Two deploy jobs
+follow, each gated `needs: api-test`: `deploy` (push to `main` → `flyctl deploy --config
+fly.toml`, app `zelo-api`, `FLY_API_TOKEN`) and `deploy-dev` (push to `develop` → `fly.dev.toml`,
+app `zelo-api-dev`, `FLY_API_TOKEN_DEV`) — both end with a `curl .../health` assertion. Any new
 deploy job must keep that curl gate; it's the only automated check that the released machine
 actually booted.
 
@@ -183,24 +182,10 @@ section (`:179-191`) warns that real médicos can link real devices to the seede
 generate real check-ins that land in those same rows. The operator sees a success message either
 way, with no way to tell from the output which database was actually touched. **Before running
 either script against production, verify — don't assume — that the `DATABASE_URL` you're
-sourcing points at the same host as `DIRECT_DATABASE_URL`.**
-
-Both scripts now call `assertSameDatabaseTarget()`
-(`apps/api/src/shared/config/assert-database-target.ts`) before connecting, which refuses the
-run when `DATABASE_URL` is missing while `DIRECT_DATABASE_URL` is set, or when one resolves to
-a loopback host and the other is remote. It compares only what the cascade already resolved,
-and by design does not flag two *different remote* databases — a strict host match would
-false-positive on pooled-vs-direct pairs. It narrows the failure; it does not replace the
-check above.
-
-**Do not settle this with an anchored `grep`.** `.env.production.local` may carry a UTF-8 BOM
-before its first variable, which hides that variable from `grep -E "^\s*DATABASE_URL="`. That
-produced two opposite wrong conclusions during the work that added this guard. Read the file,
-or `sed 's/=.*//' .env.production.local` to list the names.
-
-`apps/api/prisma/README.md:205`'s "Both connection strings are already in `apps/api/.env`" has
-been corrected — it was false since the dev/prod env split landed, because `apps/api/.env`
-holds localhost credentials for local dev, not production ones.
+sourcing points at the same host as `DIRECT_DATABASE_URL`.** Do not trust
+`apps/api/prisma/README.md:205`'s "Both connection strings are already in `apps/api/.env`" —
+still there verbatim at the time of writing, and false since the dev/prod env split landed:
+`apps/api/.env` now holds localhost credentials for local dev, not production ones.
 
 (`apps/api/.env.production.local` is a machine-local secrets file, not something this repo's
 git history can confirm one way or the other — this is a documented pattern to guard against on
@@ -210,7 +195,7 @@ Migrations are committed, timestamped folders under `apps/api/prisma/migrations`
 `migration_lock.toml`) — never `prisma db push`. "Never auto-run migrations" is true only for the
 production path: the image's own `CMD` stays migration-free by design
 (`docker/api.Dockerfile:24-31`'s comment: "so Fly.io's machine config matches a known-working
-reference app exactly"), and `release.yml`'s prod deploy runs no migration step at all — but CI *does*
+reference app exactly"), and `deploy`'s prod job runs no migration step at all — but CI *does*
 run `prisma migrate deploy` automatically, both in `api-test` (against the ephemeral Postgres)
 and in `deploy-dev` (against the dev database, `api.yml:131-132`). Local Docker Compose overrides
 the container `command:` to auto-migrate on boot for convenience only
@@ -231,15 +216,12 @@ the #1 danger above.
 ## 6. Deploy topology
 
 **Fly.io (api) + Vercel (web) + Prisma Postgres (db), two fully independent environments.**
-A `v*` tag on `main` deploys the API to Fly app `zelo-api` (`fly.toml`) and then the web app to
-`zelohealth.app` (Vercel, from the `production` branch); `develop` deploys to `zelo-api-dev`
-(`fly.dev.toml`) and `dev.zelohealth.app`
+`main` deploys the API to Fly app `zelo-api` (`fly.toml`) and the web app to `zelohealth.app`
+(Vercel); `develop` deploys to `zelo-api-dev` (`fly.dev.toml`) and `dev.zelohealth.app`
 (`README.md:118-136`, the Deployment section). Each Fly app has its own database and its own
 token secret. The API is
-deployed *only* through flyctl jobs — `api.yml`'s `deploy-dev` for dev and `release.yml` for prod
-(§4) — never add a second deploy path. The web app is deployed *only* through Vercel's git
-integration (dev from `develop`, prod from the `production` branch that `release.yml` moves after
-the API deploy) — never add a deploy to `web.yml`.
+deployed *only* through `api.yml`'s flyctl jobs (§4) — never add a second deploy path. The web
+app is deployed *only* through Vercel's git integration — never add one to `web.yml`.
 
 `PrismaService`'s Neon-adapter branch (`prisma.service.ts:18-29`, switches on a `.neon.tech`
 host) is probably unexercised today: both configured remote databases
@@ -249,10 +231,18 @@ Postgres), not `*.neon.tech`. Recorded, not something to delete without first ch
 
 **GitHub Pages is retired — commit `ad28d12`** ("the build/deploy jobs publish to GitHub Pages,
 which CORS already blocks... dead weight now that a real dev environment exists too") removed
-the Pages job from `web.yml`; Vercel is the only live frontend. The leftover `VITE_BASE_PATH`
-plumbing (`vite.config.ts`, `turbo.json`, `apps/web/.env.example`) and the README tech-stack
-table's "GitHub Pages / Neon" row were removed under `priorities.md` #13, so the app now always
-builds with Vite's default `base` of `"/"`.
+the Pages job from `web.yml`; Vercel is the only live frontend. Two pieces of leftover plumbing
+from that era are `priorities.md` #13, and both are still present, re-verified fresh:
+
+- `apps/web/vite.config.ts:7-14` still normalizes `VITE_BASE_PATH` (comment: "only done in the
+  GitHub Pages workflow, from `actions/configure-pages`'s `base_path` output"), and
+  `turbo.json:7` still declares it in `build.env` — but no workflow anywhere sets it anymore
+  (`grep -rn VITE_BASE_PATH .github/workflows` returns nothing). It's harmless at runtime (falls
+  back to `"/"`), but it's live-looking code with no caller — don't read it as evidence Pages is
+  coming back, and don't wire a revived Pages job to it without first asking why.
+- `README.md:46`'s tech-stack table still lists "Fly.io (API), **GitHub Pages (Web)**, Neon
+  Postgres" — contradicting its own Deployment section (`:118-136`), which correctly documents
+  Vercel + Prisma Postgres. Read the Deployment section, not the table, for what's actually live.
 
 **`priorities.md` #25 — two operational instructions that misdirect a live deploy, both still
 present, re-verified fresh:**
@@ -273,42 +263,6 @@ present, re-verified fresh:**
   person running `android:sync` has to notice the literal URL themselves.
 
 **Mirror files:** `fly.toml`; `fly.dev.toml`; `apps/web/vercel.json`; `docs/android-apk.md`.
-
-## Traps
-
-Each of these is stated in full in the numbered section beside it; collected here because every
-one of them is a thing that looks routine and isn't.
-
-- **Don't run `apps/api/prisma/seed.ts` or `create-super-admin.ts` against production without
-  first confirming `DATABASE_URL` and `DIRECT_DATABASE_URL` point at the same host** (§5). They
-  are read by two entirely separate code paths, the env file is machine-local and gitignored so
-  the repo can't enforce agreement, and `seed.ts` is destructive. The success message looks
-  identical either way.
-- **Don't trust `apps/api/prisma/README.md:205`** ("Both connection strings are already in
-  `apps/api/.env`") — false since the dev/prod env split; `.env` now holds localhost credentials
-  (§5).
-- **Don't paste `docs/android-apk.md:35`'s `fly secrets set CORS_ALLOWED_ORIGINS=...` line
-  verbatim** (§6). It *replaces* the secret rather than appending, Fly secrets are write-only so
-  the old value can't be read back, and the omitted origins are CORS-blocked immediately.
-- **Don't assume an APK built from `develop` talks to the dev API** (§6).
-  `apps/web/package.json:9`'s `build:native` hardcodes the production `VITE_API_BASE_URL` with no
-  environment branch, and `android:sync` calls it unconditionally.
-- **Don't add a second deploy path for either app** (§6). The API deploys only through flyctl jobs
-  (`api.yml`'s `deploy-dev`, `release.yml` for prod); the web app deploys only through Vercel's git
-  integration. A deploy job added to `web.yml`, or one that fires on a push to `main`, would be a
-  second, competing publisher and would put the web app ahead of the API again.
-- **Don't reintroduce a deploy on push to `main`.** Prod is released by a tag through `release.yml`
-  (`docs/releasing.md`); the API deploys first, and only then does the `production` branch move.
-- **Don't reintroduce a `VITE_BASE_PATH` / Vite `base` override** (§6). It was GitHub Pages
-  residue with no caller and was removed under `priorities.md` #13; the app is served from the
-  domain root on Vercel.
-- **Don't delete `PrismaService`'s `PrismaNeon` branch as dead code** (§6) without first
-  checking the live `DATABASE_URL` via `fly secrets` — it's *probably* unexercised, which is not
-  the same as provably unreachable.
-- **Don't run `prisma db push`** (§5, `:195`). Migrations are committed, timestamped folders
-  under `apps/api/prisma/migrations`. The companion rule for a required column on a table with
-  production rows — hand-edit the generated migration into nullable → backfill → `NOT NULL`
-  order — lives at `general-documentations/architecture-reference.md:734-737`, not here.
 
 ## How to verify
 
@@ -338,8 +292,8 @@ grep -c 'DATABASE_URL=' apps/api/.env.production.local
 # the stale README instruction #1 depends on
 grep -n 'Both connection strings' apps/api/prisma/README.md
 
-# #13 — VITE_BASE_PATH is gone (expect no output)
-grep -rn VITE_BASE_PATH apps/web/vite.config.ts turbo.json .github/workflows/ apps/web/.env.example
+# #13 — dead VITE_BASE_PATH plumbing, no workflow sets it
+grep -rn VITE_BASE_PATH apps/web/vite.config.ts turbo.json .github/workflows/
 
 # #25 — the two misdirecting operational instructions
 grep -n 'CORS_ALLOWED_ORIGINS' docs/android-apk.md
