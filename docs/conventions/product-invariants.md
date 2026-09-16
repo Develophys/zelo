@@ -78,9 +78,9 @@ same response) — it just makes the dashboard unreadable.
    `checkInsLast4Weeks`/`abandonedLast4Weeks`/`unsentChatDraftsLast4Weeks`, `followUpTotals`, and
    `weeklyTrend` — is computed by filtering rows down to `visibleSectorIds` first (`visibleRows`
    at :148) and never re-checks the threshold again per week or per field.
-4. The response interface's own doc comment states the consequence directly (:16-21, quoted text
-   at :19-20): "a visible sector contributes every week it has rows for, including weeks newer
-   than this one that never cleared k on their own." **A `weeklyTrend` point showing `checkIns < 5` for an already-visible
+4. The response interface's own doc comment states the consequence directly (:16-20): "a visible
+   sector contributes every week it has rows for, including weeks newer than this one that never
+   cleared k on their own." **A `weeklyTrend` point showing `checkIns < 5` for an already-visible
    sector is correct behavior, not a leak** — the sector's identity was already established by
    step 2, and the trend line exists to show the sector's real trajectory, including its slow
    weeks.
@@ -107,11 +107,8 @@ aborts the stream and the reply is regenerated once with a nudge built from the 
 if the opener is still a cliché the second time, the guard no longer rejects it — it only
 reports it. `ToneRule` is a closed union of four members: `opening_cliche_regenerated`,
 `opening_cliche_persisted`, `rhetorical_reframe` (a "not X, but Y" reframe caught mid-stream by
-`classifyClosingTic`), and `trailing_question` (a closing question detected — not suppressed —
-when `shouldAllowTrailingQuestion` says this conversation shouldn't end on one; like
-`rhetorical_reframe`, this is report-only via `onTell`, `guard-tone.ts:101-103` — the question
-itself is still yielded to the stream unconditionally right after, :105-106). If
-`context.hasActiveRiskSignal` is true, the whole
+`classifyClosingTic`), and `trailing_question` (a closing question suppressed unless
+`shouldAllowTrailingQuestion` permits one). If `context.hasActiveRiskSignal` is true, the whole
 guard is bypassed and the raw reply streams through unmodified (`guardTone`:117-120) — see
 §5 below for why that branch is currently unreachable in production.
 
@@ -138,13 +135,7 @@ migration** — do all five in the same change:
    comment admits the arrangement (:1-4): "A TS union rather than the Prisma enum: files under
    `application/` must not import from generated/prisma (lint:boundaries enforces this). The
    Prisma enum in schema.prisma mirrors this list — they are kept in step by hand, the same way
-   `ManagerRole` already is." **That comment's parenthetical is optimistic and should not be read
-   as fact:** `lint:boundaries` does *not* actually fire on this import path — the
-   `application-no-prisma-imports` rule forbids `node_modules/@prisma/client`, while the real
-   client is reached through the relative `generated/prisma/client.ts` path that no rule covers
-   (`priorities.md` #2, and the same finding in `CLAUDE.md` and
-   `docs/conventions/backend-http.md`). The *convention* the comment states is real and worth
-   following; the enforcement it claims is not there today.
+   `ManagerRole` already is."
 3. **`MANAGER_NOTIFICATION_TYPES`** — `apps/web/src/ports/manager-notifications.port.ts:3-11`,
    the `as const` array the frontend's `z.enum(...)` validates incoming notifications against.
 4. **The label map and the copy switch**, both in
@@ -175,7 +166,7 @@ the frontend's `MANAGER_NOTIFICATION_TYPES` (place 3) has no compile-time or run
 either — it's a separately-deployed app reading JSON over HTTP. A type added to the Prisma enum
 and the backend union but never added to `MANAGER_NOTIFICATION_TYPES` will compile and deploy
 fine on both sides; the frontend finds out only when that notification actually ships —
-`ManagerNotificationsPageSchema.parse(...)` (`http-manager-notifications.adapter.ts:32`) uses
+`ManagerNotificationsPageSchema.parse(...)` (`http-manager-notifications.adapter.ts:31`) uses
 `.parse()`, not `.safeParse()`, so one unrecognized `type` in the page throws and fails the
 *whole* page fetch, not just that row — with nothing before that catching the mismatch.
 
@@ -212,59 +203,3 @@ risk-signal detection is a separate, not-yet-built feature
 `riskSignal` into `hasActiveRiskSignal` as a quick way to "finish" that feature — that would push
 PHQ-9 item 9 across the network under the guise of a bug fix, breaking the exact invariant this
 section documents.
-
-## Traps
-
-These five are each stated in full in the numbered section beside them. They're collected
-because every one of them is a change that looks like a small improvement and isn't.
-
-- **Don't add a crisis-adjacent screen without adding it to `CRISIS_SCREENS`** (§1). That
-  `describe.each` sweep is the *only* enforcement of the reachability invariant — no lint rule,
-  no shared component, no CI grep. A screen left off it fails silently, with zero coverage.
-  And don't hand-type `tel:188` or the CVV name into a new screen; go through `getCrisisLine()`.
-- **Don't conflate the two k-anonymity call sites** (§2). `GetManagerSignalsUseCase`'s threshold
-  check is a *read-time suppression* decision; `RecordSignalCheckinUseCase`'s is the
-  crossing-the-line trigger that fires a `SECTOR_BECAME_VISIBLE` notification. They share a
-  constant, not a purpose.
-- **Don't widen `onTell`'s signature to pass the offending text "for debugging"** (§3). It takes
-  a `ToneRule` label and nothing else, deliberately — passing the sentence would put a doctor's
-  chat content into the log stream.
-- **Don't ship a new `NotificationType` in fewer than all five places** (§4). TypeScript catches
-  only places 4 (and only once place 3 already moved); places 1, 2, 3 and 5 are hand-kept across
-  a deploy boundary. A type the backend emits but `MANAGER_NOTIFICATION_TYPES` doesn't know
-  throws inside `.parse()` and fails the *whole* notifications page fetch, not just that row.
-- **Don't wire a device's `riskSignal` into `hasActiveRiskSignal` to "finish" the crisis-aware
-  chat feature, and don't hoist `riskSignal` onto the shared `@zelo/domain` `Assessment` type to
-  deduplicate it** (§5). The shared package *is* the wire contract; widening it widens what
-  `AssessmentSchema` lets through, which is the one thing both enforcement points exist to
-  prevent.
-
-## How to verify
-
-Most of this file is enforced by tests rather than by lint, and one section (§4) is enforced by
-nothing at all. Re-run the check that matches what you touched:
-
-```bash
-# §1 crisis reachability — the single enforcement point, and the list a new screen joins
-pnpm --filter @zelo/web test -- crisis-call-reachability
-sed -n '19,24p' apps/web/src/presentation/pages/crisis-call-reachability.test.tsx
-
-# §2 k-anonymity — the constant and its two (different-purpose) call sites
-grep -rn "K_ANONYMITY_THRESHOLD" apps/api/src --include=*.ts | grep -v test
-pnpm --filter @zelo/api test -- get-manager-signals
-
-# §3 tone guard — the four-member union and the one production caller's log line
-pnpm --filter @zelo/api test -- tone
-grep -n "tone_guard rule=" apps/api/src/modules/chat/application/use-cases/send-chat-message.use-case.ts
-
-# §5 riskSignal never crosses the wire — both enforcement points
-# every hit here must be inside the doc comment (:6-17) — none inside the schema object
-grep -n "riskSignal" packages/domain/src/entities/assessment.ts
-grep -n "ciphertext" apps/web/src/use-cases/submit-assessment.usecase.ts
-```
-
-**§4 has no verification command, and that is the finding.** Nothing checks the Prisma enum, the
-backend TS union and the frontend `as const` array against each other — they sit on two sides of
-a deploy boundary with only a hand-kept comment between them. Verifying a notification-type
-change means opening all five files listed in §4 and reading them, and the confirmation that you
-got it right is a real notification of that type arriving in a running frontend.
