@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "react-router";
 import { Button } from "@/presentation/ui/Button";
 import { Card } from "@/presentation/ui/Card";
@@ -423,7 +425,6 @@ export function ManagerAdminSectorsPage() {
                   idPrefix="create"
                   name={field.value}
                   onNameChange={field.onChange}
-                  onNameBlur={field.onBlur}
                   showSuggestions
                   inviteCode={inviteCode}
                   onInviteCodeChange={setInviteCode}
