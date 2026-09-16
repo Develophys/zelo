@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router";
 import { Pencil, QrCode } from "lucide-react";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
@@ -25,10 +27,15 @@ import { useAdminSessionStore } from "@/stores/admin-session.store";
 import type { AdminInstitutionListItem } from "@/ports/admin-institution.port";
 import { DuplicateInstitutionError } from "@/ports/admin-institution.port";
 import { TextField } from "@/presentation/ui/TextField";
-import { isValidEmail } from "@/presentation/lib/validate-email";
 import { InstitutionQrCodeModal } from "@/presentation/components/InstitutionQrCodeModal";
 import { SectorQrCodeModal } from "@/presentation/components/SectorQrCodeModal";
 import { toast } from "@/stores/toast.store";
+import {
+  createInstitutionFormSchema,
+  editInstitutionFormSchema,
+  type CreateInstitutionFormValues,
+  type EditInstitutionFormValues,
+} from "./admin-institution-form-schema";
 
 const COLUMNS: DataTableColumn<AdminInstitutionListItem>[] = [
   { key: "name", header: "Nome", width: "w-[32%]", cell: (row) => row.name },
@@ -107,14 +114,18 @@ export function AdminInstitutionsPage() {
 
   const [formMode, setFormMode] = useState<"create" | "edit" | null>(null);
 
-  const [institutionName, setInstitutionName] = useState("");
-  const [inviteCode, setInviteCode] = useState("");
-  const [hospitalAdminName, setHospitalAdminName] = useState("");
-  const [hospitalAdminEmail, setHospitalAdminEmail] = useState("");
-  const [hospitalAdminEmailTouched, setHospitalAdminEmailTouched] = useState(false);
+  const createForm = useForm<CreateInstitutionFormValues>({
+    resolver: zodResolver(createInstitutionFormSchema),
+    defaultValues: { institutionName: "", inviteCode: "", hospitalAdminName: "", hospitalAdminEmail: "" },
+    mode: "onBlur",
+  });
 
   const [editingInstitution, setEditingInstitution] = useState<AdminInstitutionListItem | null>(null);
-  const [editName, setEditName] = useState("");
+  const editForm = useForm<EditInstitutionFormValues>({
+    resolver: zodResolver(editInstitutionFormSchema),
+    defaultValues: { name: "" },
+    mode: "onBlur",
+  });
   const [editError, setEditError] = useState<string | null>(null);
 
   const [qrInstitution, setQrInstitution] = useState<{ name: string; inviteCode: string } | null>(null);
@@ -138,17 +149,13 @@ export function AdminInstitutionsPage() {
   const isAnyModalOpen = formMode !== null || qrInstitution !== null || qrSector !== null;
 
   const openCreate = () => {
-    setInstitutionName("");
-    setInviteCode("");
-    setHospitalAdminName("");
-    setHospitalAdminEmail("");
-    setHospitalAdminEmailTouched(false);
+    createForm.reset({ institutionName: "", inviteCode: "", hospitalAdminName: "", hospitalAdminEmail: "" });
     setFormMode("create");
   };
 
   const openEdit = (institution: AdminInstitutionListItem) => {
     setEditingInstitution(institution);
-    setEditName(institution.name);
+    editForm.reset({ name: institution.name });
     setEditError(null);
     setFormMode("edit");
   };
@@ -159,23 +166,20 @@ export function AdminInstitutionsPage() {
     setEditError(null);
   };
 
-  const handleCreateSubmit = () => {
-    createInstitution.mutate(
-      { institutionName, inviteCode, hospitalAdminName, hospitalAdminEmail },
-      {
-        onSuccess: (result) => {
-          toast.success(`Convite enviado para ${result.hospitalAdmin.email}.`);
-          closeModal();
-        },
+  const handleCreateSubmit = createForm.handleSubmit((values) => {
+    createInstitution.mutate(values, {
+      onSuccess: (result) => {
+        toast.success(`Convite enviado para ${result.hospitalAdmin.email}.`);
+        closeModal();
       },
-    );
-  };
+    });
+  });
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = editForm.handleSubmit((values) => {
     if (!editingInstitution) return;
     setEditError(null);
     updateInstitution.mutate(
-      { id: editingInstitution.id, patch: { name: editName } },
+      { id: editingInstitution.id, patch: { name: values.name } },
       {
         onSuccess: closeModal,
         onError: (error) => {
@@ -187,7 +191,7 @@ export function AdminInstitutionsPage() {
         },
       },
     );
-  };
+  });
 
   const runStatusUpdate = async (ids: string[], isActive: boolean) => {
     let succeeded = 0;
@@ -227,16 +231,10 @@ export function AdminInstitutionsPage() {
   useHotkey("d", handleBulkDeactivate, "Desativar", { enabled: !isAnyModalOpen && selection.pause.enabled });
   useHotkey("t", handleBulkActivate, "Ativar", { enabled: !isAnyModalOpen && selection.activate.enabled });
 
-  const hospitalAdminEmailError =
-    hospitalAdminEmailTouched && hospitalAdminEmail.length > 0 && !isValidEmail(hospitalAdminEmail)
-      ? "Digite um email válido."
-      : null;
-
-  const isCreateDisabled =
-    institutionName.trim().length === 0 ||
-    inviteCode.trim().length === 0 ||
-    hospitalAdminName.trim().length === 0 ||
-    !isValidEmail(hospitalAdminEmail);
+  const createValues = createForm.watch();
+  const isCreateDisabled = !createInstitutionFormSchema.safeParse(createValues).success;
+  const editNameValue = editForm.watch("name");
+  const isEditDisabled = !editInstitutionFormSchema.safeParse({ name: editNameValue }).success;
 
   const renderRowActions = (institution: AdminInstitutionListItem) => (
     <>
@@ -406,7 +404,7 @@ export function AdminInstitutionsPage() {
                 variant="primary"
                 full={false}
                 isLoading={updateInstitution.isPending}
-                disabled={editName.trim().length === 0}
+                disabled={isEditDisabled}
                 onClick={handleSaveEdit}
               >
                 Salvar
@@ -420,24 +418,12 @@ export function AdminInstitutionsPage() {
             <label htmlFor="institution-name" className="text-label font-semibold text-ink-2">
               Nome do hospital
             </label>
-            <TextField
-              id="institution-name"
-              required
-              value={institutionName}
-              onChange={(event) => setInstitutionName(event.target.value)}
-              className="mt-2"
-            />
+            <TextField id="institution-name" required className="mt-2" {...createForm.register("institutionName")} />
 
             <label htmlFor="invite-code-input" className="mt-4 block text-label font-semibold text-ink-2">
               Código de convite
             </label>
-            <TextField
-              id="invite-code-input"
-              required
-              value={inviteCode}
-              onChange={(event) => setInviteCode(event.target.value)}
-              className="mt-2"
-            />
+            <TextField id="invite-code-input" required className="mt-2" {...createForm.register("inviteCode")} />
 
             <label htmlFor="hospital-admin-name" className="mt-4 block text-label font-semibold text-ink-2">
               Nome do gestor do hospital
@@ -445,9 +431,8 @@ export function AdminInstitutionsPage() {
             <TextField
               id="hospital-admin-name"
               required
-              value={hospitalAdminName}
-              onChange={(event) => setHospitalAdminName(event.target.value)}
               className="mt-2"
+              {...createForm.register("hospitalAdminName")}
             />
 
             <label htmlFor="hospital-admin-email" className="mt-4 block text-label font-semibold text-ink-2">
@@ -457,22 +442,20 @@ export function AdminInstitutionsPage() {
               id="hospital-admin-email"
               type="email"
               required
-              value={hospitalAdminEmail}
-              onChange={(event) => setHospitalAdminEmail(event.target.value)}
-              onBlur={() => setHospitalAdminEmailTouched(true)}
               className="mt-2"
-              aria-invalid={hospitalAdminEmailError || createInstitution.isError ? true : undefined}
+              aria-invalid={createForm.formState.errors.hospitalAdminEmail || createInstitution.isError ? true : undefined}
               aria-describedby={
-                hospitalAdminEmailError
+                createForm.formState.errors.hospitalAdminEmail
                   ? "hospital-admin-email-error"
                   : createInstitution.isError
                     ? "create-institution-error"
                     : undefined
               }
+              {...createForm.register("hospitalAdminEmail")}
             />
-            {hospitalAdminEmailError && (
+            {createForm.formState.errors.hospitalAdminEmail && (
               <p id="hospital-admin-email-error" role="alert" className="mt-2 text-label text-danger">
-                {hospitalAdminEmailError}
+                {createForm.formState.errors.hospitalAdminEmail.message}
               </p>
             )}
 
@@ -488,13 +471,7 @@ export function AdminInstitutionsPage() {
               <label htmlFor="institution-edit-name" className="text-label font-semibold text-ink-2">
                 Nome do hospital
               </label>
-              <TextField
-                id="institution-edit-name"
-                required
-                value={editName}
-                onChange={(event) => setEditName(event.target.value)}
-                className="mt-2"
-              />
+              <TextField id="institution-edit-name" required className="mt-2" {...editForm.register("name")} />
               {editError && (
                 <p role="alert" className="mt-2 text-label text-danger">
                   {editError}
