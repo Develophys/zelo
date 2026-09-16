@@ -425,6 +425,7 @@ export function ManagerAdminSectorsPage() {
                   idPrefix="create"
                   name={field.value}
                   onNameChange={field.onChange}
+                  onNameBlur={field.onBlur}
                   showSuggestions
                   inviteCode={inviteCode}
                   onInviteCodeChange={setInviteCode}
