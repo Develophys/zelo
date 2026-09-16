@@ -6,7 +6,6 @@ import { Button } from "@/presentation/ui/Button";
 import { Card } from "@/presentation/ui/Card";
 import { PasswordField } from "@/presentation/ui/PasswordField";
 import { toast } from "@/stores/toast.store";
-import { MIN_PASSWORD_LENGTH } from "@zelo/domain";
 import { finishSetupFormSchema, type FinishSetupFormValues } from "./finish-setup-form-schema";
 
 export interface FinishSetupFormProps {
@@ -54,8 +53,8 @@ export function FinishSetupForm({ onSubmit, onSuccess }: FinishSetupFormProps) {
           <PasswordField
             id="finish-setup-password"
             required
-            minLength={MIN_PASSWORD_LENGTH}
-            placeholder={`Mínimo de ${MIN_PASSWORD_LENGTH} caracteres`}
+            minLength={8}
+            placeholder="Mínimo de 8 caracteres"
             className="mt-2"
             aria-invalid={form.formState.errors.password || error ? true : undefined}
             aria-describedby={
