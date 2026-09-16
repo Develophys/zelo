@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/presentation/ui/Button";
 import { IconButton } from "@/presentation/ui/IconButton";
 import { Modal } from "@/presentation/ui/Modal";
@@ -15,7 +17,6 @@ import { useDataTableSelection } from "@/presentation/ui/DataTable/useDataTableS
 import { useBulkDelete } from "@/presentation/ui/DataTable/useBulkDelete";
 import { useBulkStatusUpdate } from "@/presentation/ui/DataTable/useBulkStatusUpdate";
 import { useDebouncedSearch } from "@/presentation/hooks/useDebouncedSearch";
-import { isValidEmail } from "@/presentation/lib/validate-email";
 import { accountStatusPill } from "@/presentation/lib/account-status-pill";
 import { toast } from "@/stores/toast.store";
 import { useAdminPeerPartners } from "@/presentation/hooks/useAdminPeerPartners";
