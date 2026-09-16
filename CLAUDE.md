@@ -2,8 +2,7 @@
 
 Project-wide conventions for whoever (human or AI) works in this repo. This file is the
 index — laws that apply everywhere live below; everything else is in `docs/conventions/`
-(see `docs/conventions/README.md` for the map). Add to this file as new conventions get
-established — don't let them live only in a chat transcript.
+(see `docs/conventions/README.md` for the map).
 
 ## Reading map
 
@@ -23,6 +22,10 @@ Full table (all ten playbooks): `docs/conventions/README.md`.
   `@prisma/client` — enforced by `apps/api/.dependency-cruiser.cjs`.
 - `use-cases/` (`apps/web`) never imports `react` or `infrastructure/` — enforced by
   `apps/web/.dependency-cruiser.cjs`.
+- `packages/domain`'s `src/` never imports from `apps/*`, or from `react`/`@nestjs`/`@prisma`
+  — enforced by `packages/domain/.dependency-cruiser.cjs`, wired into both apps' CI via
+  `lint:boundaries --filter=@zelo/api...`/`--filter=@zelo/web...` (the trailing `...` pulls in
+  the `@zelo/domain` workspace dependency), so this one genuinely breaks the build.
 
 `application-no-prisma-imports` is currently inert: the real Prisma client is reached via a
 relative `generated/prisma/client.ts` path the rule doesn't cover, so a green
@@ -37,7 +40,10 @@ adapter/repository reaches its own module's port through the self-alias
 (`@/modules/<self>/application/ports/x.port.js`); a use-case, service, or controller reaches
 its own module's files relatively (`../ports/x.port.ts`). `@/` is not reserved for crossing a
 module boundary — plenty of `@/modules/...` imports point back into the importer's own
-module, and plenty of cross-module imports are relative.
+module, and plenty of cross-module imports are relative. Get the extension backwards and
+`tsc`/`vitest` stay green: `tsc-alias` path-maps an aliased specifier without touching its
+extension, so an alias written with `.ts` emits a `dist` import to a file that doesn't exist —
+nothing catches it before boot.
 
 ## Product laws
 
@@ -46,8 +52,10 @@ module, and plenty of cross-module imports are relative.
 - Human handoff / the CVV `188` line renders with no network dependency, on every crisis
   screen and on Peers.
 - K-anonymity (`K_ANONYMITY_THRESHOLD = 5`) is a **per-sector visibility decision**, made once
-  against a single reference week — never a per-datapoint filter re-applied to every field
-  that goes out. Re-checking per datapoint doesn't add privacy and breaks trend charts.
+  against a single reference week — the newest week where at least one sector clears the
+  threshold, not simply the calendar-newest week (which would blank the dashboard every
+  Monday) — never a per-datapoint filter re-applied to every field that goes out. Re-checking
+  per datapoint doesn't add privacy and breaks trend charts.
 - PT-BR copy in `docs/superpowers/specs/screens/*.md` is normative — use the exact strings,
   don't paraphrase.
 - Design tokens only in `apps/web` — `--color-*` tokens through Tailwind utilities, no raw
@@ -59,7 +67,8 @@ Never `dangerouslySetInnerHTML`, `innerHTML`, `outerHTML`, `document.write`, `ev
 `new Function`, or a `javascript:` href anywhere in `apps/web`. Reason (TD-001): manager,
 hospital-admin, SuperAdmin, and peer-partner session tokens all sit in `sessionStorage`
 behind `Authorization: Bearer` — one raw-HTML render is full session exfiltration. Nothing
-enforces this yet — no `react/no-danger` lint rule, no CI grep (`priorities.md` #10).
+enforces this yet — no `react/no-danger` lint rule, no CI grep
+(`docs/conventions/priorities.md` #10).
 
 ## What this repo deliberately does not do
 
@@ -74,9 +83,11 @@ legitimate as a spy on a non-port collaborator.
 
 Forms use **react-hook-form** + **zod**:
 `useForm({ resolver: zodResolver(schema), mode: "onBlur" })` — errors show once a field is
-left, not on every keystroke. Full detail and the newer gaps (204-response-shape, the Prisma
-import-path trap, `SettingsRow` reuse, the server-conflict-error banner pattern) are in
-`docs/conventions/forms-and-ui.md`; also see the `zelo-form` skill.
+left, not on every keystroke. Full detail — the shared-UI/DataTable API and the design-token
+system — is in `docs/conventions/forms-and-ui.md`. The newer gaps (204-response-shape, the
+Prisma import-path trap, `SettingsRow` reuse, the server-conflict-error banner pattern) are
+covered by the `zelo-form` skill (`.github/skills/zelo-form/SKILL.md`), not repeated in that
+playbook.
 
 ## Upkeep
 
