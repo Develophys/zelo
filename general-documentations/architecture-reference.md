@@ -13,11 +13,10 @@ view — re-derive from the code rather than trust this document once it has mov
 **Stack:** NestJS 10 + Prisma 7 + Postgres (backend) · React 19 + Vite 6 + TanStack Query
 (frontend) · pnpm + Turborepo monorepo · Fly.io (api) + Vercel (web) + Prisma Postgres (db).
 
-> **On the README's tech-stack table.** Two of its rows are stale and contradict the README's own
-> Deployment section: "Infra" still says "GitHub Pages (Web), Neon Postgres", and "Backend" still
-> says "Prisma 7 (Neon serverless Postgres adapter)". GitHub Pages was retired (commit `ad28d12`);
-> Vercel is the only live frontend, and both remote databases are Prisma Postgres. §9 here matches
-> the Deployment section, not the table.
+> **On the README's tech-stack table.** `README.md`'s "Infra" row still says "GitHub Pages (Web),
+> Neon Postgres" — that is stale and contradicts the README's own Deployment section. GitHub
+> Pages was retired (commit `ad28d12`); Vercel is the only live frontend, and both remote
+> databases are Prisma Postgres. §9 here matches the Deployment section, not the table.
 
 **This document vs. the playbooks.** `docs/conventions/*.md` are *task playbooks* ("you're doing
 X, here's the checklist"). This file is the *narrative reference* ("what exists, why, and how it
@@ -143,16 +142,11 @@ Full recipes: [`backend-modules.md`](../docs/conventions/backend-modules.md),
 
 ### Two flavors of frontend state, chosen deliberately
 
-**Zustand + `persist`** — device-local flags that must survive a reload. Eight of the twelve
-stores are wrapped: `consent`, `followup`, `institution-link`, `institution-nudge`,
-`manager-prefs`, and the three session stores (`manager`, `admin`, `peer-partner`). Read outside
-React via `.getState()` in route loaders and orchestration hooks — never re-derived from a
-network call. The storage backend is per-store and deliberate: `localStorage` for the médico's
-own device state, `sessionStorage` for every session token (§8). The other four are plain
-in-memory stores: `chat-conversation`, `hotkey` (a live registry), `toast`, and `theme` — which
-*does* persist, but hand-rolled through `presentation/lib/theme`'s `readStoredPreference` /
-`writeStoredPreference` rather than through the middleware, because it has to apply the class to
-`<html>` before React mounts.
+**Zustand + `persist`** — device-local flags that must survive a reload: consent, follow-up
+answer, institution link, theme, hotkeys, manager prefs, and the three session stores. Read
+outside React via `.getState()` in route loaders and orchestration hooks — never re-derived from
+a network call. The storage backend is per-store and deliberate: `localStorage` for the médico's
+own device state (`zelo.institution-link`), `sessionStorage` for every session token (§8).
 
 **TanStack Query** — anything that touches the network: logins, submissions, the manager
 dashboard's reads, the notification bell. A thin `useMutation`/`useQuery` hook wraps exactly one
@@ -214,10 +208,8 @@ erDiagram
     PeerPartner {
         string id PK
         string name
-        string email UK "the login key"
+        string email UK
         string passwordHash "nullable until invite accepted"
-        string setPasswordToken UK "nullable"
-        datetime setPasswordTokenExpiresAt
         string institutionId FK
         string specialty
         boolean isActive
@@ -316,7 +308,7 @@ the Neon branch is almost certainly unexercised today — see §9.
 | `manager` | Login by email, finish-setup, forgot-password, accessible sectors, the signals read, AI insight generation and insight history — plus the whole `manager/admin` surface (sectors, managers, peer partners: list/create/update/delete/resend-invite). | `ManagerAuthGuard`; the 14 `manager/admin` routes additionally require `HospitalAdminGuard` |
 | `notification` | `GET /manager/notifications`, `/unread-count`, `PATCH /:id/read`, `POST /read-all`, plus three scheduled sweeps (`@Cron`, UTC: daily 03:00 for lapsed invites and retention, Mondays 03:00 for sector risk). | `ManagerAuthGuard` |
 | `peer-partner` | `POST /peer-partner/login`, `/finish-setup`, `/forgot-password`. Its `PeerPartnerAuthGuard` is exported but guards no HTTP route — the peer partner's authenticated surface is the WebSocket gateway, which verifies the token itself. | None on HTTP |
-| `peer-chat` | The socket.io gateway (`request-peer`, `accept_request`, `decline_request`, `message`, `leave_conversation`) plus in-memory presence and match registries. | **Mixed, and the weakest surface in the system** — see below |
+| `peer-chat` | The socket.io gateway (`request-peer`, `accept_request`, `decline_request`, `message`, `leave_conversation`) plus in-memory presence and match registries. | Token verified in `handleConnection` |
 | `admin` | `POST /admin/login`, then create/list/update institutions and read an institution's sectors. | `AdminAuthGuard`, every route but login |
 
 ### The manager module's auth chain, traced end to end
@@ -362,39 +354,6 @@ never a widening one. Every manager-scoped repository call takes `institutionId`
 parameter and filters server-side. There is no code path where a manager can see another
 institution's rows — or a sector manager another sector's — short of forging an HMAC signature.
 
-### The one place that rule does not hold: the peer-chat gateway
-
-Everything above describes the HTTP surface. The WebSocket gateway is deliberately different, and
-the difference is worth stating plainly rather than filing it under "token verified."
-
-`handleConnection` (`peer-chat.gateway.ts:50-67`) does **not** reject a tokenless socket — a
-missing token is an early `return`, and the connection stays open, just unregistered. That is by
-design: the médico side of peer chat is anonymous, exactly like the rest of their experience, so
-there is no token for them to present. A token that *is* present must verify and must resolve to
-an active `PeerPartner`, or the socket is disconnected; only then is the partner registered in
-presence, under the `institutionId` read from their **database row**, never from the client.
-
-The other event was the gap. `handleRequestPeer` (`:104-132`) used to take
-`payload.institutionId` straight off that anonymous socket with no validation of any kind
-(`priorities.md` #8). It now zod-checks every payload in the gateway (`peer-chat.payloads.ts`),
-ignores a request from a socket that is registered as a peer partner, lets one socket hold a single
-open request (pending or matched), and caps open requests per network address at three
-(`Fly-Client-IP` when present, since behind Fly's proxy every socket shares one socket address;
-otherwise `handshake.address`). Past the cap it answers `no_peer_available`, so a crisis-adjacent
-client never hangs on "Procurando…". The event was also renamed `request-peer` → `request_peer`;
-the old name still works (see `realtime-and-streaming.md` §1).
-
-What is **not** closed: the gateway still takes the tenant key from the payload, because an
-anonymous médico has no credential to prove institution membership with. The limits bound how
-many peer partners one source can occupy; they do not stop a distributed caller who holds a valid
-institution id, which travels on every linked device's traffic and the public
-`GET /institutions/:id/sectors`. Proving membership is `priorities.md` #28.
-
-The gateway's other four events are authorized, just not by a guard: `accept_request` and
-`decline_request` check `isCurrentCandidate` (the socket must be the peer partner presence
-currently has as this request's candidate), and `message` / `leave_conversation` check that the
-sender's socket id is one of the two parties to that conversation.
-
 ---
 
 ## 5. Frontend architecture
@@ -410,7 +369,7 @@ actually needs.
 | `infrastructure/` | Concrete adapters grouped by transport: `http/` (`http-*.adapter.ts` plus `api-base-url.ts`), `crypto/web-crypto-encryption.adapter.ts`, `storage/indexeddb-assessment-store.adapter.ts`, `websocket/peer-chat-socket.client.ts`. |
 | `stores/` | Zustand stores — see §2. |
 | `presentation/` | `pages/`, `hooks/` (thin TanStack Query wrappers), `layout/` (`PhoneShell`, `Sidebar`, `BottomNav`, `ManagerShell`, `ManagerSidebar`, `AppHeader`, hotkey listeners), `components/` (composed feature pieces), `ui/` (primitives: `Card`, `Button`, `Modal`, `DataTable`, `TextField`, ...), `lib/` (`routes.ts`, `band-for.ts`, `crisis-line.ts`). |
-| `app/` | `App.tsx` (the root: `QueryClientProvider` + `RouterProvider`, plus the app-wide `ToastViewport`, `HotkeyListener` and system-theme watcher), `router.tsx` (route table and loaders), `container/` (DI wiring, §2), `query-client.ts`, `index.css`. |
+| `app/` | `router.tsx` (route table and loaders), `container/` (DI wiring, §2), `query-client.ts`, `index.css`. |
 | `dev/` | Dev-only helpers (`seed-assessment-history.ts`), not shipped behavior. |
 
 Forms use react-hook-form + zod, not per-field `useState` — the rule set and reference
@@ -590,7 +549,6 @@ reason, doesn't want their hospital to know they use the app at all.
 | Login | Rejects if the manager is inactive *or* their institution is inactive, behind the same non-disclosing error as a wrong password. |
 | Every manager-scoped query | Takes `institutionId` as an explicit parameter; a `SECTOR_MANAGER` additionally has `sectorIds` resolved server-side from their assignments. |
 | k-anonymity grouping key | `institutionId + sectorId`, not a name — two institutions that both have a "UTI" can't pool it to fake reaching n=5 for either. |
-| **Peer-chat gateway — the exception** | `request_peer` reads `institutionId` from the client payload on a socket that needs no token. The payload is now zod-validated and rate-bounded per source address, but membership is still unproven. Nothing behind it is tenant-scoped data (no rows are read or written). §4, `priorities.md` #8 (validation, done) and #28 (membership proof, open). |
 
 ---
 
@@ -623,8 +581,7 @@ accidental. Checklist form: [`security-privacy.md`](../docs/conventions/security
 which removes the CSRF protection cookies are meant to provide unless a CSRF token is added too,
 and it turns the synchronous router guard into an async round-trip per manager navigation — a
 ~3–5 hour migration across roughly 17 files, not a quick swap. Compensating control: no
-`dangerouslySetInnerHTML` anywhere in `apps/web`, now enforced by lint and backed by a CSP
-(`priorities.md` #10). A migration design exists but is unmerged
+`dangerouslySetInnerHTML` anywhere on a manager route. A migration design exists but is unmerged
 (`2026-09-14-httponly-cookie-session-migration-design.md`).
 
 ### Deliberately unauthenticated endpoints
@@ -640,24 +597,15 @@ single-use hashed set-password token instead of a session; `forgot-password` fol
 non-disclosure rule as login — unknown or deactivated emails get a silent no-op and an identical
 200 either way.
 
-**And one non-HTTP surface: the peer-chat WebSocket gateway.** It accepts a socket with no token
-at all (that is how an anonymous médico reaches a peer partner), and its `request_peer` event
-trusts a client-supplied `institutionId`, now behind a schema and per-address limits but with no
-proof of membership. It belongs in this enumeration and is the only place in the system where a
-tenant key comes off the wire rather than out of a verified token — traced in full in §4;
-validation was `priorities.md` #8, membership proof is #28.
-
-**Known gap — no tighter per-endpoint rate limit except on the login and forgot-password routes.** A global
-`ThrottlerModule` (100 requests/60s per client address, via `APP_GUARD` in `app.module.ts`) protects
+**Known gap — no per-endpoint rate limit except on the two forgot-password routes.** A global
+`ThrottlerModule` (100 requests/60s per IP, via `APP_GUARD` in `app.module.ts`) protects
 everything else uniformly. The institution-by-code lookup and the four check-in endpoints have no
 *tighter* limit of their own, even though a real device checks in at most once a week. A
 low-entropy, guessable invite code (seeded ones look like `zelo-demo-2026`) plus a rotating
 `deviceSignalId` could inflate a sector's counters well past what the throttle catches. Flagged,
 not yet fixed — see §12. The forgot-password routes are the exception: as the first
 unauthenticated routes accepting a bare email — a spam and enumeration target — each carries its
-own `@Throttle` override (5 requests per 15 minutes per IP). The three login routes carry
-`@LoginThrottle()` (20 attempts per 15 minutes per address, 5 per address and e-mail). The client
-address is `Fly-Client-IP`, since behind Fly's proxy `req.ip` is shared by every user.
+own `@Throttle` override (5 requests per 15 minutes per IP).
 
 ### Transport & infrastructure
 
@@ -729,7 +677,6 @@ open and what shape the work takes, so it can't drift out of sync with them.
 | A new NestJS module or endpoint | [`backend-modules.md`](../docs/conventions/backend-modules.md), plus the `zelo-backend-endpoint` skill |
 | Request validation, error-to-HTTP mapping | [`backend-http.md`](../docs/conventions/backend-http.md) |
 | A new frontend screen, end to end | [`frontend-architecture.md`](../docs/conventions/frontend-architecture.md), plus the `zelo-frontend-flow` skill |
-| Re-renders, memoization, code-splitting | [`react-performance.md`](../docs/conventions/react-performance.md) |
 | A form | [`forms-and-ui.md`](../docs/conventions/forms-and-ui.md) and [`CLAUDE.md`](../CLAUDE.md), plus the `zelo-form` skill |
 | An admin list or table screen | the `zelo-admin-table` skill |
 | Anything touching the chat stream or the peer gateway | [`realtime-and-streaming.md`](../docs/conventions/realtime-and-streaming.md) |
@@ -800,10 +747,9 @@ architect needs without reading either in full.
 | — | The seed script deletes real check-in data if re-run against a linked institution (§9). | Documented, not yet prevented in code. |
 | — | Unlink-then-relink within the same week double-counts (a fresh `deviceSignalId` is minted on each link). | Accepted trade-off — the alternative (persisting the id across unlink) weakens "unlink leaves nothing behind." |
 | — | `deviceSignalId` crosses the wire in plaintext on every check-in. | Mitigated by HTTPS-only transport; the at-rest guarantee (§6) holds regardless. |
-| — | The peer-chat gateway accepts tokenless sockets and trusts a client-supplied `institutionId` on `request_peer` (§4, §8). Payloads are validated and open requests are capped per source address, but membership is not proven. | Membership proof open — `priorities.md` #28. Validation and limits fixed under #8. |
 | — | Dead GitHub Pages plumbing (`VITE_BASE_PATH` in `vite.config.ts` and `turbo.json`), and a README tech-stack table that contradicts the README's own Deployment section (§9). | Open — `priorities.md` #13. |
 | — | `build:native` hardcodes the production API URL, so any APK — including one built from `develop` — writes to production (§9). | Open — `priorities.md` #25. |
-| — | `router.tsx` statically imports every page, so a médico downloads the whole manager/admin panel to reach `/home`. | Open and known — `priorities.md` #14; the playbook is [`react-performance.md`](../docs/conventions/react-performance.md). Any fix must preserve the `routeChildren` export `router.test.tsx` depends on. |
+| — | `router.tsx` statically imports every page, so a médico downloads the whole manager/admin panel to reach `/home`. | Open and known — `priorities.md` #14. Any fix must preserve the `routeChildren` export `router.test.tsx` depends on. |
 
 ---
 
