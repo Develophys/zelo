@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/presentation/ui/Button";
 import { IconButton } from "@/presentation/ui/IconButton";
 import { Modal } from "@/presentation/ui/Modal";
@@ -15,7 +17,6 @@ import { useDataTableSelection } from "@/presentation/ui/DataTable/useDataTableS
 import { useBulkDelete } from "@/presentation/ui/DataTable/useBulkDelete";
 import { useBulkStatusUpdate } from "@/presentation/ui/DataTable/useBulkStatusUpdate";
 import { useDebouncedSearch } from "@/presentation/hooks/useDebouncedSearch";
-import { isValidEmail } from "@/presentation/lib/validate-email";
 import { accountStatusPill } from "@/presentation/lib/account-status-pill";
 import { toast } from "@/stores/toast.store";
 import { useAdminPeerPartners } from "@/presentation/hooks/useAdminPeerPartners";
@@ -27,6 +28,7 @@ import { useHotkey } from "@/presentation/hooks/useHotkey";
 import { updateConflictMessage } from "@/ports/manager-admin.port";
 import type { PeerPartnerSummary } from "@/ports/manager-admin.port";
 import { Pencil, Mail, KeyRound, Trash2 } from "lucide-react";
+import { peerPartnerFormSchema, type PeerPartnerFormValues } from "./peer-partner-form-schema";
 
 const COLUMNS: DataTableColumn<PeerPartnerSummary>[] = [
   { key: "name", header: "Nome", width: "w-[22%]", cell: (row) => row.name },
@@ -54,17 +56,19 @@ export function ManagerAdminPeersPage() {
   const sendSetPasswordEmail = useSendPeerPartnerSetPasswordEmail();
   const deletePeerPartner = useDeletePeerPartner();
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [emailTouched, setEmailTouched] = useState(false);
-  const [specialty, setSpecialty] = useState("");
+  const createForm = useForm<PeerPartnerFormValues>({
+    resolver: zodResolver(peerPartnerFormSchema),
+    defaultValues: { name: "", email: "", specialty: "" },
+    mode: "onBlur",
+  });
 
   const [formMode, setFormMode] = useState<"create" | "edit" | null>(null);
   const [editingPeerPartner, setEditingPeerPartner] = useState<PeerPartnerSummary | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editEmail, setEditEmail] = useState("");
-  const [editEmailTouched, setEditEmailTouched] = useState(false);
-  const [editSpecialty, setEditSpecialty] = useState("");
+  const editForm = useForm<PeerPartnerFormValues>({
+    resolver: zodResolver(peerPartnerFormSchema),
+    defaultValues: { name: "", email: "", specialty: "" },
+    mode: "onBlur",
+  });
   const [editError, setEditError] = useState<string | null>(null);
 
   const peerPartnerList = useMemo(() => peerPartners.data ?? [], [peerPartners.data]);
@@ -94,19 +98,13 @@ export function ManagerAdminPeersPage() {
   const isAnyModalOpen = formMode !== null || bulkDelete.deleteTarget !== null || resetPasswordTarget !== null;
 
   const openCreate = () => {
-    setName("");
-    setEmail("");
-    setEmailTouched(false);
-    setSpecialty("");
+    createForm.reset({ name: "", email: "", specialty: "" });
     setFormMode("create");
   };
 
   const openEdit = (peerPartner: PeerPartnerSummary) => {
     setEditingPeerPartner(peerPartner);
-    setEditName(peerPartner.name);
-    setEditEmail(peerPartner.email);
-    setEditEmailTouched(false);
-    setEditSpecialty(peerPartner.specialty);
+    editForm.reset({ name: peerPartner.name, email: peerPartner.email, specialty: peerPartner.specialty });
     setEditError(null);
     setFormMode("edit");
   };
@@ -117,29 +115,26 @@ export function ManagerAdminPeersPage() {
     setEditError(null);
   };
 
-  const handleCreateSubmit = () => {
-    createPeerPartner.mutate(
-      { name, email, specialty },
-      {
-        onSuccess: (result) => {
-          toast.success(`Convite enviado para ${result.peerPartner.email}.`);
-          closeModal();
-        },
+  const handleCreateSubmit = createForm.handleSubmit((values) => {
+    createPeerPartner.mutate(values, {
+      onSuccess: (result) => {
+        toast.success(`Convite enviado para ${result.peerPartner.email}.`);
+        closeModal();
       },
-    );
-  };
+    });
+  });
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = editForm.handleSubmit((values) => {
     if (!editingPeerPartner) return;
     setEditError(null);
     updatePeerPartner.mutate(
-      { id: editingPeerPartner.id, patch: { name: editName, email: editEmail, specialty: editSpecialty } },
+      { id: editingPeerPartner.id, patch: values },
       {
         onSuccess: () => closeModal(),
         onError: (error) => setEditError(updateConflictMessage(error) ?? "Não foi possível salvar. Tente de novo."),
       },
     );
-  };
+  });
 
   const handleSendSetPasswordEmail = (peerPartner: PeerPartnerSummary) => {
     sendSetPasswordEmail.mutate(peerPartner.id, {
@@ -173,12 +168,10 @@ export function ManagerAdminPeersPage() {
     enabled: !isAnyModalOpen && selection.remove.enabled,
   });
 
-  const emailFormatError = emailTouched && email.length > 0 && !isValidEmail(email) ? "Digite um email válido." : null;
-  const editEmailFormatError =
-    editEmailTouched && editEmail.length > 0 && !isValidEmail(editEmail) ? "Digite um email válido." : null;
-  const isSubmitDisabled = name.trim().length === 0 || !isValidEmail(email) || specialty.trim().length === 0;
-  const isEditSubmitDisabled =
-    editName.trim().length === 0 || !isValidEmail(editEmail) || editSpecialty.trim().length === 0;
+  const createValues = createForm.watch();
+  const isSubmitDisabled = !peerPartnerFormSchema.safeParse(createValues).success;
+  const editValues = editForm.watch();
+  const isEditSubmitDisabled = !peerPartnerFormSchema.safeParse(editValues).success;
 
   const renderRowActions = (peerPartner: PeerPartnerSummary) => {
     const status = accountStatusPill(peerPartner);
@@ -333,13 +326,7 @@ export function ManagerAdminPeersPage() {
             <label htmlFor="peer-partner-name-input" className="text-label font-semibold text-ink-2">
               Nome do par
             </label>
-            <TextField
-              id="peer-partner-name-input"
-              required
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              className="mt-2"
-            />
+            <TextField id="peer-partner-name-input" required className="mt-2" {...createForm.register("name")} />
 
             <label htmlFor="peer-partner-email-input" className="mt-4 block text-label font-semibold text-ink-2">
               Email do par
@@ -348,16 +335,14 @@ export function ManagerAdminPeersPage() {
               id="peer-partner-email-input"
               type="email"
               required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              onBlur={() => setEmailTouched(true)}
               className="mt-2"
-              aria-invalid={emailFormatError ? true : undefined}
-              aria-describedby={emailFormatError ? "peer-partner-email-input-error" : undefined}
+              aria-invalid={createForm.formState.errors.email ? true : undefined}
+              aria-describedby={createForm.formState.errors.email ? "peer-partner-email-input-error" : undefined}
+              {...createForm.register("email")}
             />
-            {emailFormatError && (
+            {createForm.formState.errors.email && (
               <p id="peer-partner-email-input-error" role="alert" className="mt-2 text-label text-danger">
-                {emailFormatError}
+                {createForm.formState.errors.email.message}
               </p>
             )}
 
@@ -367,10 +352,9 @@ export function ManagerAdminPeersPage() {
             <TextField
               id="peer-partner-specialty-input"
               required
-              value={specialty}
-              onChange={(event) => setSpecialty(event.target.value)}
               placeholder="Ex: Clínica médica"
               className="mt-2"
+              {...createForm.register("specialty")}
             />
           </>
         ) : (
@@ -379,13 +363,7 @@ export function ManagerAdminPeersPage() {
               <label htmlFor="peer-partner-edit-name-input" className="text-label font-semibold text-ink-2">
                 Nome do par
               </label>
-              <TextField
-                id="peer-partner-edit-name-input"
-                required
-                value={editName}
-                onChange={(event) => setEditName(event.target.value)}
-                className="mt-2"
-              />
+              <TextField id="peer-partner-edit-name-input" required className="mt-2" {...editForm.register("name")} />
 
               <label htmlFor="peer-partner-edit-email-input" className="mt-4 block text-label font-semibold text-ink-2">
                 Email do par
@@ -394,16 +372,14 @@ export function ManagerAdminPeersPage() {
                 id="peer-partner-edit-email-input"
                 type="email"
                 required
-                value={editEmail}
-                onChange={(event) => setEditEmail(event.target.value)}
-                onBlur={() => setEditEmailTouched(true)}
                 className="mt-2"
-                aria-invalid={editEmailFormatError ? true : undefined}
-                aria-describedby={editEmailFormatError ? "peer-partner-edit-email-input-error" : undefined}
+                aria-invalid={editForm.formState.errors.email ? true : undefined}
+                aria-describedby={editForm.formState.errors.email ? "peer-partner-edit-email-input-error" : undefined}
+                {...editForm.register("email")}
               />
-              {editEmailFormatError && (
+              {editForm.formState.errors.email && (
                 <p id="peer-partner-edit-email-input-error" role="alert" className="mt-2 text-label text-danger">
-                  {editEmailFormatError}
+                  {editForm.formState.errors.email.message}
                 </p>
               )}
 
@@ -413,9 +389,8 @@ export function ManagerAdminPeersPage() {
               <TextField
                 id="peer-partner-edit-specialty-input"
                 required
-                value={editSpecialty}
-                onChange={(event) => setEditSpecialty(event.target.value)}
                 className="mt-2"
+                {...editForm.register("specialty")}
               />
 
               {editError && (
