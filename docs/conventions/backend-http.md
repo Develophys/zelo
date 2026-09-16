@@ -17,9 +17,8 @@ nothing in the type system or a lint rule would catch that omission.
 3. `if (!parsed.success) throw new BadRequestException(parsed.error.flatten());`
 4. Consume `parsed.data` at the call site (whole, spread, or field-by-field) — never write
    `type X = z.infer<typeof Schema>` in `apps/api`. That prohibition is specific to this app: the
-   `z.infer` rule for `apps/web` form schemas is a different, narrower scope and does not carry
-   over here — it lives at [`forms-and-ui.md:50`](./forms-and-ui.md) ("export both the schema and
-   `type X = z.infer<typeof schema>`"), not in `CLAUDE.md`, which no longer states it.
+   CLAUDE.md `z.infer` rule for `apps/web` forms is a different, narrower scope, and does not carry
+   over here.
 
 Mirror: `apps/api/src/modules/signal-checkin/infrastructure/signal-checkin.controller.ts`.
 
@@ -77,28 +76,17 @@ shape is **nested**: `@Throttle({ default: { limit, ttl } })`. The v5 flat shape
 `@Throttle({ limit, ttl })`, compiles but silently applies no limit at all — this is a real trap,
 not a style preference, because nothing fails loudly when the flat shape is used.
 
-The limits live in `apps/api/src/shared/http/throttling.ts` (`THROTTLER_OPTIONS`), registered in
-`app.module.ts` with `{ provide: APP_GUARD, useClass: ClientAddressThrottlerGuard }`. The guard
-keys every bucket on the **client address**: the `Fly-Client-IP` header when present, else
-`req.ip` (`shared/http/client-address.ts`). Do not go back to the stock `ThrottlerGuard`: behind
-Fly's proxy `req.ip` is the proxy's address, so every user shared one bucket (measured on the dev
-deploy, where two different client addresses decremented the same `x-ratelimit-remaining`), and a
-tight per-route limit would have locked everybody out at once.
-
-The default is 100 requests/60s per client address. A login route adds `@LoginThrottle()`, which
-switches on two named throttlers that skip every other route: `login-address` (20 attempts / 15 min
-per client address, bounding the scrypt CPU one source can burn) and `login-account` (5 attempts /
-15 min per client address **and** normalized e-mail, bounding guesses per account without one
-colleague's typos locking out a whole hospital behind the same NAT). A per-route `@Throttle` is
-still how you tighten an unauthenticated route that takes a bare email address, as both
-`forgot-password` routes do. Re-verified with:
+The global default is registered once in `apps/api/src/app.module.ts`:
+`ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }])` (app.module.ts:27) with
+`{ provide: APP_GUARD, useClass: ThrottlerGuard }` (app.module.ts:41). A per-route `@Throttle` is
+added only to tighten that default on an unauthenticated route that takes a bare email address —
+re-verified with:
 
 ```bash
 grep -n "@Throttle" apps/api/src/modules/manager/infrastructure/manager.controller.ts apps/api/src/modules/peer-partner/infrastructure/peer-partner.controller.ts
-grep -rn "@LoginThrottle" apps/api/src --include=*.controller.ts
 ```
 
-Both `@Throttle` call sites are `POST .../forgot-password`, and both carry the identical nested decorator
+Both real call sites are `POST .../forgot-password`, and both carry the identical nested decorator
 and rationale comment: `apps/api/src/modules/manager/infrastructure/manager.controller.ts:110` and
 `apps/api/src/modules/peer-partner/infrastructure/peer-partner.controller.ts:63`, both
 `@Throttle({ default: { limit: 5, ttl: 900_000 } })` (5 requests / 15 minutes) directly above
@@ -116,9 +104,9 @@ section means re-running the `grep` commands above (or reading the controller) b
 ## Traps
 
 - The dependency-cruiser rule meant to keep `application/` off the Prisma client
-  (`application-no-prisma-imports`) now covers both `generated/prisma` — where this project's
-  client actually lives — and `node_modules/@prisma/client`. It previously blocked only the
-  latter, which nothing imports, so it never fired and a green `lint:boundaries` proved nothing
-  about this boundary. That is fixed and verified to fail on a planted violation; see
-  `docs/conventions/priorities.md` #2. Everything else in the "How to verify" note above still
-  holds: boundaries say nothing about validation coverage or the 404/400/403 split.
+  (`application-no-prisma-imports`) never actually fires — it blocks `node_modules/@prisma/client`,
+  which nothing imports, while the real generated client lives at `apps/api/generated/prisma/` and
+  is unguarded. This doesn't change anything in this document directly, but it means
+  `pnpm lint:boundaries` passing green is not proof that a use case reached for Prisma cleanly by
+  itself — see `docs/conventions/priorities.md` #2 for the full description and fix; not
+  re-explained here.
