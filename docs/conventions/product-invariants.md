@@ -78,9 +78,9 @@ same response) — it just makes the dashboard unreadable.
    `checkInsLast4Weeks`/`abandonedLast4Weeks`/`unsentChatDraftsLast4Weeks`, `followUpTotals`, and
    `weeklyTrend` — is computed by filtering rows down to `visibleSectorIds` first (`visibleRows`
    at :148) and never re-checks the threshold again per week or per field.
-4. The response interface's own doc comment states the consequence directly (:16-20): "a visible
-   sector contributes every week it has rows for, including weeks newer than this one that never
-   cleared k on their own." **A `weeklyTrend` point showing `checkIns < 5` for an already-visible
+4. The response interface's own doc comment states the consequence directly (:16-21, quoted text
+   at :19-20): "a visible sector contributes every week it has rows for, including weeks newer
+   than this one that never cleared k on their own." **A `weeklyTrend` point showing `checkIns < 5` for an already-visible
    sector is correct behavior, not a leak** — the sector's identity was already established by
    step 2, and the trend line exists to show the sector's real trajectory, including its slow
    weeks.
@@ -107,8 +107,11 @@ aborts the stream and the reply is regenerated once with a nudge built from the 
 if the opener is still a cliché the second time, the guard no longer rejects it — it only
 reports it. `ToneRule` is a closed union of four members: `opening_cliche_regenerated`,
 `opening_cliche_persisted`, `rhetorical_reframe` (a "not X, but Y" reframe caught mid-stream by
-`classifyClosingTic`), and `trailing_question` (a closing question suppressed unless
-`shouldAllowTrailingQuestion` permits one). If `context.hasActiveRiskSignal` is true, the whole
+`classifyClosingTic`), and `trailing_question` (a closing question detected — not suppressed —
+when `shouldAllowTrailingQuestion` says this conversation shouldn't end on one; like
+`rhetorical_reframe`, this is report-only via `onTell`, `guard-tone.ts:101-103` — the question
+itself is still yielded to the stream unconditionally right after, :105-106). If
+`context.hasActiveRiskSignal` is true, the whole
 guard is bypassed and the raw reply streams through unmodified (`guardTone`:117-120) — see
 §5 below for why that branch is currently unreachable in production.
 
@@ -166,7 +169,7 @@ the frontend's `MANAGER_NOTIFICATION_TYPES` (place 3) has no compile-time or run
 either — it's a separately-deployed app reading JSON over HTTP. A type added to the Prisma enum
 and the backend union but never added to `MANAGER_NOTIFICATION_TYPES` will compile and deploy
 fine on both sides; the frontend finds out only when that notification actually ships —
-`ManagerNotificationsPageSchema.parse(...)` (`http-manager-notifications.adapter.ts:31`) uses
+`ManagerNotificationsPageSchema.parse(...)` (`http-manager-notifications.adapter.ts:32`) uses
 `.parse()`, not `.safeParse()`, so one unrecognized `type` in the page throws and fails the
 *whole* page fetch, not just that row — with nothing before that catching the mismatch.
 
