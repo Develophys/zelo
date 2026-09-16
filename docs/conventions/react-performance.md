@@ -76,8 +76,8 @@ because the app's own manual stabilization work exists specifically to prevent i
    byte-identical to what was already cached.
 3. On the four admin tables, that new `data` identity busts the
    `useMemo(() => query.data ?? [], [query.data])` chain documented in CONFIRMED rules
-   (`ManagerAdminManagersPage.tsx:39`, `ManagerAdminPeersPage.tsx:74`,
-   `ManagerAdminSectorsPage.tsx:191-192`, `AdminInstitutionsPage.tsx:136-139`) — the memo's
+   (`ManagerAdminManagersPage.tsx:39`, `ManagerAdminPeersPage.tsx:70`,
+   `ManagerAdminSectorsPage.tsx:181-182`, `AdminInstitutionsPage.tsx:125-128`) — the memo's
    whole job is to hand `useDataTableSelection` a stable array reference, and a dependency
    change defeats that by design.
 4. `useDataTableSelection` (`apps/web/src/presentation/ui/DataTable/useDataTableSelection.ts`)
@@ -110,50 +110,19 @@ deferred runtime import is fine and expected (e.g. `LinkInstitutionQrScanModal.t
 import" as "no top-level anything," and don't replace a deferred library's types with `any` to
 satisfy a stricter reading than the rule actually states.
 
-**Route-level splitting covers the staff surfaces, and only those.** The 18 manager,
-super-admin and peer-partner routes in `apps/web/src/app/router.tsx` load through
-`lazy: { Component: lazyPage(...) }`. The 15 doctor-facing routes, the three crisis routes,
-`ManagerShell` and `FallbackPage` stay statically imported. A doctor reaching `/home` no longer
-downloads the manager panel or the admin tables: the entry chunk went from 793,015 to 621,140
-bytes (230,748 → 185,680 gzip) when this landed.
+**What's missing is route-level splitting.** There is zero `React.lazy` and zero `Suspense`
+anywhere in `apps/web/src`. `apps/web/src/app/router.tsx` statically imports all 34
+page/layout components, 20 of which are manager/admin/peer-only — so the primary persona (a
+doctor, on a phone, the Capacitor APK target) downloads and parses the entire manager panel,
+every admin table, `DataTable`, and the chart library just to reach `/home`. This is not a flat
+"no code splitting" situation; it's a real gap in the one layer (routes) where the app hasn't
+applied a pattern it already uses correctly one layer down. See `priorities.md` #14.
 
-Four rules hold this together, and each one is load-bearing:
-
-- **Use the per-key object form, `lazy: { Component: ... }` — never the whole-route function
-  form.** The object form leaves `loader` static, so an unauthenticated visit to `/manager`
-  runs the guard and redirects *without* fetching the panel chunk. The function form would
-  defer the loader too, shipping the chunk to someone who is about to be bounced. It also
-  means the router blocks the navigation and keeps the current screen painted, which is why
-  this app needs no `Suspense` boundary and no skeleton vocabulary for route loading.
-- **Route through `lazyPage` (`app/lazy-route.ts`), not a bare `import()`.** It retries once,
-  then reloads the page. A chunk whose hash no longer exists after a deploy is answered by both
-  Vercel and the nginx image with `index.html` and a 200, so a bare import fails as an HTML
-  parse error on core navigation; only a reload fixes that class.
-- **Keep `path`, `index` and `children` statically declared.** React Router 8 forbids lazifying
-  them (`UnsupportedLazyRouteObjectKey`), and `route-title.test.ts` / `app-header-meta.test.ts`
-  flatten the tree on exactly those keys to assert both pathname lookup tables stay in step.
-- **Routes live in `app/routes/`, one file per audience, each exporting a factory.**
-  `doctor.routes.tsx`, `manager.routes.ts`, `peer-partner.routes.ts`, `super-admin.routes.ts` —
-  the same axis the guards, shells and lazy chunks already follow. `router.tsx` composes them
-  and keeps the `*` catch-all itself, so the "must be last" constraint stays visible in the
-  composition root instead of hidden inside a group. A new route goes in its audience's file;
-  a new audience gets a new file and one line in `createRouteChildren()`.
-- **Build every router from `createRouteChildren()`, and inspect the `routeChildren` const.**
-  React Router caches a resolved `lazy` property against the route object's identity, so a
-  second router built from the same objects finds the cache entry but not the value, and the
-  route stops matching. Production creates one router and never hits this; tests create one per
-  case and hit it immediately. `router.test.tsx:332` still reads the `routeChildren` const for
-  its `Component === ManagerShell` identity check — that is why `ManagerShell` stays eager.
-
-`routeChildren` remains exported as an inspectable `RouteObject[]`, now produced by
-`createRouteChildren()`. Four test files import one or the other; a split that stops exporting
-either will silently desync the test router from what ships.
-
-Two things this did **not** buy, stated so nobody claims them: the entry chunk is still over
-Rollup's 500 kB warning (621 kB, 63% of it shared vendor), and the doctor's *total* bytes are
-unchanged, because workbox's `globPatterns` sweeps every new chunk into the precache (41 → 83
-entries, ~2.2 MiB either way). The win is first-paint critical path and parse/exec, not total
-download. See `priorities.md` #14.
+Any future route split must preserve the `routeChildren` export: `router.tsx:66` defines
+`export const routeChildren: RouteObject[] = [...]`, and `router.test.tsx:6,24` imports it
+directly to build the test router from the same route tree rather than duplicating it. A split
+that changes how routes are declared without keeping `routeChildren` as the single source of
+truth will silently desync the test router from what ships.
 
 ## Traps
 
@@ -176,7 +145,7 @@ narrows a rule that reads more broadly than it actually is:
 - **`useMemo(() => query.data ?? [], [query.data])` earns its keep only when the array feeds
   another hook's or memo's dependency array — not by default on every query result.** Where the
   array is only spread into JSX props, the `useMemo` buys nothing. The repo has one such inert
-  site: `ManagerAdminSectorsPage.tsx:191`'s `managerList` feeds no dependency array — it's
+  site: `ManagerAdminSectorsPage.tsx:181`'s `managerList` feeds no dependency array — it's
   read only as a plain `managers={managerList}` prop and inside one `.find()` — so wrapping it
   was habit, not a load-bearing pattern. Don't cite "the repo always memoizes query results" as
   a rule; check whether the result actually flows into a downstream dependency array first.
@@ -188,34 +157,3 @@ narrows a rule that reads more broadly than it actually is:
   to show which option is currently selected — a radio group can't do that from a CSS token
   alone. Nothing else in the app subscribes to those fields; `useApplyAppearancePrefs.ts` is
   still what projects them onto `<html>` for everything else to consume via CSS.
-
-## How to verify
-
-**Nothing in this document is gated by a tool.** `eslint-plugin-react-hooks` is not installed —
-re-verified fresh, `grep -rn "react-hooks" package.json apps/web/package.json
-packages/config/package.json packages/config/eslint.base.mjs` returns nothing — so the
-`exhaustive-deps` caveat above is a reading rule, not a lint error you'll see. There is no
-bundle-size budget, no render-count assertion in the suite, and no coverage gate. Every claim
-here is a count you re-run:
-
-```bash
-# memoized components — 8 today
-grep -rn "= memo(\|React.memo(" apps/web/src --include=*.tsx
-
-# the QueryClient defaults gap (priorities.md #5) — expect no match
-grep -n "defaultOptions" apps/web/src/app/query-client.ts
-
-# route-level code splitting (priorities.md #14) — expect 0; every page is a static import
-grep -c "lazy(" apps/web/src/app/router.tsx
-
-# the export any future split must preserve, and its one consumer
-grep -n "routeChildren" apps/web/src/app/router.tsx apps/web/src/app/router.test.tsx
-
-# the hooks plugin that would enforce the deps rule — expect nothing
-grep -rn "react-hooks" package.json apps/web/package.json packages/config/package.json   packages/config/eslint.base.mjs
-```
-
-The one thing CI *does* catch is a route split that breaks the route tree: `router.test.tsx`
-builds its router from the `routeChildren` export, so `pnpm --filter @zelo/web test -- router`
-fails if a split stops exporting it. It will not fail if the split simply doesn't reduce the
-initial bundle.
