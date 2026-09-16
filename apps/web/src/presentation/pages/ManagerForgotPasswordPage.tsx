@@ -1,5 +1,6 @@
-import { useState, type SubmitEvent } from "react";
 import { Link, useNavigate } from "react-router";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BackButton } from "@/presentation/ui/BackButton";
 import { Button } from "@/presentation/ui/Button";
@@ -7,21 +8,31 @@ import { Card } from "@/presentation/ui/Card";
 import { TextField } from "@/presentation/ui/TextField";
 import { routes } from "@/presentation/lib/routes";
 import { useManagerForgotPassword } from "@/presentation/hooks/useManagerForgotPassword";
-import { isValidEmail } from "@/presentation/lib/validate-email";
+import {
+  forgotPasswordFormSchema,
+  type ForgotPasswordFormValues,
+} from "@/presentation/lib/forgot-password-form-schema";
 
 export function ManagerForgotPasswordPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
   const forgotPassword = useManagerForgotPassword();
 
-  const handleSubmit = (event: SubmitEvent) => {
-    event.preventDefault();
-    // Fires the same way whether the email matches an account or not, and
-    // settled/failed both land on the same confirmation — the request
-    // itself, and any network hiccup sending it, must never be a signal an
-    // attacker could use to tell which emails have an account here.
-    forgotPassword.mutate(email);
-  };
+  const form = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordFormSchema),
+    defaultValues: { email: "" },
+    mode: "onBlur",
+  });
+
+  // Fires the same way whether the email matches an account or not, and
+  // settled/failed both land on the same confirmation — the request
+  // itself, and any network hiccup sending it, must never be a signal an
+  // attacker could use to tell which emails have an account here.
+  const onSubmit = form.handleSubmit((values) => {
+    forgotPassword.mutate(values.email);
+  });
+
+  const emailValue = form.watch("email");
+  const isSubmitDisabled = !forgotPasswordFormSchema.safeParse({ email: emailValue }).success;
 
   return (
     <PhoneShell centered>
@@ -38,7 +49,7 @@ export function ManagerForgotPasswordPage() {
             <p className="text-caption text-muted">
               Digite o e-mail da sua conta de gestor. Enviaremos um link para você definir uma nova senha.
             </p>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={onSubmit}>
               <Card className="mt-5">
                 <label htmlFor="manager-forgot-password-email" className="text-label font-semibold text-ink-2">
                   Email
@@ -47,15 +58,14 @@ export function ManagerForgotPasswordPage() {
                   id="manager-forgot-password-email"
                   type="email"
                   required
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
                   placeholder="Digite seu email"
                   className="mt-2"
+                  {...form.register("email")}
                 />
               </Card>
 
               <div className="mt-6 px-4.5">
-                <Button type="submit" variant="primary" isLoading={forgotPassword.isPending} disabled={!isValidEmail(email)}>
+                <Button type="submit" variant="primary" isLoading={forgotPassword.isPending} disabled={isSubmitDisabled}>
                   Enviar link
                 </Button>
               </div>

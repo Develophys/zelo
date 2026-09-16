@@ -1,11 +1,12 @@
-import { useState, type SubmitEvent } from "react";
+import { useState } from "react";
 import { useParams } from "react-router";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/presentation/ui/Button";
 import { Card } from "@/presentation/ui/Card";
 import { PasswordField } from "@/presentation/ui/PasswordField";
 import { toast } from "@/stores/toast.store";
-
-const MIN_PASSWORD_LENGTH = 8;
+import { finishSetupFormSchema, type FinishSetupFormValues } from "./finish-setup-form-schema";
 
 export interface FinishSetupFormProps {
   onSubmit: (params: { token: string; password: string }) => Promise<void>;
@@ -14,28 +15,27 @@ export interface FinishSetupFormProps {
 
 export function FinishSetupForm({ onSubmit, onSuccess }: FinishSetupFormProps) {
   const { token = "" } = useParams();
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const passwordsMatch = password.length > 0 && password === confirmPassword;
-  const isSubmitDisabled = !token || password.length < MIN_PASSWORD_LENGTH || !passwordsMatch || isPending;
+  const form = useForm<FinishSetupFormValues>({
+    resolver: zodResolver(finishSetupFormSchema),
+    defaultValues: { password: "", confirmPassword: "" },
+    mode: "onBlur",
+  });
 
-  const handleSubmit = async (event: SubmitEvent) => {
-    event.preventDefault();
+  const handleSubmit = form.handleSubmit(async (values) => {
     setError(null);
-    setIsPending(true);
     try {
-      await onSubmit({ token, password });
+      await onSubmit({ token, password: values.password });
       toast.success("Senha cadastrada com sucesso.");
       onSuccess();
     } catch {
       setError("Não foi possível concluir. O link pode ter expirado — peça um novo convite.");
-    } finally {
-      setIsPending(false);
     }
-  };
+  });
+
+  const passwordValues = form.watch();
+  const isSubmitDisabled = !token || form.formState.isSubmitting || !finishSetupFormSchema.safeParse(passwordValues).success;
 
   return (
     <>
@@ -53,14 +53,20 @@ export function FinishSetupForm({ onSubmit, onSuccess }: FinishSetupFormProps) {
           <PasswordField
             id="finish-setup-password"
             required
-            minLength={MIN_PASSWORD_LENGTH}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            minLength={8}
             placeholder="Mínimo de 8 caracteres"
             className="mt-2"
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? "finish-setup-error" : undefined}
+            aria-invalid={form.formState.errors.password || error ? true : undefined}
+            aria-describedby={
+              form.formState.errors.password ? "finish-setup-password-error" : error ? "finish-setup-error" : undefined
+            }
+            {...form.register("password")}
           />
+          {form.formState.errors.password && (
+            <p id="finish-setup-password-error" role="alert" className="mt-2 text-label text-danger">
+              {form.formState.errors.password.message}
+            </p>
+          )}
 
           <label htmlFor="finish-setup-confirm-password" className="mt-4 block text-label font-semibold text-ink-2">
             Confirme a senha
@@ -68,13 +74,23 @@ export function FinishSetupForm({ onSubmit, onSuccess }: FinishSetupFormProps) {
           <PasswordField
             id="finish-setup-confirm-password"
             required
-            value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
             placeholder="Digite a senha novamente"
             className="mt-2"
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? "finish-setup-error" : undefined}
+            aria-invalid={form.formState.errors.confirmPassword || error ? true : undefined}
+            aria-describedby={
+              form.formState.errors.confirmPassword
+                ? "finish-setup-confirm-password-error"
+                : error
+                  ? "finish-setup-error"
+                  : undefined
+            }
+            {...form.register("confirmPassword")}
           />
+          {form.formState.errors.confirmPassword && (
+            <p id="finish-setup-confirm-password-error" role="alert" className="mt-2 text-label text-danger">
+              {form.formState.errors.confirmPassword.message}
+            </p>
+          )}
 
           {error && (
             <p id="finish-setup-error" role="alert" className="mt-2 text-label text-danger">
@@ -84,7 +100,7 @@ export function FinishSetupForm({ onSubmit, onSuccess }: FinishSetupFormProps) {
         </Card>
 
         <div className="mt-6 px-4.5">
-          <Button type="submit" variant="primary" isLoading={isPending} disabled={isSubmitDisabled}>
+          <Button type="submit" variant="primary" isLoading={form.formState.isSubmitting} disabled={isSubmitDisabled}>
             Definir senha
           </Button>
         </div>

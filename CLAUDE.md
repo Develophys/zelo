@@ -27,6 +27,7 @@ Forms use **react-hook-form** + **zod**, not hand-rolled `useState` per field.
 - Reference implementation: `apps/web/src/presentation/pages/ManagerAdminManagersPage/`
   (`manager-form-schema.ts` + `useManagerCreateFlow.ts`).
 
-Older forms (logins, forgot-password, the Peers/Institutions admin forms) still use the
-hand-rolled pattern — migrate opportunistically when already touching that file, not as
-a dedicated sweep.
+Every admin/auth form in `apps/web` follows this convention as of 2026-09-15. A few
+plain-`useState` inputs remain by design and are not multi-field validated forms: the
+link-institution code step (`LinkInstitutionCodeStep.tsx`), the chat composers, and a
+wizard's per-step state — none needs this convention.
