@@ -46,6 +46,7 @@ function SectorFields({
   idPrefix,
   name,
   onNameChange,
+  onNameBlur,
   nameDisabled,
   showSuggestions,
   inviteCode,
@@ -58,6 +59,7 @@ function SectorFields({
   idPrefix: string;
   name: string;
   onNameChange?: (value: string) => void;
+  onNameBlur?: () => void;
   nameDisabled?: boolean;
   showSuggestions?: boolean;
   inviteCode: string;
@@ -82,6 +84,7 @@ function SectorFields({
         value={name}
         disabled={nameDisabled}
         onChange={onNameChange ? (event) => onNameChange(event.target.value) : undefined}
+        onBlur={onNameBlur}
         className="mt-2"
       />
 
@@ -422,6 +425,7 @@ export function ManagerAdminSectorsPage() {
                   idPrefix="create"
                   name={field.value}
                   onNameChange={field.onChange}
+                  onNameBlur={field.onBlur}
                   showSuggestions
                   inviteCode={inviteCode}
                   onInviteCodeChange={setInviteCode}
