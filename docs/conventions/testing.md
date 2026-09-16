@@ -1,8 +1,7 @@
 # Testing — Vitest conventions across the monorepo
 
-Three Vitest configs (`apps/api`, `apps/web`, `packages/domain`), 275 test files (re-counted
-fresh: 76 under `apps/api/src` + 1 under `apps/api/prisma` + 191 under `apps/web/src` + 7 under
-`packages/domain/src`), no other test runner. `globals` is off everywhere: import `describe`/`it`/`expect`/`vi`/hooks
+Three Vitest configs (`apps/api`, `apps/web`, `packages/domain`), 276 test files, no other
+test runner. `globals` is off everywhere: import `describe`/`it`/`expect`/`vi`/hooks
 explicitly from `"vitest"` — never rely on auto-globals. There is no Playwright, Cypress, or
 `@vitest/coverage-*` dependency anywhere in the repo; nothing measures coverage and nothing
 runs a browser.
@@ -17,38 +16,19 @@ is a one-line passthrough** — cover them through the controller's supertest in
 convention got backwards, so it is worth stating flatly: a use-case gets a unit test against
 fakes even when its whole body is `return this.port.x(...)`.
 
-**Where each half of this rule is actually documented — re-checked against the current files,
-not an earlier draft's line numbers.**
+The documented source of the exemption, re-read fresh at the cited lines:
 
-The *use-case* half is stated in `general-documentations/architecture-reference.md`, and those
-two statements are current:
+- `general-documentations/architecture-reference.md:263` — the layer table's own row: `` `use-
+  cases/` | Orchestration classes, constructor-injected with ports, unit-tested against fakes.
+  ``
+- `general-documentations/architecture-reference.md:511-513` — the "Adding a new frontend
+  flow" recipe, step 2: `` `Http*Adapter` in `infrastructure/http/`, use-case in `use-cases/`,
+  both unit-tested (adapter usually isn't — thin passthroughs follow the same untested-by-
+  convention rule as backend Prisma repositories). ``
 
-- `:108` — the three-layer table's own row: `` | **Use-case** — the actual logic, tested
-  against a fake port | `record-signal-checkin.use-case.ts` | `record-signal-checkin.usecase.ts`
-  | ``
-- `:403` — the `apps/web/src/` folder table: `` | `use-cases/` | 47 orchestration classes,
-  constructor-injected with ports, unit-tested against fakes. | ``
-
-The *exemption* half is no longer stated in `architecture-reference.md` at all. An earlier draft
-of this playbook cited `:263` and `:511-513` for it; that resync moved `:263` inside a mermaid
-ER diagram and `:511-513` into the "no per-person row, ever" privacy prose, and the sentence
-those lines used to hold was deleted rather than moved — `architecture-reference.md:728` now
-routes "Tests" to this file instead. So **this playbook is the exemption's source of record**,
-and the ground under it is the code, re-counted fresh:
-
-```bash
-$ find apps/api/src -name "prisma-*.repository.ts" | wc -l
-11
-$ find apps/api/src -name "prisma-*.repository.test.ts"
-apps/api/src/modules/sector/infrastructure/persistence/prisma-sector.repository.test.ts
-$ ls apps/web/src/infrastructure/http/http-*.adapter.ts | grep -v test | wc -l
-14
-$ ls apps/web/src/infrastructure/http/http-*.adapter.test.ts | wc -l
-8
-```
-
-10 of 11 Prisma repositories and 6 of 14 web HTTP adapters have no unit test, and that is the
-settled convention rather than a gap — don't read it as licence to skip a use-case test.
+Both lines name the adapter/repository as the untested-by-convention side and the use-case as
+unit-tested. Read literally, "adapter usually isn't" is descriptive of current coverage, not a
+second exemption class for use-cases.
 
 **The gap this produces is real and is tracked separately, not folded into the exemption.**
 29 of 47 `apps/web/src/use-cases/*.ts` files have a matching `.test.ts` (re-counted fresh: `ls
@@ -63,13 +43,10 @@ neighbor concern in spirit but not its subject; the untested-use-case gap has no
 `docs/superpowers/specs/2026-09-15-ai-conventions-documentation-design.md` §6's "Use-cases get
 a unit test against fakes however thin" line.
 
-The same exemption, and the same non-exemption, apply on the backend. The one tested
-repository, `prisma-sector.repository.ts`, has branching invite-code/conflict logic and is the
-only API test allowed to touch a real database (see §4). The backend use-case side is close to
-complete but not total — re-counted fresh: 35 of 38 `apps/api/src/**/*.use-case.ts` files have a
-sibling `.test.ts`; the three without are `admin/.../list-institutions.use-case.ts`,
-`notification/.../list-notifications.use-case.ts` and
-`notification/.../mark-notification-read.use-case.ts`. Those three are the gap, not the rule.
+The same exemption, and the same non-exemption, apply on the backend: 10 of 11
+`prisma-*.repository.ts` files have no test (the exception, `prisma-sector.repository.ts`, has
+branching invite-code/conflict logic and is the only API test allowed to touch a real
+database — see §4), and every `*.use-case.test.ts` under `apps/api/src` exists.
 
 **Mirror files:** `apps/api/src/modules/institution/infrastructure/institution.controller.ts`
 + its `.controller.test.ts` for the "cover the repository through the controller" side;
@@ -87,17 +64,15 @@ test")`, so a port gaining a new method fails loudly in the fake instead of sile
 `apps/web/src` test files, 110 of them `implements` the port interface directly, 211
 `throw new Error("not used in this test")` occurrences across 35 files.
 
-**6 known exceptions cast an object literal to the port type instead of implementing it** — 5
-in `apps/api`, 1 in `apps/web` (re-verified: `delete-manager.use-case.test.ts`,
+**5 known exceptions cast an object literal to the port type instead of implementing it** —
+all 5 in `apps/api`, none in `apps/web` (re-verified: `delete-manager.use-case.test.ts`,
 `delete-peer-partner.use-case.test.ts`, `delete-sector.use-case.test.ts` all use `as unknown as
 <PortName>`; `sweep-notification-retention.use-case.test.ts` uses `as never`;
 `get-sector-by-invite-code.use-case.test.ts` uses `{ findByInviteCode:
-vi.fn().mockResolvedValue(row) } as unknown as SectorRepository`; on the web side,
-`apps/web/src/use-cases/list-admin-institution-sectors.usecase.test.ts:7` does the identical
-thing — `{ listSectors: vi.fn().mockResolvedValue([]) } as unknown as AdminInstitutionPort`).
-**Don't treat these as bugs** — each only touches 1-3 methods of a wide port, and the cast is a
-legitimate shortcut for that. **Do prefer the class form for anything new**: the cast is what
-lets a new port method go unnoticed by the test that should have caught it.
+vi.fn().mockResolvedValue(row) } as unknown as SectorRepository`). **Don't treat these as
+bugs** — each only touches 2-3 methods of a wide port, and the cast is a legitimate shortcut
+for that. **Do prefer the class form for anything new**: the cast is what lets a new port
+method go unnoticed by the test that should have caught it.
 
 **`vi.fn()` as a spy for call assertions on a non-port collaborator is separately fine, and
 more common than the cast shortcut above.** Re-verified fresh: `grep -rn "vi\.fn()"
@@ -108,19 +83,12 @@ test.ts:275` (`forceDisconnect = vi.fn();`, a gateway method assertion, not a po
 hook under test, asserted via `toHaveBeenCalled`). `apps/api/src/modules/peer-chat/
 infrastructure/peer-chat.gateway.test.ts:45-46` (`emit: vi.fn(), disconnect: vi.fn()`) is the
 same pattern on a hand-rolled fake socket object, not a port. `docs/conventions/backend-
-modules.md` counts this shape at 7 files **within `apps/api`** — that file is scoped entirely
-to `apps/api/src/modules/`, so treat "7" as an `apps/api` figure, not a repo-wide one. The same
-shape is at least as common on the web side: `grep -rl "vi\.fn()" apps/api/src apps/web/src
---include=*.test.ts --include=*.test.tsx | wc -l` returns 48 files repo-wide that call
-`vi.fn()` at all (most of them `apps/web` component/hook tests passing it as an `onClick`/
-`onChange`/`onClose` prop spy, e.g. `Modal.test.tsx`, `Button.test.tsx`), a superset that also
-includes the 6 cast-to-port files above and the `vi.mock()` factory bodies below — re-grep and
-classify before citing an exact repo-wide "spy only" count.
+modules.md`'s own "Test doubles" section counts this shape at 7 files repo-wide — re-grep
+before citing that number elsewhere, since it moves as files are added.
 
 **`vi.mock` is reserved for third-party SDK boundaries.** Re-verified fresh —
-`grep -rn "vi\.mock(" apps/api/src apps/web/src --include=*.test.ts --include=*.test.tsx`
-returns exactly 12 call sites (note the glob: `--include=*.test.ts` alone misses `.test.tsx`
-files and returns only 7): `groq-sdk` (×2, `chat/infrastructure/ai-providers/groq.adapter.test.ts` and
+`grep -rn "vi\.mock(" apps/api/src apps/web/src --include=*.test.ts` returns exactly 12 call
+sites: `groq-sdk` (×2, `chat/infrastructure/ai-providers/groq.adapter.test.ts` and
 `manager/infrastructure/ai-providers/groq-insight.adapter.test.ts`) and `resend`
 (`shared/email/resend-email.adapter.test.ts`) in `apps/api`; `jspdf` (×2), `qr-scanner` (×2),
 `qrcode`, `socket.io-client` (×2) in `apps/web`, plus two application-module mocks
@@ -132,24 +100,6 @@ container"` instead (see `docs/conventions/frontend-architecture.md` for the con
 this spies on). That's a distinct mechanism from the port-double pattern above: it stubs a
 use-case's `execute` method for a test one layer up (a page or hook), not a port for a use-
 case's own test.
-
-**A mock that has to outlive a single test — one built inside a `vi.mock(...)` factory, or a
-`vi.hoisted(...)` mock the factory closes over — must be `vi.fn(fn)`, or else be re-armed in a
-`beforeEach`. Never leave it as a bare `vi.fn().mockImplementation(fn)`.** `restoreMocks: true`
-(§5) calls `mockRestore` on every mock **before every test, the first one included** — not
-after — and `mockRestore` restores a mock to the implementation it was *created* with.
-`vi.fn(fn)` was created with `fn`, so it needs nothing further. `vi.fn().mockImplementation(fn)`
-was created with no implementation at all, so the very first restore leaves it returning
-`undefined` for good and the SDK constructor standing behind it blows up. Measured, not
-inferred: a module-scope `vi.fn().mockImplementation(() => "armed")` already reads back
-`undefined` in the *first* test of its file.
-
-Because that restore runs *before* user hooks, a `beforeEach` that re-arms the mock is the other
-working shape — `AdminInstitutionsPage.test.tsx:91-93` and `LinkInstitutionPage.test.tsx:66-67`
-both do it. Those two read as `mockClear` hygiene and predate `restoreMocks`, but
-`hasCameraMock`'s re-arm is now load-bearing: `presentation/lib/has-camera.ts:3` calls `.catch()`
-on the result, which throws on `undefined`. A mock built inside an `it` needs neither treatment
-— it is rebuilt every test (`useBulkDelete.test.ts`, `useBulkStatusUpdate.test.ts`).
 
 **Mirror files:** `apps/api/src/modules/manager/application/use-cases/create-manager.use-
 case.test.ts` for the port-double default; `apps/api/src/modules/sector/application/use-cases/
@@ -228,7 +178,7 @@ that surface is smaller than "the whole app" — see the next paragraph.
 - **`apps/api` and `packages/domain` test files are excluded from `tsc` entirely** —
   `tsconfig.json`'s `exclude` is `["src/**/*.test.ts"]` in both packages, so `build`'s
   typecheck never opens a test file in either package. `apps/web` has no such exclusion — all
-  191 of its test files are type-checked as part of `build`. This is `priorities.md` #20
+  192 of its test files are type-checked as part of `build`. This is `priorities.md` #20
   ("Large parts of the repo are never typechecked") — re-confirmed accurate against the current
   file at the time of writing: the entry still names both `tsconfig.json` exclusions plus the
   untyped `apps/web/vitest.environment.ts`/`vitest.config.ts` pair.
@@ -243,13 +193,11 @@ directly rather than trusting a summary; they're short.
 
 ## 5. Traps
 
-- **`restoreMocks: true` is on in all three configs** — a `vi.spyOn` installed inside an `it`
-  is torn down after that test, so it cannot leak into later tests in the same file. Two guard
-  tests hold the line (`apps/api/src/shared/testing/mock-isolation.test.ts`,
-  `apps/web/src/testing/mock-isolation.test.ts`): each spies inside one `it` and asserts the
-  original is back in the next. Delete the config line and they fail by name. The consequence
-  for `vi.mock` factories is the `vi.fn(fn)` rule in §2 — that is the one thing this setting
-  is not backward-compatible with. See `priorities.md` #3.
+- **The `restoreMocks` gap.** None of the three vitest configs sets `restoreMocks` (re-
+  verified fresh: `grep -n restoreMocks apps/api/vitest.config.ts apps/web/vitest.config.ts
+  packages/domain/vitest.config.ts` → no matches), so a `vi.spyOn` installed inside a single
+  `it` rather than a `beforeEach` can leak into later tests in the same file and produce a
+  false green. See `priorities.md` #3 for the fix and the current count (24 of 54 files).
 - **`apps/api` relative imports take `.ts`; `@/`-aliased imports take `.js`** — inverted from
   what looks natural, because `rewriteRelativeImportExtensions` rewrites the former on emit
   while `tsc-alias` expects the latter already resolved. Getting it backwards breaks `pnpm
@@ -291,15 +239,11 @@ apps. Useful individual checks:
 # globals really are off, and test placement really is enforced
 grep -n "globals" apps/api/vitest.config.ts apps/web/vitest.config.ts packages/domain/vitest.config.ts
 
-# restoreMocks is on (expect one hit in each of the three)
+# restoreMocks gap (should currently be empty in all three)
 grep -n "restoreMocks" apps/api/vitest.config.ts apps/web/vitest.config.ts packages/domain/vitest.config.ts
 
-# no module-scope factory mock has regressed to the non-restorable form
-grep -rn "vi.fn().mockImplementation(() => ({" apps/api/src apps/web/src
-
 # vi.mock call sites — should stay confined to third-party SDKs (plus the 2 named exceptions)
-# both --include globs are required: *.test.ts alone misses .test.tsx and undercounts (7 vs 12)
-grep -rn "vi\.mock(" apps/api/src apps/web/src --include=*.test.ts --include=*.test.tsx
+grep -rn "vi\.mock(" apps/api/src apps/web/src --include=*.test.ts
 
 # web use-case test coverage — re-run before citing the 29/47 figure elsewhere
 ls apps/web/src/use-cases/*.ts | grep -v test | wc -l
