@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "react-router";
 import { Button } from "@/presentation/ui/Button";
 import { Card } from "@/presentation/ui/Card";
@@ -26,6 +28,7 @@ import { useHotkey } from "@/presentation/hooks/useHotkey";
 import type { AdminSector, ManagerSummary, UpdateSectorParams } from "@/ports/manager-admin.port";
 import { SectorInviteCodeConflictError } from "@/ports/manager-admin.port";
 import { SectorQrCodeModal } from "@/presentation/components/SectorQrCodeModal";
+import { createSectorFormSchema, type CreateSectorFormValues } from "./sector-form-schema";
 import { Pencil, QrCode } from "lucide-react";
 
 const SUGGESTED_SECTOR_NAMES = ["UTI", "Pronto-Socorro", "Clínica Médica", "Centro Cirúrgico", "Pediatria", "Ambulatório", "Plantão Noturno"];
@@ -167,7 +170,11 @@ export function ManagerAdminSectorsPage() {
   const updateSector = useUpdateSector();
   const deleteSector = useDeleteSector();
 
-  const [name, setName] = useState("");
+  const createForm = useForm<CreateSectorFormValues>({
+    resolver: zodResolver(createSectorFormSchema),
+    defaultValues: { name: "" },
+    mode: "onBlur",
+  });
   const [inviteCode, setInviteCode] = useState("");
   const [managerId, setManagerId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -204,7 +211,7 @@ export function ManagerAdminSectorsPage() {
   const isAnyModalOpen = formMode !== null || bulkDelete.deleteTarget !== null || qrSector !== null;
 
   const openCreate = () => {
-    setName("");
+    createForm.reset({ name: "" });
     setInviteCode("");
     setManagerId(null);
     createSector.reset();
@@ -224,9 +231,9 @@ export function ManagerAdminSectorsPage() {
     setEditingSector(null);
   };
 
-  const handleCreateSubmit = () => {
+  const handleCreateSubmit = createForm.handleSubmit((values) => {
     createSector.mutate(
-      { name, inviteCode: inviteCode.trim() || undefined },
+      { name: values.name, inviteCode: inviteCode.trim() || undefined },
       {
         onSuccess: (result) => {
           if (managerId === null) {
@@ -248,7 +255,7 @@ export function ManagerAdminSectorsPage() {
         },
       },
     );
-  };
+  });
 
   const handleSaveEdit = () => {
     if (!editingSector) return;
@@ -272,8 +279,6 @@ export function ManagerAdminSectorsPage() {
   useHotkey("x", () => bulkDelete.openDeleteConfirm(selection.selectedIds), "Excluir", {
     enabled: !isAnyModalOpen && selection.remove.enabled,
   });
-
-  const isSubmitDisabled = name.trim().length === 0;
 
   const renderRowActions = (sector: AdminSector) => (
     <>
@@ -389,7 +394,7 @@ export function ManagerAdminSectorsPage() {
                 variant="primary"
                 full={false}
                 isLoading={createSector.isPending || updateSector.isPending}
-                disabled={isSubmitDisabled}
+                disabled={!createSectorFormSchema.safeParse({ name: createForm.watch("name") }).success}
                 onClick={handleCreateSubmit}
               >
                 Salvar
@@ -409,16 +414,22 @@ export function ManagerAdminSectorsPage() {
       >
         {formMode === "create" ? (
           <>
-            <SectorFields
-              idPrefix="create"
-              name={name}
-              onNameChange={setName}
-              showSuggestions
-              inviteCode={inviteCode}
-              onInviteCodeChange={setInviteCode}
-              managers={managerList}
-              managerId={managerId}
-              onManagerChange={setManagerId}
+            <Controller
+              control={createForm.control}
+              name="name"
+              render={({ field }) => (
+                <SectorFields
+                  idPrefix="create"
+                  name={field.value}
+                  onNameChange={field.onChange}
+                  showSuggestions
+                  inviteCode={inviteCode}
+                  onInviteCodeChange={setInviteCode}
+                  managers={managerList}
+                  managerId={managerId}
+                  onManagerChange={setManagerId}
+                />
+              )}
             />
             {createSector.isError && (
               <p role="alert" className="mt-4 text-label text-danger">
