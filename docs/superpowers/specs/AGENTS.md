@@ -1,5 +1,11 @@
 # Zelo — "Sereno" UI Build Plan (Direction 1A)
 
+> **Historical.** This is the July 2026 build plan for the Sereno UI direction — every screen it
+> describes has since shipped. Kept for history, not as current instruction. For how to build a
+> new feature in this repo today, start at `CLAUDE.md` and `docs/conventions/README.md`.
+
+---
+
 > **Purpose.** This is the top-to-bottom build plan for implementing the **Sereno** visual
 > direction across all 13 screens of the Zelo PWA. Follow the phases in order. Each phase
 > links to a topic file with exact tokens, prop signatures, layout structure, and acceptance
