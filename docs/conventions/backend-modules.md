@@ -11,8 +11,9 @@ enforced by `apps/api/.dependency-cruiser.cjs`'s `application-no-infrastructure-
 `application-no-prisma-imports` rules (see "How to verify" below for the gap in the second
 one). Not every module needs every subfolder — `ports/`, `use-cases/`, `persistence/`,
 `ai-providers/`, a controller, or a repository are all present only when the feature needs
-them (`sector` and `peer-chat` have no controller; `sector` and `peer-chat` also have no
-`application/services/`).
+them (`sector` and `peer-chat` have no controller; `sector` also has no
+`application/services/`, though `peer-chat` does —
+`apps/api/src/modules/peer-chat/application/services/` exists).
 
 Three mechanical rules hold across the whole tree, confirmed independently: every relative
 import specifier ends in `.ts` and every `@/`-aliased specifier ends in `.js` — confirmed by
@@ -79,7 +80,7 @@ Build a new capability in this order, one file per step:
    (`chat.controller.ts:29-38`) wraps its `for await` loop in try/catch, and on a caught error
    writes an NDJSON `{"error": code}` frame instead of rethrowing, then always `res.end()`s in
    a `finally`; and a handler with no domain error at all just throws the Nest exception
-   inline with no try/catch — `InstitutionController.byCode` (`institution.controller.ts:35`)
+   inline with no try/catch — `InstitutionController.byCode` (`institution.controller.ts:36`)
    throws a bare `NotFoundException()`.
    Mirror: `apps/api/src/modules/signal-checkin/infrastructure/signal-checkin.controller.ts`
    (validation) and `apps/api/src/modules/admin/infrastructure/admin.controller.ts`
@@ -143,8 +144,11 @@ Build a new capability in this order, one file per step:
   `notification/application/use-cases/sweep-*.use-case.ts` files.
 
 - **Guards split into two kinds by name and behavior.** An *authentication* guard is
-  `<role>-auth.guard.ts`: it injects that role's `TokenService`, throws
-  `UnauthorizedException`, and attaches `request.<role>` (a field declared first in
+  `<role>-auth.guard.ts`: it injects that role's `TokenService` (and, for manager, the
+  repositories it re-reads on every request — confirmed:
+  `manager-auth.guard.ts` also `@Inject`s `MANAGER_REPOSITORY` and `INSTITUTION_REPOSITORY`
+  alongside `ManagerTokenService`), throws `UnauthorizedException`, and attaches
+  `request.<role>` (a field declared first in
   `apps/api/src/types/express.d.ts`). An *authorization* guard is `<capability>.guard.ts` —
   no `-auth` suffix — takes no constructor dependencies, attaches nothing, throws
   `ForbiddenException`, and reads a field an authentication guard already populated, so it
