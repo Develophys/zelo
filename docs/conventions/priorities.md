@@ -126,6 +126,7 @@ producing it (see the design spec, `docs/superpowers/specs/2026-09-15-ai-convent
   payload — on the one surface where a live human in distress is on the other end. The fix is
   authorization, not validation: `accept`/`decline` already check `isCurrentCandidate`; only
   `request-peer` is open. The 25-case gateway test has no payload or authorization case at all.
+- **Also:** while touching this file, fix the naming inconsistency in the event vocabulary — `request-peer` is the gateway's only kebab-case event name; every other one (`accept_request`, `decline_request`, `incoming_request`, `leave_conversation`, `no_peer_available`, `peer_left`) is snake_case (see `docs/conventions/realtime-and-streaming.md` §1).
 - **Effort:** medium
 - **Kind:** security
 - **Files:** `apps/api/src/modules/peer-chat/infrastructure/peer-chat.gateway.ts`,
