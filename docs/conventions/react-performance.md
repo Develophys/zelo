@@ -76,8 +76,8 @@ because the app's own manual stabilization work exists specifically to prevent i
    byte-identical to what was already cached.
 3. On the four admin tables, that new `data` identity busts the
    `useMemo(() => query.data ?? [], [query.data])` chain documented in CONFIRMED rules
-   (`ManagerAdminManagersPage.tsx:39`, `ManagerAdminPeersPage.tsx:70`,
-   `ManagerAdminSectorsPage.tsx:181-182`, `AdminInstitutionsPage.tsx:125-128`) — the memo's
+   (`ManagerAdminManagersPage.tsx:39`, `ManagerAdminPeersPage.tsx:74`,
+   `ManagerAdminSectorsPage.tsx:191-192`, `AdminInstitutionsPage.tsx:136-139`) — the memo's
    whole job is to hand `useDataTableSelection` a stable array reference, and a dependency
    change defeats that by design.
 4. `useDataTableSelection` (`apps/web/src/presentation/ui/DataTable/useDataTableSelection.ts`)
@@ -145,7 +145,7 @@ narrows a rule that reads more broadly than it actually is:
 - **`useMemo(() => query.data ?? [], [query.data])` earns its keep only when the array feeds
   another hook's or memo's dependency array — not by default on every query result.** Where the
   array is only spread into JSX props, the `useMemo` buys nothing. The repo has one such inert
-  site: `ManagerAdminSectorsPage.tsx:181`'s `managerList` feeds no dependency array — it's
+  site: `ManagerAdminSectorsPage.tsx:191`'s `managerList` feeds no dependency array — it's
   read only as a plain `managers={managerList}` prop and inside one `.find()` — so wrapping it
   was habit, not a load-bearing pattern. Don't cite "the repo always memoizes query results" as
   a rule; check whether the result actually flows into a downstream dependency array first.
