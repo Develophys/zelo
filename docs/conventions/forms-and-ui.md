@@ -215,6 +215,20 @@ than repeating it. Build every new admin list screen from `presentation/ui/DataT
   `DataTableEmpty`/`DataTableError` around a hand-written `<table>`. That's a sanctioned pattern
   (`ManagerInsightHistoryPage.tsx`'s shell-only composition), not a divergence from the
   convention.
+- **`DataTableMobileCard.tsx`** is the phone-width stand-in for one table row — the thing
+  `mobileList` actually renders, one per row, inside a `<ul>` at the call site (mirror:
+  `ManagerAdminManagersPage.tsx:180-195`). Props (interface at `:11-24`): `label` (the accessible
+  name for the card's own toggle — caller-supplied because pages word it differently, e.g. the
+  institutions table lowercases its status), `fields: DataTableMobileCardField[]` (`{ label,
+  value, breakAll? }`, rendered in order with the first one bolder as the card's headline, `:4-9`
+  and `:48-59`), `status: { tone: PillTone; text: string }` (`:19`, rendered as a `Pill` at
+  `:61-63`), `selected`/`onToggle` (`:20-21`, driving `aria-pressed` at `:44` and the card's
+  selected-border styling at `:37-39`), and `actions: ReactNode` (`:23`). **`actions` renders in
+  its own `<div>` after the toggle `<button>` closes, never inside it** — the button wraps only
+  `fields` and `status` (`:41-64`), and `actions` sits in a sibling element at `:65`. The comment
+  at `:22` states why: nesting a row action inside the toggle would make every action tap also
+  select the row, since a click on a descendant of a `<button>` still fires the button's own
+  `onClick`.
 - **`DataTableToolbar.tsx`** binds `search`/`onSearchChange` and an optional `selection`. The
   search input (`:45-66`) has no `id`/`htmlFor` pair — it sits inside a wrapping `<label>` whose
   accessible name comes from an `sr-only` `<span>Buscar</span>` (`:55`); the select-all checkbox
@@ -327,8 +341,9 @@ literal under `presentation/` and fails on the combination.
 
 ## Traps
 
-The domain's CORRECTED section (verifier pass over the original audit) has 11 entries; the ones
-not already folded into the sections above as the primary statement of the rule:
+The domain's CORRECTED section (verifier pass over the original audit) has 12 entries
+(`grep -c "^- ORIGINAL:" frontend-ui-forms.txt` → 12) — the ones not already folded into the
+sections above as the primary statement of the rule:
 
 - **The error-message triple (`id="{fieldId}-error"`, `role="alert"`,
   `mt-2 text-label text-danger`, with `aria-invalid`/`aria-describedby` gated on the identical
@@ -339,7 +354,7 @@ not already folded into the sections above as the primary statement of the rule:
   (`mt-4`, `mt-1`, `text-caption`) — don't treat the field-level triple's exact classes as
   required everywhere `role="alert"` appears.
 - **A variant primitive's `className` position doesn't reliably win.** Already stated under
-  Shared UI primitives above — repeated here because it's the easiest of the eleven corrections
+  Shared UI primitives above — repeated here because it's the easiest of the twelve corrections
   to miss: the original rule ("className last lets a call site override a variant") is simply
   wrong under Tailwind v4's utility ordering. Use `variant="unstyled"` + an explicit `size`.
 - **DataTable's 8 required props aren't a convention to remember — TypeScript enforces them.**
@@ -353,5 +368,12 @@ not already folded into the sections above as the primary statement of the rule:
   element types in one kitchen-sink render, and `py-control-y` is a single call site, not an
   established pattern. Don't cite either as an enforced gate in a PR description or a future
   audit — re-check the actual test/usage first.
+- **Out of scope for this file:** the twelfth CORRECTED entry — `a11y.test.tsx`'s `SCREENS` array
+  holds 23 entries, not the 24 the original audit claimed — is a test-coverage-infrastructure
+  correction, not a forms/UI component convention, so it isn't folded in above. It belongs to
+  `docs/conventions/priorities.md` #12 ("a11y test coverage gap: 11 screens missing, no open-
+  `Modal` axe scan") and to `apps/web/src/presentation/pages/a11y.test.tsx` itself — re-counted
+  fresh by reading the `SCREENS` array (`:36-73`): 23 entries. Noted here only so the count above
+  isn't silently short by one.
 
 No REFUTED rule from the source data appears anywhere in this document.
