@@ -132,6 +132,12 @@ Four rules hold this together, and each one is load-bearing:
 - **Keep `path`, `index` and `children` statically declared.** React Router 8 forbids lazifying
   them (`UnsupportedLazyRouteObjectKey`), and `route-title.test.ts` / `app-header-meta.test.ts`
   flatten the tree on exactly those keys to assert both pathname lookup tables stay in step.
+- **Routes live in `app/routes/`, one file per audience, each exporting a factory.**
+  `doctor.routes.tsx`, `manager.routes.ts`, `peer-partner.routes.ts`, `super-admin.routes.ts` —
+  the same axis the guards, shells and lazy chunks already follow. `router.tsx` composes them
+  and keeps the `*` catch-all itself, so the "must be last" constraint stays visible in the
+  composition root instead of hidden inside a group. A new route goes in its audience's file;
+  a new audience gets a new file and one line in `createRouteChildren()`.
 - **Build every router from `createRouteChildren()`, and inspect the `routeChildren` const.**
   React Router caches a resolved `lazy` property against the route object's identity, so a
   second router built from the same objects finds the cache entry but not the value, and the

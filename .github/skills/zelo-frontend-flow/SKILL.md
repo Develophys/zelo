@@ -36,7 +36,10 @@ one silent cross-cutting error convention that nothing points you to unless you 
    `new Adapter()` per use-case.
 5. Thin hook in `presentation/hooks/` wrapping one use-case in `useQuery`/`useMutation`.
 6. Page under `presentation/pages/`, built from `presentation/ui/` primitives.
-7. Route entry in `router.tsx` + the three lookup tables above.
+7. Route entry in `app/routes/<audience>.routes.ts` (doctor / manager / peer-partner /
+   super-admin — `router.tsx` only composes them) + the three lookup tables above. A staff route
+   loads through `lazy: { Component: lazyPage(...) }`; a doctor route stays statically imported.
+   See `docs/conventions/react-performance.md` § Code splitting for why.
 
 ## Mirror-file pointers (each closes a measured violation)
 
