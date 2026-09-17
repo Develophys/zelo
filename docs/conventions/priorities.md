@@ -112,8 +112,10 @@ the flag on broke 6 tests across 3 files, and none of them was a test leaning on
 `restoreMocks` calls `mockRestore` on *every* mock, including the module-scope `vi.fn()` inside
 a `vi.mock(...)` factory — the third-party-SDK pattern `testing.md` §2 sanctions. `mockRestore`
 restores a mock to its *original* implementation, and `vi.fn().mockImplementation(fn)` has no
-original: after the first test its factory returns `undefined` and every later construction of
-the SDK blows up. `vi.fn(fn)` does have one — `fn` itself — so it survives. The fix was to
+original. That restore runs **before every test, the first one included** — measured, not
+inferred — so such a factory starts returning `undefined` and every construction of the SDK
+behind it blows up. `vi.fn(fn)` does have an original — `fn` itself — so it survives; a
+`beforeEach` that re-arms the mock works too, since user hooks run after the restore. The fix was to
 convert the five module-scope factories to `vi.fn(fn)`; the five `vi.fn().mockImplementation()`
 calls inside `it` blocks (`useBulkDelete`, `useBulkStatusUpdate`) are built fresh per test and
 were left alone.

@@ -133,15 +133,23 @@ this spies on). That's a distinct mechanism from the port-double pattern above: 
 use-case's `execute` method for a test one layer up (a page or hook), not a port for a use-
 case's own test.
 
-**A mock built inside a `vi.mock(...)` factory must be `vi.fn(fn)`, never
-`vi.fn().mockImplementation(fn)`.** `restoreMocks: true` (§5) calls `mockRestore` on every mock
-after every test, and `mockRestore` restores a mock to the implementation it was *created*
-with. `vi.fn(fn)` was created with `fn`, so it survives; `vi.fn().mockImplementation(fn)` was
-created with nothing, so from the second test onward the factory returns `undefined` and the
-SDK constructor blows up. Factory bodies run once at module load and are never re-run, so there
-is no `beforeEach` that can repair this. The rule is specific to mocks that live at module
-scope: a `vi.fn().mockImplementation(...)` built inside an `it` is rebuilt every test and is
-fine as-is (`useBulkDelete.test.ts`, `useBulkStatusUpdate.test.ts`).
+**A mock that has to outlive a single test — one built inside a `vi.mock(...)` factory, or a
+`vi.hoisted(...)` mock the factory closes over — must be `vi.fn(fn)`, or else be re-armed in a
+`beforeEach`. Never leave it as a bare `vi.fn().mockImplementation(fn)`.** `restoreMocks: true`
+(§5) calls `mockRestore` on every mock **before every test, the first one included** — not
+after — and `mockRestore` restores a mock to the implementation it was *created* with.
+`vi.fn(fn)` was created with `fn`, so it needs nothing further. `vi.fn().mockImplementation(fn)`
+was created with no implementation at all, so the very first restore leaves it returning
+`undefined` for good and the SDK constructor standing behind it blows up. Measured, not
+inferred: a module-scope `vi.fn().mockImplementation(() => "armed")` already reads back
+`undefined` in the *first* test of its file.
+
+Because that restore runs *before* user hooks, a `beforeEach` that re-arms the mock is the other
+working shape — `AdminInstitutionsPage.test.tsx:91-93` and `LinkInstitutionPage.test.tsx:66-67`
+both do it. Those two read as `mockClear` hygiene and predate `restoreMocks`, but
+`hasCameraMock`'s re-arm is now load-bearing: `presentation/lib/has-camera.ts:3` calls `.catch()`
+on the result, which throws on `undefined`. A mock built inside an `it` needs neither treatment
+— it is rebuilt every test (`useBulkDelete.test.ts`, `useBulkStatusUpdate.test.ts`).
 
 **Mirror files:** `apps/api/src/modules/manager/application/use-cases/create-manager.use-
 case.test.ts` for the port-double default; `apps/api/src/modules/sector/application/use-cases/
