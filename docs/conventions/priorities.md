@@ -63,7 +63,27 @@ The original entry, kept because the mechanism is what matters:
 - **Files:** `apps/api/.env.production.local`, `apps/api/.env`, `apps/api/prisma/seed.ts`,
   `apps/api/prisma/create-super-admin.ts`, `apps/api/prisma/README.md`
 
-## 2. Dead dependency-cruiser rule: `application-no-prisma-imports` never fires
+## 2. Dead dependency-cruiser rule: `application-no-prisma-imports` never fires — FIXED
+
+The rule now targets `^generated/prisma|node_modules/@prisma/client`. The generated path is
+what every repository actually imports and what dependency-cruiser resolves to (verified by
+cruising with `--output-type json`: 32 distinct modules under `generated/prisma`); the
+`node_modules` path is kept so installing and importing the package cannot bypass the boundary
+either.
+
+**Proven to fire, not just changed.** A rule that never fires cannot be fixed by inspection —
+the fix was verified by planting an import of `generated/prisma/client.ts` inside
+`notification/application/ports/`, confirming `depcruise` reports
+`error application-no-prisma-imports` and **exits 1** (so CI fails), then removing the probe and
+confirming it returns to green. No `application/` file violates the rule today, so the corrected
+rule is a guard for future work rather than a fix for a current breach.
+
+**Recurrence guarded.** The rule's target is coupled to `schema.prisma`'s
+`generator client { output }`. Moving that output would silently make the rule stop matching —
+the same failure, again. `src/shared/config/prisma-boundary-rule.test.ts` asserts the two agree,
+and was itself verified to fail when the generator output is moved.
+
+The original entry:
 
 - **Why:** The rule forbids importing `node_modules/@prisma/client`, which zero files do — the
   real client is reached via the relative `generated/prisma/client.ts` path, which no rule

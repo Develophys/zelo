@@ -105,9 +105,9 @@ section means re-running the `grep` commands above (or reading the controller) b
 ## Traps
 
 - The dependency-cruiser rule meant to keep `application/` off the Prisma client
-  (`application-no-prisma-imports`) never actually fires — it blocks `node_modules/@prisma/client`,
-  which nothing imports, while the real generated client lives at `apps/api/generated/prisma/` and
-  is unguarded. This doesn't change anything in this document directly, but it means
-  `pnpm lint:boundaries` passing green is not proof that a use case reached for Prisma cleanly by
-  itself — see `docs/conventions/priorities.md` #2 for the full description and fix; not
-  re-explained here.
+  (`application-no-prisma-imports`) now covers both `generated/prisma` — where this project's
+  client actually lives — and `node_modules/@prisma/client`. It previously blocked only the
+  latter, which nothing imports, so it never fired and a green `lint:boundaries` proved nothing
+  about this boundary. That is fixed and verified to fail on a planted violation; see
+  `docs/conventions/priorities.md` #2. Everything else in the "How to verify" note above still
+  holds: boundaries say nothing about validation coverage or the 404/400/403 split.
