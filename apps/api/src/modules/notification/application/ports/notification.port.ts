@@ -1,5 +1,8 @@
 // A TS union rather than the Prisma enum: files under application/ must not
-// import from generated/prisma (lint:boundaries enforces this). The Prisma
+// import from generated/prisma. `pnpm lint:boundaries` enforces it via
+// .dependency-cruiser.cjs's application-no-prisma-imports rule — which until
+// recently targeted only node_modules/@prisma/client and therefore never
+// fired against the generated path this project actually uses. The Prisma
 // enum in schema.prisma mirrors this list — they are kept in step by hand,
 // the same way ManagerRole already is.
 export type NotificationType =

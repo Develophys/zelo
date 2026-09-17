@@ -6,10 +6,10 @@ constants) and `infrastructure/` (controllers, guards, persistence, ai-providers
 `<name>.module.ts` at the module root. `application/` never imports from `infrastructure/`
 or from Prisma — it only knows about *ports*: an interface plus a `Symbol` DI token declared
 in the same file. `infrastructure/` implements those ports and is where Nest, Prisma, and
-HTTP concerns live. This is a textbook Dependency Inversion boundary, and it is nominally
-enforced by `apps/api/.dependency-cruiser.cjs`'s `application-no-infrastructure-imports` and
-`application-no-prisma-imports` rules (see "How to verify" below for the gap in the second
-one). Not every module needs every subfolder — `ports/`, `use-cases/`, `persistence/`,
+HTTP concerns live. This is a textbook Dependency Inversion boundary, enforced by
+`apps/api/.dependency-cruiser.cjs`'s `application-no-infrastructure-imports` and
+`application-no-prisma-imports` rules — both of which genuinely fire; see "How to verify"
+below for what a green run does and does not prove. Not every module needs every subfolder — `ports/`, `use-cases/`, `persistence/`,
 `ai-providers/`, a controller, or a repository are all present only when the feature needs
 them (`sector` and `peer-chat` have no controller; `sector` also has no
 `application/services/`, though `peer-chat` does —
@@ -192,20 +192,20 @@ pnpm --filter @zelo/api lint:boundaries
 
 This runs `depcruise src --config .dependency-cruiser.cjs` (confirmed at
 `apps/api/package.json:13`), which enforces two rules: `application/` may not import
-`infrastructure/`, and `application/` may not import `node_modules/@prisma/client`. A green
-run proves the first boundary holds — no file under `application/` reaches into
-`infrastructure/`.
+`infrastructure/`, and `application/` may not import the Prisma client. A green run proves both
+boundaries hold.
 
-It does **not** prove the second boundary holds, because the rule's `to: { path:
-"node_modules/@prisma/client" }` matches a package this codebase's `application/` code never
-imports in the first place (Prisma's client is generated to `apps/api/generated/prisma/`,
-outside `node_modules/@prisma/client`, since `apps/api/prisma/schema.prisma` sets `generator
-client { output = "../generated/prisma" }`). A file under `application/` that imported
-`../../../generated/prisma/client.ts` directly — the exact violation this rule exists to
-catch — would pass `lint:boundaries` cleanly today. See `docs/conventions/priorities.md` #2
-for the fix (`to: { path: "^generated/" }`) and the comment in
-`apps/api/src/modules/notification/application/ports/notification.port.ts:1-4` that currently
-(and incorrectly) tells the next reader this is already guarded.
+The second rule was inert until recently: its `to` matched only
+`node_modules/@prisma/client`, a package this codebase never imports, because
+`apps/api/prisma/schema.prisma` sets `generator client { output = "../generated/prisma" }` and
+every repository imports from there instead. A file under `application/` importing
+`../../../generated/prisma/client.ts` — the exact violation the rule exists to catch — passed
+cleanly. It now targets `^generated/prisma|node_modules/@prisma/client`, verified by planting
+such an import and confirming `depcruise` errors and exits 1.
+
+Because that target is coupled to the generator's `output`, moving the output would silently
+make the rule stop matching again. `src/shared/config/prisma-boundary-rule.test.ts` asserts the
+two stay in step.
 
 `lint:boundaries` also says nothing about import extensions, `@Inject()` coverage, naming
 conventions, or any of the other rules in this document — those have no automated check.
