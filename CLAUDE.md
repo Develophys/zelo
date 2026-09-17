@@ -1,33 +1,95 @@
 # Zelo — AI agent instructions
 
-Project-wide conventions for whoever (human or AI) is working in this repo. Add to this
-file as new conventions get established — don't let them live only in a chat transcript.
+Project-wide conventions for whoever (human or AI) works in this repo. This file is the
+index — laws that apply everywhere live below; everything else is in `docs/conventions/`
+(see `docs/conventions/README.md` for the map).
+
+## Reading map
+
+| If you're… | Read |
+|---|---|
+| Adding a new NestJS endpoint/module | `docs/conventions/backend-modules.md` |
+| Adding/editing a form | `docs/conventions/forms-and-ui.md` (+ `zelo-form` skill) |
+| Wiring a new frontend screen | `docs/conventions/frontend-architecture.md` |
+| Auth, tenant-scoping, anything that leaves the device | `docs/conventions/security-privacy.md` |
+| Crisis flow, k-anonymity, tone guard, notifications | `docs/conventions/product-invariants.md` |
+
+Full table (all ten playbooks): `docs/conventions/README.md`.
+
+## Boundaries that break the build
+
+- `application/` (ports + use-cases, `apps/api`) never imports `infrastructure/` or
+  `@prisma/client` — enforced by `apps/api/.dependency-cruiser.cjs`.
+- `use-cases/` (`apps/web`) never imports `react` or `infrastructure/` — enforced by
+  `apps/web/.dependency-cruiser.cjs`.
+- `packages/domain`'s `src/` never imports from `apps/*`, or from `react`/`@nestjs`/`@prisma`
+  — enforced by `packages/domain/.dependency-cruiser.cjs`, wired into both apps' CI via
+  `lint:boundaries --filter=@zelo/api...`/`--filter=@zelo/web...` (the trailing `...` pulls in
+  the `@zelo/domain` workspace dependency), so this one genuinely breaks the build.
+
+`application-no-prisma-imports` is currently inert: the real Prisma client is reached via a
+relative `generated/prisma/client.ts` path the rule doesn't cover, so a green
+`lint:boundaries` does not prove this one holds (`docs/conventions/priorities.md` #2).
+
+## Import extensions, by layer
+
+Relative import specifiers end `.ts`; `@/`-aliased specifiers end `.js` (tsc rewrites a
+relative `.ts` specifier to `.js` at emit; `tsc-alias` path-maps an alias but doesn't touch
+its extension). Which form to use is decided by **layer, not module**: an infrastructure
+adapter/repository reaches its own module's port through the self-alias
+(`@/modules/<self>/application/ports/x.port.js`); a use-case, service, or controller reaches
+its own module's files relatively (`../ports/x.port.ts`). `@/` is not reserved for crossing a
+module boundary — plenty of `@/modules/...` imports point back into the importer's own
+module, and plenty of cross-module imports are relative. Get the extension backwards and
+`tsc`/`vitest` stay green: `tsc-alias` path-maps an aliased specifier without touching its
+extension, so an alias written with `.ts` emits a `dist` import to a file that doesn't exist —
+nothing catches it before boot.
+
+## Product laws
+
+- `riskSignal` (derived from a PHQ-9 item-9 answer) never crosses the network; assessment
+  scoring happens on-device.
+- Human handoff / the CVV `188` line renders with no network dependency, on every crisis
+  screen and on Peers.
+- K-anonymity (`K_ANONYMITY_THRESHOLD = 5`) is a **per-sector visibility decision**, made once
+  against a single reference week — the newest week where at least one sector clears the
+  threshold, not simply the calendar-newest week (which would blank the dashboard every
+  Monday) — never a per-datapoint filter re-applied to every field that goes out. Re-checking
+  per datapoint doesn't add privacy and breaks trend charts.
+- PT-BR copy in `docs/superpowers/specs/screens/*.md` is normative — use the exact strings,
+  don't paraphrase.
+- Design tokens only in `apps/web` — `--color-*` tokens through Tailwind utilities, no raw
+  hex/rgb.
+
+## Security rules that are convention-only today
+
+Never `dangerouslySetInnerHTML`, `innerHTML`, `outerHTML`, `document.write`, `eval()`,
+`new Function`, or a `javascript:` href anywhere in `apps/web`. Reason (TD-001): manager,
+hospital-admin, SuperAdmin, and peer-partner session tokens all sit in `sessionStorage`
+behind `Authorization: Bearer` — one raw-HTML render is full session exfiltration. Nothing
+enforces this yet — no `react/no-danger` lint rule, no CI grep
+(`docs/conventions/priorities.md` #10).
+
+## What this repo deliberately does not do
+
+Zero `createContext` anywhere in `apps/web`/`packages`. No `class-validator`, no
+`ValidationPipe` on the API — controllers hand-parse bodies with zod instead. No framework DI
+on the frontend. No mocking library standing in for a **port double** — a hand-written
+`class FakeX implements X` is the convention. That's not a blanket ban on test-doubling
+tools: `vi.mock()` is legitimate for a third-party SDK adapter boundary, and `vi.fn()` is
+legitimate as a spy on a non-port collaborator.
 
 ## Forms (apps/web)
 
-Forms use **react-hook-form** + **zod**, not hand-rolled `useState` per field.
+Forms use **react-hook-form** + **zod**:
+`useForm({ resolver: zodResolver(schema), mode: "onBlur" })` — errors show once a field is
+left, not on every keystroke. Full detail — the shared-UI/DataTable API and the design-token
+system — is in `docs/conventions/forms-and-ui.md`. The newer gaps (204-response-shape, the
+Prisma import-path trap, `SettingsRow` reuse, the server-conflict-error banner pattern) are
+covered by the `zelo-form` skill (`.github/skills/zelo-form/SKILL.md`), not repeated in that
+playbook.
 
-- One Zod schema per form (or per meaningfully-shared field set), colocated with the
-  page/hook that owns it (e.g. `ManagerAdminManagersPage/manager-form-schema.ts`). Infer
-  the TS type from it with `z.infer<typeof schema>` — don't hand-write a parallel interface.
-- `useForm({ resolver: zodResolver(schema), mode: "onBlur" })`. `onBlur` matches this
-  app's existing UX: errors show once a field is left, not on every keystroke.
-- Wire native inputs (`TextField`, `SelectField`) with `{...form.register("field")}`
-  directly — they accept `ref` as a plain prop (React 19), no `forwardRef` needed. Show
-  the error via `form.formState.errors.field?.message`, and derive `aria-invalid`/
-  `aria-describedby` from that same check.
-- Non-native or unvalidated inputs (a custom picker, a radio group with no validation
-  rule, a wizard's "which step" state) don't belong in the form — keep them as plain
-  `useState` beside it. Only wire something through `Controller` if it genuinely has a
-  validation rule to enforce.
-- Branches that share a tree position (steps of a wizard, create-vs-edit) need a
-  distinct `key` per branch once any of them mixes `register()`-uncontrolled inputs
-  with `value=`-controlled ones — otherwise React can reuse a DOM input across the
-  switch and trip its "controlled to uncontrolled" warning.
-- Reference implementation: `apps/web/src/presentation/pages/ManagerAdminManagersPage/`
-  (`manager-form-schema.ts` + `useManagerCreateFlow.ts`).
+## Upkeep
 
-Every admin/auth form in `apps/web` follows this convention as of 2026-09-15. A few
-plain-`useState` inputs remain by design and are not multi-field validated forms: the
-link-institution code step (`LinkInstitutionCodeStep.tsx`), the chat composers, and a
-wizard's per-step state — none needs this convention.
+A new convention established in a PR lands in its playbook in that PR — see
+`docs/conventions/README.md`.
