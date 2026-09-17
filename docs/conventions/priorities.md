@@ -97,7 +97,28 @@ The original entry:
 - **Files:** `apps/api/.dependency-cruiser.cjs`,
   `apps/api/src/modules/notification/application/ports/notification.port.ts:1-3`
 
-## 3. `vi.spyOn` never restored in 24 of 54 test files
+## 3. `vi.spyOn` never restored in 24 of 54 test files — FIXED
+
+`restoreMocks: true` is set in all three vitest configs. The 427 spies installed inside `it`
+blocks across those 24 files no longer survive into the next test in their file.
+
+**Proven to fire, not just changed.** `apps/api/src/shared/testing/mock-isolation.test.ts` and
+`apps/web/src/testing/mock-isolation.test.ts` each install a `vi.spyOn` inside one `it` and
+assert in the next `it` that the original method is back. Both were verified to fail (exit 1)
+with `restoreMocks` removed from their config, and the failure message names the missing line.
+
+**The entry's "backward-compatible" claim was wrong, and the reason is worth keeping.** Turning
+the flag on broke 6 tests across 3 files, and none of them was a test leaning on a leaked stub.
+`restoreMocks` calls `mockRestore` on *every* mock, including the module-scope `vi.fn()` inside
+a `vi.mock(...)` factory — the third-party-SDK pattern `testing.md` §2 sanctions. `mockRestore`
+restores a mock to its *original* implementation, and `vi.fn().mockImplementation(fn)` has no
+original: after the first test its factory returns `undefined` and every later construction of
+the SDK blows up. `vi.fn(fn)` does have one — `fn` itself — so it survives. The fix was to
+convert the five module-scope factories to `vi.fn(fn)`; the five `vi.fn().mockImplementation()`
+calls inside `it` blocks (`useBulkDelete`, `useBulkStatusUpdate`) are built fresh per test and
+were left alone.
+
+The original entry:
 
 - **Why:** Set `restoreMocks: true` in all three vitest configs. 24 of 54 files calling
   `vi.spyOn` never restore it, several installing the spy inside a single `it` rather than a

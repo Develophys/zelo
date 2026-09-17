@@ -10,7 +10,7 @@ const { textMock, saveMock, setFontSizeMock, splitTextToSizeMock } = vi.hoisted(
 }));
 
 vi.mock("jspdf", () => ({
-  jsPDF: vi.fn().mockImplementation(() => ({
+  jsPDF: vi.fn(() => ({
     text: textMock,
     setFontSize: setFontSizeMock,
     splitTextToSize: splitTextToSizeMock,

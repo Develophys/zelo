@@ -8,6 +8,7 @@ export default defineConfig({
     },
   },
   test: {
+    restoreMocks: true,
     environment: "node",
     include: ["src/**/*.test.ts", "prisma/**/*.test.ts"],
     globals: false,
