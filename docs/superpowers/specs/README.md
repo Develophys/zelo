@@ -1,5 +1,9 @@
 # Zelo — Sereno UI Spec
 
+> **Historical.** This was the July 2026 start-here guide for the Sereno UI spec. The `docs/superpowers/specs/` directory remains live for new dated specs, but this file's entry-point role has been retired. For how to build a new feature in this repo today, start at `CLAUDE.md` and `docs/conventions/README.md`.
+
+---
+
 Implementation spec for the **Sereno** visual direction (Direction 1A) across all 13 screens of
 the Zelo PWA. Written to be handed to Claude Code (or any coding agent) and followed
 top-to-bottom.

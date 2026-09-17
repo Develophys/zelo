@@ -1,5 +1,8 @@
 # Referência de Arquitetura
 
+> **⚠️ Esta tradução não é mantida em sincronia.** A versão em inglês ([architecture-reference.md](architecture-reference.md)) é a normativa desde 2026-09-16.
+> Este arquivo ficou parado em 2026-08-02: para qualquer coisa atual, leia a versão em inglês.
+
 [🇺🇸 English](architecture-reference.md) · 🇧🇷 Português
 
 **Última sincronização:** 2026-08-02, após o merge dos dois planos de implementação de
