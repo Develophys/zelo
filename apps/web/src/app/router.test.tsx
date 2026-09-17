@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider, Outlet } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { routeChildren } from "./router";
+import { createRouteChildren, routeChildren } from "./router";
 import { ManagerShell } from "@/presentation/layout/ManagerShell";
 import { useConsentStore } from "@/stores/consent.store";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
@@ -21,7 +21,7 @@ function buildTestRouter(initialPath: string) {
         id: "root",
         path: "/",
         Component: () => <Outlet />,
-        children: routeChildren,
+        children: createRouteChildren(),
       },
     ],
     { initialEntries: [initialPath] },
