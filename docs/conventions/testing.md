@@ -133,6 +133,24 @@ this spies on). That's a distinct mechanism from the port-double pattern above: 
 use-case's `execute` method for a test one layer up (a page or hook), not a port for a use-
 case's own test.
 
+**A mock that has to outlive a single test — one built inside a `vi.mock(...)` factory, or a
+`vi.hoisted(...)` mock the factory closes over — must be `vi.fn(fn)`, or else be re-armed in a
+`beforeEach`. Never leave it as a bare `vi.fn().mockImplementation(fn)`.** `restoreMocks: true`
+(§5) calls `mockRestore` on every mock **before every test, the first one included** — not
+after — and `mockRestore` restores a mock to the implementation it was *created* with.
+`vi.fn(fn)` was created with `fn`, so it needs nothing further. `vi.fn().mockImplementation(fn)`
+was created with no implementation at all, so the very first restore leaves it returning
+`undefined` for good and the SDK constructor standing behind it blows up. Measured, not
+inferred: a module-scope `vi.fn().mockImplementation(() => "armed")` already reads back
+`undefined` in the *first* test of its file.
+
+Because that restore runs *before* user hooks, a `beforeEach` that re-arms the mock is the other
+working shape — `AdminInstitutionsPage.test.tsx:91-93` and `LinkInstitutionPage.test.tsx:66-67`
+both do it. Those two read as `mockClear` hygiene and predate `restoreMocks`, but
+`hasCameraMock`'s re-arm is now load-bearing: `presentation/lib/has-camera.ts:3` calls `.catch()`
+on the result, which throws on `undefined`. A mock built inside an `it` needs neither treatment
+— it is rebuilt every test (`useBulkDelete.test.ts`, `useBulkStatusUpdate.test.ts`).
+
 **Mirror files:** `apps/api/src/modules/manager/application/use-cases/create-manager.use-
 case.test.ts` for the port-double default; `apps/api/src/modules/sector/application/use-cases/
 get-sector-by-invite-code.use-case.test.ts` for a sanctioned cast exception;
@@ -225,11 +243,13 @@ directly rather than trusting a summary; they're short.
 
 ## 5. Traps
 
-- **The `restoreMocks` gap.** None of the three vitest configs sets `restoreMocks` (re-
-  verified fresh: `grep -n restoreMocks apps/api/vitest.config.ts apps/web/vitest.config.ts
-  packages/domain/vitest.config.ts` → no matches), so a `vi.spyOn` installed inside a single
-  `it` rather than a `beforeEach` can leak into later tests in the same file and produce a
-  false green. See `priorities.md` #3 for the fix and the current count (24 of 54 files).
+- **`restoreMocks: true` is on in all three configs** — a `vi.spyOn` installed inside an `it`
+  is torn down after that test, so it cannot leak into later tests in the same file. Two guard
+  tests hold the line (`apps/api/src/shared/testing/mock-isolation.test.ts`,
+  `apps/web/src/testing/mock-isolation.test.ts`): each spies inside one `it` and asserts the
+  original is back in the next. Delete the config line and they fail by name. The consequence
+  for `vi.mock` factories is the `vi.fn(fn)` rule in §2 — that is the one thing this setting
+  is not backward-compatible with. See `priorities.md` #3.
 - **`apps/api` relative imports take `.ts`; `@/`-aliased imports take `.js`** — inverted from
   what looks natural, because `rewriteRelativeImportExtensions` rewrites the former on emit
   while `tsc-alias` expects the latter already resolved. Getting it backwards breaks `pnpm
@@ -271,8 +291,11 @@ apps. Useful individual checks:
 # globals really are off, and test placement really is enforced
 grep -n "globals" apps/api/vitest.config.ts apps/web/vitest.config.ts packages/domain/vitest.config.ts
 
-# restoreMocks gap (should currently be empty in all three)
+# restoreMocks is on (expect one hit in each of the three)
 grep -n "restoreMocks" apps/api/vitest.config.ts apps/web/vitest.config.ts packages/domain/vitest.config.ts
+
+# no module-scope factory mock has regressed to the non-restorable form
+grep -rn "vi.fn().mockImplementation(() => ({" apps/api/src apps/web/src
 
 # vi.mock call sites — should stay confined to third-party SDKs (plus the 2 named exceptions)
 # both --include globs are required: *.test.ts alone misses .test.tsx and undercounts (7 vs 12)

@@ -10,6 +10,7 @@ export default defineConfig({
   },
   plugins: [react()],
   test: {
+    restoreMocks: true,
     environment: "./vitest.environment.ts",
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
