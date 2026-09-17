@@ -202,6 +202,13 @@ DIRECT_DATABASE_URL="<neon direct connection string>" \
 pnpm --filter @zelo/api exec tsx prisma/seed.ts
 ```
 
-Both connection strings are already in `apps/api/.env`. Run `prisma migrate status` first
-with the same env vars if a schema change shipped since the last deploy, to confirm
-migrations are applied before seeding.
+Pass both explicitly, as above. `apps/api/.env` holds the **local** pair — it is the last
+fallback in the env cascade (`load-env.ts`), so a run that only sets `DIRECT_DATABASE_URL`
+gets a production CLI connection and localhost writes, and reports success either way.
+`seed.ts` and `create-super-admin.ts` now refuse to run when the two disagree
+(`assertSameDatabaseTarget`), but the guard only compares what the cascade resolved: confirm
+the values yourself before a production run. Note `.env.production.local` may carry a UTF-8
+BOM, which hides the first variable from an anchored `grep` — read the file, don't grep it.
+
+Run `prisma migrate status` first with the same env vars if a schema change shipped since the
+last deploy, to confirm migrations are applied before seeding.

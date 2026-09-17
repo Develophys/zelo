@@ -1,4 +1,5 @@
 import { PrismaService } from "../src/shared/prisma/prisma.service.ts";
+import { assertSameDatabaseTarget } from "../src/shared/config/assert-database-target.ts";
 import { ManagerPasswordService } from "../src/modules/manager/application/services/manager-password.service.ts";
 import { AdminPasswordService } from "../src/modules/admin/application/services/admin-password.service.ts";
 import {
@@ -14,6 +15,8 @@ import {
 } from "./seed-data.ts";
 
 async function main() {
+  assertSameDatabaseTarget();
+
   const prisma = new PrismaService();
   const managerPasswordService = new ManagerPasswordService();
   const adminPasswordService = new AdminPasswordService();
