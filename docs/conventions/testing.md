@@ -133,6 +133,16 @@ this spies on). That's a distinct mechanism from the port-double pattern above: 
 use-case's `execute` method for a test one layer up (a page or hook), not a port for a use-
 case's own test.
 
+**A mock built inside a `vi.mock(...)` factory must be `vi.fn(fn)`, never
+`vi.fn().mockImplementation(fn)`.** `restoreMocks: true` (§5) calls `mockRestore` on every mock
+after every test, and `mockRestore` restores a mock to the implementation it was *created*
+with. `vi.fn(fn)` was created with `fn`, so it survives; `vi.fn().mockImplementation(fn)` was
+created with nothing, so from the second test onward the factory returns `undefined` and the
+SDK constructor blows up. Factory bodies run once at module load and are never re-run, so there
+is no `beforeEach` that can repair this. The rule is specific to mocks that live at module
+scope: a `vi.fn().mockImplementation(...)` built inside an `it` is rebuilt every test and is
+fine as-is (`useBulkDelete.test.ts`, `useBulkStatusUpdate.test.ts`).
+
 **Mirror files:** `apps/api/src/modules/manager/application/use-cases/create-manager.use-
 case.test.ts` for the port-double default; `apps/api/src/modules/sector/application/use-cases/
 get-sector-by-invite-code.use-case.test.ts` for a sanctioned cast exception;
@@ -225,11 +235,13 @@ directly rather than trusting a summary; they're short.
 
 ## 5. Traps
 
-- **The `restoreMocks` gap.** None of the three vitest configs sets `restoreMocks` (re-
-  verified fresh: `grep -n restoreMocks apps/api/vitest.config.ts apps/web/vitest.config.ts
-  packages/domain/vitest.config.ts` → no matches), so a `vi.spyOn` installed inside a single
-  `it` rather than a `beforeEach` can leak into later tests in the same file and produce a
-  false green. See `priorities.md` #3 for the fix and the current count (24 of 54 files).
+- **`restoreMocks: true` is on in all three configs** — a `vi.spyOn` installed inside an `it`
+  is torn down after that test, so it cannot leak into later tests in the same file. Two guard
+  tests hold the line (`apps/api/src/shared/testing/mock-isolation.test.ts`,
+  `apps/web/src/testing/mock-isolation.test.ts`): each spies inside one `it` and asserts the
+  original is back in the next. Delete the config line and they fail by name. The consequence
+  for `vi.mock` factories is the `vi.fn(fn)` rule in §2 — that is the one thing this setting
+  is not backward-compatible with. See `priorities.md` #3.
 - **`apps/api` relative imports take `.ts`; `@/`-aliased imports take `.js`** — inverted from
   what looks natural, because `rewriteRelativeImportExtensions` rewrites the former on emit
   while `tsc-alias` expects the latter already resolved. Getting it backwards breaks `pnpm
@@ -271,8 +283,11 @@ apps. Useful individual checks:
 # globals really are off, and test placement really is enforced
 grep -n "globals" apps/api/vitest.config.ts apps/web/vitest.config.ts packages/domain/vitest.config.ts
 
-# restoreMocks gap (should currently be empty in all three)
+# restoreMocks is on (expect one hit in each of the three)
 grep -n "restoreMocks" apps/api/vitest.config.ts apps/web/vitest.config.ts packages/domain/vitest.config.ts
+
+# no module-scope factory mock has regressed to the non-restorable form
+grep -rn "vi.fn().mockImplementation(() => ({" apps/api/src apps/web/src
 
 # vi.mock call sites — should stay confined to third-party SDKs (plus the 2 named exceptions)
 # both --include globs are required: *.test.ts alone misses .test.tsx and undercounts (7 vs 12)
