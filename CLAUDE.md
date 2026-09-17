@@ -27,9 +27,11 @@ Full table (all ten playbooks): `docs/conventions/README.md`.
   `lint:boundaries --filter=@zelo/api...`/`--filter=@zelo/web...` (the trailing `...` pulls in
   the `@zelo/domain` workspace dependency), so this one genuinely breaks the build.
 
-`application-no-prisma-imports` is currently inert: the real Prisma client is reached via a
-relative `generated/prisma/client.ts` path the rule doesn't cover, so a green
-`lint:boundaries` does not prove this one holds (`docs/conventions/priorities.md` #2).
+`application-no-prisma-imports` covers both the generated client (`generated/prisma`, which is
+what repositories actually import) and `node_modules/@prisma/client`. It was inert until
+recently — it blocked only the `node_modules` path nothing imports — so treat any older note
+claiming a green `lint:boundaries` proves nothing here as out of date
+(`docs/conventions/priorities.md` #2).
 
 ## Import extensions, by layer
 
