@@ -1,4 +1,5 @@
 import { PrismaService } from "../src/shared/prisma/prisma.service.ts";
+import { assertSameDatabaseTarget } from "../src/shared/config/assert-database-target.ts";
 import { AdminPasswordService } from "../src/modules/admin/application/services/admin-password.service.ts";
 
 // One-off, idempotent creation of a real platform SuperAdmin — separate from
@@ -14,6 +15,8 @@ async function main() {
   if (!name || !email || !password) {
     throw new Error("SUPER_ADMIN_NAME, SUPER_ADMIN_EMAIL, and SUPER_ADMIN_PASSWORD are all required");
   }
+
+  assertSameDatabaseTarget();
 
   const prisma = new PrismaService();
   const adminPasswordService = new AdminPasswordService();

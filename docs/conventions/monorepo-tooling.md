@@ -182,10 +182,24 @@ section (`:179-191`) warns that real médicos can link real devices to the seede
 generate real check-ins that land in those same rows. The operator sees a success message either
 way, with no way to tell from the output which database was actually touched. **Before running
 either script against production, verify — don't assume — that the `DATABASE_URL` you're
-sourcing points at the same host as `DIRECT_DATABASE_URL`.** Do not trust
-`apps/api/prisma/README.md:205`'s "Both connection strings are already in `apps/api/.env`" —
-still there verbatim at the time of writing, and false since the dev/prod env split landed:
-`apps/api/.env` now holds localhost credentials for local dev, not production ones.
+sourcing points at the same host as `DIRECT_DATABASE_URL`.**
+
+Both scripts now call `assertSameDatabaseTarget()`
+(`apps/api/src/shared/config/assert-database-target.ts`) before connecting, which refuses the
+run when `DATABASE_URL` is missing while `DIRECT_DATABASE_URL` is set, or when one resolves to
+a loopback host and the other is remote. It compares only what the cascade already resolved,
+and by design does not flag two *different remote* databases — a strict host match would
+false-positive on pooled-vs-direct pairs. It narrows the failure; it does not replace the
+check above.
+
+**Do not settle this with an anchored `grep`.** `.env.production.local` may carry a UTF-8 BOM
+before its first variable, which hides that variable from `grep -E "^\s*DATABASE_URL="`. That
+produced two opposite wrong conclusions during the work that added this guard. Read the file,
+or `sed 's/=.*//' .env.production.local` to list the names.
+
+`apps/api/prisma/README.md:205`'s "Both connection strings are already in `apps/api/.env`" has
+been corrected — it was false since the dev/prod env split landed, because `apps/api/.env`
+holds localhost credentials for local dev, not production ones.
 
 (`apps/api/.env.production.local` is a machine-local secrets file, not something this repo's
 git history can confirm one way or the other — this is a documented pattern to guard against on
