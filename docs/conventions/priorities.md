@@ -133,7 +133,21 @@ The original entry:
 - **Files:** `apps/api/vitest.config.ts`, `apps/web/vitest.config.ts`,
   `packages/domain/vitest.config.ts`
 
-## 4. `prisma generate` isn't wired into Turborepo — stale client on local build/test
+## 4. `prisma generate` isn't wired into Turborepo — stale client on local build/test — FIXED
+
+`turbo.json` gained a `prisma:generate` task (inputs `prisma/schema.prisma` +
+`prisma/migrations/**`, outputs `generated/prisma/**`), and both `build` and `test` depend on
+it. Turbo skips that dependency for packages without a matching script — `@zelo/web` and
+`@zelo/domain`'s `prisma:generate` resolve to `<NONEXISTENT>` (confirmed with
+`turbo run build --dry=json`) — so only `@zelo/api` actually runs `prisma generate`.
+
+**Proven to fire, not just changed.** Editing `apps/api/prisma/schema.prisma` and running
+`turbo run build` cache-missed `@zelo/api#prisma:generate`, regenerated the client, and
+cascaded a cache miss to `@zelo/api#build` — while `@zelo/web#build` and `@zelo/domain#build`
+stayed cache hits, since neither depends on the api's schema. Reverting the edit and re-running
+was `FULL TURBO` (4/4 cached), confirming the task doesn't over-invalidate on unrelated changes.
+
+The original entry:
 
 - **Why:** `prisma generate` runs only from `apps/api`'s postinstall and explicit CI/Docker
   steps, so editing `schema.prisma` and then running `pnpm build` or `pnpm test` locally
