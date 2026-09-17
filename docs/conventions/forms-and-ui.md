@@ -377,3 +377,31 @@ sections above as the primary statement of the rule:
   isn't silently short by one.
 
 No REFUTED rule from the source data appears anywhere in this document.
+
+## How to verify
+
+**No lint rule enforces anything in this document.** `eslint-plugin-react-hooks` isn't installed
+(`priorities.md` #6), there is no formatter gate (`priorities.md` #24), and nothing checks that a
+form uses `react-hook-form` rather than per-field `useState`. The checks below are what a reader
+actually has to run, and they are all counts and greps rather than pass/fail gates:
+
+```bash
+# every form on react-hook-form today — 10 files
+grep -rln "useForm" apps/web/src --include=*.tsx --include=*.ts
+
+# their colocated schemas — the "per-owner, not always-in-the-page-folder" rule
+ls apps/web/src/presentation/pages/*form-schema.ts    apps/web/src/presentation/pages/*/*form-schema.ts    apps/web/src/presentation/components/*form-schema.ts
+
+# the accessibility gap section's subject — which fields are wired, which aren't
+grep -rn "aria-invalid" apps/web/src --include=*.tsx
+
+# the two tests that do gate part of this file
+pnpm --filter @zelo/web test -- primitives a11y
+```
+
+That last command is the only automated coverage: `primitives.test.tsx` renders the shared UI
+primitives and `a11y.test.tsx` runs axe-core over the 23 screens in its `SCREENS` array
+(`:36-73`) — both green as of this writing (50 tests). Neither opens a `Modal`, and neither
+asserts the error-message triple on any individual field, so a form shipped without
+`aria-invalid`/`aria-describedby` still passes both. That's `priorities.md` #11 and #12; don't
+read a green run as this document being satisfied.

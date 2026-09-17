@@ -157,3 +157,34 @@ narrows a rule that reads more broadly than it actually is:
   to show which option is currently selected — a radio group can't do that from a CSS token
   alone. Nothing else in the app subscribes to those fields; `useApplyAppearancePrefs.ts` is
   still what projects them onto `<html>` for everything else to consume via CSS.
+
+## How to verify
+
+**Nothing in this document is gated by a tool.** `eslint-plugin-react-hooks` is not installed —
+re-verified fresh, `grep -rn "react-hooks" package.json apps/web/package.json
+packages/config/package.json packages/config/eslint.base.mjs` returns nothing — so the
+`exhaustive-deps` caveat above is a reading rule, not a lint error you'll see. There is no
+bundle-size budget, no render-count assertion in the suite, and no coverage gate. Every claim
+here is a count you re-run:
+
+```bash
+# memoized components — 8 today
+grep -rn "= memo(\|React.memo(" apps/web/src --include=*.tsx
+
+# the QueryClient defaults gap (priorities.md #5) — expect no match
+grep -n "defaultOptions" apps/web/src/app/query-client.ts
+
+# route-level code splitting (priorities.md #14) — expect 0; every page is a static import
+grep -c "lazy(" apps/web/src/app/router.tsx
+
+# the export any future split must preserve, and its one consumer
+grep -n "routeChildren" apps/web/src/app/router.tsx apps/web/src/app/router.test.tsx
+
+# the hooks plugin that would enforce the deps rule — expect nothing
+grep -rn "react-hooks" package.json apps/web/package.json packages/config/package.json   packages/config/eslint.base.mjs
+```
+
+The one thing CI *does* catch is a route split that breaks the route tree: `router.test.tsx`
+builds its router from the `routeChildren` export, so `pnpm --filter @zelo/web test -- router`
+fails if a split stops exporting it. It will not fail if the split simply doesn't reduce the
+initial bundle.
