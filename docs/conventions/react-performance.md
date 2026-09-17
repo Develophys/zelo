@@ -110,19 +110,44 @@ deferred runtime import is fine and expected (e.g. `LinkInstitutionQrScanModal.t
 import" as "no top-level anything," and don't replace a deferred library's types with `any` to
 satisfy a stricter reading than the rule actually states.
 
-**What's missing is route-level splitting.** There is zero `React.lazy` and zero `Suspense`
-anywhere in `apps/web/src`. `apps/web/src/app/router.tsx` statically imports all 34
-page/layout components, 20 of which are manager/admin/peer-only — so the primary persona (a
-doctor, on a phone, the Capacitor APK target) downloads and parses the entire manager panel,
-every admin table, `DataTable`, and the chart library just to reach `/home`. This is not a flat
-"no code splitting" situation; it's a real gap in the one layer (routes) where the app hasn't
-applied a pattern it already uses correctly one layer down. See `priorities.md` #14.
+**Route-level splitting covers the staff surfaces, and only those.** The 18 manager,
+super-admin and peer-partner routes in `apps/web/src/app/router.tsx` load through
+`lazy: { Component: lazyPage(...) }`. The 15 doctor-facing routes, the three crisis routes,
+`ManagerShell` and `FallbackPage` stay statically imported. A doctor reaching `/home` no longer
+downloads the manager panel or the admin tables: the entry chunk went from 793,015 to 621,140
+bytes (230,748 → 185,680 gzip) when this landed.
 
-Any future route split must preserve the `routeChildren` export: `router.tsx:66` defines
-`export const routeChildren: RouteObject[] = [...]`, and `router.test.tsx:6,24` imports it
-directly to build the test router from the same route tree rather than duplicating it. A split
-that changes how routes are declared without keeping `routeChildren` as the single source of
-truth will silently desync the test router from what ships.
+Four rules hold this together, and each one is load-bearing:
+
+- **Use the per-key object form, `lazy: { Component: ... }` — never the whole-route function
+  form.** The object form leaves `loader` static, so an unauthenticated visit to `/manager`
+  runs the guard and redirects *without* fetching the panel chunk. The function form would
+  defer the loader too, shipping the chunk to someone who is about to be bounced. It also
+  means the router blocks the navigation and keeps the current screen painted, which is why
+  this app needs no `Suspense` boundary and no skeleton vocabulary for route loading.
+- **Route through `lazyPage` (`app/lazy-route.ts`), not a bare `import()`.** It retries once,
+  then reloads the page. A chunk whose hash no longer exists after a deploy is answered by both
+  Vercel and the nginx image with `index.html` and a 200, so a bare import fails as an HTML
+  parse error on core navigation; only a reload fixes that class.
+- **Keep `path`, `index` and `children` statically declared.** React Router 8 forbids lazifying
+  them (`UnsupportedLazyRouteObjectKey`), and `route-title.test.ts` / `app-header-meta.test.ts`
+  flatten the tree on exactly those keys to assert both pathname lookup tables stay in step.
+- **Build every router from `createRouteChildren()`, and inspect the `routeChildren` const.**
+  React Router caches a resolved `lazy` property against the route object's identity, so a
+  second router built from the same objects finds the cache entry but not the value, and the
+  route stops matching. Production creates one router and never hits this; tests create one per
+  case and hit it immediately. `router.test.tsx:332` still reads the `routeChildren` const for
+  its `Component === ManagerShell` identity check — that is why `ManagerShell` stays eager.
+
+`routeChildren` remains exported as an inspectable `RouteObject[]`, now produced by
+`createRouteChildren()`. Four test files import one or the other; a split that stops exporting
+either will silently desync the test router from what ships.
+
+Two things this did **not** buy, stated so nobody claims them: the entry chunk is still over
+Rollup's 500 kB warning (621 kB, 63% of it shared vendor), and the doctor's *total* bytes are
+unchanged, because workbox's `globPatterns` sweeps every new chunk into the precache (41 → 83
+entries, ~2.2 MiB either way). The win is first-paint critical path and parse/exec, not total
+download. See `priorities.md` #14.
 
 ## Traps
 
