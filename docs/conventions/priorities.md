@@ -268,25 +268,39 @@ defect.
   config / font-CDN / `loading`-prop / `bg-brand` references, beyond the banner
   `AGENTS.md` already carries), `apps/web/vite.config.ts` + `turbo.json` (`VITE_BASE_PATH`)
 
-## 14. Route-level code splitting (known to the maintainer)
+## 14. Route-level code splitting — DONE for the staff surfaces
 
-The design spec calls this out for honest, non-inflated placement, so the fuller framing is
-kept here rather than compressed to one line.
+The 18 manager, super-admin and peer-partner routes now load through
+`lazy: { Component: lazyPage(...) }`; the 15 doctor-facing routes, the crisis trio,
+`ManagerShell` and `FallbackPage` stay eager on purpose. Entry chunk 793,015 → 621,140 bytes
+(230,748 → 185,680 gzip). The rule and its four constraints live in
+`react-performance.md` § Code splitting. This closes
+`2026-07-07-pwa-architecture.md:89`'s per-page code-splitting requirement for the panel.
 
-`router.tsx` statically imports all 34 page modules, with zero `React.lazy` or `Suspense`
-anywhere. Ranked here rather than at the top, honestly: the app works, and the library-level
-splitting the repo already does is real and effective — `jspdf` (390 KB), `html2canvas` (202 KB)
-and `index.es` (159 KB) are genuinely separate chunks, so a flat "no code splitting" claim would
-be wrong. What remains is that a doctor on a phone downloads and parses the entire manager
-panel, all four admin tables, `DataTable` and the chart library just to reach `/home` —
-20 of 34 route components are manager/admin/peer-only, inside a single ~752 KB main chunk. It is
-also a written-spec violation: `2026-07-07-pwa-architecture.md:89` specifies code-splitting per
-page. Any split must preserve the `routeChildren` export that `router.test.tsx` imports, so the
-test router cannot silently drift from what ships.
+Two corrections to what this entry originally claimed, recorded because both were repeated
+into `react-performance.md` and would have made any design quoting them look unresearched:
+
+- **There is no chart library.** `apps/web/package.json` has no charting dependency; the
+  dashboard's trend visuals are hand-rolled TypeScript (`toTrendBarHeights` / `toTrendBars`
+  from `@zelo/domain`, ~1.8 KB). The heaviest dependency, `jspdf`, was already dynamically
+  imported before this work. The payload a doctor over-downloaded was the staff page modules
+  and their component graph, not a third-party chart bundle.
+- **The count was wrong.** It read "20 of 34 route components are manager/admin/peer-only."
+  It is 18 staff pages plus `ManagerShell`, against 34 page *modules* — `FallbackPage.tsx`
+  exports two components, so modules and components are not the same count.
+
+**What is still open**, and why this is not fully closed: the entry chunk remains 621 kB, over
+Rollup's 500 kB warning, with ~63% of it shared vendor (`react-router` ~88 KB, `zod`, `socket.io`).
+Getting under 500 kB needs vendor splitting, which carries its own request-waterfall risk and
+deserves its own brief. And the doctor's *total* bytes are unchanged: workbox's `globPatterns`
+precaches every new chunk (41 → 83 entries, ~2.2 MiB either way), so the win is first-paint
+critical path and parse/exec, not total download. Narrowing the precache is a separate product
+call — it trades a manager's offline access for a doctor's mobile data.
 
 - **Effort:** medium
 - **Kind:** performance
-- **Files:** `apps/web/src/app/router.tsx`, `apps/web/src/app/router.test.tsx`,
+- **Files:** `apps/web/src/app/router.tsx`, `apps/web/src/app/lazy-route.ts`,
+  `apps/web/src/app/router.test.tsx`, `apps/web/vite.config.ts` (precache, still open),
   `docs/superpowers/specs/2026-07-07-pwa-architecture.md:89`
 
 ## 15. Admin and peer-partner panels lack a layout route with a session-expiry guard

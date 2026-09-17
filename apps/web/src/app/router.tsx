@@ -13,28 +13,11 @@ import { CrisisOfferPage } from "@/presentation/pages/CrisisOfferPage";
 import { CrisisAcceptPage } from "@/presentation/pages/CrisisAcceptPage";
 import { CrisisDeclinePage } from "@/presentation/pages/CrisisDeclinePage";
 import { PeersPage } from "@/presentation/pages/PeersPage";
-import { ManagerDashboardPage } from "@/presentation/pages/ManagerDashboardPage";
-import { ManagerAdminSectorsPage } from "@/presentation/pages/ManagerAdminSectorsPage";
-import { ManagerAdminManagersPage } from "@/presentation/pages/ManagerAdminManagersPage";
-import { ManagerAdminPeersPage } from "@/presentation/pages/ManagerAdminPeersPage";
-import { ManagerNotificationsPage } from "@/presentation/pages/ManagerNotificationsPage";
-import { ManagerSettingsPage } from "@/presentation/pages/ManagerSettingsPage";
 import { ManagerShell } from "@/presentation/layout/ManagerShell";
-import { ManagerLoginPage } from "@/presentation/pages/ManagerLoginPage";
-import { ManagerForgotPasswordPage } from "@/presentation/pages/ManagerForgotPasswordPage";
-import { ManagerFinishSetupPage } from "@/presentation/pages/ManagerFinishSetupPage";
-import { ManagerInsightHistoryPage } from "@/presentation/pages/ManagerInsightHistoryPage";
-import { ManagerMethodologyPage } from "@/presentation/pages/ManagerMethodologyPage";
 import { YouPage } from "@/presentation/pages/YouPage";
 import { SettingsPage } from "@/presentation/pages/SettingsPage";
 import { LinkInstitutionPage } from "@/presentation/pages/LinkInstitutionPage";
-import { AdminLoginPage } from "@/presentation/pages/AdminLoginPage";
-import { AdminInstitutionsPage } from "@/presentation/pages/AdminInstitutionsPage";
-import { PeerPartnerLoginPage } from "@/presentation/pages/PeerPartnerLoginPage";
-import { PeerPartnerForgotPasswordPage } from "@/presentation/pages/PeerPartnerForgotPasswordPage";
-import { PeerPartnerFinishSetupPage } from "@/presentation/pages/PeerPartnerFinishSetupPage";
-import { PeerPartnerInboxPage } from "@/presentation/pages/PeerPartnerInboxPage";
-import { PeerPartnerSettingsPage } from "@/presentation/pages/PeerPartnerSettingsPage";
+import { lazyPage } from "./lazy-route";
 import { useConsentStore } from "@/stores/consent.store";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { useAdminSessionStore } from "@/stores/admin-session.store";
@@ -48,142 +31,283 @@ import { useDocumentTitle } from "@/presentation/hooks/useDocumentTitle";
 // never silently drift from what actually ships.
 // Administração is HOSPITAL_ADMIN-only; the rest of the panel is not. Kept as
 // one list so the extra guard cannot drift between the three pages.
-const ADMIN_ONLY_ROUTES: RouteObject[] = [
-  { path: "manager/admin/managers", Component: ManagerAdminManagersPage },
-  { path: "manager/admin/sectors", Component: ManagerAdminSectorsPage },
-  { path: "manager/admin/peers", Component: ManagerAdminPeersPage },
-].map((route) => ({
-  ...route,
-  loader: () =>
-    useManagerSessionStore.getState().role === "HOSPITAL_ADMIN" ? null : redirect(routes.manager),
-}));
+function adminOnlyRoutes(): RouteObject[] {
+  return [
+    {
+      path: "manager/admin/managers",
+      lazy: {
+        Component: lazyPage(
+          () => import("@/presentation/pages/ManagerAdminManagersPage"),
+          "ManagerAdminManagersPage",
+        ),
+      },
+    },
+    {
+      path: "manager/admin/sectors",
+      lazy: {
+        Component: lazyPage(
+          () => import("@/presentation/pages/ManagerAdminSectorsPage"),
+          "ManagerAdminSectorsPage",
+        ),
+      },
+    },
+    {
+      path: "manager/admin/peers",
+      lazy: {
+        Component: lazyPage(
+          () => import("@/presentation/pages/ManagerAdminPeersPage"),
+          "ManagerAdminPeersPage",
+        ),
+      },
+    },
+  ].map((route) => ({
+    ...route,
+    loader: () =>
+      useManagerSessionStore.getState().role === "HOSPITAL_ADMIN" ? null : redirect(routes.manager),
+  }));
+}
 
 function RootLayout() {
   useDocumentTitle();
   return <Outlet />;
 }
 
-export const routeChildren: RouteObject[] = [
-  {
-    index: true,
-    Component: SplashPage,
-    loader: () => (useConsentStore.getState().hasConsented ? redirect(routes.home) : null),
-  },
-  {
-    path: "privacy",
-    Component: PrivacyPage,
-  },
-  {
-    path: "consent",
-    Component: ConsentPage,
-  },
-  {
-    path: "home",
-    Component: HomePage,
-    loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
-  },
-  // Everything that collects a mental-health answer or sends text to the AI
-  // provider sits behind consent, because the consent screen is where that is
-  // disclosed. Reaching them by deep link, bookmark or history would otherwise
-  // start collecting before the promise was made.
-  {
-    path: "chat",
-    Component: ChatPage,
-    loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
-  },
-  {
-    path: "assessment",
-    Component: AssessmentSelectPage,
-    loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
-  },
-  {
-    path: "assessment/phq9",
-    element: <ScaleAssessmentPage scale={PHQ9_SCALE} />,
-    loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
-  },
-  {
-    path: "assessment/gad7",
-    element: <ScaleAssessmentPage scale={GAD7_SCALE} />,
-    loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
-  },
-  {
-    path: "assessment/result",
-    Component: AssessmentResultPage,
-    loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
-  },
-  // The crisis routes are deliberately NOT gated. Someone reaching for the CVV
-  // number must not be sent through a consent form first, and these screens
-  // collect nothing — RequestHumanHandoffUseCase is synchronous and I/O-free.
-  { path: "crisis", Component: CrisisOfferPage },
-  { path: "crisis/connect", Component: CrisisAcceptPage },
-  { path: "crisis/line", Component: CrisisDeclinePage },
-  {
-    path: "peers",
-    Component: PeersPage,
-    loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
-  },
-  { path: "manager/login", Component: ManagerLoginPage },
-  { path: "manager/forgot-password", Component: ManagerForgotPasswordPage },
-  { path: "manager/finish-setup/:token", Component: ManagerFinishSetupPage },
-  {
-    // One layout route for the whole panel: the shell, and the session guard,
-    // are declared once instead of being repeated on every manager screen.
-    Component: ManagerShell,
-    loader: () =>
-      useManagerSessionStore.getState().isValid() ? null : redirect(routes.managerLogin),
-    children: [
-      { path: "manager", Component: ManagerDashboardPage },
-      { path: "manager/notifications", Component: ManagerNotificationsPage },
-      { path: "manager/history", Component: ManagerInsightHistoryPage },
-      { path: "manager/methodology", Component: ManagerMethodologyPage },
-      { path: "manager/settings", Component: ManagerSettingsPage },
-      {
-        path: "manager/admin",
-        loader: () => redirect(routes.managerAdminManagers),
-        Component: () => null,
+export function createRouteChildren(): RouteObject[] {
+  return [
+    {
+      index: true,
+      Component: SplashPage,
+      loader: () => (useConsentStore.getState().hasConsented ? redirect(routes.home) : null),
+    },
+    {
+      path: "privacy",
+      Component: PrivacyPage,
+    },
+    {
+      path: "consent",
+      Component: ConsentPage,
+    },
+    {
+      path: "home",
+      Component: HomePage,
+      loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
+    },
+    // Everything that collects a mental-health answer or sends text to the AI
+    // provider sits behind consent, because the consent screen is where that is
+    // disclosed. Reaching them by deep link, bookmark or history would otherwise
+    // start collecting before the promise was made.
+    {
+      path: "chat",
+      Component: ChatPage,
+      loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
+    },
+    {
+      path: "assessment",
+      Component: AssessmentSelectPage,
+      loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
+    },
+    {
+      path: "assessment/phq9",
+      element: <ScaleAssessmentPage scale={PHQ9_SCALE} />,
+      loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
+    },
+    {
+      path: "assessment/gad7",
+      element: <ScaleAssessmentPage scale={GAD7_SCALE} />,
+      loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
+    },
+    {
+      path: "assessment/result",
+      Component: AssessmentResultPage,
+      loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
+    },
+    // The crisis routes are deliberately NOT gated. Someone reaching for the CVV
+    // number must not be sent through a consent form first, and these screens
+    // collect nothing — RequestHumanHandoffUseCase is synchronous and I/O-free.
+    { path: "crisis", Component: CrisisOfferPage },
+    { path: "crisis/connect", Component: CrisisAcceptPage },
+    { path: "crisis/line", Component: CrisisDeclinePage },
+    {
+      path: "peers",
+      Component: PeersPage,
+      loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
+    },
+    {
+      path: "manager/login",
+      lazy: {
+        Component: lazyPage(
+          () => import("@/presentation/pages/ManagerLoginPage"),
+          "ManagerLoginPage",
+        ),
       },
-      ...ADMIN_ONLY_ROUTES,
-    ],
-  },
-  {
-    path: "you",
-    Component: YouPage,
-    loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
-  },
-  {
-    path: "settings",
-    Component: SettingsPage,
-    loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
-  },
-  {
-    path: "you/link",
-    Component: LinkInstitutionPage,
-    loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
-  },
-  { path: "admin/login", Component: AdminLoginPage },
-  {
-    path: "admin",
-    Component: AdminInstitutionsPage,
-    loader: () => (useAdminSessionStore.getState().isValid() ? null : redirect(routes.adminLogin)),
-  },
-  { path: "peer/login", Component: PeerPartnerLoginPage },
-  { path: "peer/forgot-password", Component: PeerPartnerForgotPasswordPage },
-  { path: "peer/finish-setup/:token", Component: PeerPartnerFinishSetupPage },
-  {
-    path: "peer",
-    Component: PeerPartnerInboxPage,
-    loader: () => (usePeerPartnerSessionStore.getState().isValid() ? null : redirect(routes.peerPartnerLogin)),
-  },
-  {
-    path: "peer/settings",
-    Component: PeerPartnerSettingsPage,
-    loader: () => (usePeerPartnerSessionStore.getState().isValid() ? null : redirect(routes.peerPartnerLogin)),
-  },
-  // Last, so it only catches what nothing above matched. Without it a stale
-  // bookmark or a basename mismatch lands on React Router's default page:
-  // unstyled, in English, and with no crisis line.
-  { path: "*", Component: FallbackPage },
-];
+    },
+    {
+      path: "manager/forgot-password",
+      lazy: {
+        Component: lazyPage(
+          () => import("@/presentation/pages/ManagerForgotPasswordPage"),
+          "ManagerForgotPasswordPage",
+        ),
+      },
+    },
+    {
+      path: "manager/finish-setup/:token",
+      lazy: {
+        Component: lazyPage(
+          () => import("@/presentation/pages/ManagerFinishSetupPage"),
+          "ManagerFinishSetupPage",
+        ),
+      },
+    },
+    {
+      // One layout route for the whole panel: the shell, and the session guard,
+      // are declared once instead of being repeated on every manager screen.
+      Component: ManagerShell,
+      loader: () =>
+        useManagerSessionStore.getState().isValid() ? null : redirect(routes.managerLogin),
+      children: [
+        {
+          path: "manager",
+          lazy: {
+            Component: lazyPage(
+              () => import("@/presentation/pages/ManagerDashboardPage"),
+              "ManagerDashboardPage",
+            ),
+          },
+        },
+        {
+          path: "manager/notifications",
+          lazy: {
+            Component: lazyPage(
+              () => import("@/presentation/pages/ManagerNotificationsPage"),
+              "ManagerNotificationsPage",
+            ),
+          },
+        },
+        {
+          path: "manager/history",
+          lazy: {
+            Component: lazyPage(
+              () => import("@/presentation/pages/ManagerInsightHistoryPage"),
+              "ManagerInsightHistoryPage",
+            ),
+          },
+        },
+        {
+          path: "manager/methodology",
+          lazy: {
+            Component: lazyPage(
+              () => import("@/presentation/pages/ManagerMethodologyPage"),
+              "ManagerMethodologyPage",
+            ),
+          },
+        },
+        {
+          path: "manager/settings",
+          lazy: {
+            Component: lazyPage(
+              () => import("@/presentation/pages/ManagerSettingsPage"),
+              "ManagerSettingsPage",
+            ),
+          },
+        },
+        {
+          path: "manager/admin",
+          loader: () => redirect(routes.managerAdminManagers),
+          Component: () => null,
+        },
+        ...adminOnlyRoutes(),
+      ],
+    },
+    {
+      path: "you",
+      Component: YouPage,
+      loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
+    },
+    {
+      path: "settings",
+      Component: SettingsPage,
+      loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
+    },
+    {
+      path: "you/link",
+      Component: LinkInstitutionPage,
+      loader: () => (useConsentStore.getState().hasConsented ? null : redirect(routes.privacy)),
+    },
+    {
+      path: "admin/login",
+      lazy: {
+        Component: lazyPage(() => import("@/presentation/pages/AdminLoginPage"), "AdminLoginPage"),
+      },
+    },
+    {
+      path: "admin",
+      lazy: {
+        Component: lazyPage(
+          () => import("@/presentation/pages/AdminInstitutionsPage"),
+          "AdminInstitutionsPage",
+        ),
+      },
+      loader: () =>
+        useAdminSessionStore.getState().isValid() ? null : redirect(routes.adminLogin),
+    },
+    {
+      path: "peer/login",
+      lazy: {
+        Component: lazyPage(
+          () => import("@/presentation/pages/PeerPartnerLoginPage"),
+          "PeerPartnerLoginPage",
+        ),
+      },
+    },
+    {
+      path: "peer/forgot-password",
+      lazy: {
+        Component: lazyPage(
+          () => import("@/presentation/pages/PeerPartnerForgotPasswordPage"),
+          "PeerPartnerForgotPasswordPage",
+        ),
+      },
+    },
+    {
+      path: "peer/finish-setup/:token",
+      lazy: {
+        Component: lazyPage(
+          () => import("@/presentation/pages/PeerPartnerFinishSetupPage"),
+          "PeerPartnerFinishSetupPage",
+        ),
+      },
+    },
+    {
+      path: "peer",
+      lazy: {
+        Component: lazyPage(
+          () => import("@/presentation/pages/PeerPartnerInboxPage"),
+          "PeerPartnerInboxPage",
+        ),
+      },
+      loader: () =>
+        usePeerPartnerSessionStore.getState().isValid() ? null : redirect(routes.peerPartnerLogin),
+    },
+    {
+      path: "peer/settings",
+      lazy: {
+        Component: lazyPage(
+          () => import("@/presentation/pages/PeerPartnerSettingsPage"),
+          "PeerPartnerSettingsPage",
+        ),
+      },
+      loader: () =>
+        usePeerPartnerSessionStore.getState().isValid() ? null : redirect(routes.peerPartnerLogin),
+    },
+    // Last, so it only catches what nothing above matched. Without it a stale
+    // bookmark or a basename mismatch lands on React Router's default page:
+    // unstyled, in English, and with no crisis line.
+    { path: "*", Component: FallbackPage },
+  ];
+}
+
+export const routeChildren: RouteObject[] = createRouteChildren();
 
 export const router = createBrowserRouter(
   [
