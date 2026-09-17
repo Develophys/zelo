@@ -18,7 +18,27 @@ producing it (see the design spec, `docs/superpowers/specs/2026-09-15-ai-convent
 
 ---
 
-## 1. Production seed script targets the wrong database
+## 1. Production seed script targets the wrong database — GUARDED
+
+`seed.ts` and `create-super-admin.ts` now call `assertSameDatabaseTarget()`
+(`src/shared/config/assert-database-target.ts`) before connecting. It refuses to run when
+`DIRECT_DATABASE_URL` is set and `DATABASE_URL` is not, and when one resolves to a loopback
+host while the other is remote — the exact split described below. `prisma/README.md`'s claim
+that "both connection strings are already in `apps/api/.env`" is corrected.
+
+**What the guard deliberately does not catch:** two *different remote* databases. Comparing
+hostnames strictly would false-positive on legitimate pooled-vs-direct setups (Prisma
+Accelerate, Neon's `-pooler` endpoint), so the check is the local/remote boundary only.
+
+**Operational note worth keeping.** `apps/api/.env.production.local` on at least one machine
+carries a UTF-8 BOM (`ef bb bf`) before the first variable. That hides `DATABASE_URL` from an
+anchored `grep -E "^\s*DATABASE_URL="`, and it produced a *wrong conclusion twice* during this
+work — once reported as "the var is missing" and once as "the earlier report was a false
+positive." Read the file or use `sed 's/=.*//'`; do not settle this question with an anchored
+grep. On the machine checked, both variables resolve to `db.prisma.io` under
+`NODE_ENV=production` — the mechanism below is real, but it was not live there.
+
+The original entry, kept because the mechanism is what matters:
 
 - **Why:** `apps/api/.env.production.local` is gitignored (`.gitignore:203`) — untracked,
   machine-local — so nothing in the repo guarantees that `DATABASE_URL` is present there
