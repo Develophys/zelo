@@ -3,7 +3,8 @@
   "tasks": {
     "prisma:generate": {
       "inputs": ["prisma/schema.prisma", "prisma/migrations/**"],
-      "outputs": ["generated/prisma/**"]
+      "outputs": ["generated/prisma/**"],
+      "env": ["DATABASE_URL", "DIRECT_DATABASE_URL"]
     },
     "build": {
       "dependsOn": ["^build", "prisma:generate"],
