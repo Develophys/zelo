@@ -194,10 +194,13 @@ The original entry:
 
 ## 6. `eslint-plugin-react-hooks` is not installed — FIXED
 
-`apps/web/eslint.config.mjs` now wires the plugin's recommended preset. Six findings needed a
-real code fix rather than a disable comment: `useInlineConfirm()` was destructured at its call
-site, `useHotkey`'s latest-ref write moved into `useLayoutEffect`, and `ScaleAssessmentPage`'s
-refs findings were resolved directly. Everything else — `useDebouncedSearch`'s refs findings,
+`apps/web/eslint.config.mjs` now wires the plugin's recommended preset. 12 findings across four
+files needed a real code fix rather than a disable comment: `useInlineConfirm()` was
+destructured at its call site in `InstitutionLinkCard.tsx` and `PeerChatRoom.tsx` (4 findings
+each), `useHotkey`'s latest-ref write moved into `useLayoutEffect` (1 finding), and
+`ScaleAssessmentPage`'s `resumed` ref became a `useState` (3 findings — the same file's other two
+`pageJustMountedRef` findings were suppressed, not fixed, and aren't counted here). Everything
+else — `useDebouncedSearch`'s refs findings,
 `Tooltip`'s refs findings, the remaining set-state-in-effect/exhaustive-deps/globals findings,
 and `useFollowUpAnswer`'s purity findings — is a targeted per-site suppression, not a blanket
 config-level disable. `react-hooks/incompatible-library` is left as 10 tracked warnings on
