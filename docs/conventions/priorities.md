@@ -207,6 +207,20 @@ config-level disable. `react-hooks/incompatible-library` is left as 10 tracked w
 purpose (spec §2): it fires on React Hook Form's `watch()`, which genuinely can't be memoized,
 so the fix is upstream of this repo.
 
+**The 20 suppressions are a worklist, not a closed decision.** 19 of them are for the four
+Compiler-authored rules (`refs` ×9 — `useDebouncedSearch.ts`, `Tooltip.tsx`,
+`ScaleAssessmentPage.tsx`'s `pageJustMountedRef`; `set-state-in-effect` ×7 —
+`InstitutionLinkCard.tsx`, `useInlineConfirm.ts`, `LinkInstitutionQrScanModal.tsx`,
+`QrCodeModal.tsx`, `usePeerPartnerConnection.ts`, `FollowUpCard.tsx`, `PeersPage.tsx`; `purity`
+×2 — `useFollowUpAnswer.ts`; `globals` ×1 — `primitives.test.tsx`), each suppressed because a
+real fix without the compiler running would mean rewriting working code against a static
+analysis with no way to confirm the rewrite actually helps. React Compiler adoption is the
+confirmed next item, not a hypothetical — when that work starts, resolving these 19 sites (not
+just the 10 `incompatible-library` warnings) is its concrete starting task list, verified one by
+one against the compiler's actual behavior instead of guessed. The 20th suppression
+(`AssessmentReview.tsx`'s `exhaustive-deps`) is unrelated — a deliberate mount-only effect, not
+Compiler-dependent, and stays suppressed regardless of Compiler adoption.
+
 **Proven to fire, not just changed.** `pnpm --filter @zelo/web lint` exits 0 today. Reverting
 `apps/web/eslint.config.mjs` to the commit before this work landed (`git show
 5cd23bd:apps/web/eslint.config.mjs > apps/web/eslint.config.mjs`) and re-running the
