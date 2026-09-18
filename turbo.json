@@ -1,8 +1,13 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
+    "prisma:generate": {
+      "inputs": ["prisma/schema.prisma", "prisma/migrations/**"],
+      "outputs": ["generated/prisma/**"],
+      "env": ["DATABASE_URL", "DIRECT_DATABASE_URL"]
+    },
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "prisma:generate"],
       "outputs": ["dist/**"],
       "env": ["VITE_API_BASE_URL", "VITE_BASE_PATH"]
     },
@@ -15,7 +20,7 @@
     },
     "lint:boundaries": {},
     "test": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "prisma:generate"],
       "env": ["DATABASE_URL"]
     }
   }
