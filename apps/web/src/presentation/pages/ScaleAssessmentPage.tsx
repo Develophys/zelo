@@ -25,15 +25,15 @@ interface ScaleAssessmentPageProps {
 export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
   const navigate = useNavigate();
   const { mutateAsync, isPending } = useSubmitAssessment();
-  const resumed = useRef(recallDraft(scale));
+  const [resumed] = useState(() => recallDraft(scale));
   const [answers, setAnswers] = useState<(number | undefined)[]>(
-    () => resumed.current?.answers ?? new Array(scale.questions.length).fill(undefined),
+    () => resumed?.answers ?? new Array(scale.questions.length).fill(undefined),
   );
   // One cursor for the whole instrument: 0..total-1 are questions, `total` is
   // the review. Answering the last item advances here rather than submitting.
-  const [questionIndex, setQuestionIndex] = useState(() => resumed.current?.questionIndex ?? 0);
+  const [questionIndex, setQuestionIndex] = useState(() => resumed?.questionIndex ?? 0);
   const [submitError, setSubmitError] = useState(false);
-  const [showResumed, setShowResumed] = useState(() => (resumed.current?.questionIndex ?? 0) > 0);
+  const [showResumed, setShowResumed] = useState(() => (resumed?.questionIndex ?? 0) > 0);
 
   // False only for the page's very first question/review view, so mount
   // doesn't steal focus from wherever the page put it on arrival. Every later
@@ -171,6 +171,7 @@ export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
                 onEdit={setQuestionIndex}
                 disabled={isPending}
                 riskItemIndex={scale.type === 'PHQ-9' ? PHQ9_RISK_ITEM_INDEX : undefined}
+                // eslint-disable-next-line react-hooks/refs -- read-only after mount; converting to state would add an unforced re-render (see priorities.md #5)
                 focusOnMount={!pageJustMountedRef.current}
               />
               <div className="mt-8">
@@ -188,6 +189,7 @@ export function ScaleAssessmentPage({ scale }: ScaleAssessmentPageProps) {
               onCommit={commitAnswer}
               advanceLabel={questionIndex === total - 1 ? 'Revisar respostas' : 'Próxima'}
               disabled={isPending}
+              // eslint-disable-next-line react-hooks/refs -- read-only after mount; converting to state would add an unforced re-render (see priorities.md #5)
               focusOnMount={!pageJustMountedRef.current}
             />
           )}

@@ -35,6 +35,7 @@ export function useInlineConfirm<
     }
     const target = step === 'confirming' ? confirmRef.current : triggerRef.current;
     target?.focus();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resets the one-shot focus trigger so it can fire again later
     setPendingFocus(false);
   }, [pendingFocus, step]);
 

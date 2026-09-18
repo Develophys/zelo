@@ -54,6 +54,7 @@ export function useFollowUpAnswer() {
 
   const answeredRecently =
     answeredAtDate !== null &&
+    // eslint-disable-next-line react-hooks/purity -- must reevaluate against the real current time on every render; memoizing would freeze the acknowledgment window at mount
     Date.now() - answeredAtDate.getTime() < ACKNOWLEDGMENT_WINDOW_HOURS * 60 * 60 * 1000;
   const showAcknowledgment = answeredThisCycle && answeredRecently;
 
@@ -64,6 +65,7 @@ export function useFollowUpAnswer() {
   const recentSevereAssessment =
     (mostRecentSeverityTone === 'high' || mostRecentSeverityTone === 'severe') &&
     mostRecentAssessmentAt !== null &&
+    // eslint-disable-next-line react-hooks/purity -- must reevaluate against the real current time on every render; memoizing would freeze the acknowledgment window at mount
     Date.now() - mostRecentAssessmentAt.getTime() < ACKNOWLEDGMENT_WINDOW_HOURS * 60 * 60 * 1000;
 
   return {

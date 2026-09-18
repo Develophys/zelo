@@ -41,13 +41,20 @@ export function InstitutionLinkCard({
   const unlinkAckRef = useRef<HTMLDivElement>(null);
   // Fallback for when Desvincular fires while the nudge is snoozed, so there's no "Vincular agora" for ctaRef to land on.
   const [justUnlinkedIntoQuiet, setJustUnlinkedIntoQuiet] = useState(false);
-  const unlinkConfirm = useInlineConfirm();
+  const {
+    isConfirming: unlinkIsConfirming,
+    triggerRef: unlinkTriggerRef,
+    confirmRef: unlinkConfirmRef,
+    requestConfirm: unlinkRequestConfirm,
+    cancel: unlinkCancel,
+  } = useInlineConfirm();
 
   useEffect(() => {
     if (!shouldFocusCta) {
       return;
     }
     ctaRef.current?.focus();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resets the one-shot focus trigger so it can fire again later
     setShouldFocusCta(false);
   }, [shouldFocusCta]);
 
@@ -154,15 +161,15 @@ export function InstitutionLinkCard({
   };
 
   // A one-tap unlink was too easy to trigger by accident — same inline-confirm pattern as RevokeConsentSection.
-  if (unlinkConfirm.isConfirming) {
+  if (unlinkIsConfirming) {
     return (
       <Card size="md" className={className} tone="brand-tint">
-        <div ref={unlinkConfirm.confirmRef} tabIndex={-1} className="outline-none">
+        <div ref={unlinkConfirmRef} tabIndex={-1} className="outline-none">
           <p className="text-label text-ink-2">
             Tem certeza? Você deixa de aparecer nos números do seu time até vincular de novo.
           </p>
           <div className="mt-3 flex gap-3">
-            <Button variant="outline" full={false} className="flex-1" onClick={unlinkConfirm.cancel}>
+            <Button variant="outline" full={false} className="flex-1" onClick={unlinkCancel}>
               Cancelar
             </Button>
             <Button variant="danger" full={false} className="flex-1" onClick={handleUnlink}>
@@ -187,11 +194,11 @@ export function InstitutionLinkCard({
           </div>
         </div>
         <Button
-          ref={unlinkConfirm.triggerRef}
+          ref={unlinkTriggerRef}
           variant="outline"
           full={false}
           className="md:flex-none"
-          onClick={unlinkConfirm.requestConfirm}
+          onClick={unlinkRequestConfirm}
         >
           Desvincular
         </Button>

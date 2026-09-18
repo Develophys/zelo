@@ -26,7 +26,13 @@ export function PeerChatRoom({ messages, onSend, onLeave, peerLeft, connectionLo
   // Messages arrive from another person, so the transcript follows new content
   // the way the AI chat does rather than leaving the reader to scroll for it.
   const { scrollerRef, handleScroll } = useStickToBottom(messages.length);
-  const leaveConfirm = useInlineConfirm();
+  const {
+    isConfirming: leaveIsConfirming,
+    triggerRef: leaveTriggerRef,
+    confirmRef: leaveConfirmRef,
+    requestConfirm: leaveRequestConfirm,
+    cancel: leaveCancel,
+  } = useInlineConfirm();
 
   const handleSubmit = (event: SubmitEvent) => {
     event.preventDefault();
@@ -109,9 +115,9 @@ export function PeerChatRoom({ messages, onSend, onLeave, peerLeft, connectionLo
       </form>
 
       <div className="mt-3">
-        {leaveConfirm.isConfirming ? (
+        {leaveIsConfirming ? (
           <div
-            ref={leaveConfirm.confirmRef}
+            ref={leaveConfirmRef}
             tabIndex={-1}
             className="rounded-card border border-line bg-canvas-alt p-3 outline-none"
           >
@@ -119,7 +125,7 @@ export function PeerChatRoom({ messages, onSend, onLeave, peerLeft, connectionLo
               Tem certeza? Você não vai poder voltar a esta conversa.
             </p>
             <div className="mt-3 flex gap-3">
-              <Button variant="outline" full={false} className="flex-1" onClick={leaveConfirm.cancel}>
+              <Button variant="outline" full={false} className="flex-1" onClick={leaveCancel}>
                 Cancelar
               </Button>
               <Button variant="danger" full={false} className="flex-1" onClick={onLeave}>
@@ -128,7 +134,7 @@ export function PeerChatRoom({ messages, onSend, onLeave, peerLeft, connectionLo
             </div>
           </div>
         ) : (
-          <Button ref={leaveConfirm.triggerRef} variant="outline" onClick={leaveConfirm.requestConfirm}>
+          <Button ref={leaveTriggerRef} variant="outline" onClick={leaveRequestConfirm}>
             Sair da conversa
           </Button>
         )}
