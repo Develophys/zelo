@@ -9,7 +9,7 @@
     "build:native": "cross-env VITE_DISABLE_PWA=true VITE_API_BASE_URL=https://zelo-api.fly.dev pnpm run build",
     "android:sync": "pnpm run build:native && cap sync android",
     "dev": "vite",
-    "lint": "eslint src",
+    "lint": "eslint src --max-warnings 10",
     "lint:boundaries": "depcruise src --config .dependency-cruiser.cjs",
     "test": "vitest run"
   },

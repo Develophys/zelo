@@ -220,6 +220,14 @@ disable comments this plan added now reference a plugin nothing registers. Resto
 (193 files / 2360 tests, same count as item #5's baseline), and `lint:boundaries`/`build` both
 still exit 0.
 
+`apps/web/package.json`'s `lint` script now carries `--max-warnings 10`, pinning today's 10
+tracked `incompatible-library` warnings as a hard ceiling: a future dropped dependency that
+prints a new `exhaustive-deps` warning pushes the count to 11 and fails `eslint`'s exit code
+(and with it CI), rather than passing silently. Verified to fire: a throwaway `useEffect` with
+a missing dependency added under `apps/web/src` pushed the count to 11 and `pnpm --filter
+@zelo/web lint` exited 1 with "ESLint found too many warnings (maximum: 10)"; removing it
+restored exit 0 at 10 warnings.
+
 One correction worth keeping: fixing `AssessmentReview.tsx` surfaced a real discrepancy in this
 plan's own text — the exhaustive-deps disable comment had to land one line below where the
 plan's before/after literally showed it, to match the line ESLint actually reports on. The
