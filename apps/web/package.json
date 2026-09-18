@@ -48,6 +48,7 @@
     "@zelo/config": "workspace:*",
     "cross-env": "10.1.0",
     "dependency-cruiser": "^16.4.0",
+    "eslint-plugin-react-hooks": "7.1.1",
     "fake-indexeddb": "^6.0.0",
     "jsdom": "^25.0.0",
     "tailwindcss": "^4.0.0",
