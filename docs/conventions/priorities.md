@@ -192,7 +192,38 @@ The original entry:
 - **Kind:** performance
 - **Files:** `apps/web/src/app/query-client.ts`
 
-## 6. `eslint-plugin-react-hooks` is not installed
+## 6. `eslint-plugin-react-hooks` is not installed — FIXED
+
+`apps/web/eslint.config.mjs` now wires the plugin's recommended preset. Six findings needed a
+real code fix rather than a disable comment: `useInlineConfirm()` was destructured at its call
+site, `useHotkey`'s latest-ref write moved into `useLayoutEffect`, and `ScaleAssessmentPage`'s
+refs findings were resolved directly. Everything else — `useDebouncedSearch`'s refs findings,
+`Tooltip`'s refs findings, the remaining set-state-in-effect/exhaustive-deps/globals findings,
+and `useFollowUpAnswer`'s purity findings — is a targeted per-site suppression, not a blanket
+config-level disable. `react-hooks/incompatible-library` is left as 10 tracked warnings on
+purpose (spec §2): it fires on React Hook Form's `watch()`, which genuinely can't be memoized,
+so the fix is upstream of this repo.
+
+**Proven to fire, not just changed.** `pnpm --filter @zelo/web lint` exits 0 today. Reverting
+`apps/web/eslint.config.mjs` to the commit before this work landed (`git show
+5cd23bd:apps/web/eslint.config.mjs > apps/web/eslint.config.mjs`) and re-running the
+same lint command turns it red: 20 errors, one `Definition for rule '<react-hooks/rule>' was not
+found` per surviving disable comment, across `AssessmentReview.tsx`, `InstitutionLinkCard.tsx`,
+`LinkInstitutionQrScanModal.tsx`, `QrCodeModal.tsx`, `useDebouncedSearch.ts`,
+`useFollowUpAnswer.ts`, `useInlineConfirm.ts`, `usePeerPartnerConnection.ts` and others — the
+disable comments this plan added now reference a plugin nothing registers. Restoring the file
+(`git checkout -- apps/web/eslint.config.mjs`) brings it back to exit 0 with the same 10
+`incompatible-library` warnings as before the revert. The full web suite stayed green throughout
+(193 files / 2360 tests, same count as item #5's baseline), and `lint:boundaries`/`build` both
+still exit 0.
+
+One correction worth keeping: fixing `AssessmentReview.tsx` surfaced a real discrepancy in this
+plan's own text — the exhaustive-deps disable comment had to land one line below where the
+plan's before/after literally showed it, to match the line ESLint actually reports on. The
+report-only rollout this entry originally proposed wasn't needed — every finding sorted cleanly
+into "real fix" or "deliberate suppression" without a staged phase.
+
+The original entry:
 
 - **Why:** `rules-of-hooks` and `exhaustive-deps` are entirely unenforced across 56 `useEffect`,
   31 `useCallback` and 12 `useMemo` call sites, though the CI lint path (`pnpm turbo run lint
