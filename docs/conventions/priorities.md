@@ -159,7 +159,27 @@ The original entry:
 - **Kind:** tooling-gap
 - **Files:** `turbo.json`, `apps/api/package.json` (postinstall), `apps/api/prisma/schema.prisma`
 
-## 5. `QueryClient` has no `defaultOptions` — the largest unforced re-render source in the app
+## 5. `QueryClient` has no `defaultOptions` — the largest unforced re-render source in the app — FIXED
+
+`apps/web/src/app/query-client.ts` now passes `defaultOptions: { queries: { staleTime: 30_000 } }`
+to `new QueryClient()`. `refetchOnWindowFocus` is left at its default (`true`) —
+`staleTime` is what gates it, so a screen left open for real time away still refreshes on
+return, and only the immediate-refocus churn (alt-tab back to `ManagerDashboardPage`, an admin
+table) is absorbed. None of the app's 11 `useQuery` call sites set their own `staleTime`, so
+all of them now inherit the 30s default; none depended on `staleTime: 0` (full web suite green
+before and after).
+
+Considered wrapping `useQuery` in a shared hook instead of centralizing via `defaultOptions`,
+and chose `defaultOptions`: it's TanStack Query's own mechanism for exactly this, it matches
+how this same file already centralizes mutation error handling via `MutationCache` rather than
+a `useMutation` wrapper, and — unlike a wrapper hook, which only works if every future call
+site remembers to import it instead of `useQuery` — it can't be silently bypassed, the same
+way `'is the only QueryClient the app constructs...'` in `query-client.test.ts` already
+guarantees no surface can construct its own client.
+
+`query-client.test.ts` locks the value down with an assertion on `getDefaultOptions()`.
+
+The original entry:
 
 - **Why:** `apps/web/src/app/query-client.ts` passes only `mutationCache` to `new QueryClient()`,
   so every query runs at TanStack Query 5's defaults (no `staleTime`, refetch on window focus).
