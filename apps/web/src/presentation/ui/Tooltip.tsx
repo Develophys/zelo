@@ -194,7 +194,11 @@ export function Tooltip({
     };
 
   const childRef = children.props.ref as Ref<HTMLElement> | undefined;
-  const mergedRef = useMemo(() => mergeRefs<HTMLElement>([childRef, triggerRef]), [childRef]);
+  const mergedRef = useMemo(
+    // eslint-disable-next-line react-hooks/refs -- mergeRefs only reads .current when the merged ref itself is invoked by React, not during this call
+    () => mergeRefs<HTMLElement>([childRef, triggerRef]),
+    [childRef],
+  );
 
   const describedBy = open && !restatesTheName ? id : children.props['aria-describedby'];
 
@@ -211,16 +215,20 @@ export function Tooltip({
     onPointerEnter: chain<PointerEvent>(children.props.onPointerEnter, (event) => {
       if (event.pointerType !== 'touch') setOpen(true);
     }),
+    // eslint-disable-next-line react-hooks/refs -- the wrapped handler only runs later, as a real pointer event, never during this render
     onPointerLeave: chain<PointerEvent>(children.props.onPointerLeave, () => {
       clearPress();
       setOpen(false);
     }),
+    // eslint-disable-next-line react-hooks/refs -- the wrapped handler only runs later, as a real pointer event, never during this render
     onPointerDown: chain<PointerEvent>(children.props.onPointerDown, (event) => {
       if (event.pointerType !== 'touch') return;
       clearPress();
       pressTimer.current = setTimeout(() => setOpen(true), LONG_PRESS_MS);
     }),
+    // eslint-disable-next-line react-hooks/refs -- clearPress only runs later, as a real pointer event, never during this render
     onPointerUp: chain<PointerEvent>(children.props.onPointerUp, clearPress),
+    // eslint-disable-next-line react-hooks/refs -- the wrapped handler only runs later, as a real pointer event, never during this render
     onPointerCancel: chain<PointerEvent>(children.props.onPointerCancel, () => {
       clearPress();
       setOpen(false);
