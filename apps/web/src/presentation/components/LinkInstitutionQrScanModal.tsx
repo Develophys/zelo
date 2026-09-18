@@ -28,6 +28,7 @@ export function LinkInstitutionQrScanModal({ isOpen, onClose, onScanned }: LinkI
 
   useEffect(() => {
     if (!isOpen) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- clears a stale error before the scanner (re)starts below
     setCameraError(null);
     let cancelled = false;
 

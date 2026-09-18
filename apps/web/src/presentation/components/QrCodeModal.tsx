@@ -41,6 +41,7 @@ export function QrCodeModal({
 
   useEffect(() => {
     if (!isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- resets stale ready/error state when the modal closes
       setIsReady(false);
       setRenderError(false);
       return;

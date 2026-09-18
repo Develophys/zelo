@@ -294,6 +294,7 @@ describe('Tooltip', () => {
 
     let renderCount = 0;
     function Trigger(props: Record<string, unknown>) {
+      // eslint-disable-next-line react-hooks/globals -- deliberate render-counting instrumentation for this test, not production code
       renderCount += 1;
       return (
         <button type="button" {...props}>

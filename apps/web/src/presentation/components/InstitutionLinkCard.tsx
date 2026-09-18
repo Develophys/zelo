@@ -54,6 +54,7 @@ export function InstitutionLinkCard({
       return;
     }
     ctaRef.current?.focus();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resets the one-shot focus trigger so it can fire again later
     setShouldFocusCta(false);
   }, [shouldFocusCta]);
 

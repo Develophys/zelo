@@ -21,6 +21,7 @@ export function FollowUpCard({ className = '' }: FollowUpCardProps) {
       return;
     }
     ackRef.current?.focus();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resets the one-shot focus trigger so it can fire again later
     setJustAnswered(false);
   }, [justAnswered]);
 
