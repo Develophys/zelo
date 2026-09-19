@@ -172,8 +172,15 @@ each paired with a non-disclosing handler that returns `void` on every non-happy
 nested shape above is required — the v5 flat `@Throttle({ limit, ttl })` shape still compiles and
 type-checks but silently applies no limit at all (see
 [`backend-http.md`'s Rate limiting section](./backend-http.md#rate-limiting) for that trap in
-full). The password floor is still 8 characters with no complexity rule, and the SuperAdmin
-password is never validated by a schema (`priorities.md` #29).
+full).
+
+**Password policy.** One schema, `passwordSchema` in `packages/domain/src/auth/password-policy.ts`:
+10 to 200 characters, no composition rules (length protects more than a required symbol does). Both
+`finish-setup` endpoints (which the forgot-password flow also lands on), the `admin:create` script
+(`prisma/super-admin-input.ts`) and the web `FinishSetupForm` read `MIN_PASSWORD_LENGTH` from it, so
+the two sides cannot drift. Login deliberately enforces no floor, so an account whose password was
+set at 8 or 9 characters before this policy keeps working until its next reset. There is no
+common-password blocklist and no check against the account's own e-mail.
 
 **`helmet` is absent from the stack**, and this is a known, tracked gap — state it as such, not
 as something to silently patch in mid-task. `grep helmet apps/api/package.json` → no match; no

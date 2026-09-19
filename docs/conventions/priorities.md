@@ -816,20 +816,37 @@ id, which every device has.
   `apps/web/src/stores/institution-link.store.ts`,
   `apps/web/src/presentation/hooks/usePeerRequest.ts`, a new peer-ticket endpoint and token service
 
-## 29. Password floor is 8 characters and the SuperAdmin password is never validated
+## 29. Password floor is 8 characters and the SuperAdmin password is never validated — FIXED
 
-Split from #18. Both `finish-setup` endpoints accept `z.string().min(8).max(200)` with no other
-rule, and `prisma/create-super-admin.ts` hashes whatever `SUPER_ADMIN_PASSWORD` holds with no schema
-at all. Length beats complexity rules for this; the proposal is a shared password schema (a higher
-minimum, the same upper bound) used by both `finish-setup` endpoints and by `admin:create`, plus the
-matching change in the web set-password forms. That touches PT-BR copy in
-`docs/superpowers/specs/screens/*.md`, which is normative, so it needs its own review.
+Split from #18. `MIN_PASSWORD_LENGTH = 10` and `MAX_PASSWORD_LENGTH = 200` now live in
+`packages/domain/src/auth/password-policy.ts` with a `passwordSchema`, and there are no composition
+rules. Both `finish-setup` endpoints (the forgot-password flow lands on the same ones) use the
+schema instead of their own copy of `min(8).max(200)`. `prisma/create-super-admin.ts` now runs its
+input through `parseSuperAdminInput` (`prisma/super-admin-input.ts`), so a SuperAdmin password
+under the floor, over the ceiling, or an unusable e-mail fails before the database is touched, and
+the error never echoes the password. The web `FinishSetupForm` reads the constant for its schema,
+its `minLength` and its placeholder ("Mínimo de 10 caracteres"), so client and server cannot drift.
 
-- **Effort:** small-medium
+The earlier note here said this touched normative PT-BR copy. It does not: no spec under
+`docs/superpowers/specs/screens/` carries the set-password strings, they live only in the web code.
+
+**Not covered, on purpose.** Login enforces no floor, so an existing account with an 8 or 9
+character password keeps working until its next reset. There is no common-password blocklist and no
+check against the account's own e-mail; either would be its own item.
+
+**Proven to fire, not just changed.** Before the change the two controller tests that post a
+9-character password failed (the endpoints returned 200 and set the password), and the domain,
+script and web tests failed against the missing module and the old floor of 8. After it, domain 43,
+API 727 and the web pages suite (737) pass, and `lint:boundaries` is green on all three packages.
+
+- **Effort:** small
 - **Kind:** security
-- **Files:** `apps/api/src/modules/manager/infrastructure/manager.controller.ts`,
+- **Files:** `packages/domain/src/auth/password-policy.ts`,
+  `apps/api/src/modules/manager/infrastructure/manager.controller.ts`,
   `apps/api/src/modules/peer-partner/infrastructure/peer-partner.controller.ts`,
-  `apps/api/prisma/create-super-admin.ts`, the web set-password forms
+  `apps/api/prisma/create-super-admin.ts`, `apps/api/prisma/super-admin-input.ts`,
+  `apps/web/src/presentation/components/FinishSetupForm.tsx`,
+  `apps/web/src/presentation/components/finish-setup-form-schema.ts`
 
 ---
 

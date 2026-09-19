@@ -13,8 +13,6 @@ async function main() {
 
   assertSameDatabaseTarget();
 
-  assertSameDatabaseTarget();
-
   const prisma = new PrismaService();
   const adminPasswordService = new AdminPasswordService();
   const passwordHash = await adminPasswordService.hash(password);

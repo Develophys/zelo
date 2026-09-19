@@ -27,6 +27,7 @@ import { InsightGenerationFailedError, type ManagerInsightResponse } from "../ap
 import type { IssuedManagerToken } from "../application/services/manager-token.service.ts";
 import { ManagerAuthGuard } from "./manager-auth.guard.ts";
 import { LoginThrottle } from "@/shared/http/throttling.js";
+import { passwordSchema } from "@zelo/domain";
 
 const LoginRequestSchema = z.object({ email: z.string().email().max(200), password: z.string().min(1).max(200) });
 const FinishSetupRequestSchema = z.object({ token: z.string().min(1), password: passwordSchema });

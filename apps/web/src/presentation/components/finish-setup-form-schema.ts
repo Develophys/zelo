@@ -1,6 +1,5 @@
 import { z } from "zod";
-
-const MIN_PASSWORD_LENGTH = 8;
+import { MIN_PASSWORD_LENGTH } from "@zelo/domain";
 
 export const finishSetupFormSchema = z
   .object({
