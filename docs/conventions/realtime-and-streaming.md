@@ -35,24 +35,26 @@ grep -ohE '(emit|on|SubscribeMessage)\("[a-zA-Z_-]+"' \
 
 Splitting the 12 by who defines them:
 
-- **Client → server, declared with `@SubscribeMessage` in the gateway**: `request-peer`
-  (`peer-chat.gateway.ts:106`), `accept_request` (:121), `decline_request` (:138), `message`
-  (:147), `leave_conversation` (:157).
-- **Server → client, `.emit(...)` from the gateway**: `incoming_request` (:117, :227),
-  `matched` (:134-135), `message` (:154), `peer_left` (:78, :164), `no_peer_available` (:110,
-  :221).
+- **Client → server, declared with `@SubscribeMessage` in the gateway**: `request_peer`
+  (`peer-chat.gateway.ts:104`), `accept_request` (:139), `decline_request` (:158), `message`
+  (:169), `leave_conversation` (:181). `request-peer` (:134) is a deprecated alias of
+  `request_peer` — see the rename note below.
+- **Server → client, `.emit(...)` from the gateway**: `incoming_request` (:130, :257),
+  `matched` (:154-155), `message` (:178), `peer_left` (:76, :190), `no_peer_available` (:108,
+  :116, :122, :251).
 - **Socket.io's own connection lifecycle, not app-defined but branched on for app state**:
   `connect_error` and `disconnect` appear in both hooks (`usePeerRequest.ts:53-63`,
   `usePeerPartnerConnection.ts:45-46`); `connect` appears only in
   `usePeerPartnerConnection.ts:44` — `usePeerRequest.ts` has no `connect` handler at all.
 
-**Naming inconsistency, not a typo**: `request-peer` is kebab-case. Every other custom event
-name above is snake_case (`accept_request`, `decline_request`, `incoming_request`,
-`leave_conversation`, `no_peer_available`, `peer_left`) or a single word (`matched`, `message`).
-This doc states the fact and flags it — it does not silently normalize it, because renaming a
-wire-protocol string is a code change with a test-file blast radius
-(`peer-chat.gateway.test.ts`), not a docs fix. It's tracked in `priorities.md` #8, as an added
-line on the existing item rather than a new one (see below).
+**The event was renamed from `request-peer` to `request_peer`** (`priorities.md` #8) so every
+custom event name is snake_case (`request_peer`, `accept_request`, `decline_request`,
+`incoming_request`, `leave_conversation`, `no_peer_available`, `peer_left`) or a single word
+(`matched`, `message`). The gateway still answers `request-peer` through
+`handleLegacyRequestPeer`, because a wire-protocol string outlives a deploy: an installed PWA
+keeps running its cached bundle until the service worker updates it, and the Android APK ships
+its web assets inside the package. Removing the alias would leave those clients on "Procurando…"
+forever, so drop it only once no such client is left in the field.
 
 ## 2. The state machine
 
@@ -63,7 +65,7 @@ becomes **active** (`Map<string, ActiveConversation>`) only once that candidate 
 `accept_request`. A `PendingMatch` carries `triedPeerPartnerIds: Set<string>` so a request
 doesn't re-offer a candidate who already declined or timed out.
 
-Timeout and failover: `ACCEPT_TIMEOUT_MS = 30_000` (`peer-chat.gateway.ts:18`).
+Timeout and failover: `ACCEPT_TIMEOUT_MS = 30_000` (`peer-chat.gateway.ts:19`).
 `startTimeout` arms a `setTimeout` per request; `declineOrExpire` — reached either by that
 timer firing or by an explicit `decline_request` — releases the current candidate
 (`presence.setStatus(..., "available")`) and calls `advanceToNextCandidate`, which asks
@@ -71,7 +73,7 @@ timer firing or by an explicit `decline_request` — releases the current candid
 and re-arms a fresh 30s timer against the *same* `requestId`. If none remain, the médico gets
 `no_peer_available` and the pending match is dropped.
 
-`handleDisconnect` (`peer-chat.gateway.ts:72-104`) has four distinct paths. Quoting the file's
+`handleDisconnect` (`peer-chat.gateway.ts:69-102`) has four distinct paths. Quoting the file's
 own comments rather than paraphrasing them, since the missingCoverage note is specifically that
 each one exists because of a real bug it fixed:
 
@@ -112,8 +114,7 @@ calls directly inside `useEffect`/`useCallback`. Compare `apps/web/src/ports/cha
 in the very next section, which *does* have a port and an adapter for the other real-time
 feature in this same app.
 
-State this plainly: this is a gap, tracked in `priorities.md` #8 alongside the gateway's
-missing validation, not a pattern to copy for the next real-time feature. Don't cite
+State this plainly: this is a gap, not a pattern to copy for the next real-time feature. Don't cite
 `usePeerRequest.ts`/`usePeerPartnerConnection.ts` as "how sockets are wired here" — they're how
 one feature that predates the port/use-case convention was wired, and nothing about Socket.io
 forces that shape (see the recipe in §5).
@@ -181,13 +182,12 @@ vocabulary in one `@zelo/domain` module, import it on both sides, and let TypeSc
 typo or a drift instead of a human re-reading two files.
 
 **This is prescriptive, not descriptive: the existing peer-chat code does not follow it.**
-`request-peer`, `accept_request`, `incoming_request`, and the rest are bare string literals
-duplicated between the gateway and both hooks today, with the kebab/snake inconsistency from
-§1 baked in. The existing implementation predates this rule. Match this rule going forward on
+`request_peer`, `accept_request`, `incoming_request`, and the rest are bare string literals
+duplicated between the gateway and both hooks today. The existing implementation predates this
+rule. Match this rule going forward on
 new code; don't retrofit `peer-chat.gateway.ts`, `usePeerRequest.ts`, or
 `usePeerPartnerConnection.ts` as a side effect of an unrelated change — that's a scoped
-refactor of its own, tracked in `priorities.md` #8, not something to fold into whatever else
-you're touching.
+refactor of its own, not something to fold into whatever else you're touching.
 
 Also give a new real-time transport the layering peer-chat lacks (§3): a port interface, a
 use-case or hook boundary that doesn't hold the raw socket/client directly, matching how
@@ -199,11 +199,9 @@ feature in this same app.
 Every item here is stated in full in the section named beside it — collected so a reader
 skimming for "what will bite me" doesn't have to reconstruct the list.
 
-- **Don't normalize `request-peer` to `request_peer`** (§1). It's the one kebab-case name among
-  the app-defined events — every other custom one is snake_case or a single word — so it reads
-  like a typo. Renaming a wire-protocol
-  string is a coordinated gateway + two-hook + `peer-chat.gateway.test.ts` change, not a tidy-up;
-  it's carried on `priorities.md` #8.
+- **Don't remove the `request-peer` alias just because it looks like leftover kebab-case** (§1).
+  `handleLegacyRequestPeer` keeps installed PWAs and Android APKs that still emit the old name
+  working; removing it strands their peer requests with no error.
 - **Don't remove or "simplify" the `unregistered &&` guard in `handleDisconnect`** (§2, path 3).
   It is what stops a peer partner's superseded socket — the normal reconnect case — from
   cancelling their own live pending request. The no-op fourth path exists *because* of that

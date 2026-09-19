@@ -367,22 +367,28 @@ institution's rows — or a sector manager another sector's — short of forging
 Everything above describes the HTTP surface. The WebSocket gateway is deliberately different, and
 the difference is worth stating plainly rather than filing it under "token verified."
 
-`handleConnection` (`peer-chat.gateway.ts:53-70`) does **not** reject a tokenless socket — a
+`handleConnection` (`peer-chat.gateway.ts:50-67`) does **not** reject a tokenless socket — a
 missing token is an early `return`, and the connection stays open, just unregistered. That is by
 design: the médico side of peer chat is anonymous, exactly like the rest of their experience, so
 there is no token for them to present. A token that *is* present must verify and must resolve to
 an active `PeerPartner`, or the socket is disconnected; only then is the partner registered in
 presence, under the `institutionId` read from their **database row**, never from the client.
 
-The gap is on the other event. `handleRequestPeer` (`:106-119`) takes `payload.institutionId`
-straight off that anonymous socket — no zod schema, no guard, no throttle, no cross-check — and
-uses it to pick and hold a peer partner. `priorities.md` #8 calls it the only request surface in
-the app with zero input validation, and it inverts this section's own rule that the tenant key
-comes from the guard and never from the payload. Since institution ids are cuids the public
-`GET /institutions/by-code/:code` endpoint hands out, any browser can open a tokenless socket and
-occupy a named hospital's peer partners 30 seconds at a time (`ACCEPT_TIMEOUT_MS`). This is
-`priorities.md` #8, ranked as security; the fix it calls for is authorization on `request-peer`,
-not merely validation.
+The other event was the gap. `handleRequestPeer` (`:104-132`) used to take
+`payload.institutionId` straight off that anonymous socket with no validation of any kind
+(`priorities.md` #8). It now zod-checks every payload in the gateway (`peer-chat.payloads.ts`),
+ignores a request from a socket that is registered as a peer partner, lets one socket hold a single
+open request (pending or matched), and caps open requests per network address at three
+(`Fly-Client-IP` when present, since behind Fly's proxy every socket shares one socket address;
+otherwise `handshake.address`). Past the cap it answers `no_peer_available`, so a crisis-adjacent
+client never hangs on "Procurando…". The event was also renamed `request-peer` → `request_peer`;
+the old name still works (see `realtime-and-streaming.md` §1).
+
+What is **not** closed: the gateway still takes the tenant key from the payload, because an
+anonymous médico has no credential to prove institution membership with. The limits bound how
+many peer partners one source can occupy; they do not stop a distributed caller who holds a valid
+institution id, which travels on every linked device's traffic and the public
+`GET /institutions/:id/sectors`. Proving membership is `priorities.md` #28.
 
 The gateway's other four events are authorized, just not by a guard: `accept_request` and
 `decline_request` check `isCurrentCandidate` (the socket must be the peer partner presence
@@ -584,7 +590,7 @@ reason, doesn't want their hospital to know they use the app at all.
 | Login | Rejects if the manager is inactive *or* their institution is inactive, behind the same non-disclosing error as a wrong password. |
 | Every manager-scoped query | Takes `institutionId` as an explicit parameter; a `SECTOR_MANAGER` additionally has `sectorIds` resolved server-side from their assignments. |
 | k-anonymity grouping key | `institutionId + sectorId`, not a name — two institutions that both have a "UTI" can't pool it to fake reaching n=5 for either. |
-| **Peer-chat gateway — the exception** | `request-peer` reads `institutionId` from the client payload, unvalidated, on a socket that needs no token. Nothing behind it is tenant-scoped data (no rows are read or written), but the boundary is genuinely not enforced here. §4, `priorities.md` #8. |
+| **Peer-chat gateway — the exception** | `request_peer` reads `institutionId` from the client payload on a socket that needs no token. The payload is now zod-validated and rate-bounded per source address, but membership is still unproven. Nothing behind it is tenant-scoped data (no rows are read or written). §4, `priorities.md` #8 (validation, done) and #28 (membership proof, open). |
 
 ---
 
@@ -634,10 +640,11 @@ non-disclosure rule as login — unknown or deactivated emails get a silent no-o
 200 either way.
 
 **And one non-HTTP surface: the peer-chat WebSocket gateway.** It accepts a socket with no token
-at all (that is how an anonymous médico reaches a peer partner), and its `request-peer` event
-trusts a client-supplied `institutionId` with no schema, guard or throttle. It belongs in this
-enumeration and is the only place in the system where a tenant key comes off the wire rather than
-out of a verified token — traced in full in §4, tracked as `priorities.md` #8.
+at all (that is how an anonymous médico reaches a peer partner), and its `request_peer` event
+trusts a client-supplied `institutionId`, now behind a schema and per-address limits but with no
+proof of membership. It belongs in this enumeration and is the only place in the system where a
+tenant key comes off the wire rather than out of a verified token — traced in full in §4;
+validation was `priorities.md` #8, membership proof is #28.
 
 **Known gap — no per-endpoint rate limit except on the two forgot-password routes.** A global
 `ThrottlerModule` (100 requests/60s per IP, via `APP_GUARD` in `app.module.ts`) protects
@@ -790,7 +797,7 @@ architect needs without reading either in full.
 | — | The seed script deletes real check-in data if re-run against a linked institution (§9). | Documented, not yet prevented in code. |
 | — | Unlink-then-relink within the same week double-counts (a fresh `deviceSignalId` is minted on each link). | Accepted trade-off — the alternative (persisting the id across unlink) weakens "unlink leaves nothing behind." |
 | — | `deviceSignalId` crosses the wire in plaintext on every check-in. | Mitigated by HTTPS-only transport; the at-rest guarantee (§6) holds regardless. |
-| — | The peer-chat gateway accepts tokenless sockets and trusts a client-supplied `institutionId` on `request-peer`, with no validation anywhere (§4, §8). | Open — `priorities.md` #8 (one of six items marked `Kind: security`: #1, #7, #8, #10, #18, #25). |
+| — | The peer-chat gateway accepts tokenless sockets and trusts a client-supplied `institutionId` on `request_peer` (§4, §8). Payloads are validated and open requests are capped per source address, but membership is not proven. | Membership proof open — `priorities.md` #28. Validation and limits fixed under #8. |
 | — | Dead GitHub Pages plumbing (`VITE_BASE_PATH` in `vite.config.ts` and `turbo.json`), and a README tech-stack table that contradicts the README's own Deployment section (§9). | Open — `priorities.md` #13. |
 | — | `build:native` hardcodes the production API URL, so any APK — including one built from `develop` — writes to production (§9). | Open — `priorities.md` #25. |
 | — | `router.tsx` statically imports every page, so a médico downloads the whole manager/admin panel to reach `/home`. | Open and known — `priorities.md` #14; the playbook is [`react-performance.md`](../docs/conventions/react-performance.md). Any fix must preserve the `routeChildren` export `router.test.tsx` depends on. |
