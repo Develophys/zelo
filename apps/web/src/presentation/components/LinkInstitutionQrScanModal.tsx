@@ -10,6 +10,15 @@ interface LinkInstitutionQrScanModalProps {
 
 const CAMERA_ERROR = "Não conseguimos acessar a câmera. Digite o código manualmente.";
 
+// Kept as a plain module-level function, not inlined into the effect below:
+// React Compiler's HIR lowering doesn't yet support dynamic `import()`
+// expressions inside a component/hook it's analyzing, and this function's
+// shape (not PascalCase, not `use*`-prefixed) keeps it outside that analysis
+// entirely.
+function loadQrScanner() {
+  return import("qr-scanner");
+}
+
 // qr-scanner (and the worker it drives the actual decoding on) is loaded
 // lazily — only a médico who opens this modal pays for it.
 export function LinkInstitutionQrScanModal({ isOpen, onClose, onScanned }: LinkInstitutionQrScanModalProps) {
@@ -35,7 +44,7 @@ export function LinkInstitutionQrScanModal({ isOpen, onClose, onScanned }: LinkI
     (async () => {
       // Vite bundles the decode worker on its own via the dynamic import
       // inside qr-scanner itself — no manual WORKER_PATH wiring needed.
-      const { default: QrScannerCtor } = await import("qr-scanner");
+      const { default: QrScannerCtor } = await loadQrScanner();
 
       const video = videoRef.current;
       if (!video || cancelled) return;
