@@ -19,7 +19,7 @@ export class LoginAdminUseCase {
     const admin = await this.adminRepository.findByEmail(email);
 
     const isValid = await this.passwordService.verify(password, admin?.passwordHash ?? DUMMY_PASSWORD_HASH);
-    if (!admin || !isValid) {
+    if (!admin || !isValid || !admin.isActive) {
       throw new InvalidAdminCredentialsError();
     }
 

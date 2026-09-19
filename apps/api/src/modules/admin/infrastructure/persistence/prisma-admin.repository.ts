@@ -9,6 +9,12 @@ export class PrismaAdminRepository implements AdminRepository {
   async findByEmail(email: string): Promise<AdminRow | null> {
     const row = await this.prisma.superAdmin.findUnique({ where: { email } });
     if (!row) return null;
-    return { id: row.id, name: row.name, email: row.email, passwordHash: row.passwordHash };
+    return { id: row.id, name: row.name, email: row.email, passwordHash: row.passwordHash, isActive: row.isActive };
+  }
+
+  async findById(id: string): Promise<AdminRow | null> {
+    const row = await this.prisma.superAdmin.findUnique({ where: { id } });
+    if (!row) return null;
+    return { id: row.id, name: row.name, email: row.email, passwordHash: row.passwordHash, isActive: row.isActive };
   }
 }
