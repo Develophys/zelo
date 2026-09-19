@@ -358,33 +358,43 @@ defect.
   `apps/web/src/presentation/hooks/useAdminManagers.ts`, `apps/api/prisma/seed-data.ts`,
   `apps/api/prisma/seed.ts`
 
-## 10. Enforce TD-001's stated compensating control and add baseline security headers
+## 10. Enforce TD-001's stated compensating control and add baseline security headers — FIXED
 
-- **Why:** `technical-debt.md` TD-001 names "no `dangerouslySetInnerHTML`" as the thing standing
-  between `sessionStorage`-held Bearer tokens and full session exfiltration for manager,
-  hospital-admin, SuperAdmin and peer-partner — and nothing verifies it today (zero occurrences
-  is convention only). Add `react/no-danger: error` to the shared eslint config, and add helmet
-  or equivalent CSP/HSTS/X-Frame-Options/Referrer-Policy headers — there are none anywhere: no
-  helmet on the API, no headers from `docker/nginx.conf` or `apps/web/vercel.json`, no CSP meta
-  in `index.html`. One lint rule converts the documented control into an enforced one; a CSP is
-  the cheapest control that would blunt exfiltration even if an XSS did land.
+The control TD-001 named ("no `dangerouslySetInnerHTML`") is now enforced, and a CSP backs it up.
 
-  **TD-001 status note:** as of this writing TD-001 in `technical-debt.md` is still `Accepted,
-  deferred` (dated 2026-07-12), but that status is worth re-confirming rather than assumed
-  stale or current — a September design spec and implementation plan exist for the underlying
-  `HttpOnly`-cookie migration
-  (`docs/superpowers/specs/2026-09-14-httponly-cookie-session-migration-design.md`,
-  `docs/superpowers/plans/2026-09-14-httponly-cookie-session-migration.md`). As of this task,
-  only those two documents exist in git history for that migration — `git log --all` shows no
-  commits touching guard or session-store code for it, and
-  `apps/web/src/stores/manager-session.store.ts:4` and `:34` still read "sessionStorage +
-  Bearer token, not an HttpOnly cookie — deliberate" and persist to `sessionStorage`. So the
-  migration is spec-and-plan-only, not shipped — check whether it has shipped before treating
-  TD-001 as either still fully open or already closed.
+**Lint.** `apps/web/eslint.config.mjs` fails the build on `dangerouslySetInnerHTML` (JSX attribute
+and `createElement` prop), assignments to `innerHTML`/`outerHTML`, `insertAdjacentHTML` and
+`document.write`/`writeln`, using core `no-restricted-syntax` rather than a new plugin.
+`packages/config/eslint.base.mjs` adds `no-eval`, `no-implied-eval`, `no-new-func` and
+`no-script-url` for every package. `apps/web/src/lint/no-raw-html.test.ts` runs ESLint over probe
+snippets (18 cases) to prove each pattern is rejected and that ordinary code is not.
+
+**Headers.** The site sends a CSP (`default-src 'self'`, no `unsafe-eval`, no wildcard host,
+`frame-ancestors 'none'`, `connect-src` limited to Zelo's four API origins over https and wss, the
+one inline theme script allowed by sha256) plus `X-Frame-Options`, `nosniff`, `Referrer-Policy` and
+a `Permissions-Policy` that keeps the camera for the QR scanner. The API wraps `helmet`
+(`default-src 'none'`, `DENY`, `nosniff`, `no-referrer`, HSTS two years, no `X-Powered-By`). The
+Docker nginx sends the same site headers, in both the server block and the `/sw.js` location. Tests
+assert the CSP's shape, recompute the inline-script hash from `index.html`, and check nginx parity.
+
+**Proven to fire, not just changed.** The production build, served with the exact `vercel.json`
+headers in headless Chrome: nine routes render with zero CSP violations, and simulated attacks are
+blocked (fetch and image beacon to a foreign host, to another `*.fly.dev` app, an inline script, an
+inline event handler, a foreign script, `eval`, `new Function`, string `setTimeout`, framing). Against
+the local API, cross-origin `fetch`, a JSON `POST` with preflight and the socket.io handshake still
+work with `helmet` in front. nginx returns the headers on `/`, `/sw.js` and an SPA route.
+
+**Not closed.** TD-001 stays open (see #30): the token is still readable by script, and a CSP does
+not stop an injected script from acting inside the open tab. The Android APK loads its assets
+locally and gets none of the Vercel headers. `style-src` keeps `'unsafe-inline'` for React's inline
+`style` attributes. The inline-script hash depends on LF line endings, which is what git stores and
+Vercel builds; a Windows checkout has CRLF and hashes differently.
+
 - **Effort:** small
 - **Kind:** security
-- **Files:** `packages/config/eslint.base.mjs`, `apps/api/src/main.ts`, `docker/nginx.conf`,
-  `apps/web/vercel.json`, `docs/superpowers/specs/technical-debt.md` (TD-001)
+- **Files:** `apps/web/eslint.config.mjs`, `packages/config/eslint.base.mjs`, `apps/web/vercel.json`,
+  `apps/api/src/main.ts`, `apps/api/src/shared/http/security-headers.ts`, `docker/nginx.conf`,
+  `docker/nginx-security-headers.conf`, `docs/superpowers/specs/technical-debt.md` (TD-001)
 
 ## 11. Missing `aria-invalid`/`aria-describedby` on several react-hook-form-migrated forms
 
@@ -847,6 +857,47 @@ API 727 and the web pages suite (737) pass, and `lint:boundaries` is green on al
   `apps/api/prisma/create-super-admin.ts`, `apps/api/prisma/super-admin-input.ts`,
   `apps/web/src/presentation/components/FinishSetupForm.tsx`,
   `apps/web/src/presentation/components/finish-setup-form-schema.ts`
+
+## 30. Move session tokens out of `sessionStorage` into `HttpOnly` cookies (TD-001's real fix)
+
+Added after #10. #10 lowers the odds and the blast radius of an XSS; only this closes TD-001, by
+making the token unreadable by script. An injected script could still act inside the open tab, so
+the lint rules and the CSP stay either way. A design and a 13-task plan already exist
+(`docs/superpowers/specs/2026-09-14-httponly-cookie-session-migration-design.md` and the matching
+plan, about 90 files: 9 adapters, 9 ports, 26 use-cases, the three session stores, the router
+loaders, three guards, new `logout`/`me` endpoints, and the peer-chat socket handshake).
+
+**Prerequisite outside the repo, half done.** The design keeps `SameSite=Lax` and skips a CSRF token
+system by putting the API on the frontend's registrable domain. Checked on 2026-09-19: prod already
+does. The deployed prod bundle (`www.zelohealth.app`) calls `https://api.zelohealth.app`, and its
+`/health` answers 200 from Fly. Dev does not: the deployed dev bundle calls
+`https://zelo-api-dev.fly.dev`, and `api-dev.zelohealth.app` does not resolve. What is left is a
+`fly certs add api-dev.zelohealth.app --app zelo-api-dev` plus a Cloudflare DNS record, then pointing
+the dev Vercel project's `VITE_API_BASE_URL` at it. The CSP's `connect-src` already lists all four
+API origins.
+
+**Findings to fold in before executing.**
+- **The Android APK.** `apps/web/capacitor.config.ts` uses `androidScheme: "https"`, so the app runs
+  at `https://localhost`. Calling `api.zelohealth.app` is cross-site, and a `SameSite=Lax` cookie is
+  not sent. If any manager, admin or peer partner logs in through the APK, their session breaks. The
+  design does not mention the APK; it needs a decision (staff on the web only, a Bearer fallback, or
+  `SameSite=None` with CSRF protection).
+- **The plan predates several merged changes.** `AdminAuthGuard` now takes `ADMIN_REPOSITORY` and
+  re-reads the row on every request, rejecting a missing or deactivated admin (#7), so the design's
+  note that the admin guard "trusts the token alone" is outdated and the guard's constructor and
+  tests changed. The peer-chat gateway gained zod payload validation, a per-address open-request cap
+  and the `request_peer` event with a legacy alias (#8), which the cookie handshake change must keep.
+  The throttler now keys on `Fly-Client-IP` and the login routes carry `@LoginThrottle()` (#18); the
+  login body still returns no token after the change, but the throttler reads only `email`. Passwords
+  go through `passwordSchema` once #29 (PR #71) lands. The React Query client has `defaultOptions` (#5) and the web app
+  builds with the React Compiler (#27), both touched by the design's `query-client.ts` changes.
+- **Cutover logs everyone out**, which the design already accepts.
+
+- **Effort:** large
+- **Kind:** security
+- **Files:** the design and plan above, plus `apps/web/src/stores/*-session.store.ts`,
+  `apps/web/capacitor.config.ts`, the three auth guards and login controllers,
+  `apps/api/src/modules/peer-chat/infrastructure/peer-chat.gateway.ts`
 
 ---
 
