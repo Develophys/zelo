@@ -697,6 +697,41 @@ whichever word it read last — which is exactly how this drift was produced.
   `apps/web/src/presentation/pages/ManagerInsightHistoryPage.tsx`,
   `apps/web/src/presentation/hooks/useDebouncedSearch.ts`
 
+## 27. React Compiler is not installed — DONE
+
+`apps/web/vite.config.ts`'s `react()` plugin now runs `babel-plugin-react-compiler@1.0.0` with
+`target: "19"`, `panicThreshold: "none"`, and `compilationMode` left at its default (`"infer"`,
+whole-app, no directory scoping). `panicThreshold` was measured, not assumed:
+`critical_errors` failed the build on the exact same `refs` finding `all_errors` did, so there's
+no functional middle ground between `none` and `all_errors` on this codebase — `none` is also
+react.dev's own stated production recommendation.
+
+A real build's `logger`-based count is 199/223 compiled, 24 bailed out: 10 are the
+`incompatible-library` warnings already tracked in item #6 (React Hook Form's `watch()`), 11 are
+`refs` findings already tracked in item #6's worklist (`ScaleAssessmentPage.tsx` ×4,
+`useDebouncedSearch.ts` ×2, `Tooltip.tsx` ×5), 1 (`AssessmentReview.tsx`) is skipped purely
+because it carries an `eslint-disable` for a react-hooks rule — the real compiler treats any such
+disable as a signal to skip the whole component, not just the disabled line — and 2 are genuine
+compiler-tooling limitations tracked in `QrCodeModal.tsx` and `useChatConversation.ts`. Two sites
+needed a real code fix rather than a tracked bailout: `LinkInstitutionQrScanModal.tsx` and
+`ChatComposer.tsx`. `ChatComposer.tsx`'s finding — a latest-ref write that needed to move into
+`useLayoutEffect` — was invisible to `eslint-plugin-react-hooks`'s static analysis; the eslint
+rules and the real compiler don't fully agree, in both directions.
+
+`react-compiler-healthcheck` is not reliable ground truth: run against this exact codebase before
+any code change, its own summary claimed "218/218 compiled, no incompatible libraries," which the
+real build's per-event `logger` count above already contradicts by itself (10
+`incompatible-library` bailouts alone, on top of the count being 223 sites, not 218). Anyone
+reaching for a compiler-coverage number should read it off a real build's `logger`, not off
+`react-compiler-healthcheck`'s summary line.
+
+**Proven to fire, not just changed.** Removing the `babel` block from `vite.config.ts`'s
+`react()` call and rebuilding still exits 0, but the `react-compiler:` summary line is absent
+from the output entirely — `grep "react-compiler:"` matches nothing. Restoring the block and
+rebuilding brings the line back with the identical split, `react-compiler: 199/223 compiled, 24
+bailed out`. The full web suite stayed green throughout (193 files / 2360 tests) and
+`pnpm turbo run lint lint:boundaries build --filter=@zelo/web` exits 0.
+
 ---
 
 ## TD-003 (not separately ranked above)
