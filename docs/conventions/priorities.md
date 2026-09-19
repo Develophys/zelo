@@ -284,22 +284,42 @@ brings it back to green.
   `apps/api/src/modules/manager/infrastructure/manager-auth.guard.ts`,
   `apps/api/prisma/schema.prisma` (`SuperAdmin` model)
 
-## 8. Peer-chat gateway accepts tokenless sockets with no input validation
+## 8. Peer-chat gateway accepts tokenless sockets with no input validation — FIXED
 
-- **Why:** `handleConnection` allows sockets with no token (`if (!token) return;`), and
-  `handleRequestPeer` reads `payload.institutionId` straight from that anonymous client — no
-  zod, no guard, no throttle, no cross-check. It's the only request surface in the app with zero
-  input validation. Any browser can open a socket with no token and enumerate institutions (a
-  cuid the public by-code endpoint hands out), occupying a hospital's peer partners 30 seconds at
-  a time. It inverts the API's own rule that the tenant key comes from the guard, never the
-  payload — on the one surface where a live human in distress is on the other end. The fix is
-  authorization, not validation: `accept`/`decline` already check `isCurrentCandidate`; only
-  `request-peer` is open. The 25-case gateway test has no payload or authorization case at all.
-- **Also:** while touching this file, fix the naming inconsistency in the event vocabulary — `request-peer` is the gateway's only kebab-case event name; every other one (`accept_request`, `decline_request`, `incoming_request`, `leave_conversation`, `no_peer_available`, `peer_left`) is snake_case (see `docs/conventions/realtime-and-streaming.md` §1).
+Every gateway payload is now zod-parsed (`peer-chat.payloads.ts`): `request_peer` needs a string
+`institutionId` (1-64 chars) and an optional `sectorName` (max 100), `accept_request` /
+`decline_request` / `leave_conversation` need a UUID `requestId`, and `message` needs a UUID plus
+1-4000 characters of text. A bad `request_peer` answers `no_peer_available` so the médico never
+hangs on "Procurando…"; the other events are ignored. Before, `request_peer` with no payload threw
+a `TypeError`, and `sectorName` and message text of any type or size were relayed to the peer
+partner.
+
+`request_peer` also stopped being open-ended. A socket registered as a peer partner cannot issue
+one; a socket holds one open request (pending or matched) at a time, which removes the burst that
+let a single socket put every peer partner of an institution into `pending`; and open requests are
+capped at three per network address (`Fly-Client-IP` when present, else `handshake.address`), with
+`no_peer_available` past the cap. The event was renamed from `request-peer` to `request_peer`; the
+old name is kept as `handleLegacyRequestPeer` because installed PWAs and Android APKs still emit it
+(`realtime-and-streaming.md` §1).
+
+**Not fixed here, and why.** This item said the fix was authorization. The médico side is anonymous
+by design and holds no credential, so the gateway still takes the institution from the payload.
+The limits bound how many peer partners one source can occupy; they do not stop a distributed
+caller with a valid institution id. That is #28. Also dropped from the original plan: an
+institution-exists check before matching, since `PeerPresenceService.findAvailable` already answers
+"nobody" for an unknown id without holding anyone.
+
+**Proven to fire, not just changed.** With the pre-fix gateway restored, 16 of the 48 gateway tests
+fail (payload validation, partner sockets, one-open-per-socket, the per-address cap, the legacy
+alias); with the fix all 71 peer-chat tests pass. `PeersPage.test.tsx` asserts the web client emits
+`request_peer`.
+
 - **Effort:** medium
 - **Kind:** security
 - **Files:** `apps/api/src/modules/peer-chat/infrastructure/peer-chat.gateway.ts`,
-  `apps/api/src/modules/peer-chat/infrastructure/peer-chat.gateway.test.ts`
+  `apps/api/src/modules/peer-chat/infrastructure/peer-chat.payloads.ts`,
+  `apps/api/src/modules/peer-chat/application/services/peer-match-registry.service.ts`,
+  `apps/web/src/presentation/hooks/usePeerRequest.ts`
 
 ## 9. Sector-manager QR permission gap (user-flagged)
 
@@ -758,6 +778,37 @@ from the output entirely — `grep "react-compiler:"` matches nothing. Restoring
 rebuilding brings the line back with the identical split, `react-compiler: 199/215 compiled, 16
 bailed out`. The full web suite stayed green throughout (193 files / 2360 tests) and
 `pnpm turbo run lint lint:boundaries build --filter=@zelo/web` exits 0.
+
+## 28. Peer-chat requests carry no proof of institution membership
+
+Added after #8. The gateway trusts the `institutionId` in the `request_peer` payload because an
+anonymous médico has no credential. The id is far less secret than an invite code: it is in every
+linked device's traffic and in the public `GET /institutions/:id/sectors`. With #8's limits, one
+source can hold at most three peer partners at a time, but a caller spread over many addresses can
+still keep an institution's peer partners in `pending` and lock its doctors out.
+
+The fix that respects anonymity is a short-lived signed **ticket**, carrying no identity:
+
+1. The device stores the invite code at link time (today it keeps only `institutionId`).
+2. A new throttled endpoint exchanges the code for an HMAC ticket holding `institutionId` and the
+   sector name derived on the server, valid for a few minutes.
+3. The socket connects with the ticket and `request_peer` takes no payload, so the tenant key comes
+   from verified state, matching the API's rule.
+
+Costs to weigh first: devices linked before the change have no stored code and must relink (or get a
+grace path); it is a fourth HMAC token service, so extract the shared signing helper from #21 first;
+and the invite code is immutable today, so a leaked code stays valid unless codes become rotatable.
+The gain is that an attacker needs the code, which is handed only to an institution's staff, not the
+id, which every device has.
+
+- **Also (unverified):** `main.ts` never sets `trust proxy`. If Express sees Fly's edge address as
+  `req.ip`, the global `ThrottlerGuard` (100 requests/60s) is one bucket for all users instead of one
+  per client. Check it against the dev deploy before relying on HTTP throttling, including in #18.
+- **Effort:** medium-large
+- **Kind:** security
+- **Files:** `apps/api/src/modules/peer-chat/infrastructure/peer-chat.gateway.ts`,
+  `apps/web/src/stores/institution-link.store.ts`,
+  `apps/web/src/presentation/hooks/usePeerRequest.ts`, a new peer-ticket endpoint and token service
 
 ---
 

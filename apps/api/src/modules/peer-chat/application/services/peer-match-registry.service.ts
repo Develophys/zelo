@@ -52,6 +52,13 @@ export class PeerMatchRegistry {
     return undefined;
   }
 
+  medicoSocketIdsWithOpenRequests(): string[] {
+    const socketIds = new Set<string>();
+    for (const match of this.pending.values()) socketIds.add(match.medicoSocketId);
+    for (const conversation of this.active.values()) socketIds.add(conversation.medicoSocketId);
+    return [...socketIds];
+  }
+
   /**
    * Reverse lookup used by the gateway to find a pending match whose currently-offered
    * candidate has disconnected. Keyed by peer partner id rather than socket id because a

@@ -38,10 +38,14 @@ function fakeConfig(secret: string): ConfigService {
   return { getOrThrow: () => secret, get: () => undefined } as unknown as ConfigService;
 }
 
-function fakeClient(id: string, token?: string) {
+function fakeClient(id: string, token?: string, network: { address?: string; flyClientIp?: string } = {}) {
   return {
     id,
-    handshake: { auth: token ? { token } : {} },
+    handshake: {
+      auth: token ? { token } : {},
+      address: network.address ?? `10.0.0.${id.length}`,
+      headers: network.flyClientIp ? { "fly-client-ip": network.flyClientIp } : {},
+    },
     emit: vi.fn(),
     disconnect: vi.fn(),
   };
@@ -109,14 +113,14 @@ describe("PeerChatGateway", () => {
     expect(client.disconnect).not.toHaveBeenCalled();
   });
 
-  it("request-peer emits no_peer_available when nobody is connected for that institution", () => {
+  it("request_peer emits no_peer_available when nobody is connected for that institution", () => {
     const medico = fakeClient("medico-socket");
     gateway.handleRequestPeer(medico as never, { institutionId: "institution-1" });
 
     expect(medico.emit).toHaveBeenCalledWith("no_peer_available");
   });
 
-  it("request-peer emits incoming_request to the available peer partner's socket", async () => {
+  it("request_peer emits incoming_request to the available peer partner's socket", async () => {
     await connectPeerPartner("peer-1", "Dra. Ana", "institution-1", "Clínica médica");
     const medico = fakeClient("medico-socket");
 
@@ -368,5 +372,185 @@ describe("PeerChatGateway", () => {
 
   it("forceDisconnect on a peer partner who isn't connected does nothing, doesn't throw", () => {
     expect(() => gateway.forceDisconnect("not-connected")).not.toThrow();
+  });
+
+  describe("request_peer authorization and abuse limits", () => {
+    const REQUEST = { institutionId: "institution-1", sectorName: "UTI" };
+
+    async function partnersFor(institutionId: string, count: number) {
+      for (let i = 1; i <= count; i += 1) {
+        await connectPeerPartner(`${institutionId}-peer-${i}`, `Dra. ${i}`, institutionId, "Clínica médica");
+      }
+    }
+
+    function incomingRequests() {
+      return server.emitted.filter((e) => e.event === "incoming_request");
+    }
+
+    it.each([
+      ["no payload at all", undefined],
+      ["an empty object", {}],
+      ["an institutionId that is not a string", { institutionId: 42 }],
+      ["an empty institutionId", { institutionId: "" }],
+      ["a sectorName that is not a string", { institutionId: "institution-1", sectorName: { evil: true } }],
+      ["a sectorName over the length cap", { institutionId: "institution-1", sectorName: "x".repeat(101) }],
+    ])("rejects %s without offering the request to anyone", async (_label, payload) => {
+      await partnersFor("institution-1", 1);
+      const medico = fakeClient("medico-socket");
+
+      expect(() => gateway.handleRequestPeer(medico as never, payload as never)).not.toThrow();
+
+      expect(incomingRequests()).toHaveLength(0);
+      expect(medico.emit).toHaveBeenCalledWith("no_peer_available");
+      expect(presence.findAvailable("institution-1", new Set())?.peerPartnerId).toBe("institution-1-peer-1");
+    });
+
+    it("treats a null sectorName like an absent one", async () => {
+      await partnersFor("institution-1", 1);
+
+      gateway.handleRequestPeer(fakeClient("medico-socket") as never, { institutionId: "institution-1", sectorName: null } as never);
+
+      expect(incomingRequests()).toHaveLength(1);
+      expect(incomingRequests()[0]?.payload).toEqual({ requestId: expect.any(String), sectorName: undefined });
+    });
+
+    it("ignores a request from a socket that is registered as a peer partner", async () => {
+      const partner = await connectPeerPartner("peer-1", "Dra. Ana", "institution-1", "Clínica médica");
+      await connectPeerPartner("peer-2", "Dr. Bruno", "institution-1", "Clínica médica");
+
+      gateway.handleRequestPeer(partner as never, REQUEST);
+
+      expect(incomingRequests()).toHaveLength(0);
+      expect(presence.getByPeerPartnerId("peer-1")?.status).toBe("available");
+      expect(presence.getByPeerPartnerId("peer-2")?.status).toBe("available");
+    });
+
+    it("lets one socket hold only one open request, so a burst cannot occupy every peer partner", async () => {
+      await partnersFor("institution-1", 3);
+      const medico = fakeClient("medico-socket");
+
+      gateway.handleRequestPeer(medico as never, REQUEST);
+      gateway.handleRequestPeer(medico as never, REQUEST);
+      gateway.handleRequestPeer(medico as never, REQUEST);
+
+      expect(incomingRequests()).toHaveLength(1);
+      const notAvailable = [1, 2, 3].filter((n) => presence.getByPeerPartnerId(`institution-1-peer-${n}`)?.status !== "available");
+      expect(notAvailable).toHaveLength(1);
+    });
+
+    it("counts a matched conversation as the socket's open request", async () => {
+      const partner = await connectPeerPartner("peer-1", "Dra. Ana", "institution-1", "Clínica médica");
+      await connectPeerPartner("peer-2", "Dr. Bruno", "institution-1", "Clínica médica");
+      const medico = fakeClient("medico-socket");
+      gateway.handleRequestPeer(medico as never, REQUEST);
+      const requestId = (incomingRequests()[0]?.payload as { requestId: string }).requestId;
+      gateway.handleAcceptRequest(partner as never, { requestId });
+
+      gateway.handleRequestPeer(medico as never, REQUEST);
+
+      expect(incomingRequests()).toHaveLength(1);
+    });
+
+    it("caps how many open requests one network address can hold, and answers no_peer_available past the cap", async () => {
+      await partnersFor("institution-1", 5);
+      const sockets = [1, 2, 3, 4].map((n) => fakeClient(`medico-${n}`, undefined, { address: "203.0.113.7" }));
+
+      sockets.forEach((socket) => gateway.handleRequestPeer(socket as never, REQUEST));
+
+      expect(incomingRequests()).toHaveLength(3);
+      expect(sockets[3]?.emit).toHaveBeenCalledWith("no_peer_available");
+    });
+
+    it("does not let one address's requests count against another address", async () => {
+      await partnersFor("institution-1", 5);
+      const flooding = [1, 2, 3].map((n) => fakeClient(`flood-${n}`, undefined, { address: "203.0.113.7" }));
+      const bystander = fakeClient("bystander", undefined, { address: "198.51.100.9" });
+      flooding.forEach((socket) => gateway.handleRequestPeer(socket as never, REQUEST));
+
+      gateway.handleRequestPeer(bystander as never, REQUEST);
+
+      expect(incomingRequests()).toHaveLength(4);
+    });
+
+    it("keys the cap on Fly-Client-IP when present, since behind the proxy every socket shares one socket address", async () => {
+      await partnersFor("institution-1", 5);
+      const proxyAddress = "172.16.0.1";
+      const flooding = [1, 2, 3].map((n) => fakeClient(`flood-${n}`, undefined, { address: proxyAddress, flyClientIp: "203.0.113.7" }));
+      const bystander = fakeClient("bystander", undefined, { address: proxyAddress, flyClientIp: "198.51.100.9" });
+      flooding.forEach((socket) => gateway.handleRequestPeer(socket as never, REQUEST));
+
+      gateway.handleRequestPeer(bystander as never, REQUEST);
+
+      expect(incomingRequests()).toHaveLength(4);
+    });
+
+    it("frees the address's slot when the médico disconnects", async () => {
+      await partnersFor("institution-1", 5);
+      const sockets = [1, 2, 3].map((n) => fakeClient(`medico-${n}`, undefined, { address: "203.0.113.7" }));
+      sockets.forEach((socket) => gateway.handleRequestPeer(socket as never, REQUEST));
+      gateway.handleDisconnect(sockets[0] as never);
+      const replacement = fakeClient("medico-4", undefined, { address: "203.0.113.7" });
+
+      gateway.handleRequestPeer(replacement as never, REQUEST);
+
+      expect(replacement.emit).not.toHaveBeenCalledWith("no_peer_available");
+      expect(incomingRequests()).toHaveLength(4);
+    });
+
+    it("still accepts the legacy request-peer event name from clients that shipped before the rename", async () => {
+      await partnersFor("institution-1", 1);
+
+      gateway.handleLegacyRequestPeer(fakeClient("medico-socket") as never, REQUEST);
+
+      expect(incomingRequests()).toHaveLength(1);
+    });
+  });
+
+  describe("payload validation on the other events", () => {
+    async function matchedConversation() {
+      const partner = await connectPeerPartner("peer-1", "Dra. Ana", "institution-1", "Clínica médica");
+      const medico = fakeClient("medico-socket");
+      gateway.handleRequestPeer(medico as never, { institutionId: "institution-1" });
+      const requestId = (server.emitted.find((e) => e.event === "incoming_request")?.payload as { requestId: string }).requestId;
+      gateway.handleAcceptRequest(partner as never, { requestId });
+      server.emitted.length = 0;
+      return { partner, medico, requestId };
+    }
+
+    it.each([
+      ["accept_request", "handleAcceptRequest"],
+      ["decline_request", "handleDeclineRequest"],
+      ["leave_conversation", "handleLeaveConversation"],
+    ] as const)("%s ignores a missing or malformed payload instead of throwing", async (_event, method) => {
+      const { partner } = await matchedConversation();
+
+      expect(() => gateway[method](partner as never, undefined as never)).not.toThrow();
+      expect(() => gateway[method](partner as never, { requestId: 42 } as never)).not.toThrow();
+      expect(() => gateway[method](partner as never, { requestId: "not-a-uuid" } as never)).not.toThrow();
+
+      expect(server.emitted).toHaveLength(0);
+    });
+
+    it("message relays text up to the cap", async () => {
+      const { medico, requestId } = await matchedConversation();
+
+      gateway.handleMessage(medico as never, { requestId, text: "x".repeat(4000) });
+
+      expect(server.emitted.filter((e) => e.event === "message")).toHaveLength(1);
+    });
+
+    it.each([
+      ["no payload", undefined],
+      ["a non-string text", { text: { html: "<b>x</b>" } }],
+      ["an empty text", { text: "" }],
+      ["a text over the cap", { text: "x".repeat(4001) }],
+    ])("message with %s is not relayed and does not throw", async (_label, body) => {
+      const { medico, requestId } = await matchedConversation();
+      const payload = body === undefined ? undefined : { requestId, ...body };
+
+      expect(() => gateway.handleMessage(medico as never, payload as never)).not.toThrow();
+
+      expect(server.emitted.filter((e) => e.event === "message")).toHaveLength(0);
+    });
   });
 });
