@@ -1,7 +1,7 @@
 # 15 — Você (consent status & revoke)
 
 > Added after the original 13-screen build, same category as `screens/14-manager-login.md`
-> (a screen the initial `AGENTS.md` build plan didn't anticipate). This screen exists to close
+> (a screen the original 13-screen build plan didn't anticipate). This screen exists to close
 > a gap that was already documented but never built: `routing-and-state.md` §2 has always noted
 > that `useConsentStore.revoke()` "is surfaced later in a Você/Profile screen," and
 > `ConsentPage.tsx`'s own copy already promises the doctor "Você pode revogar quando quiser."
@@ -73,7 +73,7 @@ o consentimento novamente para voltar." · "Cancelar" · "Sim, revogar".
 
 ## Data / logic
 - Reads `hasConsented` / `consentedAt` directly from `useConsentStore` (no new use-case, no new
-  port — this is presentation-layer only, same constraint `AGENTS.md` sets for the original 13
+  port — this is presentation-layer only, same constraint as the original 13
   screens).
 - Reads `institutionName` / `department` / `unlink` directly from `useInstitutionLinkStore`
   (`apps/web/src/stores/institution-link.store.ts`) — same presentation-layer-only pattern.
@@ -93,7 +93,7 @@ o consentimento novamente para voltar." · "Cancelar" · "Sim, revogar".
 - Back → `/home`.
 - "Revogar consentimento" → switches this screen to the `confirming` state in place (no
   navigation yet, no modal — an inline two-step confirm, consistent with there being no
-  destructive-confirm primitive yet in `ui-primitives.md`).
+  destructive-confirm primitive yet in `apps/web/src/presentation/ui/`).
 - "Cancelar" (from `confirming`) → back to `idle`. No state changed.
 - "Sim, revogar" → `useConsentStore.getState().revoke()`, then `navigate(routes.splash, {
   replace: true })`. Landing on `/` with `hasConsented` now `false` renders `SplashPage` as a

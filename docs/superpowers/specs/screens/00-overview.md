@@ -5,7 +5,7 @@
 - **Route / File** — where it lives.
 - **Purpose** — one line.
 - **Layout** — structure top-to-bottom, with tokens.
-- **Components** — primitives from `ui-primitives.md` it composes.
+- **Components** — primitives from `apps/web/src/presentation/ui/` it composes.
 - **Copy (PT-BR)** — normative strings.
 - **Data / logic** — which use-case/hook/store it consumes.
 - **Interactions** — taps and where they go.
@@ -30,7 +30,7 @@
 
 ## Screens added after the original 13
 
-Not covered by `AGENTS.md`'s Phase 0–7 build plan (written before these existed), but real
+Added after the original 13-screen build, but real
 routes with their own spec file, following the same template:
 
 | # | Screen | Route | File |

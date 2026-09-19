@@ -82,11 +82,9 @@ a anterior.
     multi-instituição, segurança, deploy, e seções práticas de "como implementar", "como escalar"
     e dívida técnica conhecida. O melhor ponto de partida para quem vai planejar os próximos
     passos de engenharia.
-18. [`../docs/superpowers/specs/`](../docs/superpowers/specs/) — telas, tokens de design,
-    arquitetura da PWA (inclui `2026-07-12-mbi-hss-chat-direction-design.md`, o desenho
-    técnico da ADR-002).
-19. [`../docs/superpowers/plans/`](../docs/superpowers/plans/) — planos de implementação por
-    vertical (fundação, backend, frontend, chat de IA, avaliação, etc.).
+18. [`../docs/superpowers/specs/`](../docs/superpowers/specs/) — specs de design datados,
+    copy das telas e tokens de design (inclui `2026-07-12-mbi-hss-chat-direction-design.md`,
+    o desenho técnico da ADR-002).
 
 ---
 

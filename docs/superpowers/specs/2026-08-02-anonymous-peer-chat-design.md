@@ -71,7 +71,7 @@ chat module.
 
 ## 2. Non-negotiables carried forward
 
-Everything in `docs/superpowers/specs/AGENTS.md`'s Golden Rules still applies, plus:
+The Product laws in `CLAUDE.md` still apply, plus:
 
 - **The médico stays fully anonymous.** A peer partner never sees a name, CRM, or any identifier
   for the médico they're talking to — only the médico's sector name, if linked, for context.

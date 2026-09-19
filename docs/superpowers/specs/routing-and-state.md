@@ -1,5 +1,10 @@
 # Routing & State
 
+> **Partly superseded.** §1's route table and §2–§4's code sketches date from the July build and
+> no longer match the app: `apps/web/src/app/router.tsx` is the source of truth for routes. §5's
+> authentication reasoning (why doctors have no login and managers have a server-enforced one)
+> is still the rationale, but the current implementation lives in `docs/conventions/security-privacy.md`.
+
 How screens connect, what new routes exist, and the minimal state added. Router is
 `react-router` v6 data router (`createBrowserRouter` in `src/app/router.tsx`). State is Zustand
 (see existing `src/stores/ui.store.ts`) + local component state. **No new global data store for
@@ -152,7 +157,7 @@ A doctor never creates an account, never enters a password, never proves who the
 app. The only gate is **consent** — `useConsentStore` (§2 above), a boolean + timestamp in
 `localStorage`. There is no server-side session, no identity token, nothing that could later be
 used to tie a person to their check-ins. This isn't a missing feature; it's the product's core
-privacy promise (Golden rule #6 in `AGENTS.md`: "Anonymity is visible, not just real"). A future
+privacy promise (see `identity-and-aggregation.md`). A future
 "real" version of `PeersPage` would need *some* identity concept for peer matching — that design
 exists (`identity-and-aggregation.md`) but is deliberately unbuilt, pending a product decision
 about how much of the demo can stay mocked.

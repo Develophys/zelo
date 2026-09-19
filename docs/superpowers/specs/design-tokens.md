@@ -27,7 +27,7 @@ file references these token names, never raw values.
 | `ink-2` | `#4A584F` | Secondary text |
 | `muted` | `#5C6B64` | Body copy, descriptions |
 | `muted-2` | `#66726C` | Captions, mono labels, inactive |
-| `faint` | `#9AA7A1` | Disabled glyphs, hairlines. **Não usar em placeholder** — 2,50:1 sobre `surface` reprova o piso de 4,5:1. `TextField` usa `muted` (5,61:1); ver `ui-primitives.md` (16/08/2026) |
+| `faint` | `#9AA7A1` | Disabled glyphs, hairlines. **Não usar em placeholder** — 2,50:1 sobre `surface` reprova o piso de 4,5:1. `TextField` usa `muted` (5,61:1); ver `apps/web/src/presentation/ui/TextField.tsx` |
 | `line` | `#DFE4E1` | Borders, dividers, unselected option outline |
 
 ### Semantic

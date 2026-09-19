@@ -99,7 +99,7 @@ baixo dela). Chevron para baixo = recolher, para cima = expandir.
 
 **Recolher nunca esconde o atalho de acolhimento humano.** Ele encolhe para "Pessoa real" com o
 ícone, ao lado de "Avaliar" — os dois seguem visíveis e a um toque em qualquer estado, então a
-regra de §Layout ("Always visible") e a regra de ouro 4 do `AGENTS.md` continuam valendo. Os
+regra de §Layout ("Always visible") e a lei de produto do `CLAUDE.md` sobre o handoff humano sem rede continuam valendo. Os
 rótulos visíveis encurtam porque a 375px os dois textos completos não cabem lado a lado (~195px
 cada, ~167px disponíveis); o texto normativo completo fica no `aria-label`, então o nome acessível
 não muda e os testes que procuram "Falar com uma pessoa real" seguem passando.
@@ -676,7 +676,7 @@ Leva `text-balance` para que, quando quebrar em telas menores, as duas linhas fi
 
 **Os balões voltaram para `body` em 16/08/2026.** O `text-[14.5px]` ficou aqui enquanto o valor
 era papel de fato compartilhado — 22 ocorrências em 9 arquivos, e mudar só o chat dessincronizaria
-a tela do resto do app. A extração de `ui/TextField.tsx` (`ui-primitives.md`) no mesmo dia
+a tela do resto do app. A extração de `ui/TextField.tsx` (`apps/web/src/presentation/ui/`) no mesmo dia
 recolheu 21 desses pontos em um só, e o argumento evaporou junto: sobraram **duas** ocorrências, e
 `PeerChatRoom` nunca usou 14,5px — usa `text-label`. Sem papel compartilhado para proteger, o que
 restava era o custo: um valor fora da escala não participa do bump de ≥768px

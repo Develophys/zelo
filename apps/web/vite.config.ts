@@ -5,14 +5,6 @@ import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import { reactCompilerBabelPlugin } from "./react-compiler-plugin";
 
-// Set VITE_BASE_PATH (only done in the GitHub Pages workflow, from
-// actions/configure-pages' base_path output, e.g. "/zelo" with no trailing
-// slash) to build for a project-pages subpath. Left unset, base stays "/"
-// (Vercel, local dev). Normalized to always end in "/" - import.meta.env.BASE_URL
-// is concatenated directly with asset filenames elsewhere in the app.
-const rawBasePath = process.env.VITE_BASE_PATH ?? "/";
-const basePath = rawBasePath.endsWith("/") ? rawBasePath : `${rawBasePath}/`;
-
 // Uma VITE_API_BASE_URL sem esquema ("api.exemplo.app") compila, sobe e só
 // falha quando o usuário tenta entrar: sem esquema ela vira caminho relativo
 // e as chamadas de API batem no próprio site. Quebrar o build é o único
@@ -26,7 +18,6 @@ if (rawApiBaseUrl && !/^https?:\/\//i.test(rawApiBaseUrl)) {
 }
 
 export default defineConfig({
-  base: basePath,
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
