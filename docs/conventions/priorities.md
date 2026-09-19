@@ -538,23 +538,32 @@ call — it trades a manager's offline access for a doctor's mobile data.
 - **Kind:** technical-debt
 - **Files:** `apps/api/src/modules/chat/infrastructure/chat.controller.ts`
 
-## 18. Login endpoints lack per-route throttling; weak password floor
+## 18. Login endpoints lack per-route throttling — FIXED (password floor moved to #29)
 
-- **Why:** Login carries only the global 100 req/60s budget — the same as a dashboard read —
-  against an 8-character password minimum with no complexity rule, no lockout, no attempt
-  counter, and a SuperAdmin password never validated by any zod schema. Each login attempt
-  deliberately runs a full scrypt derivation for timing safety, so 100 guesses/minute/IP is
-  simultaneously a practical brute-force budget and 100 scrypt derivations/minute/IP of CPU on a
-  single Fly machine — `app.module.ts`'s own comment names this route as the CPU-flood concern
-  and stops at the global cap. Add a per-route `@Throttle` to the three login endpoints,
-  matching the 5/900_000ms already used on the two forgot-password routes, using the nested v6
-  `@Throttle({ default: { ... } })` shape (the flat form silently applies nothing).
+Measuring before adding the limit found a prerequisite: the global `ThrottlerGuard` keyed on
+`req.ip`, which behind Fly's proxy is the proxy's address. On the dev deploy, requests from two
+different client addresses (IPv4 and IPv6 from the same machine) decremented the same
+`x-ratelimit-remaining` (99, 98, 97), so the "per-IP" 100 requests/60s was one bucket for every user,
+and the item's own 5-per-15-minutes would have locked everybody out after five attempts anywhere.
+`ClientAddressThrottlerGuard` now keys every bucket on `Fly-Client-IP` (else `req.ip`), the same
+helper the peer-chat gateway uses (`shared/http/client-address.ts`).
+
+The three `POST .../login` routes carry `@LoginThrottle()`, which enables two named throttlers that
+skip every other route: 20 attempts / 15 min per client address (bounds the scrypt CPU one source can
+burn, down from up to 100 derivations a minute) and 5 / 15 min per client address + normalized e-mail
+(bounds guesses per account without one colleague's typos locking out a hospital behind a shared
+NAT). The literal "5 per IP" the item proposed was not used for that reason. Counters are in memory
+per process, so a second Fly machine would count separately.
+
+**Proven to fire, not just changed.** With the tracker reverted to `req.ip`, 7 of the 11 throttling
+tests fail (shared buckets across addresses, the address ceiling, the socket-address fallback, the
+per-address global budget); restored, all 18 tests in `shared/http` pass, plus a wiring test that
+asserts each of the three login handlers carries the decorator.
+
 - **Effort:** small
 - **Kind:** security
-- **Files:** `apps/api/src/app.module.ts`,
-  `apps/api/src/modules/manager/infrastructure/manager.controller.ts`,
-  `apps/api/src/modules/admin/infrastructure/admin.controller.ts`,
-  `apps/api/src/modules/peer-partner/infrastructure/peer-partner.controller.ts`
+- **Files:** `apps/api/src/shared/http/throttling.ts`, `apps/api/src/shared/http/client-address.ts`,
+  `apps/api/src/app.module.ts`, and the three login controllers
 
 ## 19. Revoking consent clears only 1 of 12 device storage keys
 
@@ -801,14 +810,26 @@ and the invite code is immutable today, so a leaked code stays valid unless code
 The gain is that an attacker needs the code, which is handed only to an institution's staff, not the
 id, which every device has.
 
-- **Also (unverified):** `main.ts` never sets `trust proxy`. If Express sees Fly's edge address as
-  `req.ip`, the global `ThrottlerGuard` (100 requests/60s) is one bucket for all users instead of one
-  per client. Check it against the dev deploy before relying on HTTP throttling, including in #18.
 - **Effort:** medium-large
 - **Kind:** security
 - **Files:** `apps/api/src/modules/peer-chat/infrastructure/peer-chat.gateway.ts`,
   `apps/web/src/stores/institution-link.store.ts`,
   `apps/web/src/presentation/hooks/usePeerRequest.ts`, a new peer-ticket endpoint and token service
+
+## 29. Password floor is 8 characters and the SuperAdmin password is never validated
+
+Split from #18. Both `finish-setup` endpoints accept `z.string().min(8).max(200)` with no other
+rule, and `prisma/create-super-admin.ts` hashes whatever `SUPER_ADMIN_PASSWORD` holds with no schema
+at all. Length beats complexity rules for this; the proposal is a shared password schema (a higher
+minimum, the same upper bound) used by both `finish-setup` endpoints and by `admin:create`, plus the
+matching change in the web set-password forms. That touches PT-BR copy in
+`docs/superpowers/specs/screens/*.md`, which is normative, so it needs its own review.
+
+- **Effort:** small-medium
+- **Kind:** security
+- **Files:** `apps/api/src/modules/manager/infrastructure/manager.controller.ts`,
+  `apps/api/src/modules/peer-partner/infrastructure/peer-partner.controller.ts`,
+  `apps/api/prisma/create-super-admin.ts`, the web set-password forms
 
 ---
 

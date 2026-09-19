@@ -77,17 +77,28 @@ shape is **nested**: `@Throttle({ default: { limit, ttl } })`. The v5 flat shape
 `@Throttle({ limit, ttl })`, compiles but silently applies no limit at all — this is a real trap,
 not a style preference, because nothing fails loudly when the flat shape is used.
 
-The global default is registered once in `apps/api/src/app.module.ts`:
-`ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }])` (app.module.ts:27) with
-`{ provide: APP_GUARD, useClass: ThrottlerGuard }` (app.module.ts:41). A per-route `@Throttle` is
-added only to tighten that default on an unauthenticated route that takes a bare email address —
-re-verified with:
+The limits live in `apps/api/src/shared/http/throttling.ts` (`THROTTLER_OPTIONS`), registered in
+`app.module.ts` with `{ provide: APP_GUARD, useClass: ClientAddressThrottlerGuard }`. The guard
+keys every bucket on the **client address**: the `Fly-Client-IP` header when present, else
+`req.ip` (`shared/http/client-address.ts`). Do not go back to the stock `ThrottlerGuard`: behind
+Fly's proxy `req.ip` is the proxy's address, so every user shared one bucket (measured on the dev
+deploy, where two different client addresses decremented the same `x-ratelimit-remaining`), and a
+tight per-route limit would have locked everybody out at once.
+
+The default is 100 requests/60s per client address. A login route adds `@LoginThrottle()`, which
+switches on two named throttlers that skip every other route: `login-address` (20 attempts / 15 min
+per client address, bounding the scrypt CPU one source can burn) and `login-account` (5 attempts /
+15 min per client address **and** normalized e-mail, bounding guesses per account without one
+colleague's typos locking out a whole hospital behind the same NAT). A per-route `@Throttle` is
+still how you tighten an unauthenticated route that takes a bare email address, as both
+`forgot-password` routes do. Re-verified with:
 
 ```bash
 grep -n "@Throttle" apps/api/src/modules/manager/infrastructure/manager.controller.ts apps/api/src/modules/peer-partner/infrastructure/peer-partner.controller.ts
+grep -rn "@LoginThrottle" apps/api/src --include=*.controller.ts
 ```
 
-Both real call sites are `POST .../forgot-password`, and both carry the identical nested decorator
+Both `@Throttle` call sites are `POST .../forgot-password`, and both carry the identical nested decorator
 and rationale comment: `apps/api/src/modules/manager/infrastructure/manager.controller.ts:110` and
 `apps/api/src/modules/peer-partner/infrastructure/peer-partner.controller.ts:63`, both
 `@Throttle({ default: { limit: 5, ttl: 900_000 } })` (5 requests / 15 minutes) directly above

@@ -159,20 +159,21 @@ the same resolver rather than importing it — `peer-chat.gateway.ts:23-27`, app
 `@WebSocketGateway({ cors: { origin: resolveAllowedOrigins() } })` — so a change to the allowed
 origins has to be made in both files or the socket and the REST API silently disagree.
 
-**Rate limiting.** `ThrottlerGuard` is registered globally in `app.module.ts` —
-`ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }])` at `:27`,
-`{ provide: APP_GUARD, useClass: ThrottlerGuard }` at `:41` — a per-IP CPU-flood floor, not an
-abuse control for a specific route. There are exactly two `@Throttle` overrides in the whole
-codebase, both `@Throttle({ default: { limit: 5, ttl: 900_000 } })` (5 requests / 15 minutes) on
+**Rate limiting.** `ClientAddressThrottlerGuard` is registered globally in `app.module.ts`, with the
+limits in `shared/http/throttling.ts`: 100 requests/60s per client address (`Fly-Client-IP`, else
+`req.ip`), a CPU-flood floor and not an abuse control for a specific route. The address matters:
+behind Fly's proxy `req.ip` is shared by everyone, which made the old stock-guard budget a single
+bucket for all users. The three login endpoints (`manager.controller.ts`, `admin.controller.ts`,
+`peer-partner.controller.ts`) carry `@LoginThrottle()`: 20 attempts / 15 min per client address and
+5 / 15 min per client address + e-mail. The counters are in memory per process, so a second Fly
+machine would count separately. There are exactly two `@Throttle` overrides in the codebase, both `@Throttle({ default: { limit: 5, ttl: 900_000 } })` (5 requests / 15 minutes) on
 the two `forgot-password` routes: `manager.controller.ts:110` and `peer-partner.controller.ts:63`,
 each paired with a non-disclosing handler that returns `void` on every non-happy path. The v6
 nested shape above is required — the v5 flat `@Throttle({ limit, ttl })` shape still compiles and
 type-checks but silently applies no limit at all (see
 [`backend-http.md`'s Rate limiting section](./backend-http.md#rate-limiting) for that trap in
-full). None of the three login endpoints (`manager.controller.ts:68`, `admin.controller.ts:61`,
-`peer-partner.controller.ts:21`) carries a `@Throttle` override — they run on the same 100-req/60s
-global budget as a dashboard read, against an 8-character password minimum with no complexity
-rule or lockout.
+full). The password floor is still 8 characters with no complexity rule, and the SuperAdmin
+password is never validated by a schema (`priorities.md` #29).
 
 **`helmet` is absent from the stack**, and this is a known, tracked gap — state it as such, not
 as something to silently patch in mid-task. `grep helmet apps/api/package.json` → no match; no
@@ -273,4 +274,5 @@ grep -n "no-danger\|no-restricted-syntax\|no-restricted-properties" apps/web/esl
 # Transport hardening: helmet absent, CORS allowlist duplicated
 grep -n "helmet" apps/api/package.json
 grep -n "@Throttle" apps/api/src/modules/manager/infrastructure/manager.controller.ts apps/api/src/modules/peer-partner/infrastructure/peer-partner.controller.ts
+grep -rn "@LoginThrottle" apps/api/src --include=*.controller.ts
 ```
