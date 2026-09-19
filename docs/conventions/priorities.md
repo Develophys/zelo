@@ -850,10 +850,14 @@ the lint rules and the CSP stay either way. A design and a 13-task plan already 
 plan, about 90 files: 9 adapters, 9 ports, 26 use-cases, the three session stores, the router
 loaders, three guards, new `logout`/`me` endpoints, and the peer-chat socket handshake).
 
-**Prerequisite outside the repo.** The design keeps `SameSite=Lax` and skips a CSRF token system by
-putting the API on the frontend's registrable domain: `api.zelohealth.app` and
-`api-dev.zelohealth.app`, each a `fly certs add` plus a Cloudflare DNS record. Someone with access to
-both has to do that first. The CSP's `connect-src` already lists both origins.
+**Prerequisite outside the repo, half done.** The design keeps `SameSite=Lax` and skips a CSRF token
+system by putting the API on the frontend's registrable domain. Checked on 2026-09-19: prod already
+does. The deployed prod bundle (`www.zelohealth.app`) calls `https://api.zelohealth.app`, and its
+`/health` answers 200 from Fly. Dev does not: the deployed dev bundle calls
+`https://zelo-api-dev.fly.dev`, and `api-dev.zelohealth.app` does not resolve. What is left is a
+`fly certs add api-dev.zelohealth.app --app zelo-api-dev` plus a Cloudflare DNS record, then pointing
+the dev Vercel project's `VITE_API_BASE_URL` at it. The CSP's `connect-src` already lists all four
+API origins.
 
 **Findings to fold in before executing.**
 - **The Android APK.** `apps/web/capacitor.config.ts` uses `androidScheme: "https"`, so the app runs
