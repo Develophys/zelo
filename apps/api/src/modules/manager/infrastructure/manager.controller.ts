@@ -26,6 +26,7 @@ import { RequestManagerPasswordResetUseCase } from "../application/use-cases/req
 import { InsightGenerationFailedError, type ManagerInsightResponse } from "../application/ports/ai-insight.port.ts";
 import type { IssuedManagerToken } from "../application/services/manager-token.service.ts";
 import { ManagerAuthGuard } from "./manager-auth.guard.ts";
+import { LoginThrottle } from "@/shared/http/throttling.js";
 
 const LoginRequestSchema = z.object({ email: z.string().email().max(200), password: z.string().min(1).max(200) });
 const FinishSetupRequestSchema = z.object({ token: z.string().min(1), password: z.string().min(8).max(200) });
@@ -67,6 +68,7 @@ export class ManagerController {
 
   @Post("login")
   @HttpCode(200)
+  @LoginThrottle()
   async login(@Body() body: unknown): Promise<IssuedManagerToken> {
     const parsed = LoginRequestSchema.safeParse(body);
     if (!parsed.success) {

@@ -2,8 +2,9 @@ import { Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { ConfigModule } from "@nestjs/config";
 import { ScheduleModule } from "@nestjs/schedule";
-import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { ThrottlerModule } from "@nestjs/throttler";
 import { validateEnv } from "./shared/config/env.validation.ts";
+import { ClientAddressThrottlerGuard, THROTTLER_OPTIONS } from "./shared/http/throttling.ts";
 import { PrismaModule } from "./shared/prisma/prisma.module.ts";
 import { HealthModule } from "./modules/health/health.module.ts";
 import { ChatModule } from "./modules/chat/chat.module.ts";
@@ -19,12 +20,7 @@ import { NotificationModule } from "./modules/notification/notification.module.t
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
-    // Global rate limit — 100 requests/60s per IP. Guards every endpoint, including
-    // POST /manager/login, which (correctly, per its timing-safety fix) now runs a real
-    // scrypt hash on every request, valid or not. Without a cap, that's an easy CPU-flood
-    // target on a small deployment. 100/min is generous enough not to trip normal usage
-    // or the existing test suite while still bounding worst-case throughput.
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+    ThrottlerModule.forRoot(THROTTLER_OPTIONS),
     ScheduleModule.forRoot(),
     PrismaModule,
     HealthModule,
@@ -38,6 +34,6 @@ import { NotificationModule } from "./modules/notification/notification.module.t
     PeerChatModule,
     NotificationModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [{ provide: APP_GUARD, useClass: ClientAddressThrottlerGuard }],
 })
 export class AppModule {}
