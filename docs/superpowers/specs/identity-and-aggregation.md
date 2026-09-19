@@ -32,7 +32,7 @@ pending the answer to the team's own open question to the challenge organizers (
 
 ## 1. Non-negotiables carried forward
 
-Everything in `docs/superpowers/specs/AGENTS.md`'s Golden Rules still applies. Two matter most
+The Product laws in `CLAUDE.md` still apply. Two matter most
 here:
 
 - **Anonymity is a product promise, not an implementation detail.** The current app never

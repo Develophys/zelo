@@ -19,7 +19,7 @@ reading for anyone who wants more depth.
 One-off for the Consent screen's encryption note. Not a generic reusable info-modal pattern —
 if a second term elsewhere in the app wants the same treatment later, extract the shared parts
 then (YAGNI). No existing `Modal`/`Dialog` primitive exists in this codebase
-(`docs/superpowers/specs/ui-primitives.md`, `apps/web/src/presentation/ui/`) — this spec
+(`apps/web/src/presentation/ui/`) — this spec
 introduces the first one, scoped narrowly to this feature.
 
 ## 3. Component & trigger
