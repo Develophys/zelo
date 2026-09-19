@@ -404,30 +404,36 @@ defect.
 - **Files:** `apps/web/src/presentation/pages/a11y.test.tsx`,
   `apps/web/src/presentation/ui/Modal.test.tsx`
 
-## 13. Docs an agent reads first are stale or contradict the deployed stack
+## 13. Docs an agent reads first are stale or contradict the deployed stack — FIXED
 
-- **Why:** `README.md` line 46's tech-stack table still says GitHub Pages and Neon under
-  "Infra", contradicting its own Deployment section further down, which documents Vercel +
-  Prisma Postgres. The `architecture-reference.md` half of this item is **resolved by this branch**:
-  it used to describe `apps/web/src/app/container.ts` as a single file, and `:133-138` now
-  describes the 12-file `apps/web/src/app/container/` directory (`index.ts` plus 11 sibling
-  files) and says outright "there is no `container.ts` any more" — re-verified: `grep -n
-  "container.ts" general-documentations/architecture-reference.md` returns only that line.
-  `docs/superpowers/specs/AGENTS.md` also now carries a "Historical" banner. What is still open
-  is the README and the remaining spec-era content: `docs/superpowers/specs/` (the July
-  build-plan-era specs) describe React 18, a
-  `tailwind.config.ts`, Google Fonts CDN links, a `loading` Button prop and `bg-brand
-  text-white` — all superseded. Also delete the dead `VITE_BASE_PATH` plumbing left behind by
-  the retired GitHub Pages workflow. These files present themselves as "start here" and "source
-  of truth"; an agent following them ships a no-op Tailwind config, breaks PWA offline
-  precaching with external font links, and passes a prop that silently does nothing. (The
-  "wires a second, dead DI surface" consequence this item used to list is gone with the
-  `container.ts` description.)
-- **Effort:** small (was medium — the `architecture-reference.md` portion is done)
+The July build-plan instructions were deleted rather than bannered — a banner leaves the file in
+every grep and in every agent's context, and git history keeps the text: specs `AGENTS.md`,
+`README.md`, `tailwind-and-css.md`, `ui-primitives.md` and `manager-panel/*`, plus 47 executed
+implementation plans. They described React 18, a `tailwind.config.ts`, Google Fonts CDN links, a
+`loading` Button prop (it is `isLoading`) and `bg-brand text-white` (it is `bg-brand-fill
+text-on-fill`). Their Golden Rules 5 and 6 (a non-dismissable chat disclaimer banner, an
+"anônimo" badge on every authenticated surface) no longer exist in the app; the rest already
+live in `CLAUDE.md`'s Product laws, which the four live specs that cited "AGENTS.md's Golden
+Rules" now point to.
+
+A first reference check that searched only for full paths missed basename citations. The second
+pass, by basename, restored `routing-and-state.md` (its §5 auth rationale is cited by code and
+three screens; it now carries a "partly superseded" banner) and 10 plans still cited by code,
+migrations or live specs. The unexecuted HttpOnly-cookie migration plan (see #10) stays too.
+
+`README.md` and `README.pt-BR.md` now say Vercel + Prisma Postgres in the stack table, the dead
+plan pointers are gone, and the pt-BR Deploy section mirrors the English one.
+`architecture-reference.pt-BR.md` describes the `app/container/` directory, matching the English
+version. The dead `VITE_BASE_PATH` plumbing is removed from `vite.config.ts`, `turbo.json` and
+`apps/web/.env.example`; the build still emits `base: "/"`.
+
+Dated specs and `general-documentations/branstorms.md` still link to deleted plans. That is
+history, not instruction; `git log -- docs/superpowers/plans` recovers any of them.
+
+- **Effort:** small
 - **Kind:** technical-debt
-- **Files:** `README.md` (the tech-stack table), `docs/superpowers/specs/` (React 18 / Tailwind
-  config / font-CDN / `loading`-prop / `bg-brand` references, beyond the banner
-  `AGENTS.md` already carries), `apps/web/vite.config.ts` + `turbo.json` (`VITE_BASE_PATH`)
+- **Files:** `README.md`, `README.pt-BR.md`, `docs/superpowers/specs/`, `docs/superpowers/plans/`,
+  `general-documentations/architecture-reference.pt-BR.md`, `apps/web/vite.config.ts`, `turbo.json`
 
 ## 14. Route-level code splitting — DONE for the staff surfaces
 

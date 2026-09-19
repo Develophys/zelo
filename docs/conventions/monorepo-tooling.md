@@ -25,7 +25,7 @@ definition, not a pattern to replicate per package.
 
 **Any env var a build or test reads must be declared on that task's `env` array before it's used
 in code**, or a Turborepo cache hit can silently serve a build compiled against a different
-value. `turbo.json:7` declares `VITE_API_BASE_URL` and `VITE_BASE_PATH` on `build`; `turbo.json:19`
+value. `turbo.json:7` declares `VITE_API_BASE_URL` on `build`; `turbo.json:19`
 declares `DATABASE_URL` on `test` (the `api-test` CI job needs it to reach the ephemeral
 Postgres). Both were dedicated fixes, not there from the start (commits `5f061e7`, `f2a3c7d`) —
 so treat a new `import.meta.env.VITE_*` read the same way. One gap survives today:
@@ -245,18 +245,10 @@ Postgres), not `*.neon.tech`. Recorded, not something to delete without first ch
 
 **GitHub Pages is retired — commit `ad28d12`** ("the build/deploy jobs publish to GitHub Pages,
 which CORS already blocks... dead weight now that a real dev environment exists too") removed
-the Pages job from `web.yml`; Vercel is the only live frontend. Two pieces of leftover plumbing
-from that era are `priorities.md` #13, and both are still present, re-verified fresh:
-
-- `apps/web/vite.config.ts:7-14` still normalizes `VITE_BASE_PATH` (comment: "only done in the
-  GitHub Pages workflow, from `actions/configure-pages`'s `base_path` output"), and
-  `turbo.json:7` still declares it in `build.env` — but no workflow anywhere sets it anymore
-  (`grep -rn VITE_BASE_PATH .github/workflows` returns nothing). It's harmless at runtime (falls
-  back to `"/"`), but it's live-looking code with no caller — don't read it as evidence Pages is
-  coming back, and don't wire a revived Pages job to it without first asking why.
-- `README.md:46`'s tech-stack table still lists "Fly.io (API), **GitHub Pages (Web)**, Neon
-  Postgres" — contradicting its own Deployment section (`:118-136`), which correctly documents
-  Vercel + Prisma Postgres. Read the Deployment section, not the table, for what's actually live.
+the Pages job from `web.yml`; Vercel is the only live frontend. The leftover `VITE_BASE_PATH`
+plumbing (`vite.config.ts`, `turbo.json`, `apps/web/.env.example`) and the README tech-stack
+table's "GitHub Pages / Neon" row were removed under `priorities.md` #13, so the app now always
+builds with Vite's default `base` of `"/"`.
 
 **`priorities.md` #25 — two operational instructions that misdirect a live deploy, both still
 present, re-verified fresh:**
@@ -300,9 +292,9 @@ one of them is a thing that looks routine and isn't.
 - **Don't add a second deploy path for either app** (§6). The API deploys only through
   `api.yml`'s flyctl jobs; the web app deploys only through Vercel's git integration. A deploy
   job added to `web.yml` would be a second, competing publisher.
-- **Don't read `VITE_BASE_PATH` as live configuration** (§6). It survives in
-  `apps/web/vite.config.ts` and `turbo.json` but no workflow sets it any more; it's GitHub Pages
-  residue, tracked on `priorities.md` #13.
+- **Don't reintroduce a `VITE_BASE_PATH` / Vite `base` override** (§6). It was GitHub Pages
+  residue with no caller and was removed under `priorities.md` #13; the app is served from the
+  domain root on Vercel.
 - **Don't delete `PrismaService`'s `PrismaNeon` branch as dead code** (§6) without first
   checking the live `DATABASE_URL` via `fly secrets` — it's *probably* unexercised, which is not
   the same as provably unreachable.
@@ -339,8 +331,8 @@ grep -c 'DATABASE_URL=' apps/api/.env.production.local
 # the stale README instruction #1 depends on
 grep -n 'Both connection strings' apps/api/prisma/README.md
 
-# #13 — dead VITE_BASE_PATH plumbing, no workflow sets it
-grep -rn VITE_BASE_PATH apps/web/vite.config.ts turbo.json .github/workflows/
+# #13 — VITE_BASE_PATH is gone (expect no output)
+grep -rn VITE_BASE_PATH apps/web/vite.config.ts turbo.json .github/workflows/ apps/web/.env.example
 
 # #25 — the two misdirecting operational instructions
 grep -n 'CORS_ALLOWED_ORIGINS' docs/android-apk.md
