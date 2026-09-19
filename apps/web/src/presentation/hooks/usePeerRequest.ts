@@ -71,7 +71,7 @@ export function usePeerRequest() {
     });
     socket.on("peer_left", () => setPeerLeft(true));
 
-    socket.emit("request-peer", { institutionId, sectorName });
+    socket.emit("request_peer", { institutionId, sectorName });
   }, []);
 
   const sendMessage = useCallback((text: string) => {

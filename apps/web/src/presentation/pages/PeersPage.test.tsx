@@ -62,14 +62,14 @@ describe("PeersPage", () => {
     expect(screen.getByText("Um colega responde")).toBeInTheDocument();
   });
 
-  it("emits request-peer with the linked institutionId and sectorName when tapped", async () => {
+  it("emits request_peer with the linked institutionId and sectorName when tapped", async () => {
     useInstitutionLinkStore.setState({ institutionId: "institution-1", institutionName: "Hospital Teste", sectorId: "sector-1", sectorName: "UTI", deviceSignalId: "device-1" });
     const user = userEvent.setup();
     renderPeers();
 
     await user.click(screen.getByRole("button", { name: "Falar com um colega" }));
 
-    expect(emitSpy).toHaveBeenCalledWith("request-peer", { institutionId: "institution-1", sectorName: "UTI" });
+    expect(emitSpy).toHaveBeenCalledWith("request_peer", { institutionId: "institution-1", sectorName: "UTI" });
   });
 
   it("shows the retry message when no_peer_available fires", async () => {
@@ -97,7 +97,7 @@ describe("PeersPage", () => {
     await user.click(screen.getByRole("button", { name: "Tentar novamente" }));
 
     expect(disconnectSpy).toHaveBeenCalledTimes(1);
-    expect(emitSpy).toHaveBeenNthCalledWith(2, "request-peer", { institutionId: "institution-1", sectorName: "UTI" });
+    expect(emitSpy).toHaveBeenNthCalledWith(2, "request_peer", { institutionId: "institution-1", sectorName: "UTI" });
   });
 
   it("renders PeerChatRoom once matched fires, showing the peer's specialty", async () => {

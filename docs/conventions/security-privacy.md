@@ -155,7 +155,7 @@ an oversight to quietly work around mid-task.
 or an origin-reflecting function — frontend (Vercel) and API (Fly) are never same-origin, so this
 is load-bearing, not incidental. `main.ts:13-19` builds `resolveAllowedOrigins()`, applied at
 `:23` via `app.enableCors({ origin: resolveAllowedOrigins() })`. The WebSocket gateway duplicates
-the same resolver rather than importing it — `peer-chat.gateway.ts:21-25`, applied at `:40` in
+the same resolver rather than importing it — `peer-chat.gateway.ts:23-27`, applied at `:36` in
 `@WebSocketGateway({ cors: { origin: resolveAllowedOrigins() } })` — so a change to the allowed
 origins has to be made in both files or the socket and the REST API silently disagree.
 
@@ -217,8 +217,9 @@ A few concrete boundaries, re-checked against the code:
   in play, so a staging deploy running with `NODE_ENV=development` and real email addresses would
   still put a live 48h-valid invite token in plaintext in the log stream.
 - **Peer-chat text is the one channel that's genuinely unredacted and unstored, and that's
-  deliberate.** `peer-chat.gateway.ts`'s `handleMessage` (:148-155) relays `payload.text`
-  socket-to-socket in memory with no schema validation and no call into
+  deliberate.** `peer-chat.gateway.ts`'s `handleMessage` (:170-179) relays `payload.text`
+  socket-to-socket in memory. The payload is zod-checked for shape and a 4000-character cap
+  (`peer-chat.payloads.ts`) but never redacted, and there is no call into
   `AnonymizeTextUseCase`, and there is no `Message`/`Chat` model in `schema.prisma` to persist it
   into (models present: `Assessment, SuperAdmin, Institution, Sector, Signal, Manager,
   PeerPartner, ManagerInsight, SignalDedupKey, Notification`). Don't "fix" this by adding a
