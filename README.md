@@ -122,19 +122,21 @@ Vercel project:
 
 | | Prod | Dev |
 |---|---|---|
-| Branch | `main` | `develop` |
+| Deploys from | tag `v*` (see [`docs/releasing.md`](docs/releasing.md)) | `develop` |
 | API | `zelo-api` (Fly) | `zelo-api-dev` (Fly) |
 | Web | `zelohealth.app` (Vercel) | `dev.zelohealth.app` (Vercel) |
 | Migrations | manual (see below) | automatic in CI |
 
-`main` and `develop` are both protected — all changes land via PR. `apps/web` also
+`main` and `develop` are both protected — all changes land via PR, and merging into `main`
+deploys nothing: production is released by pushing a `vMAJOR.MINOR.PATCH` tag. `apps/web` also
 packages as an installable Android APK via Capacitor — see
 [`docs/android-apk.md`](docs/android-apk.md).
 
-Both apps auto-deploy from their branch via `.github/workflows/api.yml` (`deploy` /
-`deploy-dev` jobs); the Vercel projects deploy via Vercel's own git integration, not
-GitHub Actions. Prod migrations are **not** run on container boot — apply them manually
-before deploying a schema change:
+Dev deploys from `develop` via `.github/workflows/api.yml`'s `deploy-dev` job, with Vercel's
+own git integration deploying the dev web app. Prod deploys through
+`.github/workflows/release.yml` on a tag: the API first, then the `production` branch that the
+prod Vercel project builds from. Prod migrations are **not** run on container boot — apply them
+manually before tagging a release that includes one:
 
 ```bash
 pnpm --filter @zelo/api exec prisma migrate deploy   # DIRECT_DATABASE_URL must point at prod (apps/api/.env.production.local)

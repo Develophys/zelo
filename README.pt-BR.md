@@ -122,19 +122,21 @@ projeto na Vercel:
 
 | | Prod | Dev |
 |---|---|---|
-| Branch | `main` | `develop` |
+| Deploy a partir de | tag `v*` (veja [`docs/releasing.md`](docs/releasing.md)) | `develop` |
 | API | `zelo-api` (Fly) | `zelo-api-dev` (Fly) |
 | Web | `zelohealth.app` (Vercel) | `dev.zelohealth.app` (Vercel) |
 | Migrations | manuais (veja abaixo) | automáticas na CI |
 
-`main` e `develop` são protegidas — toda mudança entra por PR. O `apps/web` também
+`main` e `develop` são protegidas — toda mudança entra por PR, e mergear na `main` não faz
+deploy: produção é liberada ao publicar uma tag `vMAJOR.MINOR.PATCH`. O `apps/web` também
 é empacotado como APK Android instalável via Capacitor — veja
 [`docs/android-apk.md`](docs/android-apk.md).
 
-Os dois apps fazem deploy automático a partir da sua branch via `.github/workflows/api.yml`
-(jobs `deploy` / `deploy-dev`); os projetos da Vercel fazem deploy pela integração git da
-própria Vercel, não pelo GitHub Actions. Migrations de prod **não** rodam no boot do
-container — aplique manualmente antes de fazer deploy de uma mudança de schema:
+O dev faz deploy a partir da `develop` pelo job `deploy-dev` de `.github/workflows/api.yml`, e a
+integração git da Vercel faz o deploy do web de dev. Prod faz deploy pelo
+`.github/workflows/release.yml` a partir de uma tag: primeiro a API, depois a branch `production`,
+da qual o projeto de prod da Vercel faz o build. Migrations de prod **não** rodam no boot do
+container — aplique manualmente antes de criar a tag de um release que inclua uma:
 
 ```bash
 pnpm --filter @zelo/api exec prisma migrate deploy   # DIRECT_DATABASE_URL deve apontar para prod (apps/api/.env.production.local)

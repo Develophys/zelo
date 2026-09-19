@@ -131,10 +131,11 @@ explicit `prisma generate` step; `docker/web.Dockerfile:12` installs plain).
 
 **`api.yml`**'s `api-test` job runs against a real `postgres:16-alpine` service container, with
 `DATABASE_URL` and `DIRECT_DATABASE_URL` both set at job level (`api.yml:48-49`) and `prisma
-generate` then `prisma migrate deploy` run as explicit steps before `Test`. Two deploy jobs
-follow, each gated `needs: api-test`: `deploy` (push to `main` → `flyctl deploy --config
-fly.toml`, app `zelo-api`, `FLY_API_TOKEN`) and `deploy-dev` (push to `develop` → `fly.dev.toml`,
-app `zelo-api-dev`, `FLY_API_TOKEN_DEV`) — both end with a `curl .../health` assertion. Any new
+generate` then `prisma migrate deploy` run as explicit steps before `Test`. One deploy job
+follows, gated `needs: api-test`: `deploy-dev` (push to `develop` → `fly.dev.toml`, app
+`zelo-api-dev`, `FLY_API_TOKEN_DEV`). Production is deployed by `release.yml` on a `v*` tag (→
+`fly.toml`, app `zelo-api`, `FLY_API_TOKEN`; see `docs/releasing.md`), not by a push to `main`.
+Both end with a `curl .../health` assertion. Any new
 deploy job must keep that curl gate; it's the only automated check that the released machine
 actually booted.
 
@@ -209,7 +210,7 @@ Migrations are committed, timestamped folders under `apps/api/prisma/migrations`
 `migration_lock.toml`) — never `prisma db push`. "Never auto-run migrations" is true only for the
 production path: the image's own `CMD` stays migration-free by design
 (`docker/api.Dockerfile:24-31`'s comment: "so Fly.io's machine config matches a known-working
-reference app exactly"), and `deploy`'s prod job runs no migration step at all — but CI *does*
+reference app exactly"), and `release.yml`'s prod deploy runs no migration step at all — but CI *does*
 run `prisma migrate deploy` automatically, both in `api-test` (against the ephemeral Postgres)
 and in `deploy-dev` (against the dev database, `api.yml:131-132`). Local Docker Compose overrides
 the container `command:` to auto-migrate on boot for convenience only
@@ -230,12 +231,15 @@ the #1 danger above.
 ## 6. Deploy topology
 
 **Fly.io (api) + Vercel (web) + Prisma Postgres (db), two fully independent environments.**
-`main` deploys the API to Fly app `zelo-api` (`fly.toml`) and the web app to `zelohealth.app`
-(Vercel); `develop` deploys to `zelo-api-dev` (`fly.dev.toml`) and `dev.zelohealth.app`
+A `v*` tag on `main` deploys the API to Fly app `zelo-api` (`fly.toml`) and then the web app to
+`zelohealth.app` (Vercel, from the `production` branch); `develop` deploys to `zelo-api-dev`
+(`fly.dev.toml`) and `dev.zelohealth.app`
 (`README.md:118-136`, the Deployment section). Each Fly app has its own database and its own
 token secret. The API is
-deployed *only* through `api.yml`'s flyctl jobs (§4) — never add a second deploy path. The web
-app is deployed *only* through Vercel's git integration — never add one to `web.yml`.
+deployed *only* through flyctl jobs — `api.yml`'s `deploy-dev` for dev and `release.yml` for prod
+(§4) — never add a second deploy path. The web app is deployed *only* through Vercel's git
+integration (dev from `develop`, prod from the `production` branch that `release.yml` moves after
+the API deploy) — never add a deploy to `web.yml`.
 
 `PrismaService`'s Neon-adapter branch (`prisma.service.ts:18-29`, switches on a `.neon.tech`
 host) is probably unexercised today: both configured remote databases
@@ -289,9 +293,12 @@ one of them is a thing that looks routine and isn't.
 - **Don't assume an APK built from `develop` talks to the dev API** (§6).
   `apps/web/package.json:9`'s `build:native` hardcodes the production `VITE_API_BASE_URL` with no
   environment branch, and `android:sync` calls it unconditionally.
-- **Don't add a second deploy path for either app** (§6). The API deploys only through
-  `api.yml`'s flyctl jobs; the web app deploys only through Vercel's git integration. A deploy
-  job added to `web.yml` would be a second, competing publisher.
+- **Don't add a second deploy path for either app** (§6). The API deploys only through flyctl jobs
+  (`api.yml`'s `deploy-dev`, `release.yml` for prod); the web app deploys only through Vercel's git
+  integration. A deploy job added to `web.yml`, or one that fires on a push to `main`, would be a
+  second, competing publisher and would put the web app ahead of the API again.
+- **Don't reintroduce a deploy on push to `main`.** Prod is released by a tag through `release.yml`
+  (`docs/releasing.md`); the API deploys first, and only then does the `production` branch move.
 - **Don't reintroduce a `VITE_BASE_PATH` / Vite `base` override** (§6). It was GitHub Pages
   residue with no caller and was removed under `priorities.md` #13; the app is served from the
   domain root on Vercel.
