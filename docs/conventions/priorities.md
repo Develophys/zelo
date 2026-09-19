@@ -261,15 +261,23 @@ The original entry:
 - **Kind:** tooling-gap
 - **Files:** `packages/config/eslint.base.mjs`
 
-## 7. SuperAdmin sessions cannot be revoked
+## 7. SuperAdmin sessions cannot be revoked — FIXED
 
-- **Why:** `AdminAuthGuard.canActivate` verifies the token and stops — no DB re-read (see
-  `apps/api/src/modules/admin/infrastructure/admin-auth.guard.ts`, the guard body) — and the
-  `SuperAdmin` model has no `isActive` column at all, unlike `ManagerAuthGuard`, which re-reads
-  both the manager and the institution on every request. Deleting the row leaves the HMAC token
-  valid for the remaining 8h against every institution-management route on the platform — the
-  widest-scoped role in the product, and the only one whose password is never validated by any
-  zod schema (`SUPER_ADMIN_PASSWORD`). `ManagerAuthGuard` already shows exactly what to copy.
+`SuperAdmin` gained `isActive Boolean @default(true)`. `AdminAuthGuard.canActivate` now re-reads
+the row by id on every request (`ADMIN_REPOSITORY.findById`, the same shape `ManagerAuthGuard`
+already used) and rejects with `UnauthorizedException` when the row is gone or `isActive` is
+false — a still-valid HMAC token no longer outlives a flipped `isActive` flag. `LoginAdminUseCase`
+rejects login the same way, folded into the same non-disclosing `InvalidAdminCredentialsError`
+every other failure mode uses, matching `LoginManagerUseCase`'s symmetry. No new "deactivate"
+endpoint — flipping the column is still a manual operator action, just one that now actually
+revokes a live session instead of only blocking the next login.
+
+**Proven to fire, not just changed.** `admin-auth.guard.test.ts` installs a deactivated admin row
+behind an otherwise-valid token and asserts the request is rejected. Reverting the guard to its
+pre-fix form and re-running that test file was verified to fail all 5 tests (the file no longer
+compiles against the two-argument constructor its own tests now require) — restoring the fix
+brings it back to green.
+
 - **Effort:** small
 - **Kind:** security
 - **Files:** `apps/api/src/modules/admin/infrastructure/admin-auth.guard.ts`,

@@ -26,6 +26,7 @@ model SuperAdmin {
   name         String
   email        String   @unique
   passwordHash String
+  isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
 
   @@map("super_admins")
