@@ -442,8 +442,10 @@ into `react-performance.md` and would have made any design quoting them look unr
   It is 18 staff pages plus `ManagerShell`, against 34 page *modules* — `FallbackPage.tsx`
   exports two components, so modules and components are not the same count.
 
-**What is still open**, and why this is not fully closed: the entry chunk remains 621 kB, over
-Rollup's 500 kB warning, with ~63% of it shared vendor (`react-router` ~88 KB, `zod`, `socket.io`).
+**What is still open**, and why this is not fully closed: the entry chunk remains 621 kB (as
+measured for this item — item #27 later moved it to 677 kB by wiring the React Compiler; that
+change is unrelated to code-splitting and doesn't affect this section's analysis), over Rollup's
+500 kB warning, with ~63% of it shared vendor (`react-router` ~88 KB, `zod`, `socket.io`).
 Getting under 500 kB needs vendor splitting, which carries its own request-waterfall risk and
 deserves its own brief. And the doctor's *total* bytes are unchanged: workbox's `globPatterns`
 precaches every new chunk (41 → 83 entries, ~2.2 MiB either way), so the win is first-paint
@@ -696,6 +698,52 @@ whichever word it read last — which is exactly how this drift was produced.
 - **Files:** `apps/web/src/presentation/hooks/useManagerNotifications.ts`,
   `apps/web/src/presentation/pages/ManagerInsightHistoryPage.tsx`,
   `apps/web/src/presentation/hooks/useDebouncedSearch.ts`
+
+## 27. React Compiler is not installed — DONE
+
+`apps/web/vite.config.ts`'s `react()` plugin now runs `babel-plugin-react-compiler@1.0.0` with
+`target: "19"`, `panicThreshold: "none"`, and `compilationMode` left at its default (`"infer"`,
+whole-app, no directory scoping). `panicThreshold` was measured, not assumed:
+`critical_errors` failed the build on the exact same `refs` finding `all_errors` did, so there's
+no functional middle ground between `none` and `all_errors` on this codebase — `none` is also
+react.dev's own stated production recommendation.
+
+A real build's `logger`-based count is 199/215 compiled, 16 bailed out (deduplicated by
+function — the compiler's `CompileError` event fires once per diagnostic detail, not once per
+function, so the raw event count is 24; the distinct-function count is 16): 10 are the
+`incompatible-library` warnings already tracked in item #6 (React Hook Form's `watch()`, one
+function per file), 1 is `ScaleAssessmentPage.tsx`'s `refs` finding (`pageJustMountedRef`,
+flagged at two read sites but one function), 1 is `useDebouncedSearch.ts`'s `refs` finding
+(same pattern), 1 is `Tooltip.tsx`'s `refs` finding (five flagged expressions, one function), 1
+(`AssessmentReview.tsx`) is skipped purely because it carries an `eslint-disable` for a
+react-hooks rule — the real compiler treats any such disable as a signal to skip the whole
+component, not just the disabled line — and 2 are genuine compiler-tooling limitations tracked
+in `QrCodeModal.tsx` and `useChatConversation.ts`. Two sites needed a real code fix rather than
+a tracked bailout: `LinkInstitutionQrScanModal.tsx` and `ChatComposer.tsx`. `ChatComposer.tsx`'s
+finding — a latest-ref write that needed to move into `useLayoutEffect` — was invisible to
+`eslint-plugin-react-hooks`'s static analysis; the eslint rules and the real compiler don't
+fully agree, in both directions.
+
+The test suite now runs through the same compiler config as the production build — both
+`vite.config.ts` and `vitest.config.ts` import the plugin from a shared
+`apps/web/react-compiler-plugin.ts` module, so they can't silently drift onto different
+configs. Bundle size: entry chunk 620.81 kB (gzip 185.70 kB, the pre-compiler baseline recorded
+in item #14) → 677.17 kB (gzip 207.40 kB), +9.1% raw / +11.7% gzip, from injected
+`react/compiler-runtime` memoization code — expected, not a regression, and not this change's
+goal.
+
+`react-compiler-healthcheck` is not reliable ground truth: run against this exact codebase
+before any code change, its own summary claimed "218/218 compiled, no incompatible libraries,"
+which the real build's per-event `logger` count above already contradicts on its own (10
+`incompatible-library` bailouts alone). Anyone reaching for a compiler-coverage number should
+read it off a real build's `logger`, not off `react-compiler-healthcheck`'s summary line.
+
+**Proven to fire, not just changed.** Removing the `babel` block from `vite.config.ts`'s
+`react()` call and rebuilding still exits 0, but the `react-compiler:` summary line is absent
+from the output entirely — `grep "react-compiler:"` matches nothing. Restoring the block and
+rebuilding brings the line back with the identical split, `react-compiler: 199/215 compiled, 16
+bailed out`. The full web suite stayed green throughout (193 files / 2360 tests) and
+`pnpm turbo run lint lint:boundaries build --filter=@zelo/web` exits 0.
 
 ---
 
