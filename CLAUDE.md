@@ -63,14 +63,17 @@ nothing catches it before boot.
 - Design tokens only in `apps/web` — `--color-*` tokens through Tailwind utilities, no raw
   hex/rgb.
 
-## Security rules that are convention-only today
+## Security rules
 
-Never `dangerouslySetInnerHTML`, `innerHTML`, `outerHTML`, `document.write`, `eval()`,
-`new Function`, or a `javascript:` href anywhere in `apps/web`. Reason (TD-001): manager,
-hospital-admin, SuperAdmin, and peer-partner session tokens all sit in `sessionStorage`
-behind `Authorization: Bearer` — one raw-HTML render is full session exfiltration. Nothing
-enforces this yet — no `react/no-danger` lint rule, no CI grep
-(`docs/conventions/priorities.md` #10).
+Never `dangerouslySetInnerHTML`, `innerHTML`, `outerHTML`, `insertAdjacentHTML`,
+`document.write`, `eval()`, `new Function`, or a `javascript:` href anywhere in `apps/web`.
+Reason (TD-001): manager, hospital-admin, SuperAdmin, and peer-partner session tokens all sit
+in `sessionStorage` behind `Authorization: Bearer` — one raw-HTML render is full session
+exfiltration. ESLint fails the build on all of them (`apps/web/eslint.config.mjs`,
+`packages/config/eslint.base.mjs`), and the site ships a Content-Security-Policy
+(`apps/web/vercel.json`) that blocks inline/eval script and any origin that is not Zelo's own
+API. If you edit the inline theme script in `apps/web/index.html`, update its sha256 in the CSP
+(`docs/conventions/security-privacy.md` §5).
 
 ## What this repo deliberately does not do
 

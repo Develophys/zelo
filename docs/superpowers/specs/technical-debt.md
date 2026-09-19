@@ -42,6 +42,14 @@ equivalent raw-HTML injection) on any manager route. This is the actual
 attack vector that matters given the current design; keeping it closed is
 cheap and removes most of the practical risk.
 
+**Update 2026-09-19.** The compensating control is now enforced instead of hoped for: ESLint
+fails the build on raw-HTML rendering and on `eval`/`new Function` (`priorities.md` #10), and the
+site ships a Content-Security-Policy that blocks inline and eval script and any origin that is not
+Zelo's own API, so an injected script cannot send the token elsewhere. This lowers the likelihood
+and the blast radius; it does not close the debt. The token is still readable by script in
+`sessionStorage`, and an XSS can still act as the user inside the open tab. The real fix, the
+`HttpOnly`-cookie migration, is tracked as `priorities.md` #30. Status stays *Accepted, deferred*.
+
 **Revisit when:** any of the following becomes true —
 - A manager-facing screen needs to render user-supplied or third-party HTML.
 - The manager surface handles data more sensitive than aggregate/anonymized

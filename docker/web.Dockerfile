@@ -18,4 +18,5 @@ RUN pnpm exec turbo run build --filter=@zelo/web
 FROM nginx:1.27-alpine AS runner
 COPY --from=installer /app/apps/web/dist /usr/share/nginx/html
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker/nginx-security-headers.conf /etc/nginx/security-headers.conf
 EXPOSE 80
