@@ -27,6 +27,13 @@ function triggerDownload(blob: Blob, filename: string): void {
 
 // qrcode is loaded lazily — every session pays for it only once it actually
 // opens a QR modal, not on every visit to the list that can open one.
+//
+// React Compiler doesn't optimize this component today: the `if (!canvas ||
+// cancelled) return;` inside the try block below hits a real compiler
+// limitation ("Support value blocks... within a try/catch statement"), not a
+// Rules-of-React violation — tracked in docs/conventions/priorities.md, not
+// fixed here. panicThreshold: "none" means this is a safe, silent bailout,
+// not a build failure.
 export function QrCodeModal({
   isOpen,
   onClose,
