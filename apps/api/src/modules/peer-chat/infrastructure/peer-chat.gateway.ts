@@ -14,6 +14,7 @@ import { PeerMatchRegistry } from "../application/services/peer-match-registry.s
 import type { PendingMatch } from "../application/services/peer-match-registry.service.ts";
 import { PeerPartnerTokenService } from "@/modules/peer-partner/application/services/peer-partner-token.service.js";
 import { PEER_PARTNER_REPOSITORY, type PeerPartnerRepository } from "@/modules/peer-partner/application/ports/peer-partner-repository.port.js";
+import { resolveClientAddress } from "@/shared/http/client-address.js";
 import { messagePayloadSchema, parsePayload, requestIdPayloadSchema, requestPeerPayloadSchema } from "./peer-chat.payloads.ts";
 
 const ACCEPT_TIMEOUT_MS = 30_000;
@@ -27,9 +28,7 @@ function resolveAllowedOrigins(): string[] {
 }
 
 function addressOf(client: Socket): string {
-  const flyClientIp = client.handshake.headers?.["fly-client-ip"];
-  if (typeof flyClientIp === "string" && flyClientIp.length > 0) return flyClientIp;
-  return client.handshake.address;
+  return resolveClientAddress(client.handshake.headers, client.handshake.address);
 }
 
 @Injectable()

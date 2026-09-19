@@ -646,15 +646,17 @@ proof of membership. It belongs in this enumeration and is the only place in the
 tenant key comes off the wire rather than out of a verified token — traced in full in §4;
 validation was `priorities.md` #8, membership proof is #28.
 
-**Known gap — no per-endpoint rate limit except on the two forgot-password routes.** A global
-`ThrottlerModule` (100 requests/60s per IP, via `APP_GUARD` in `app.module.ts`) protects
+**Known gap — no tighter per-endpoint rate limit except on the login and forgot-password routes.** A global
+`ThrottlerModule` (100 requests/60s per client address, via `APP_GUARD` in `app.module.ts`) protects
 everything else uniformly. The institution-by-code lookup and the four check-in endpoints have no
 *tighter* limit of their own, even though a real device checks in at most once a week. A
 low-entropy, guessable invite code (seeded ones look like `zelo-demo-2026`) plus a rotating
 `deviceSignalId` could inflate a sector's counters well past what the throttle catches. Flagged,
 not yet fixed — see §12. The forgot-password routes are the exception: as the first
 unauthenticated routes accepting a bare email — a spam and enumeration target — each carries its
-own `@Throttle` override (5 requests per 15 minutes per IP).
+own `@Throttle` override (5 requests per 15 minutes per IP). The three login routes carry
+`@LoginThrottle()` (20 attempts per 15 minutes per address, 5 per address and e-mail). The client
+address is `Fly-Client-IP`, since behind Fly's proxy `req.ip` is shared by every user.
 
 ### Transport & infrastructure
 
