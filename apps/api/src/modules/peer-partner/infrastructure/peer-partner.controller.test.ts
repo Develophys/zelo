@@ -168,6 +168,45 @@ describe("peer partner controller", () => {
     expect(response.status).toBe(400);
   });
 
+  it("POST /peer-partner/finish-setup rejects a password under the minimum with 400 and leaves the account unset", async () => {
+    repository.rows.push({
+      id: "peer-short",
+      name: "Dr. Senha Curta",
+      email: "curta@zelo-demo.local",
+      passwordHash: null,
+      setPasswordTokenExpiresAt: new Date(Date.now() + 60_000),
+      institutionId: "institution-1",
+      specialty: "Psiquiatria",
+      isActive: true,
+    });
+    (repository.rows[repository.rows.length - 1] as unknown as { setPasswordToken: string }).setPasswordToken =
+      hashSetPasswordToken("short-password-token");
+
+    const response = await request(app.getHttpServer()).post("/peer-partner/finish-setup").send({ token: "short-password-token", password: "nine-char" });
+
+    expect(response.status).toBe(400);
+    expect(repository.rows.find((row) => row.id === "peer-short")!.passwordHash).toBeNull();
+  });
+
+  it("POST /peer-partner/finish-setup accepts a password of exactly the minimum length", async () => {
+    repository.rows.push({
+      id: "peer-exact",
+      name: "Dr. Senha Exata",
+      email: "exata@zelo-demo.local",
+      passwordHash: null,
+      setPasswordTokenExpiresAt: new Date(Date.now() + 60_000),
+      institutionId: "institution-1",
+      specialty: "Psiquiatria",
+      isActive: true,
+    });
+    (repository.rows[repository.rows.length - 1] as unknown as { setPasswordToken: string }).setPasswordToken =
+      hashSetPasswordToken("exact-password-token");
+
+    const response = await request(app.getHttpServer()).post("/peer-partner/finish-setup").send({ token: "exact-password-token", password: "ten-chars!" });
+
+    expect(response.status).toBe(200);
+  });
+
   it("POST /peer-partner/forgot-password sends the set-password email for a known, active peer partner", async () => {
     const response = await request(app.getHttpServer()).post("/peer-partner/forgot-password").send({ email: "ana@zelo-demo.local" });
 

@@ -55,7 +55,7 @@ describe("FinishSetupForm", () => {
     expect(toast!.message).toBe("Senha cadastrada com sucesso.");
   });
 
-  it("disables submit until both password fields match and are at least 8 characters", async () => {
+  it("disables submit until both password fields match and are at least 10 characters", async () => {
     const user = userEvent.setup();
     renderWithToken("abc123", vi.fn());
 
@@ -64,6 +64,18 @@ describe("FinishSetupForm", () => {
     await user.type(screen.getByLabelText("Senha"), "short");
     await user.type(screen.getByLabelText("Confirme a senha"), "short");
     expect(screen.getByRole("button", { name: "Definir senha" })).toBeDisabled();
+
+    await user.clear(screen.getByLabelText("Senha"));
+    await user.clear(screen.getByLabelText("Confirme a senha"));
+    await user.type(screen.getByLabelText("Senha"), "nine-char");
+    await user.type(screen.getByLabelText("Confirme a senha"), "nine-char");
+    expect(screen.getByRole("button", { name: "Definir senha" })).toBeDisabled();
+
+    await user.clear(screen.getByLabelText("Senha"));
+    await user.clear(screen.getByLabelText("Confirme a senha"));
+    await user.type(screen.getByLabelText("Senha"), "ten-chars!");
+    await user.type(screen.getByLabelText("Confirme a senha"), "ten-chars!");
+    expect(screen.getByRole("button", { name: "Definir senha" })).not.toBeDisabled();
 
     await user.clear(screen.getByLabelText("Senha"));
     await user.clear(screen.getByLabelText("Confirme a senha"));

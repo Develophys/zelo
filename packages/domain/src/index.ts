@@ -5,3 +5,4 @@ export * from "./entities/crisis-session.ts";
 export * from "./entities/chat-message.ts";
 export * from "./manager/metric-bands.ts";
 export * from "./manager/metric-glossary.ts";
+export * from "./auth/password-policy.ts";

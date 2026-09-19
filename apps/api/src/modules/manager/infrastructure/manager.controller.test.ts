@@ -340,6 +340,45 @@ describe("manager controller", () => {
     expect(response.status).toBe(400);
   });
 
+  it("POST /manager/finish-setup rejects a password under the minimum with 400 and leaves the account unset", async () => {
+    managerRepository.rows.push({
+      id: "manager-short",
+      name: "Gestor Senha Curta",
+      email: "curta@zelo-demo.local",
+      passwordHash: null,
+      setPasswordTokenExpiresAt: new Date(Date.now() + 60_000),
+      institutionId: "institution-a",
+      role: "HOSPITAL_ADMIN",
+      isActive: true,
+    });
+    (managerRepository.rows[managerRepository.rows.length - 1] as unknown as { setPasswordToken: string }).setPasswordToken =
+      hashSetPasswordToken("short-password-token");
+
+    const response = await request(app.getHttpServer()).post("/manager/finish-setup").send({ token: "short-password-token", password: "nine-char" });
+
+    expect(response.status).toBe(400);
+    expect(managerRepository.rows.find((row) => row.id === "manager-short")!.passwordHash).toBeNull();
+  });
+
+  it("POST /manager/finish-setup accepts a password of exactly the minimum length", async () => {
+    managerRepository.rows.push({
+      id: "manager-exact",
+      name: "Gestor Senha Exata",
+      email: "exata@zelo-demo.local",
+      passwordHash: null,
+      setPasswordTokenExpiresAt: new Date(Date.now() + 60_000),
+      institutionId: "institution-a",
+      role: "HOSPITAL_ADMIN",
+      isActive: true,
+    });
+    (managerRepository.rows[managerRepository.rows.length - 1] as unknown as { setPasswordToken: string }).setPasswordToken =
+      hashSetPasswordToken("exact-password-token");
+
+    const response = await request(app.getHttpServer()).post("/manager/finish-setup").send({ token: "exact-password-token", password: "ten-chars!" });
+
+    expect(response.status).toBe(200);
+  });
+
   it("POST /manager/forgot-password sends the set-password email for a known, active manager", async () => {
     const response = await request(app.getHttpServer()).post("/manager/forgot-password").send({ email: "ana@zelo-demo.local" });
 
