@@ -623,7 +623,8 @@ accidental. Checklist form: [`security-privacy.md`](../docs/conventions/security
 which removes the CSRF protection cookies are meant to provide unless a CSRF token is added too,
 and it turns the synchronous router guard into an async round-trip per manager navigation — a
 ~3–5 hour migration across roughly 17 files, not a quick swap. Compensating control: no
-`dangerouslySetInnerHTML` anywhere on a manager route. A migration design exists but is unmerged
+`dangerouslySetInnerHTML` anywhere in `apps/web`, now enforced by lint and backed by a CSP
+(`priorities.md` #10). A migration design exists but is unmerged
 (`2026-09-14-httponly-cookie-session-migration-design.md`).
 
 ### Deliberately unauthenticated endpoints

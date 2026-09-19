@@ -121,33 +121,28 @@ already reaches.
 
 ## 4. XSS surface
 
-Never introduce `dangerouslySetInnerHTML`, `innerHTML`, `outerHTML`, `document.write`, `eval()`,
-`new Function`, or a `javascript:`/user-built `href` anywhere in `apps/web`. This is a
-project-wide prohibition, not specific to one screen, and it is already real and already
-enforced by convention today (see the re-run grep below) regardless of where it's written down.
-A separate task in this same documentation pass will add a one-line summary of this rule to
-`CLAUDE.md` as a top-level law — as of this writing that line is **not yet there**
-(`grep -n "dangerouslySetInnerHTML\|innerHTML\|XSS" CLAUDE.md` returns nothing); this file is
-where the fuller TD-001 rationale lives regardless, since `CLAUDE.md`'s eventual version will
-necessarily be a one-line summary. Re-run just now:
+Never introduce `dangerouslySetInnerHTML`, `innerHTML`, `outerHTML`, `insertAdjacentHTML`,
+`document.write`, `eval()`, `new Function`, or a `javascript:`/user-built `href` anywhere in
+`apps/web`. This is a project-wide prohibition, not specific to one screen, and `CLAUDE.md`
+carries it as a top-level law.
+
+**It is enforced.** `apps/web/eslint.config.mjs` fails the build on `dangerouslySetInnerHTML`
+(JSX attribute and `createElement` prop), on assigning `innerHTML`/`outerHTML`, on
+`insertAdjacentHTML` and on `document.write`/`writeln` (`no-restricted-syntax`, all core ESLint,
+no plugin). `packages/config/eslint.base.mjs` adds `no-eval`, `no-implied-eval`, `no-new-func` and
+`no-script-url` for every package. `apps/web/src/lint/no-raw-html.test.ts` runs ESLint over probe
+snippets to prove each pattern is rejected, and that ordinary code (JSX text, `textContent`,
+*reading* `innerHTML`) is not. It applies to test files too. The tree has zero occurrences today:
 
 ```bash
 grep -rnE "dangerouslySetInnerHTML|innerHTML|outerHTML|document\.write|eval\(|new Function|javascript:" apps/web/src packages
 ```
 
-Zero hits. This matters specifically because of §1: session tokens live in `sessionStorage` as a
-Bearer token for every role, including the SuperAdmin session that §1 showed cannot even be
-revoked once issued. With no `HttpOnly` cookie (see the Traps section below) and no CSP (§5),
-React's default escaping — i.e., the absence of the APIs above — is the *only* thing standing
-between a single XSS and full session exfiltration for manager, hospital-admin, SuperAdmin and
-peer-partner sessions alike. This is documented as TD-001's named compensating control.
-
-**Nothing enforces it.** There is no `react/no-danger` (or equivalent `no-restricted-syntax` /
-`no-restricted-properties`) ESLint rule in `apps/web/eslint.config.mjs`,
-`packages/config/eslint.base.mjs`, or `packages/domain/eslint.config.mjs` — re-checked, no match
-— and no CI grep. The zero-occurrence state above is maintained by convention only. That gap is
-tracked as `priorities.md` #10 (add `react/no-danger: error` plus baseline security headers), not
-an oversight to quietly work around mid-task.
+This matters specifically because of §1: session tokens live in `sessionStorage` as a Bearer token
+for every role, including the SuperAdmin session. Until the `HttpOnly`-cookie migration lands
+(`priorities.md` #30; TD-001 stays open), the lint rules and the CSP in §5 are what stand between a
+single XSS and full session exfiltration for manager, hospital-admin, SuperAdmin and peer-partner
+sessions alike.
 
 ## 5. Transport hardening
 
@@ -175,13 +170,39 @@ type-checks but silently applies no limit at all (see
 full). The password floor is still 8 characters with no complexity rule, and the SuperAdmin
 password is never validated by a schema (`priorities.md` #29).
 
-**`helmet` is absent from the stack**, and this is a known, tracked gap — state it as such, not
-as something to silently patch in mid-task. `grep helmet apps/api/package.json` → no match; no
-CSP/HSTS/X-Frame-Options/Referrer-Policy header is set anywhere (`main.ts`'s only middleware call
-is `enableCors`; `docker/nginx.conf` adds no security headers; `apps/web/vercel.json` only
-rewrites; `apps/web/index.html` has no CSP meta tag). `priorities.md` #10 covers both this and the
-`react/no-danger` gap from §4 together, since a CSP is the cheapest control that would blunt
-token exfiltration even if an XSS did land.
+**Security headers** are set on three surfaces, and each is tested.
+
+- **The site (Vercel).** `apps/web/vercel.json` `headers` sends a Content-Security-Policy,
+  `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy:
+  strict-origin-when-cross-origin` and a `Permissions-Policy` that leaves the camera to the app
+  itself (the QR scanner) and disables microphone, geolocation, payment and USB. The CSP is
+  `default-src 'self'`, no `unsafe-eval`, no wildcard host, `object-src 'none'`,
+  `frame-ancestors 'none'`. `connect-src` lists exactly Zelo's own API origins over `https` and
+  `wss` (`zelo-api`, `zelo-api-dev` on Fly and `api`, `api-dev` on `zelohealth.app`), never
+  `*.fly.dev`: a wildcard would let injected script send a token to an attacker's own Fly app.
+  `style-src` keeps `'unsafe-inline'` because React renders inline `style` attributes.
+- **The inline script.** `index.html` has one inline script (the theme bootstrap), allowed by its
+  sha256 in `script-src`. `apps/web/src/security-headers.test.ts` recomputes that hash from
+  `index.html` and fails if `vercel.json` disagrees, so editing the script means copying the new
+  hash out of the failure. The hash is computed on LF line endings, which is what git stores and
+  what Vercel builds; a Windows checkout with CRLF produces a different local hash, so a local
+  browser check must normalize line endings first.
+- **The API (Fly).** `apps/api/src/shared/http/security-headers.ts` wraps `helmet`, applied in
+  `main.ts` before CORS: `default-src 'none'`, `frame-ancestors 'none'`, `X-Frame-Options: DENY`,
+  `nosniff`, `Referrer-Policy: no-referrer`, HSTS for two years without `includeSubDomains`, and no
+  `X-Powered-By`. A JSON API has no use for any resource, so the policy allows none.
+- **Local Docker.** `docker/nginx-security-headers.conf` is included in both the server block and
+  the `/sw.js` location (nginx drops inherited `add_header` lines in a location that sets its own).
+  A test asserts it matches `vercel.json` apart from `connect-src`, which targets
+  `localhost:3000`.
+
+**What this does not do.** The CSP does not stop an injected script from acting inside the victim's
+open tab; it stops it from loading outside code, from running inline or `eval`-ed code, and from
+sending the token to a host that is not Zelo's. The Android APK loads its assets locally and gets
+none of the Vercel headers. Verified in headless Chrome against the production build with the exact
+`vercel.json` headers: nine routes render with zero violations, and simulated attacks (fetch and
+image beacon to a foreign host, a foreign `*.fly.dev` app, an inline script, an inline event
+handler, a foreign script, `eval`, `new Function`, framing) are all blocked.
 
 ## 6. What never gets logged
 
@@ -252,10 +273,9 @@ A few concrete boundaries, re-checked against the code:
 
 ## How to verify
 
-There is no automated check for most of this document — no lint rule for the XSS prohibition
-(§4), no test asserting the institution-scoping trap can't recur (§3), no CI step confirming
-`helmet` is still absent on purpose rather than by oversight (§5). Verifying this file means
-re-running the greps above by hand:
+The XSS prohibition (§4) and the security headers (§5) are covered by tests. There is still no
+test asserting the institution-scoping trap can't recur (§3), so verifying that part of this file
+means re-running the greps above by hand:
 
 ```bash
 # Auth stack: identical shape across all three roles
@@ -267,12 +287,13 @@ diff apps/api/src/modules/manager/application/services/manager-password.service.
 grep -c "request.manager!.institutionId" apps/api/src/modules/manager/infrastructure/manager-admin.controller.ts
 grep -c "request.manager!.institutionId" apps/api/src/modules/manager/infrastructure/manager.controller.ts
 
-# XSS surface: zero occurrences, zero enforcing lint rule
+# XSS surface: zero occurrences, enforced by lint (expect the rule names, then no output from the grep)
+grep -n "no-restricted-syntax\|no-eval\|no-new-func" apps/web/eslint.config.mjs packages/config/eslint.base.mjs
 grep -rnE "dangerouslySetInnerHTML|innerHTML|outerHTML|document\.write|eval\(|new Function|javascript:" apps/web/src packages
-grep -n "no-danger\|no-restricted-syntax\|no-restricted-properties" apps/web/eslint.config.mjs packages/config/eslint.base.mjs
 
-# Transport hardening: helmet absent, CORS allowlist duplicated
+# Transport hardening: security headers on the three surfaces, CORS allowlist duplicated
 grep -n "helmet" apps/api/package.json
+grep -n "Content-Security-Policy" apps/web/vercel.json docker/nginx-security-headers.conf
 grep -n "@Throttle" apps/api/src/modules/manager/infrastructure/manager.controller.ts apps/api/src/modules/peer-partner/infrastructure/peer-partner.controller.ts
 grep -rn "@LoginThrottle" apps/api/src --include=*.controller.ts
 ```
