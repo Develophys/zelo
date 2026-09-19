@@ -3,6 +3,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { reactCompilerBabelPlugin } from "./react-compiler-plugin";
 
 // Set VITE_BASE_PATH (only done in the GitHub Pages workflow, from
 // actions/configure-pages' base_path output, e.g. "/zelo" with no trailing
@@ -32,7 +33,11 @@ export default defineConfig({
     },
   },
   plugins: [
-    react(),
+    react({
+      babel: {
+        plugins: [reactCompilerBabelPlugin()],
+      },
+    }),
     tailwindcss(),
     VitePWA({
       disable: process.env.VITE_DISABLE_PWA === "true",
