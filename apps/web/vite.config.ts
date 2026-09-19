@@ -3,6 +3,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { reactCompilerBabelPlugin } from "./react-compiler-plugin";
 
 // Set VITE_BASE_PATH (only done in the GitHub Pages workflow, from
 // actions/configure-pages' base_path output, e.g. "/zelo" with no trailing
@@ -24,15 +25,6 @@ if (rawApiBaseUrl && !/^https?:\/\//i.test(rawApiBaseUrl)) {
   );
 }
 
-let reactCompilerSuccessCount = 0;
-let reactCompilerErrorCount = 0;
-process.on("exit", () => {
-  if (reactCompilerSuccessCount + reactCompilerErrorCount === 0) return;
-  console.log(
-    `react-compiler: ${reactCompilerSuccessCount}/${reactCompilerSuccessCount + reactCompilerErrorCount} compiled, ${reactCompilerErrorCount} bailed out`,
-  );
-});
-
 export default defineConfig({
   base: basePath,
   resolve: {
@@ -43,21 +35,7 @@ export default defineConfig({
   plugins: [
     react({
       babel: {
-        plugins: [
-          [
-            "babel-plugin-react-compiler",
-            {
-              target: "19",
-              panicThreshold: "none",
-              logger: {
-                logEvent(filename: string, event: { kind: string }) {
-                  if (event.kind === "CompileError") reactCompilerErrorCount += 1;
-                  if (event.kind === "CompileSuccess") reactCompilerSuccessCount += 1;
-                },
-              },
-            },
-          ],
-        ],
+        plugins: [reactCompilerBabelPlugin()],
       },
     }),
     tailwindcss(),

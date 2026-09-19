@@ -28,12 +28,16 @@ function triggerDownload(blob: Blob, filename: string): void {
 // qrcode is loaded lazily — every session pays for it only once it actually
 // opens a QR modal, not on every visit to the list that can open one.
 //
-// React Compiler doesn't optimize this component today: the `if (!canvas ||
-// cancelled) return;` inside the try block below hits a real compiler
-// limitation ("Support value blocks... within a try/catch statement"), not a
-// Rules-of-React violation — tracked in docs/conventions/priorities.md, not
-// fixed here. panicThreshold: "none" means this is a safe, silent bailout,
-// not a build failure.
+// React Compiler doesn't optimize this component today: the dynamic
+// `import("qrcode")` below hits a compiler limitation ("Handle Import
+// expressions"). Extracting it to a module-level helper (the same fix
+// applied to LinkInstitutionQrScanModal.tsx) clears that specific error, but
+// reveals a second, deeper one underneath — a plain `if` inside the try
+// block below ("Support value blocks... within a try/catch statement").
+// Both are real compiler-tooling limitations, not Rules-of-React
+// violations — tracked in docs/conventions/priorities.md, not fixed here.
+// panicThreshold: "none" means this is a safe, silent bailout, not a build
+// failure.
 export function QrCodeModal({
   isOpen,
   onClose,
