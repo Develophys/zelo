@@ -9,5 +9,5 @@ export type ManagerInsightResult = z.infer<typeof ManagerInsightResultSchema>;
 export class InsightGenerationFailedError extends Error {}
 
 export interface ManagerInsightPort {
-  generateInsight(token: string): Promise<ManagerInsightResult>;
+  generateInsight(): Promise<ManagerInsightResult>;
 }
