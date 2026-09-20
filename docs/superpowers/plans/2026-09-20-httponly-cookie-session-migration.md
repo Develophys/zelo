@@ -2025,7 +2025,7 @@ git commit -m "feat(web): route guard that trusts /me, with the local flag as a 
 
 ### Phase 2 checkpoint A (PR 2: Tasks 8 to 10)
 
-- [ ] `pnpm --filter @zelo/web exec vitest run && pnpm turbo run lint lint:boundaries --filter=@zelo/web`, then PR. Nothing user-visible changes; the site is still on Bearer.
+- [ ] `pnpm --filter @zelo/web exec vitest run && pnpm turbo run lint lint:boundaries --filter=@zelo/web`, then PR. The site is still on Bearer and no screen uses `apiFetch` or `requireSession` yet. One behavior does change, for SuperAdmin only: `http-admin-institution.adapter.ts` already throws `UnauthorizedAdminError` on a 401, so an admin 401 now clears the admin session and sends the person to `/admin/login`, and an admin mutation 401 no longer toasts; before, the page stayed with an inline error. After merge, check it on dev: log in as SuperAdmin, clear the cookie (or let it expire), trigger a refetch. Task 13 adds the expired notice to `AdminLoginPage`.
 
 ---
 
@@ -2339,13 +2339,13 @@ export function useManagerLogout() {
         confirm: () => getManagerSessionUseCase.execute(),
         isRejected: (error) => error instanceof UnauthorizedManagerError,
         onConfirmed: (profile) => useManagerSessionStore.getState().setSession(profile.role, profile.name),
-        onRejected: () => useManagerSessionStore.getState().clearSession(),
+        onRejected: () => endSession("manager"),
       }),
 ```
 
 with imports `requireSession` from `./require-session`, `getManagerSessionUseCase` from `@/app/container`, and `UnauthorizedManagerError` from `@/ports/manager-signals.port`.
 
-`onRejected` only clears the flag here; the redirect on a rejected background confirmation comes from the next 401 through `handleSessionExpired`, which Task 9 already wired. If the person sees no 401-producing request, the panel is stale but harmless: the next data request ends the session.
+`onRejected` ends the session the same way a data 401 does: `endSession("manager")` clears the flag and sends the person to `/manager/login` with `state: { reason: "expired" }` (spec §5: a rejected `/me` goes through the central handler). `endSession` is exported from `app/router.tsx` (added in PR 2). Route files cannot import `router.tsx` (it imports them, an import cycle), so it reaches them as a parameter: change `managerRoutes()` to `managerRoutes(endSession: (role: SessionRole) => void)`, change `createRouteChildren()` in `router.tsx` to `createRouteChildren(endSession: (role: SessionRole) => void = clearRoleSession)` passing it to `managerRoutes(endSession)`, and build `routeChildren` with `createRouteChildren(endSession)`. Tests that call `createRouteChildren()` with no argument keep working and only clear the flag; a test that needs the redirect passes an `endSession` bound to its own memory router. `SessionRole` comes from `@/app/session-expiry` and `clearRoleSession` from `@/app/clear-role-session`.
 
 - [ ] **Step 8: Delete the manager-only expiry hook** — remove `apps/web/src/presentation/hooks/useManagerSessionExpiry.ts` and its call and import in `presentation/layout/ManagerShell.tsx` (line 22 and the import on line 2); delete its test file if one exists.
 
@@ -2544,11 +2544,13 @@ const requireSession = requirePeerPartnerSession({
   confirm: () => getPeerPartnerSessionUseCase.execute(),
   isRejected: (error) => error instanceof UnauthorizedPeerPartnerError,
   onConfirmed: (profile) => usePeerPartnerSessionStore.getState().setSession(profile.name),
-  onRejected: () => usePeerPartnerSessionStore.getState().clearSession(),
+  onRejected: () => endSession("peerPartner"),
 });
 ```
 
-importing the shared function as `import { requireSession as requirePeerPartnerSession } from "./require-session";`. Leave the existing `loader: requireSession` usages in that file pointing at the local constant.
+importing the shared function as `import { requireSession as requirePeerPartnerSession } from "./require-session";`. Because it needs `endSession`, build the constant inside `peerPartnerRoutes(endSession: (role: SessionRole) => void)` and pass `endSession` from `createRouteChildren` (same plumbing as Task 11 Step 7). Attach the guard once, through a pathless layout route that wraps `peer` and `peer/settings`, instead of on each sibling: as siblings, every hop between the inbox and settings is a new route instance and fires another background `/me`. React Router renders a pathless route without a `Component` as an `Outlet`; if an existing router test depends on the sibling structure, keep the siblings and say so in the report.
+
+- [ ] **Step 6b: Expired notice on the login page** — `PeerPartnerLoginPage.tsx` reads `useLocation().state?.reason` and, when it is `"expired"`, renders the same notice as `ManagerLoginPage.tsx` (`<p role="status" ...>`) with the same copy, `Sua sessão expirou. Entre de novo para continuar.` (no screen spec defines a different string). Add a test that renders the page with `state: { reason: "expired" }` and finds the notice, and one without state that does not (see `ManagerLoginPage.test.tsx` around line 118 for the pattern).
 
 - [ ] **Step 7: Socket client** — write the failing test `peer-chat-socket.client.test.ts` (mock `socket.io-client`'s `io` with `vi.mock`, a legitimate third-party SDK boundary):
 
@@ -2668,11 +2670,15 @@ export const useAdminSessionStore = create<AdminSessionState>()(
         confirm: () => getAdminSessionUseCase.execute(),
         isRejected: (error) => error instanceof UnauthorizedAdminError,
         onConfirmed: () => useAdminSessionStore.getState().setSession(),
-        onRejected: () => useAdminSessionStore.getState().clearSession(),
+        onRejected: () => endSession("admin"),
       }),
 ```
 
 (imports: `requireSession` from `./require-session`, `getAdminSessionUseCase` from `@/app/container`, `UnauthorizedAdminError` from `@/ports/admin-institution.port`).
+
+`superAdminRoutes` takes `endSession: (role: SessionRole) => void` like the manager and peer-partner factories (Task 11 Step 7); pass it from `createRouteChildren`.
+
+- [ ] **Step 6b: Expired notice on the login page** — same as Task 12 Step 6b, for `AdminLoginPage.tsx`: the page shows `Sua sessão expirou. Entre de novo para continuar.` when `location.state.reason === "expired"`, with the same two tests. This matters more here than for the others: since PR 2, a SuperAdmin 401 already redirects to `/admin/login` with that state.
 
 - [ ] **Step 7: Strip the session token from the institution adapter, port, use-cases and hooks** — apply the Task 11c layer rules to:
 
@@ -2855,7 +2861,7 @@ git commit -m "docs: sessions are HttpOnly cookies; close TD-001 and priorities 
 | PR | Tasks | Deploy effect |
 |---|---|---|
 | 1. `feat/cookie-session-api-expand` | 0 to 7 | API only. Site unchanged. |
-| 2. `feat/cookie-session-web-infra` | 8 to 10 | Nothing user-visible. |
+| 2. `feat/cookie-session-web-infra` | 8 to 10 | One SuperAdmin change (see checkpoint A). |
 | 3. `feat/cookie-session-web-manager` | 11 | Managers move to the cookie; managers log in once. |
 | 4. `feat/cookie-session-web-peer-partner` | 12 | Peer partners move; log in once. |
 | 5. `feat/cookie-session-web-admin` | 13 | Admin moves; log in once. |

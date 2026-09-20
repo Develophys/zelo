@@ -143,7 +143,9 @@ what it protected instead of replacing it call site by call site.
 - **Route guards** (`app/routes/manager.routes.ts:83`, `super-admin.routes.ts:24`,
   `peer-partner.routes.ts:8`) stop calling `isValid()`. The flag is a hint, `/me` is the truth:
   - flag set: render immediately and confirm with `/me` in the background; a 401 goes through the
-    central handler above;
+    central handler above (the guard's `onRejected` calls the same `endSession(role)` that the
+    query cache uses, exported from `app/router.tsx` and handed to the route files as a parameter
+    so they never import the router);
   - flag absent: `await` `/me` once. `200` sets the flag and continues; `401` redirects to login.
 
   The second branch matters because the cookie now outlives the tab. A new tab, or the PWA reopened,
