@@ -122,4 +122,39 @@ describe('the app query client', () => {
     expect(onSessionExpired).not.toHaveBeenCalled();
     expect(useToastStore.getState().toasts).toHaveLength(1);
   });
+
+  it('does not retry a query that failed with a rejected session, so the session ends at once', () => {
+    const retry = createQueryClient().getDefaultOptions().queries?.retry;
+
+    expect(typeof retry).toBe('function');
+    if (typeof retry !== 'function') return;
+    expect(retry(0, new UnauthorizedManagerError())).toBe(false);
+    expect(retry(0, new UnauthorizedAdminError())).toBe(false);
+    expect(retry(0, new UnauthorizedPeerPartnerError())).toBe(false);
+  });
+
+  it('keeps the three retries for every other error', () => {
+    const retry = createQueryClient().getDefaultOptions().queries?.retry;
+
+    expect(typeof retry).toBe('function');
+    if (typeof retry !== 'function') return;
+    expect(retry(0, new Error('boom'))).toBe(true);
+    expect(retry(2, new Error('boom'))).toBe(true);
+    expect(retry(3, new Error('boom'))).toBe(false);
+  });
+
+  it('still ends the session when a mutation carries its own onError', async () => {
+    const onSessionExpired = vi.fn();
+    const onError = vi.fn();
+    const client = createQueryClient({ onSessionExpired });
+
+    await client
+      .getMutationCache()
+      .build(client, { mutationFn: () => Promise.reject(new UnauthorizedAdminError()), onError })
+      .execute(undefined)
+      .catch(() => undefined);
+
+    expect(onSessionExpired).toHaveBeenCalledWith('admin');
+    expect(onError).toHaveBeenCalled();
+  });
 });

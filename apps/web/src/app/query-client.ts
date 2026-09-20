@@ -40,6 +40,7 @@ export function createQueryClient({ onSessionExpired }: CreateQueryClientOptions
     defaultOptions: {
       queries: {
         staleTime: 30_000,
+        retry: (failureCount, error) => sessionRoleOfError(error) === null && failureCount < 3,
       },
     },
   });
