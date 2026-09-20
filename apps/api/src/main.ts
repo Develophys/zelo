@@ -2,8 +2,7 @@ import "./shared/config/load-env.ts";
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module.ts";
-import { securityHeaders } from "./shared/http/security-headers.ts";
-import { resolveAllowedOrigins } from "./shared/http/allowed-origins.ts";
+import { configureApp } from "./shared/http/configure-app.ts";
 
 // Frontend and backend are never same-origin: local dev runs them on separate
 // ports (5173/3000, or 8080/3000 under docker-compose), and the real deployment
@@ -15,8 +14,7 @@ import { resolveAllowedOrigins } from "./shared/http/allowed-origins.ts";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.use(securityHeaders());
-  app.enableCors({ origin: resolveAllowedOrigins() });
+  configureApp(app);
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
   console.log(`Zelo API listening on port ${port}`);
