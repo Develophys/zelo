@@ -194,13 +194,13 @@ describe("admin controller", () => {
     return header?.find((cookie) => cookie.startsWith("admin_session=")) ?? "";
   }
 
-  it("POST /admin/login also sets the session as an HttpOnly, SameSite=Lax cookie that lasts eight hours", async () => {
+  it("POST /admin/login also sets the session as an HttpOnly, SameSite=Strict cookie that lasts eight hours", async () => {
     const response = await request(app.getHttpServer()).post("/admin/login").send({ email: "ops@zelo-demo.local", password: "test-password" });
 
     const cookie = adminCookieOf(response);
     expect(cookie).toContain(`admin_session=${response.body.token}`);
     expect(cookie).toContain("HttpOnly");
-    expect(cookie).toContain("SameSite=Lax");
+    expect(cookie).toContain("SameSite=Strict");
     expect(cookie).toContain("Path=/");
     expect(cookie).toContain("Max-Age=28800");
     expect(cookie).not.toContain("Domain=");

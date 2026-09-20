@@ -26,7 +26,7 @@ describe("session cookie", () => {
     expect(SESSION_COOKIE).toEqual({ manager: "manager_session", admin: "admin_session", peerPartner: "peer_partner_session" });
   });
 
-  it("sets an HttpOnly, SameSite=Lax, host-only cookie that lasts eight hours", () => {
+  it("sets an HttpOnly, SameSite=Strict, host-only cookie that lasts eight hours", () => {
     const res = fakeResponse();
 
     setSessionCookie(res, "manager", "token-1");
@@ -34,7 +34,7 @@ describe("session cookie", () => {
     expect(res.cookie).toHaveBeenCalledWith("manager_session", "token-1", {
       httpOnly: true,
       secure: false,
-      sameSite: "lax",
+      sameSite: "strict",
       path: "/",
       maxAge: 28_800_000,
     });
@@ -63,7 +63,7 @@ describe("session cookie", () => {
 
     clearSessionCookie(res, "manager");
 
-    expect(res.clearCookie).toHaveBeenCalledWith("manager_session", { httpOnly: true, secure: false, sameSite: "lax", path: "/" });
+    expect(res.clearCookie).toHaveBeenCalledWith("manager_session", { httpOnly: true, secure: false, sameSite: "strict", path: "/" });
   });
 
   it("reads the token from the role's own cookie", () => {
