@@ -875,40 +875,34 @@ API 727 and the web pages suite (737) pass, and `lint:boundaries` is green on al
 
 Added after #10. #10 lowers the odds and the blast radius of an XSS; only this closes TD-001, by
 making the token unreadable by script. An injected script could still act inside the open tab, so
-the lint rules and the CSP stay either way. A design and a 13-task plan already exist
-(`docs/superpowers/specs/2026-09-14-httponly-cookie-session-migration-design.md` and the matching
-plan, about 90 files: 9 adapters, 9 ports, 26 use-cases, the three session stores, the router
-loaders, three guards, new `logout`/`me` endpoints, and the peer-chat socket handshake).
+the lint rules and the CSP stay either way.
 
-**Prerequisite outside the repo, half done.** The design keeps `SameSite=Lax` and skips a CSRF token
-system by putting the API on the frontend's registrable domain. Checked on 2026-09-19: prod already
-does. The deployed prod bundle (`www.zelohealth.app`) calls `https://api.zelohealth.app`, and its
-`/health` answers 200 from Fly. Dev does not: the deployed dev bundle calls
-`https://zelo-api-dev.fly.dev`, and `api-dev.zelohealth.app` does not resolve. What is left is a
-`fly certs add api-dev.zelohealth.app --app zelo-api-dev` plus a Cloudflare DNS record, then pointing
-the dev Vercel project's `VITE_API_BASE_URL` at it. The CSP's `connect-src` already lists all four
-API origins.
+**Design written 2026-09-20:**
+`docs/superpowers/specs/2026-09-20-httponly-cookie-session-migration-design.md`, which supersedes the
+2026-09-14 design. Cookies for every staff role, `Max-Age` of 8 hours, an `Origin` check on
+state-changing requests as CSRF defense in depth, and a three-phase rollout (expand, migrate,
+contract) so `develop`, dev and production keep working after every merge. The 2026-09-14 plan is
+replaced by a new one, written against the code as of v1.1.0.
 
-**Findings to fold in before executing.**
-- **The Android APK.** `apps/web/capacitor.config.ts` uses `androidScheme: "https"`, so the app runs
-  at `https://localhost`. Calling `api.zelohealth.app` is cross-site, and a `SameSite=Lax` cookie is
-  not sent. If any manager, admin or peer partner logs in through the APK, their session breaks. The
-  design does not mention the APK; it needs a decision (staff on the web only, a Bearer fallback, or
-  `SameSite=None` with CSRF protection).
-- **The plan predates several merged changes.** `AdminAuthGuard` now takes `ADMIN_REPOSITORY` and
-  re-reads the row on every request, rejecting a missing or deactivated admin (#7), so the design's
-  note that the admin guard "trusts the token alone" is outdated and the guard's constructor and
-  tests changed. The peer-chat gateway gained zod payload validation, a per-address open-request cap
-  and the `request_peer` event with a legacy alias (#8), which the cookie handshake change must keep.
-  The throttler now keys on `Fly-Client-IP` and the login routes carry `@LoginThrottle()` (#18); the
-  login body still returns no token after the change, but the throttler reads only `email`. Passwords
-  go through `passwordSchema` once #29 (PR #71) lands. The React Query client has `defaultOptions` (#5) and the web app
-  builds with the React Compiler (#27), both touched by the design's `query-client.ts` changes.
-- **Cutover logs everyone out**, which the design already accepts.
+**Prerequisite, done.** The design keeps `SameSite=Lax` and skips a CSRF token system by putting the
+API on the frontend's registrable domain. Prod already was: `api.zelohealth.app` (checked 2026-09-19).
+Dev now is too: `api-dev.zelohealth.app` has a Fly certificate and DNS (2026-09-20) and answers
+`/health`. What is left is pointing the dev Vercel project's `VITE_API_BASE_URL` at it.
+
+**Folded into the new design.** `AdminAuthGuard` re-reads the row (#7), so the old note that it "trusts
+the token alone" is gone; `PeerPartnerAuthGuard` gets the same re-read because `/peer-partner/me`
+becomes the web app's source of truth. The peer-chat gateway keeps its #8 validation, limits and
+`request-peer` alias while its handshake moves to the cookie. The throttler (#18), the CSP
+`connect-src` (#10) and the React Query client with its `defaultOptions` (#5) are accounted for.
+
+**Not covered: the Android APK.** It serves from `https://localhost`, cross-site to the API, so a
+`SameSite=Lax` cookie is not sent and staff login would fail there. It is not distributed and nothing
+in `apps/web/src` gates staff routes by platform. Decide between web-only staff, a Bearer fallback or
+`SameSite=None` with CSRF tokens before it is distributed.
 
 - **Effort:** large
 - **Kind:** security
-- **Files:** the design and plan above, plus `apps/web/src/stores/*-session.store.ts`,
+- **Files:** the design above, plus `apps/web/src/stores/*-session.store.ts`,
   `apps/web/capacitor.config.ts`, the three auth guards and login controllers,
   `apps/api/src/modules/peer-chat/infrastructure/peer-chat.gateway.ts`
 
