@@ -102,7 +102,7 @@ export class HttpManagerAdminAdapter implements ManagerAdminPort {
   }
 
   async sendManagerSetPasswordEmail(id: string): Promise<void> {
-    const response = await apiFetch(`/manager/admin/managers/${id}/send-set-password-email`, { method: "POST" });
+    const response = await apiFetch(`/manager/admin/managers/${id}/send-set-password-email`, { method: "POST", headers: JSON_HEADERS });
     if (response.status === 404) throw new ManagerAdminNotFoundError();
     if (!response.ok) throw new Error(`send manager set-password email failed with status ${response.status}`);
   }
@@ -136,7 +136,7 @@ export class HttpManagerAdminAdapter implements ManagerAdminPort {
   }
 
   async sendPeerPartnerSetPasswordEmail(id: string): Promise<void> {
-    const response = await apiFetch(`/manager/admin/peer-partners/${id}/send-set-password-email`, { method: "POST" });
+    const response = await apiFetch(`/manager/admin/peer-partners/${id}/send-set-password-email`, { method: "POST", headers: JSON_HEADERS });
     if (response.status === 404) throw new ManagerAdminNotFoundError();
     if (!response.ok) throw new Error(`send peer partner set-password email failed with status ${response.status}`);
   }

@@ -6,7 +6,10 @@ import { apiFetch } from "./api-fetch";
 
 export class HttpManagerInsightAdapter implements ManagerInsightPort {
   async generateInsight(): Promise<ManagerInsightResult> {
-    const response = await apiFetch("/manager/insights", { method: "POST" });
+    const response = await apiFetch("/manager/insights", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
 
     if (response.status === 401) {
       throw new UnauthorizedManagerError();

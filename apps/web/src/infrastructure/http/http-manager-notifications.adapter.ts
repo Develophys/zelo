@@ -41,7 +41,10 @@ export class HttpManagerNotificationsAdapter implements ManagerNotificationsPort
   }
 
   async markAllRead(): Promise<void> {
-    const response = await apiFetch("/manager/notifications/read-all", { method: "POST" });
+    const response = await apiFetch("/manager/notifications/read-all", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
     await guard(response, "mark all notifications read");
   }
 }

@@ -37,7 +37,7 @@ describe("HttpManagerAuthAdapter session", () => {
   it("me throws a plain error on any other failure, so the route shows its error page instead of the login form", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: false, status: 503 } as Response);
 
-    await expect(new HttpManagerAuthAdapter().me()).rejects.not.toBeInstanceOf(UnauthorizedManagerError);
+    await expect(new HttpManagerAuthAdapter().me()).rejects.toThrow("503");
   });
 
   it("logout posts with credentials and resolves on 204", async () => {
