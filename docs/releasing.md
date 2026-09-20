@@ -22,7 +22,12 @@ new web build never talks to an older API.
    app still deploys from `main` on merge, which defeats the ordering above.
 2. **GitHub, Settings, Environments:** create `production` and add yourself as a required reviewer.
    The API deploy waits for that approval, which is the moment to confirm the migration step below.
-3. **Optional:** a ruleset restricting who can create `v*` tags. Do not protect `production` against
+3. **GitHub, Settings, Environments, `production`, Secrets:** `PROD_DIRECT_DATABASE_URL`, the same
+   value as `DIRECT_DATABASE_URL` in `apps/api/.env.production.local`. The release uses it only to
+   run `prisma migrate status` before deploying, and the environment releases it only after your
+   approval. That command reads nothing but the `_prisma_migrations` table, so a read-only
+   database credential is enough if your provider can issue one.
+4. **Optional:** a ruleset restricting who can create `v*` tags. Do not protect `production` against
    force pushes: a rollback moves it backwards.
 
 The repository secret `FLY_API_TOKEN` is already used by the deploy.
@@ -51,6 +56,12 @@ The repository secret `FLY_API_TOKEN` is already used by the deploy.
    database (see `monorepo-tooling.md`). A migration must be safe for the API version that is still
    running while it is applied, since the new API deploys afterwards: add a column, deploy code that
    uses it, and only later remove the old one.
+
+   Forgetting this step is safe: after you approve, the release runs
+   `.github/scripts/check-pending-migrations.sh` (`prisma migrate status` against production) and
+   **stops before deploying anything** if a migration is pending, failed, or the database cannot be
+   reached. Apply the migration, then run the release again from Actions, Release, Run workflow with
+   the same tag.
 4. Open a PR from `develop` into `main` and merge it. Nothing deploys.
 5. Tag the merge commit and push the tag:
 
@@ -74,6 +85,7 @@ sessions to cookies logs everyone out).
 Actions, Release, Run workflow, with `tag` set to the previous version (for example `v1.0.0`).
 It redeploys that version's API and moves `production` back to it. **Migrations are not undone.**
 A rolled-back API must therefore be able to run against the current schema, which is what the
-add-then-remove rule in step 3 is for.
+add-then-remove rule in step 3 is for. The migration check does not block a rollback: a database
+that is ahead of an older tag's migrations reports as up to date.
 
 `Run workflow` also has a `dry_run` option that only verifies the tag and deploys nothing.

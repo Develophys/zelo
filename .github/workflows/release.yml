@@ -69,6 +69,34 @@ jobs:
         with:
           ref: ${{ needs.verify.outputs.sha }}
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies (api + shared packages only)
+        run: pnpm install --frozen-lockfile --filter=@zelo/api...
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DIRECT_DATABASE_URL }}
+          DIRECT_DATABASE_URL: ${{ secrets.PROD_DIRECT_DATABASE_URL }}
+
+      - name: Fetch the release scripts from the workflow's own commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: release-ci
+          sparse-checkout: .github/scripts
+
+      - name: Refuse to deploy over pending migrations
+        run: bash release-ci/.github/scripts/check-pending-migrations.sh
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DIRECT_DATABASE_URL }}
+          DIRECT_DATABASE_URL: ${{ secrets.PROD_DIRECT_DATABASE_URL }}
+
       - name: Setup flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
 
