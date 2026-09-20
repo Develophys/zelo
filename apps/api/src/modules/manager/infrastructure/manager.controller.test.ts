@@ -308,6 +308,79 @@ describe("manager controller", () => {
     expect(response.status).toBe(400);
   });
 
+  function sessionCookieOf(response: request.Response): string {
+    const header = response.headers["set-cookie"] as unknown as string[] | undefined;
+    return header?.find((cookie) => cookie.startsWith("manager_session=")) ?? "";
+  }
+
+  it("POST /manager/login also sets the session as an HttpOnly, SameSite=Lax cookie that lasts eight hours", async () => {
+    const response = await request(app.getHttpServer())
+      .post("/manager/login")
+      .send({ email: "ana@zelo-demo.local", password: "test-password" });
+
+    const cookie = sessionCookieOf(response);
+    expect(cookie).toContain(`manager_session=${response.body.token}`);
+    expect(cookie).toContain("HttpOnly");
+    expect(cookie).toContain("SameSite=Lax");
+    expect(cookie).toContain("Path=/");
+    expect(cookie).toContain("Max-Age=28800");
+    expect(cookie).not.toContain("Domain=");
+  });
+
+  it("POST /manager/login does not set a cookie for a wrong password", async () => {
+    const response = await request(app.getHttpServer())
+      .post("/manager/login")
+      .send({ email: "ana@zelo-demo.local", password: "wrong-password" });
+
+    expect(sessionCookieOf(response)).toBe("");
+  });
+
+  it("GET /manager/me returns the name and role for a valid session cookie", async () => {
+    const token = await getToken("ana@zelo-demo.local", "test-password");
+
+    const response = await request(app.getHttpServer()).get("/manager/me").set("Cookie", `manager_session=${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ name: "Ana Konder", role: "HOSPITAL_ADMIN" });
+  });
+
+  it("GET /manager/me still accepts a Bearer token while the migration is in progress", async () => {
+    const token = await getToken("ana@zelo-demo.local", "test-password");
+
+    const response = await request(app.getHttpServer()).get("/manager/me").set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+  });
+
+  it("GET /manager/me rejects a request with no session with 401", async () => {
+    const response = await request(app.getHttpServer()).get("/manager/me");
+
+    expect(response.status).toBe(401);
+  });
+
+  it("GET /manager/me rejects the cookie of a manager who has been deactivated with 401", async () => {
+    const token = await getToken("beatriz@zelo-demo.local", "test-password-2");
+    const row = managerRepository.rows.find((candidate) => candidate.id === "manager-2")!;
+    row.isActive = false;
+
+    try {
+      const response = await request(app.getHttpServer()).get("/manager/me").set("Cookie", `manager_session=${token}`);
+      expect(response.status).toBe(401);
+    } finally {
+      row.isActive = true;
+    }
+  });
+
+  it("POST /manager/logout clears the session cookie and answers 204", async () => {
+    const response = await request(app.getHttpServer()).post("/manager/logout");
+
+    expect(response.status).toBe(204);
+    const cookie = sessionCookieOf(response);
+    expect(cookie).toContain("manager_session=;");
+    expect(cookie).toContain("Expires=Thu, 01 Jan 1970");
+    expect(cookie).toContain("HttpOnly");
+  });
+
   it("POST /manager/finish-setup sets the password for a valid, unexpired token", async () => {
     const passwordService = new ManagerPasswordService();
     managerRepository.rows.push({
