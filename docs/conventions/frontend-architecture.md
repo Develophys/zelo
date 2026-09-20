@@ -122,9 +122,12 @@ the guard, which already happened once (the expiry effect sat on 3 of 6 pages); 
 "manager route tree" case pins that every panel route is its child.
 
 Clear the query cache wherever a session identity ends or changes: the login and logout hooks call
-`queryClient.clear()`, `endSession` calls `clearSessionCache()`, and each role's guard
-`onConfirmed` calls it when the confirmed profile differs from the store's. Query keys no longer
-carry a token, so nothing else separates one person's cached data from the next.
+`queryClient.clear()`; `endSession` clears it once the redirect has settled (`clearSessionCache()`,
+registered from `App.tsx`); and a role's guard `onConfirmed` calls `resetSessionCache()` (a reset
+that refetches what is on screen, because a page that is already mounted holds the previous
+person's data) when the confirmed profile differs from the store's. The manager guard does; the
+peer-partner and SuperAdmin guards get it in their own migration PRs. Query keys no longer carry a
+token, so nothing else separates one person's cached data from the next.
 
 A route path is always a `routes.*` constant in `to=`, `navigate()` and `redirect()` — never a
 literal string (`routes.test.ts` pins the full 35-key object, and there's exactly one surviving
