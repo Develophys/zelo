@@ -500,13 +500,65 @@ describe("endSession", () => {
     registerSessionCache({ clear: () => {}, reset: () => {} });
   });
 
-  it("clears the query cache once, so the next person to sign in does not inherit the last one's data", () => {
+  function stubNavigation() {
+    let settle = () => {};
+    const settled = new Promise<void>((resolve) => {
+      settle = resolve;
+    });
+    const navigate = vi.spyOn(router, "navigate").mockReturnValue(settled);
+    return { navigate, settle };
+  }
+
+  function routerStateAt(pathname: string, navigatingTo?: string) {
+    return {
+      location: { pathname },
+      navigation: { location: navigatingTo === undefined ? undefined : { pathname: navigatingTo } },
+    } as unknown as typeof router.state;
+  }
+
+  it("clears the query cache once the redirect has settled, not before, so no mounted page can refetch into the dead session", async () => {
     const clear = vi.fn();
     registerSessionCache({ clear, reset: () => {} });
-    vi.spyOn(router, "navigate").mockResolvedValue(undefined);
+    const { navigate, settle } = stubNavigation();
 
     endSession("manager");
 
+    expect(navigate).toHaveBeenCalledWith(routes.managerLogin, { replace: true, state: { reason: "expired" } });
+    expect(clear).not.toHaveBeenCalled();
+
+    await Promise.resolve();
+    expect(clear).not.toHaveBeenCalled();
+
+    settle();
+    await vi.waitFor(() => expect(clear).toHaveBeenCalledTimes(1));
+    await Promise.resolve();
     expect(clear).toHaveBeenCalledTimes(1);
+  });
+
+  it("neither navigates nor clears when the person is already on the login screen", async () => {
+    const clear = vi.fn();
+    registerSessionCache({ clear, reset: () => {} });
+    vi.spyOn(router, "state", "get").mockReturnValue(routerStateAt(routes.managerLogin));
+    const navigate = vi.spyOn(router, "navigate").mockResolvedValue(undefined);
+
+    endSession("manager");
+    await Promise.resolve();
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(clear).not.toHaveBeenCalled();
+  });
+
+  it("does not start another redirect while one to the login screen is already in flight", () => {
+    const state = vi.spyOn(router, "state", "get").mockReturnValue(routerStateAt("/manager"));
+    const { navigate } = stubNavigation();
+
+    endSession("manager");
+    expect(navigate).toHaveBeenCalledTimes(1);
+
+    state.mockReturnValue(routerStateAt("/manager", routes.managerLogin));
+    endSession("manager");
+    endSession("manager");
+
+    expect(navigate).toHaveBeenCalledTimes(1);
   });
 });

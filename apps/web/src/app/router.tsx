@@ -59,10 +59,9 @@ export const router = createBrowserRouter(
 );
 
 export function endSession(role: SessionRole): void {
-  clearSessionCache();
   handleSessionExpired(role, {
     clearSession: clearRoleSession,
-    currentPath: () => router.state.location.pathname,
-    navigate: (to, options) => void router.navigate(to, options),
+    currentPath: () => (router.state.navigation.location ?? router.state.location).pathname,
+    navigate: (to, options) => void router.navigate(to, options).then(clearSessionCache),
   });
 }
