@@ -1,7 +1,12 @@
-import { MutationCache, QueryClient } from "@tanstack/react-query";
+import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { toast } from "@/stores/toast.store";
+import { sessionRoleOfError, type SessionRole } from "./session-expiry";
 
 const MUTATION_FAILED = "Não foi possível concluir a ação. Tente de novo.";
+
+interface CreateQueryClientOptions {
+  onSessionExpired?: (role: SessionRole) => void;
+}
 
 /**
  * Error handling used to be declared per call site and reached two of eighteen
@@ -13,10 +18,21 @@ const MUTATION_FAILED = "Não foi possível concluir a ação. Tente de novo.";
  * a mutation's own `onError` when it has one, so a call site with specific copy
  * keeps it and everything else stops failing quietly.
  */
-export function createQueryClient(): QueryClient {
+export function createQueryClient({ onSessionExpired }: CreateQueryClientOptions = {}): QueryClient {
   return new QueryClient({
+    queryCache: new QueryCache({
+      onError: (error) => {
+        const role = sessionRoleOfError(error);
+        if (role) onSessionExpired?.(role);
+      },
+    }),
     mutationCache: new MutationCache({
-      onError: (_error, _variables, _context, mutation) => {
+      onError: (error, _variables, _context, mutation) => {
+        const role = sessionRoleOfError(error);
+        if (role) {
+          onSessionExpired?.(role);
+          return;
+        }
         if (mutation.options.onError) return;
         toast.error(MUTATION_FAILED);
       },

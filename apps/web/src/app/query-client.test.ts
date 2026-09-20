@@ -1,9 +1,12 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { QueryClient } from '@tanstack/react-query';
 import { createQueryClient } from './query-client';
 import { useToastStore } from '@/stores/toast.store';
+import { UnauthorizedManagerError } from '@/ports/manager-signals.port';
+import { UnauthorizedAdminError } from '@/ports/admin-institution.port';
+import { UnauthorizedPeerPartnerError } from '@/ports/peer-partner-auth.port';
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -75,5 +78,48 @@ describe('the app query client', () => {
     const client = createQueryClient();
 
     expect(client.getDefaultOptions().queries?.staleTime).toBe(30_000);
+  });
+
+  it('reports a manager 401 from a query to onSessionExpired', async () => {
+    const onSessionExpired = vi.fn();
+    const client = createQueryClient({ onSessionExpired });
+
+    await client.fetchQuery({ queryKey: ['m'], queryFn: () => Promise.reject(new UnauthorizedManagerError()), retry: false }).catch(() => undefined);
+
+    expect(onSessionExpired).toHaveBeenCalledWith('manager');
+  });
+
+  it('reports an admin 401 from a mutation to onSessionExpired, and does not toast for it', async () => {
+    const onSessionExpired = vi.fn();
+    const client = createQueryClient({ onSessionExpired });
+
+    await client
+      .getMutationCache()
+      .build(client, { mutationFn: () => Promise.reject(new UnauthorizedAdminError()) })
+      .execute(undefined)
+      .catch(() => undefined);
+
+    expect(onSessionExpired).toHaveBeenCalledWith('admin');
+    expect(useToastStore.getState().toasts).toEqual([]);
+  });
+
+  it('reports a peer-partner 401 to onSessionExpired', async () => {
+    const onSessionExpired = vi.fn();
+    const client = createQueryClient({ onSessionExpired });
+
+    await client.fetchQuery({ queryKey: ['p'], queryFn: () => Promise.reject(new UnauthorizedPeerPartnerError()), retry: false }).catch(() => undefined);
+
+    expect(onSessionExpired).toHaveBeenCalledWith('peerPartner');
+  });
+
+  it('does not call onSessionExpired for an ordinary error, and a failing mutation still toasts', async () => {
+    const onSessionExpired = vi.fn();
+    const client = createQueryClient({ onSessionExpired });
+
+    await client.fetchQuery({ queryKey: ['x'], queryFn: () => Promise.reject(new Error('boom')), retry: false }).catch(() => undefined);
+    await client.getMutationCache().build(client, { mutationFn: () => Promise.reject(new Error('boom')) }).execute(undefined).catch(() => undefined);
+
+    expect(onSessionExpired).not.toHaveBeenCalled();
+    expect(useToastStore.getState().toasts).toHaveLength(1);
   });
 });
