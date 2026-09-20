@@ -635,7 +635,20 @@ asserts each of the three login handlers carries the decorator.
   `apps/api/src/modules/manager/application/services/timing-safe-equal.ts`,
   `apps/api/src/modules/peer-partner/application/services/timing-safe-equal.ts`
 
-## 22. No schema-drift guard or `AppModule` boot test in the deploy pipeline
+## 22. No schema-drift guard or `AppModule` boot test in the deploy pipeline — PARTLY FIXED
+
+**Update 2026-09-20: the schema-drift half is fixed for production.** Preparing v1.1.0 found a
+migration (`20260913021830`, the followup counters) that had sat unapplied in prod since 15/09 while
+the deployed code already expected its columns. `release.yml` now runs
+`.github/scripts/check-pending-migrations.sh` (`prisma migrate status` with the `production`
+environment's `PROD_DIRECT_DATABASE_URL`) after the approval and before `flyctl deploy`, and stops
+the release if a migration is pending, failed, or the database is unreachable. Checked against a
+scratch database: up to date exits 0, one pending migration exits 1, an unreachable host exits 1, and
+a database that is ahead of the tag's migrations (a rollback) exits 0. **The `AppModule` boot test
+is still open**, and so is a drift guard on the dev deploy path (dev applies migrations on every
+deploy, so drift there is not a live risk).
+
+The original entry:
 
 - **Why:** The prod deploy job runs `flyctl` plus a `/health` curl that never touches the
   database (migrations are deliberately manual), and nothing ever instantiates `AppModule` —
