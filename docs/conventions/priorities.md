@@ -934,6 +934,21 @@ and `forgot-password` for the manager and the peer partner, `health`, `chat`, `a
 - **Files:** a new test in `apps/api/src/shared/http/` (route metadata through Nest's `DiscoveryService`
   and `Reflector`), next to `throttling.test.ts`
 
+## 32. Manager adapters map a 401 inconsistently
+
+`http-manager-sectors.adapter.ts` and eleven of the fourteen `http-manager-admin.adapter.ts` methods (the
+three lists, the three creates, the three updates, both send-set-password-email calls) throw a plain
+`Error` on a 401, so a stale session on those screens never reaches `endSession`: the person sees
+"Não foi possível carregar ..." with a retry that cannot succeed (the sidebar's unread-count query is
+mapped, so a refocus usually bounces them anyway). It predates the cookie migration and was found in its
+final review; map a 401 to `UnauthorizedManagerError` in each, and make sure Task 13's
+`http-admin-institution.adapter.ts` covers all its methods.
+
+- **Effort:** small
+- **Kind:** correctness
+- **Files:** `apps/web/src/infrastructure/http/http-manager-sectors.adapter.ts`,
+  `apps/web/src/infrastructure/http/http-manager-admin.adapter.ts`
+
 ---
 
 ## TD-003 (not separately ranked above)

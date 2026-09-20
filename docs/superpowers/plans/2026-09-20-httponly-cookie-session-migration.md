@@ -2538,17 +2538,20 @@ export const usePeerPartnerSessionStore = create<PeerPartnerSessionState>()(
 - [ ] **Step 6: Route guard** — in `apps/web/src/app/routes/peer-partner.routes.ts` replace `requireSession`'s local definition with the shared helper:
 
 ```ts
-const requireSession = requirePeerPartnerSession({
-  loginRoute: routes.peerPartnerLogin,
-  isLoggedIn: () => usePeerPartnerSessionStore.getState().loggedIn,
-  confirm: () => getPeerPartnerSessionUseCase.execute(),
-  isRejected: (error) => error instanceof UnauthorizedPeerPartnerError,
-  onConfirmed: (profile) => usePeerPartnerSessionStore.getState().setSession(profile.name),
-  onRejected: () => endSession("peerPartner"),
-});
+export function peerPartnerRoutes(endSession: (role: SessionRole) => void): RouteObject[] {
+  const requireSession = requirePeerPartnerSession({
+    loginRoute: routes.peerPartnerLogin,
+    isLoggedIn: () => usePeerPartnerSessionStore.getState().loggedIn,
+    confirm: () => getPeerPartnerSessionUseCase.execute(),
+    isRejected: (error) => error instanceof UnauthorizedPeerPartnerError,
+    onConfirmed: (profile) => usePeerPartnerSessionStore.getState().setSession(profile.name),
+    onRejected: () => endSession("peerPartner"),
+  });
 ```
 
 importing the shared function as `import { requireSession as requirePeerPartnerSession } from "./require-session";`. Because it needs `endSession`, build the constant inside `peerPartnerRoutes(endSession: (role: SessionRole) => void)` and pass `endSession` from `createRouteChildren` (same plumbing as Task 11 Step 7). Attach the guard once, through a pathless layout route that wraps `peer` and `peer/settings`, instead of on each sibling: as siblings, every hop between the inbox and settings is a new route instance and fires another background `/me`. React Router renders a pathless route without a `Component` as an `Outlet`; if an existing router test depends on the sibling structure, keep the siblings and say so in the report.
+
+The guard's `onConfirmed` also calls `clearSessionCache()` (from `@/app/session-cache`, added in PR 3) when the confirmed profile differs from the one in the store, exactly as `manager.routes.ts` does for the manager; `endSession` already clears the cache.
 
 - [ ] **Step 6b: Expired notice on the login page** — `PeerPartnerLoginPage.tsx` reads `useLocation().state?.reason` and, when it is `"expired"`, renders the same notice as `ManagerLoginPage.tsx` (`<p role="status" ...>`) with the same copy, `Sua sessão expirou. Entre de novo para continuar.` (no screen spec defines a different string). Add a test that renders the page with `state: { reason: "expired" }` and finds the notice, and one without state that does not (see `ManagerLoginPage.test.tsx` around line 118 for the pattern).
 
@@ -2677,6 +2680,8 @@ export const useAdminSessionStore = create<AdminSessionState>()(
 (imports: `requireSession` from `./require-session`, `getAdminSessionUseCase` from `@/app/container`, `UnauthorizedAdminError` from `@/ports/admin-institution.port`).
 
 `superAdminRoutes` takes `endSession: (role: SessionRole) => void` like the manager and peer-partner factories (Task 11 Step 7); pass it from `createRouteChildren`.
+
+The guard's `onConfirmed` also calls `clearSessionCache()` (from `@/app/session-cache`, added in PR 3) when the confirmed profile differs from the one in the store, exactly as `manager.routes.ts` does for the manager; `endSession` already clears the cache.
 
 - [ ] **Step 6b: Expired notice on the login page** — same as Task 12 Step 6b, for `AdminLoginPage.tsx`: the page shows `Sua sessão expirou. Entre de novo para continuar.` when `location.state.reason === "expired"`, with the same two tests. This matters more here than for the others: since PR 2, a SuperAdmin 401 already redirects to `/admin/login` with that state.
 
