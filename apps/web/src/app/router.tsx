@@ -21,10 +21,10 @@ function RootLayout() {
 // router built from the same objects finds the cache entry but not the value,
 // and the route stops matching. Production builds one router; the test suite
 // builds one per case.
-export function createRouteChildren(): RouteObject[] {
+export function createRouteChildren(endSession: (role: SessionRole) => void = clearRoleSession): RouteObject[] {
   return [
     ...doctorRoutes(),
-    ...managerRoutes(),
+    ...managerRoutes(endSession),
     ...peerPartnerRoutes(),
     ...superAdminRoutes(),
     // Last, so it only catches what nothing above matched. Without it a stale
@@ -36,7 +36,7 @@ export function createRouteChildren(): RouteObject[] {
 
 // router.test.tsx imports this directly (rather than hand-duplicating the
 // tree) so the test router can never silently drift from what actually ships.
-export const routeChildren: RouteObject[] = createRouteChildren();
+export const routeChildren: RouteObject[] = createRouteChildren(endSession);
 
 export const router = createBrowserRouter(
   [

@@ -29,8 +29,6 @@ describe("ManagerLoginPage", () => {
 
   it("navigates to /manager on a correct email and password", async () => {
     vi.spyOn(container.loginManagerUseCase, "execute").mockResolvedValue({
-      token: "abc.def",
-      expiresAt: new Date(Date.now() + 60_000).toISOString(),
       role: "HOSPITAL_ADMIN",
       name: "Ana Konder",
     });

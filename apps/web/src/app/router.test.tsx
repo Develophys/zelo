@@ -1,27 +1,38 @@
-import { describe, expect, it, beforeEach, vi } from "vitest";
+import { afterEach, describe, expect, it, beforeEach, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider, Outlet } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRouteChildren, routeChildren } from "./router";
+import { handleSessionExpired } from "./handle-session-expired";
+import { clearRoleSession } from "./clear-role-session";
+import type { SessionRole } from "./session-expiry";
 import { ManagerShell } from "@/presentation/layout/ManagerShell";
 import { useConsentStore } from "@/stores/consent.store";
 import { useManagerSessionStore } from "@/stores/manager-session.store";
 import { routes } from "@/presentation/lib/routes";
 import { PHQ9_QUESTIONS } from "@/domain/assessment-scales/phq9";
 import { GAD7_QUESTIONS } from "@/domain/assessment-scales/gad7";
+import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 import * as container from "./container";
 
 // Reuses router.tsx's own route tree (routeChildren) rather than duplicating
 // it, so this test can never silently drift from what actually ships.
 function buildTestRouter(initialPath: string) {
+  function endSession(role: SessionRole): void {
+    handleSessionExpired(role, {
+      clearSession: clearRoleSession,
+      currentPath: () => router.state.location.pathname,
+      navigate: (to, options) => void router.navigate(to, options),
+    });
+  }
   const router = createMemoryRouter(
     [
       {
         id: "root",
         path: "/",
         Component: () => <Outlet />,
-        children: createRouteChildren(),
+        children: createRouteChildren(endSession),
       },
     ],
     { initialEntries: [initialPath] },
@@ -34,12 +45,26 @@ function buildTestRouter(initialPath: string) {
   );
 }
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+function stubManagerSession(role: "HOSPITAL_ADMIN" | "SECTOR_MANAGER" = "HOSPITAL_ADMIN") {
+  return vi.spyOn(container.getManagerSessionUseCase, "execute").mockResolvedValue({ name: "Ana", role });
+}
+
+function stubManagerSessionRejected() {
+  return vi
+    .spyOn(container.getManagerSessionUseCase, "execute")
+    .mockRejectedValue(new UnauthorizedManagerError());
+}
+
 describe("onboarding router flow", () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
     useConsentStore.setState({ hasConsented: false, consentedAt: null });
-    useManagerSessionStore.setState({ token: null, expiresAt: null });
+    useManagerSessionStore.setState({ loggedIn: false, role: null, name: null });
   });
 
   it("cold start walks Splash -> Privacy -> Consent -> Home", async () => {
@@ -107,6 +132,7 @@ describe("onboarding router flow", () => {
 
   it("the Configurações Administração entry reaches the manager login screen when unauthenticated", async () => {
     useConsentStore.setState({ hasConsented: true, consentedAt: "2026-01-01T00:00:00.000Z" });
+    stubManagerSessionRejected();
     buildTestRouter("/home");
     const user = userEvent.setup();
 
@@ -137,7 +163,8 @@ describe("onboarding router flow", () => {
 
   it("an authenticated manager session reaches the dashboard directly", async () => {
     useConsentStore.setState({ hasConsented: true, consentedAt: "2026-01-01T00:00:00.000Z" });
-    useManagerSessionStore.setState({ token: "abc.def", expiresAt: new Date(Date.now() + 60_000).toISOString() });
+    useManagerSessionStore.setState({ loggedIn: true, role: "HOSPITAL_ADMIN", name: "Ana" });
+    stubManagerSession();
     vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
       overallConcerningRate: 0,
       checkInsLast4Weeks: 0,
@@ -159,11 +186,8 @@ describe("onboarding router flow", () => {
 
   it("keeps /manager/admin alive as a redirect, so links to the old tabbed page still land somewhere", async () => {
     useConsentStore.setState({ hasConsented: true, consentedAt: "2026-01-01T00:00:00.000Z" });
-    useManagerSessionStore.setState({
-      token: "abc.def",
-      expiresAt: new Date(Date.now() + 60_000).toISOString(),
-      role: "HOSPITAL_ADMIN",
-    });
+    useManagerSessionStore.setState({ loggedIn: true, role: "HOSPITAL_ADMIN", name: "Ana" });
+    stubManagerSession();
     vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
     vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
 
@@ -176,11 +200,8 @@ describe("onboarding router flow", () => {
 
   it("keeps Administração out of reach for a SECTOR_MANAGER, who sees the dashboard instead", async () => {
     useConsentStore.setState({ hasConsented: true, consentedAt: "2026-01-01T00:00:00.000Z" });
-    useManagerSessionStore.setState({
-      token: "abc.def",
-      expiresAt: new Date(Date.now() + 60_000).toISOString(),
-      role: "SECTOR_MANAGER",
-    });
+    useManagerSessionStore.setState({ loggedIn: true, role: "SECTOR_MANAGER", name: "Paulo" });
+    stubManagerSession("SECTOR_MANAGER");
     vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
       overallConcerningRate: 0,
       checkInsLast4Weeks: 0,
@@ -205,11 +226,8 @@ describe("onboarding router flow", () => {
     ["/manager/settings", "Configurações"],
   ])("reaches the new %s route behind the manager guard", async (path, heading) => {
     useConsentStore.setState({ hasConsented: true, consentedAt: "2026-01-01T00:00:00.000Z" });
-    useManagerSessionStore.setState({
-      token: "abc.def",
-      expiresAt: new Date(Date.now() + 60_000).toISOString(),
-      role: "HOSPITAL_ADMIN",
-    });
+    useManagerSessionStore.setState({ loggedIn: true, role: "HOSPITAL_ADMIN", name: "Ana" });
+    stubManagerSession();
 
     buildTestRouter(path);
 
@@ -218,6 +236,7 @@ describe("onboarding router flow", () => {
 
   it("an unauthenticated visit to /manager/history redirects to the manager login screen", async () => {
     useConsentStore.setState({ hasConsented: true, consentedAt: "2026-01-01T00:00:00.000Z" });
+    stubManagerSessionRejected();
 
     buildTestRouter("/manager/history");
 
@@ -343,5 +362,91 @@ describe("manager route tree", () => {
     ]) {
       expect(nested).toContain(route);
     }
+  });
+});
+describe("manager session guard", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    useConsentStore.setState({ hasConsented: true, consentedAt: "2026-01-01T00:00:00.000Z" });
+    useManagerSessionStore.setState({ loggedIn: false, role: null, name: null });
+    vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(0);
+    vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue({
+      overallConcerningRate: 0,
+      checkInsLast4Weeks: 0,
+      abandonedLast4Weeks: 0,
+      unsentChatDraftsLast4Weeks: 0,
+      weeklyTrend: [],
+      segments: [],
+      followUpResponseRate: 0,
+      followUpSent: 0,
+      followUpAnswered: 0,
+      sectorCoverage: { visible: 0, total: 0 },
+      referenceWeekStart: null,
+    });
+    vi.spyOn(container.listSectorsUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.listManagersUseCase, "execute").mockResolvedValue([]);
+    vi.spyOn(container.listPeerPartnersUseCase, "execute").mockResolvedValue([]);
+  });
+
+  it("a new tab with a valid cookie but an empty flag reaches the panel", async () => {
+    stubManagerSession("SECTOR_MANAGER");
+
+    buildTestRouter("/manager");
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Tendências" })).toBeInTheDocument();
+    expect(useManagerSessionStore.getState()).toMatchObject({ loggedIn: true, role: "SECTOR_MANAGER", name: "Ana" });
+  });
+
+  it("sends a flagged session that /me no longer accepts to the login screen, says it expired, and drops the flag", async () => {
+    useManagerSessionStore.setState({ loggedIn: true, role: "HOSPITAL_ADMIN", name: "Ana" });
+    stubManagerSessionRejected();
+
+    buildTestRouter("/manager");
+
+    expect(await screen.findByText("Acesso do gestor")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(/sessão expirou/i);
+    expect(useManagerSessionStore.getState().loggedIn).toBe(false);
+  });
+
+  it("keeps the panel on screen when /me fails for a reason that is not a rejection, such as being offline", async () => {
+    useManagerSessionStore.setState({ loggedIn: true, role: "HOSPITAL_ADMIN", name: "Ana" });
+    vi.spyOn(container.getManagerSessionUseCase, "execute").mockRejectedValue(new Error("offline"));
+
+    buildTestRouter("/manager");
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Tendências" })).toBeInTheDocument();
+    expect(useManagerSessionStore.getState().loggedIn).toBe(true);
+  });
+
+  it.each([
+    [routes.managerAdminManagers, "Gestores"],
+    [routes.managerAdminSectors, "Setores"],
+    [routes.managerAdminPeers, "Pares anônimos"],
+  ])(
+    "a HOSPITAL_ADMIN opening a bookmark to %s in a new tab, before the guard has filled the role, still reaches it",
+    async (path, heading) => {
+      stubManagerSession("HOSPITAL_ADMIN");
+
+      buildTestRouter(path);
+
+      expect(await screen.findByRole("heading", { level: 1, name: heading })).toBeInTheDocument();
+    },
+  );
+
+  it("a SECTOR_MANAGER opening an Administração bookmark in a new tab is sent to the dashboard", async () => {
+    stubManagerSession("SECTOR_MANAGER");
+
+    buildTestRouter(routes.managerAdminManagers);
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Tendências" })).toBeInTheDocument();
+  });
+
+  it("an Administração bookmark opened without a valid cookie goes to the login screen, not the dashboard", async () => {
+    stubManagerSessionRejected();
+
+    buildTestRouter(routes.managerAdminSectors);
+
+    expect(await screen.findByText("Acesso do gestor")).toBeInTheDocument();
   });
 });

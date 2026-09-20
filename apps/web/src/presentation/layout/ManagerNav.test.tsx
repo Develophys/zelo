@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { MemoryRouter, Route, Routes } from 'react-router';
@@ -57,10 +57,9 @@ function mountWithHomeRoute(node: React.ReactNode, at = '/manager') {
 
 beforeEach(() => {
   sessionStorage.clear();
-  useManagerSessionStore
-    .getState()
-    .setSession('token', new Date(Date.now() + 60_000).toISOString(), 'HOSPITAL_ADMIN', 'Ana Konder');
+  useManagerSessionStore.getState().setSession('HOSPITAL_ADMIN', 'Ana Konder');
   vi.spyOn(container.listManagerNotificationsUseCase, 'unreadCount').mockResolvedValue(0);
+  vi.spyOn(container.logoutManagerUseCase, 'execute').mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -105,6 +104,16 @@ describe('ManagerSidebar', () => {
     mountWithHomeRoute(<ManagerSidebar />);
     await user.click(screen.getByRole('button', { name: 'Sair' }));
     expect(screen.getByText('Início do médico')).toBeInTheDocument();
+  });
+
+  it('ends the session on the server and clears it here when Sair is pressed', async () => {
+    const user = userEvent.setup();
+    mountWithHomeRoute(<ManagerSidebar />);
+
+    await user.click(screen.getByRole('button', { name: 'Sair' }));
+
+    expect(container.logoutManagerUseCase.execute).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(useManagerSessionStore.getState().loggedIn).toBe(false));
   });
 
   it('puts the collapse toggle in the sidebar header, beside the Zelo mark', () => {
@@ -184,9 +193,7 @@ describe('ManagerSidebar', () => {
   });
 
   it('names the sole managed sector in the account tooltip for a SECTOR_MANAGER, since "Gestão de setor" alone does not say which one', async () => {
-    useManagerSessionStore
-      .getState()
-      .setSession('token', new Date(Date.now() + 60_000).toISOString(), 'SECTOR_MANAGER', 'Paulo Reis');
+    useManagerSessionStore.getState().setSession('SECTOR_MANAGER', 'Paulo Reis');
     vi.spyOn(container.listAccessibleSectorsUseCase, 'execute').mockResolvedValue([{ id: 'sector-1', name: 'UTI' }]);
     const user = userEvent.setup();
     mount(<ManagerSidebar />);
@@ -196,9 +203,7 @@ describe('ManagerSidebar', () => {
   });
 
   it('falls back to the generic label for a SECTOR_MANAGER with more than one sector', async () => {
-    useManagerSessionStore
-      .getState()
-      .setSession('token', new Date(Date.now() + 60_000).toISOString(), 'SECTOR_MANAGER', 'Paulo Reis');
+    useManagerSessionStore.getState().setSession('SECTOR_MANAGER', 'Paulo Reis');
     vi.spyOn(container.listAccessibleSectorsUseCase, 'execute').mockResolvedValue([
       { id: 'sector-1', name: 'UTI' },
       { id: 'sector-2', name: 'Pronto-Socorro' },
@@ -260,6 +265,17 @@ describe('ManagerBottomNav', () => {
     await user.click(screen.getByRole('button', { name: /Mais/ }));
     await user.click(screen.getByRole('button', { name: 'Sair' }));
     expect(screen.getByText('Início do médico')).toBeInTheDocument();
+  });
+
+  it('ends the session on the server and clears it here when Sair is pressed', async () => {
+    const user = userEvent.setup();
+    mountWithHomeRoute(<ManagerBottomNav />);
+
+    await user.click(screen.getByRole('button', { name: /Mais/ }));
+    await user.click(screen.getByRole('button', { name: 'Sair' }));
+
+    expect(container.logoutManagerUseCase.execute).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(useManagerSessionStore.getState().loggedIn).toBe(false));
   });
 
   it('puts every destination the bottom slots cannot hold inside the sheet', async () => {

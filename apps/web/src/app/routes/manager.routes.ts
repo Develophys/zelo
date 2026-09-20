@@ -2,8 +2,22 @@ import type { RouteObject } from "react-router";
 import { redirect } from "react-router";
 import { ManagerShell } from "@/presentation/layout/ManagerShell";
 import { lazyPage } from "../lazy-route";
-import { useManagerSessionStore } from "@/stores/manager-session.store";
+import { getManagerSessionUseCase } from "@/app/container";
+import type { SessionRole } from "@/app/session-expiry";
+import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
+import { useManagerSessionStore, type ManagerRole } from "@/stores/manager-session.store";
 import { routes } from "@/presentation/lib/routes";
+import { requireSession } from "./require-session";
+
+async function currentManagerRole(): Promise<ManagerRole | null> {
+  const known = useManagerSessionStore.getState().role;
+  if (known !== null) return known;
+  try {
+    return (await getManagerSessionUseCase.execute()).role;
+  } catch {
+    return null;
+  }
+}
 
 // Administração is HOSPITAL_ADMIN-only; the rest of the panel is not. Kept as
 // one list so the extra guard cannot drift between the three pages.
@@ -38,15 +52,15 @@ function adminOnlyRoutes(): RouteObject[] {
     },
   ].map((route) => ({
     ...route,
-    loader: () =>
-      useManagerSessionStore.getState().role === "HOSPITAL_ADMIN" ? null : redirect(routes.manager),
+    loader: async () =>
+      (await currentManagerRole()) === "HOSPITAL_ADMIN" ? null : redirect(routes.manager),
   }));
 }
 
 // ManagerShell stays statically imported even though everything it wraps is
 // lazy: it hosts the session guard, and router.test.tsx finds the panel's
 // layout route by `route.Component === ManagerShell` identity.
-export function managerRoutes(): RouteObject[] {
+export function managerRoutes(endSession: (role: SessionRole) => void): RouteObject[] {
   return [
     {
       path: "manager/login",
@@ -79,8 +93,14 @@ export function managerRoutes(): RouteObject[] {
       // One layout route for the whole panel: the shell, and the session guard,
       // are declared once instead of being repeated on every manager screen.
       Component: ManagerShell,
-      loader: () =>
-        useManagerSessionStore.getState().isValid() ? null : redirect(routes.managerLogin),
+      loader: requireSession({
+        loginRoute: routes.managerLogin,
+        isLoggedIn: () => useManagerSessionStore.getState().loggedIn,
+        confirm: () => getManagerSessionUseCase.execute(),
+        isRejected: (error) => error instanceof UnauthorizedManagerError,
+        onConfirmed: (profile) => useManagerSessionStore.getState().setSession(profile.role, profile.name),
+        onRejected: () => endSession("manager"),
+      }),
       children: [
         {
           path: "manager",
