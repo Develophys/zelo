@@ -29,7 +29,7 @@ export class AdminAuthGuard implements CanActivate {
       throw new UnauthorizedException();
     }
 
-    request.admin = { id: decoded.adminId, name: decoded.adminName };
+    request.admin = { id: admin.id, name: admin.name };
     return true;
   }
 }
