@@ -2,7 +2,7 @@ import type { AccessibleSector, ManagerSectorsPort } from "@/ports/manager-secto
 
 export class ListAccessibleSectorsUseCase {
   constructor(private readonly port: ManagerSectorsPort) {}
-  async execute(token: string): Promise<AccessibleSector[]> {
-    return this.port.listAccessible(token);
+  async execute(): Promise<AccessibleSector[]> {
+    return this.port.listAccessible();
   }
 }
