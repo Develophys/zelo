@@ -15,17 +15,11 @@ import type { PendingMatch } from "../application/services/peer-match-registry.s
 import { PeerPartnerTokenService } from "@/modules/peer-partner/application/services/peer-partner-token.service.js";
 import { PEER_PARTNER_REPOSITORY, type PeerPartnerRepository } from "@/modules/peer-partner/application/ports/peer-partner-repository.port.js";
 import { resolveClientAddress } from "@/shared/http/client-address.js";
+import { resolveAllowedOrigins } from "@/shared/http/allowed-origins.js";
 import { messagePayloadSchema, parsePayload, requestIdPayloadSchema, requestPeerPayloadSchema } from "./peer-chat.payloads.ts";
 
 const ACCEPT_TIMEOUT_MS = 30_000;
 const MAX_OPEN_REQUESTS_PER_ADDRESS = 3;
-const DEFAULT_ALLOWED_ORIGINS = ["http://localhost:5173", "http://localhost:8080"];
-
-function resolveAllowedOrigins(): string[] {
-  const configured = process.env.CORS_ALLOWED_ORIGINS;
-  if (!configured) return DEFAULT_ALLOWED_ORIGINS;
-  return configured.split(",").map((origin) => origin.trim()).filter((origin) => origin.length > 0);
-}
 
 function addressOf(client: Socket): string {
   return resolveClientAddress(client.handshake.headers, client.handshake.address);
