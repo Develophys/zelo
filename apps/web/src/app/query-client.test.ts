@@ -70,6 +70,13 @@ describe('the app query client', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('is built by App with endSession as its session-expired handler and with the session cache clear registered', () => {
+    const source = readFileSync(join(__dirname, 'App.tsx'), 'utf8');
+
+    expect(source).toContain('createQueryClient({ onSessionExpired: endSession })');
+    expect(source).toContain('registerSessionCacheClear(() => queryClient.clear())');
+  });
+
   it('returns a real QueryClient', () => {
     expect(createQueryClient()).toBeInstanceOf(QueryClient);
   });
