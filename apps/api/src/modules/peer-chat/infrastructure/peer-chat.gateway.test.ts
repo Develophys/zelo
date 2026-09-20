@@ -38,13 +38,17 @@ function fakeConfig(secret: string): ConfigService {
   return { getOrThrow: () => secret, get: () => undefined } as unknown as ConfigService;
 }
 
-function fakeClient(id: string, token?: string, network: { address?: string; flyClientIp?: string } = {}) {
+function fakeClient(id: string, token?: string, network: { address?: string; flyClientIp?: string; cookie?: string; origin?: string } = {}) {
   return {
     id,
     handshake: {
       auth: token ? { token } : {},
       address: network.address ?? `10.0.0.${id.length}`,
-      headers: network.flyClientIp ? { "fly-client-ip": network.flyClientIp } : {},
+      headers: {
+        ...(network.flyClientIp ? { "fly-client-ip": network.flyClientIp } : {}),
+        ...(network.cookie ? { cookie: network.cookie } : {}),
+        ...(network.origin ? { origin: network.origin } : {}),
+      },
     },
     emit: vi.fn(),
     disconnect: vi.fn(),
@@ -111,6 +115,78 @@ describe("PeerChatGateway", () => {
     const client = fakeClient("medico-socket");
     await gateway.handleConnection(client as never);
     expect(client.disconnect).not.toHaveBeenCalled();
+  });
+
+  describe("session cookie handshake", () => {
+    const ALLOWED_ORIGIN = "http://localhost:5173";
+
+    function addPeerPartner(id: string, isActive = true) {
+      repository.rows.push({ id, name: "Dra. Ana", email: `${id}@zelo-demo.local`, passwordHash: "irrelevant", setPasswordTokenExpiresAt: null, institutionId: "institution-1", specialty: "Clínica médica", isActive });
+      return tokenService.issue(id, "Dra. Ana", "institution-1").token;
+    }
+
+    it("registers a peer partner who presents the cookie from an allowed origin", async () => {
+      const token = addPeerPartner("peer-1");
+      const client = fakeClient("socket-cookie", undefined, { cookie: `peer_partner_session=${token}`, origin: ALLOWED_ORIGIN });
+
+      await gateway.handleConnection(client as never);
+
+      expect(presence.findAvailable("institution-1", new Set())?.peerPartnerId).toBe("peer-1");
+      expect(client.disconnect).not.toHaveBeenCalled();
+    });
+
+    it("disconnects a socket that presents the cookie from an origin that is not allowed", async () => {
+      const token = addPeerPartner("peer-1");
+      const client = fakeClient("socket-cookie", undefined, { cookie: `peer_partner_session=${token}`, origin: "https://evil.example" });
+
+      await gateway.handleConnection(client as never);
+
+      expect(client.disconnect).toHaveBeenCalledWith(true);
+      expect(presence.findAvailable("institution-1", new Set())).toBeNull();
+    });
+
+    it("disconnects a socket that presents the cookie with no origin at all", async () => {
+      const token = addPeerPartner("peer-1");
+      const client = fakeClient("socket-cookie", undefined, { cookie: `peer_partner_session=${token}` });
+
+      await gateway.handleConnection(client as never);
+
+      expect(client.disconnect).toHaveBeenCalledWith(true);
+    });
+
+    it("disconnects a socket whose cookie is forged", async () => {
+      const client = fakeClient("socket-cookie", undefined, { cookie: "peer_partner_session=forged.token", origin: ALLOWED_ORIGIN });
+
+      await gateway.handleConnection(client as never);
+
+      expect(client.disconnect).toHaveBeenCalledWith(true);
+    });
+
+    it("disconnects a socket whose cookie is valid but whose peer partner has been deactivated", async () => {
+      const token = addPeerPartner("peer-1", false);
+      const client = fakeClient("socket-cookie", undefined, { cookie: `peer_partner_session=${token}`, origin: ALLOWED_ORIGIN });
+
+      await gateway.handleConnection(client as never);
+
+      expect(client.disconnect).toHaveBeenCalledWith(true);
+    });
+
+    it("still registers a peer partner who presents auth.token while the migration is in progress", async () => {
+      const token = addPeerPartner("peer-1");
+      const client = fakeClient("socket-auth", token);
+
+      await gateway.handleConnection(client as never);
+
+      expect(presence.findAvailable("institution-1", new Set())?.peerPartnerId).toBe("peer-1");
+    });
+
+    it("leaves an anonymous connection with no cookie and no token alone", async () => {
+      const client = fakeClient("medico-socket", undefined, { origin: "https://evil.example" });
+
+      await gateway.handleConnection(client as never);
+
+      expect(client.disconnect).not.toHaveBeenCalled();
+    });
   });
 
   it("request_peer emits no_peer_available when nobody is connected for that institution", () => {

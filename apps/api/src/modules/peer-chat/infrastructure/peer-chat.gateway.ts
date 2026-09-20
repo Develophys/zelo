@@ -15,29 +15,25 @@ import type { PendingMatch } from "../application/services/peer-match-registry.s
 import { PeerPartnerTokenService } from "@/modules/peer-partner/application/services/peer-partner-token.service.js";
 import { PEER_PARTNER_REPOSITORY, type PeerPartnerRepository } from "@/modules/peer-partner/application/ports/peer-partner-repository.port.js";
 import { resolveClientAddress } from "@/shared/http/client-address.js";
+import { resolveAllowedOrigins } from "@/shared/http/allowed-origins.js";
+import { SESSION_COOKIE, parseCookieHeader } from "@/shared/http/session-cookie.js";
 import { messagePayloadSchema, parsePayload, requestIdPayloadSchema, requestPeerPayloadSchema } from "./peer-chat.payloads.ts";
 
 const ACCEPT_TIMEOUT_MS = 30_000;
 const MAX_OPEN_REQUESTS_PER_ADDRESS = 3;
-const DEFAULT_ALLOWED_ORIGINS = ["http://localhost:5173", "http://localhost:8080"];
-
-function resolveAllowedOrigins(): string[] {
-  const configured = process.env.CORS_ALLOWED_ORIGINS;
-  if (!configured) return DEFAULT_ALLOWED_ORIGINS;
-  return configured.split(",").map((origin) => origin.trim()).filter((origin) => origin.length > 0);
-}
 
 function addressOf(client: Socket): string {
   return resolveClientAddress(client.handshake.headers, client.handshake.address);
 }
 
 @Injectable()
-@WebSocketGateway({ cors: { origin: resolveAllowedOrigins() } })
+@WebSocketGateway({ cors: { origin: resolveAllowedOrigins(), credentials: true } })
 export class PeerChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server!: Server;
 
   private readonly pendingTimeouts = new Map<string, NodeJS.Timeout>();
   private readonly addressBySocketId = new Map<string, string>();
+  private readonly allowedOrigins = resolveAllowedOrigins();
 
   constructor(
     @Inject(PeerPresenceService) private readonly presence: PeerPresenceService,
@@ -47,8 +43,15 @@ export class PeerChatGateway implements OnGatewayConnection, OnGatewayDisconnect
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
-    const token = client.handshake.auth?.token as string | undefined;
-    if (!token) return; // an anonymous médico connection — nothing to register
+    const cookieToken = parseCookieHeader(client.handshake.headers.cookie)[SESSION_COOKIE.peerPartner];
+    const authToken = client.handshake.auth?.token;
+    const token = cookieToken || (typeof authToken === "string" && authToken.length > 0 ? authToken : undefined);
+    if (!token) return;
+
+    if (cookieToken && !this.allowedOrigins.includes(client.handshake.headers.origin ?? "")) {
+      client.disconnect(true);
+      return;
+    }
 
     const decoded = this.tokenService.verify(token);
     if (!decoded) {

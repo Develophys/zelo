@@ -4,6 +4,7 @@ import type { INestApplication } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import request from "supertest";
 import { PeerPartnerController } from "./peer-partner.controller.ts";
+import { PeerPartnerAuthGuard } from "./peer-partner-auth.guard.ts";
 import { hashSetPasswordToken } from "@/shared/tokens/hash-set-password-token.js";
 import { LoginPeerPartnerUseCase } from "../application/use-cases/login-peer-partner.use-case.ts";
 import { FinishPeerPartnerSetupUseCase } from "../application/use-cases/finish-peer-partner-setup.use-case.ts";
@@ -44,8 +45,8 @@ class FakePeerPartnerRepository implements PeerPartnerRepository {
   async findBySetPasswordToken(token: string): Promise<PeerPartnerRow | null> {
     return this.rows.find((row) => (row as unknown as { setPasswordToken?: string }).setPasswordToken === token) ?? null;
   }
-  async findById(): Promise<PeerPartnerRow | null> {
-    throw new Error("not used in this test");
+  async findById(id: string): Promise<PeerPartnerRow | null> {
+    return this.rows.find((row) => row.id === id) ?? null;
   }
   async findAllByInstitution(): Promise<never> {
     throw new Error("not used in this test");
@@ -99,6 +100,7 @@ describe("peer partner controller", () => {
         RequestPeerPartnerPasswordResetUseCase,
         PeerPartnerTokenService,
         PeerPartnerPasswordService,
+        PeerPartnerAuthGuard,
         { provide: PEER_PARTNER_REPOSITORY, useValue: repository },
         { provide: INSTITUTION_REPOSITORY, useValue: new FakeInstitutionRepository() },
         { provide: NOTIFICATION_PUBLISHER, useValue: new FakeNotificationPublisher() },
@@ -225,5 +227,59 @@ describe("peer partner controller", () => {
   it("POST /peer-partner/forgot-password rejects a malformed body with 400", async () => {
     const response = await request(app.getHttpServer()).post("/peer-partner/forgot-password").send({ email: "not-an-email" });
     expect(response.status).toBe(400);
+  });
+
+  function peerCookieOf(response: request.Response): string {
+    const header = response.headers["set-cookie"] as unknown as string[] | undefined;
+    return header?.find((cookie) => cookie.startsWith("peer_partner_session=")) ?? "";
+  }
+
+  it("POST /peer-partner/login also sets the session as an HttpOnly, SameSite=Lax cookie that lasts eight hours", async () => {
+    const response = await request(app.getHttpServer()).post("/peer-partner/login").send({ email: "ana@zelo-demo.local", password: "test-password" });
+
+    const cookie = peerCookieOf(response);
+    expect(cookie).toContain(`peer_partner_session=${response.body.token}`);
+    expect(cookie).toContain("HttpOnly");
+    expect(cookie).toContain("SameSite=Lax");
+    expect(cookie).toContain("Path=/");
+    expect(cookie).toContain("Max-Age=28800");
+    expect(cookie).not.toContain("Domain=");
+  });
+
+  it("GET /peer-partner/me returns the name and specialty for a valid session cookie", async () => {
+    const login = await request(app.getHttpServer()).post("/peer-partner/login").send({ email: "ana@zelo-demo.local", password: "test-password" });
+
+    const response = await request(app.getHttpServer()).get("/peer-partner/me").set("Cookie", `peer_partner_session=${login.body.token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ name: "Dra. Ana", specialty: expect.any(String) });
+  });
+
+  it("GET /peer-partner/me rejects a request with no session with 401", async () => {
+    const response = await request(app.getHttpServer()).get("/peer-partner/me");
+
+    expect(response.status).toBe(401);
+  });
+
+  it("GET /peer-partner/me rejects the cookie of a peer partner who has been deactivated with 401", async () => {
+    const login = await request(app.getHttpServer()).post("/peer-partner/login").send({ email: "ana@zelo-demo.local", password: "test-password" });
+    const row = repository.rows.find((candidate) => candidate.id === "peer-1")!;
+    row.isActive = false;
+
+    try {
+      const response = await request(app.getHttpServer()).get("/peer-partner/me").set("Cookie", `peer_partner_session=${login.body.token}`);
+      expect(response.status).toBe(401);
+    } finally {
+      row.isActive = true;
+    }
+  });
+
+  it("POST /peer-partner/logout clears the session cookie and answers 204", async () => {
+    const response = await request(app.getHttpServer()).post("/peer-partner/logout");
+
+    expect(response.status).toBe(204);
+    const cookie = peerCookieOf(response);
+    expect(cookie).toContain("peer_partner_session=;");
+    expect(cookie).toContain("Expires=Thu, 01 Jan 1970");
   });
 });

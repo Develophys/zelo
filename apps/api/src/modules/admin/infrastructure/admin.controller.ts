@@ -11,9 +11,12 @@ import {
   Patch,
   Post,
   Query,
+  Req,
+  Res,
   UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
+import type { Request, Response } from "express";
 import { z } from "zod";
 import { LoginAdminUseCase, InvalidAdminCredentialsError } from "../application/use-cases/login-admin.use-case.ts";
 import { CreateInstitutionUseCase, type CreateInstitutionResult } from "../application/use-cases/create-institution.use-case.ts";
@@ -26,6 +29,7 @@ import { AdminAuthGuard } from "./admin-auth.guard.ts";
 import { SECTOR_REPOSITORY } from "@/modules/sector/application/ports/sector-repository.port.js";
 import type { SectorRepository, AdminSectorRow } from "@/modules/sector/application/ports/sector-repository.port.js";
 import { LoginThrottle } from "@/shared/http/throttling.js";
+import { clearSessionCookie, setSessionCookie } from "@/shared/http/session-cookie.js";
 
 const LoginRequestSchema = z.object({ email: z.string().email().max(200), password: z.string().min(1).max(200) });
 const CreateInstitutionSchema = z.object({
@@ -62,20 +66,34 @@ export class AdminController {
   @Post("login")
   @HttpCode(200)
   @LoginThrottle()
-  async login(@Body() body: unknown): Promise<IssuedAdminToken> {
+  async login(@Body() body: unknown, @Res({ passthrough: true }) response: Response): Promise<IssuedAdminToken> {
     const parsed = LoginRequestSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.flatten());
     }
 
     try {
-      return await this.loginAdmin.execute(parsed.data.email, parsed.data.password);
+      const issued = await this.loginAdmin.execute(parsed.data.email, parsed.data.password);
+      setSessionCookie(response, "admin", issued.token);
+      return issued;
     } catch (error) {
       if (error instanceof InvalidAdminCredentialsError) {
         throw new UnauthorizedException();
       }
       throw error;
     }
+  }
+
+  @Post("logout")
+  @HttpCode(204)
+  logout(@Res({ passthrough: true }) response: Response): void {
+    clearSessionCookie(response, "admin");
+  }
+
+  @Get("me")
+  @UseGuards(AdminAuthGuard)
+  me(@Req() request: Request): { name: string } {
+    return { name: request.admin!.name };
   }
 
   @Post("institutions")
