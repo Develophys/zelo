@@ -1,9 +1,19 @@
-let clear: () => void = () => {};
+interface SessionCache {
+  clear: () => void;
+  reset: () => void;
+}
 
-export function registerSessionCacheClear(fn: () => void): void {
-  clear = fn;
+const NOOP_CACHE: SessionCache = { clear: () => {}, reset: () => {} };
+let registered: SessionCache = NOOP_CACHE;
+
+export function registerSessionCache(cache: SessionCache): void {
+  registered = cache;
 }
 
 export function clearSessionCache(): void {
-  clear();
+  registered.clear();
+}
+
+export function resetSessionCache(): void {
+  registered.reset();
 }

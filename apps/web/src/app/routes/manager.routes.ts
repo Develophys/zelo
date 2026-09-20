@@ -8,7 +8,7 @@ import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 import { useManagerSessionStore, type ManagerRole } from "@/stores/manager-session.store";
 import { routes } from "@/presentation/lib/routes";
 import { requireSession } from "./require-session";
-import { clearSessionCache } from "../session-cache";
+import { resetSessionCache } from "../session-cache";
 
 async function currentManagerRole(): Promise<ManagerRole | null> {
   const known = useManagerSessionStore.getState().role;
@@ -101,7 +101,7 @@ export function managerRoutes(endSession: (role: SessionRole) => void): RouteObj
         isRejected: (error) => error instanceof UnauthorizedManagerError,
         onConfirmed: (profile) => {
           const store = useManagerSessionStore.getState();
-          if (store.role !== profile.role || store.name !== profile.name) clearSessionCache();
+          if (store.role !== profile.role || store.name !== profile.name) resetSessionCache();
           store.setSession(profile.role, profile.name);
         },
         onRejected: () => endSession("manager"),
