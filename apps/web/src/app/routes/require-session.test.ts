@@ -45,7 +45,7 @@ describe("requireSession", () => {
     expect(options.onRejected).not.toHaveBeenCalled();
   });
 
-  it("waits for /me when the flag is absent, sets the flag and continues if it answers", async () => {
+  it("waits for /me when the flag is absent, calls onConfirmed and continues if it answers", async () => {
     const { options, loader } = build();
 
     await expect(loader()).resolves.toBeNull();
