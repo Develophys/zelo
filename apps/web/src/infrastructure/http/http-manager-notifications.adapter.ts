@@ -5,7 +5,7 @@ import type {
 } from "@/ports/manager-notifications.port";
 import { ManagerNotificationsPageSchema } from "@/ports/manager-notifications.port";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
-import { API_BASE_URL } from './api-base-url';
+import { apiFetch } from "./api-fetch";
 
 const UnreadCountSchema = z.object({ count: z.number() });
 
@@ -17,7 +17,6 @@ async function guard(response: Response, what: string): Promise<void> {
 
 export class HttpManagerNotificationsAdapter implements ManagerNotificationsPort {
   async fetchPage(
-    token: string,
     query: { cursor?: string | null; limit?: number },
   ): Promise<ManagerNotificationsPage> {
     const params = new URLSearchParams();
@@ -25,34 +24,24 @@ export class HttpManagerNotificationsAdapter implements ManagerNotificationsPort
     if (query.limit !== undefined) params.set("limit", String(query.limit));
     const suffix = params.size > 0 ? `?${params.toString()}` : "";
 
-    const response = await fetch(`${API_BASE_URL}/manager/notifications${suffix}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const response = await apiFetch(`/manager/notifications${suffix}`);
     await guard(response, "manager notifications fetch");
     return ManagerNotificationsPageSchema.parse(await response.json());
   }
 
-  async fetchUnreadCount(token: string): Promise<number> {
-    const response = await fetch(`${API_BASE_URL}/manager/notifications/unread-count`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  async fetchUnreadCount(): Promise<number> {
+    const response = await apiFetch("/manager/notifications/unread-count");
     await guard(response, "manager unread count fetch");
     return UnreadCountSchema.parse(await response.json()).count;
   }
 
-  async markRead(token: string, id: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/manager/notifications/${id}/read`, {
-      method: "PATCH",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  async markRead(id: string): Promise<void> {
+    const response = await apiFetch(`/manager/notifications/${id}/read`, { method: "PATCH" });
     await guard(response, "mark notification read");
   }
 
-  async markAllRead(token: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/manager/notifications/read-all`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  async markAllRead(): Promise<void> {
+    const response = await apiFetch("/manager/notifications/read-all", { method: "POST" });
     await guard(response, "mark all notifications read");
   }
 }

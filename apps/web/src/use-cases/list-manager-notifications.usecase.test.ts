@@ -5,19 +5,16 @@ import type { ManagerNotificationsPage, ManagerNotificationsPort } from "@/ports
 const PAGE: ManagerNotificationsPage = { items: [], nextCursor: null, total: 0 };
 
 class FakeManagerNotificationsPort implements ManagerNotificationsPort {
-  fetchPageCalls: { token: string; query: { cursor?: string | null; limit?: number } }[] = [];
-  fetchUnreadCountCalls: string[] = [];
+  fetchPageCalls: { query: { cursor?: string | null; limit?: number } }[] = [];
+  fetchUnreadCountCalls = 0;
 
-  async fetchPage(
-    token: string,
-    query: { cursor?: string | null; limit?: number },
-  ): Promise<ManagerNotificationsPage> {
-    this.fetchPageCalls.push({ token, query });
+  async fetchPage(query: { cursor?: string | null; limit?: number }): Promise<ManagerNotificationsPage> {
+    this.fetchPageCalls.push({ query });
     return PAGE;
   }
 
-  async fetchUnreadCount(token: string): Promise<number> {
-    this.fetchUnreadCountCalls.push(token);
+  async fetchUnreadCount(): Promise<number> {
+    this.fetchUnreadCountCalls += 1;
     return 3;
   }
 
@@ -26,16 +23,16 @@ class FakeManagerNotificationsPort implements ManagerNotificationsPort {
 }
 
 describe("ListManagerNotificationsUseCase", () => {
-  it("delegates execute() and unreadCount() to the port with the given token and query", async () => {
+  it("delegates execute() and unreadCount() to the port with the given query", async () => {
     const port = new FakeManagerNotificationsPort();
     const useCase = new ListManagerNotificationsUseCase(port);
 
-    const page = await useCase.execute("valid-token", { cursor: "n-9", limit: 25 });
-    const count = await useCase.unreadCount("valid-token");
+    const page = await useCase.execute({ cursor: "n-9", limit: 25 });
+    const count = await useCase.unreadCount();
 
     expect(page).toBe(PAGE);
-    expect(port.fetchPageCalls).toEqual([{ token: "valid-token", query: { cursor: "n-9", limit: 25 } }]);
+    expect(port.fetchPageCalls).toEqual([{ query: { cursor: "n-9", limit: 25 } }]);
     expect(count).toBe(3);
-    expect(port.fetchUnreadCountCalls).toEqual(["valid-token"]);
+    expect(port.fetchUnreadCountCalls).toBe(1);
   });
 });

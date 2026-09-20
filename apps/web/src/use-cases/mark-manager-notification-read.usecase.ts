@@ -3,11 +3,11 @@ import type { ManagerNotificationsPort } from "@/ports/manager-notifications.por
 export class MarkManagerNotificationReadUseCase {
   constructor(private readonly port: ManagerNotificationsPort) {}
 
-  async execute(token: string, id: string): Promise<void> {
-    return this.port.markRead(token, id);
+  async execute(id: string): Promise<void> {
+    return this.port.markRead(id);
   }
 
-  async executeAll(token: string): Promise<void> {
-    return this.port.markAllRead(token);
+  async executeAll(): Promise<void> {
+    return this.port.markAllRead();
   }
 }

@@ -3,11 +3,11 @@ import type { ManagerNotificationsPage, ManagerNotificationsPort } from "@/ports
 export class ListManagerNotificationsUseCase {
   constructor(private readonly port: ManagerNotificationsPort) {}
 
-  async execute(token: string, query: { cursor?: string | null; limit?: number } = {}): Promise<ManagerNotificationsPage> {
-    return this.port.fetchPage(token, query);
+  async execute(query: { cursor?: string | null; limit?: number } = {}): Promise<ManagerNotificationsPage> {
+    return this.port.fetchPage(query);
   }
 
-  async unreadCount(token: string): Promise<number> {
-    return this.port.fetchUnreadCount(token);
+  async unreadCount(): Promise<number> {
+    return this.port.fetchUnreadCount();
   }
 }

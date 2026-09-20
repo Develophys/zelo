@@ -3,8 +3,8 @@ import { MarkManagerNotificationReadUseCase } from "./mark-manager-notification-
 import type { ManagerNotificationsPage, ManagerNotificationsPort } from "@/ports/manager-notifications.port";
 
 class FakeManagerNotificationsPort implements ManagerNotificationsPort {
-  markReadCalls: { token: string; id: string }[] = [];
-  markAllReadCalls: string[] = [];
+  markReadCalls: { id: string }[] = [];
+  markAllReadCalls = 0;
 
   async fetchPage(): Promise<ManagerNotificationsPage> {
     return { items: [], nextCursor: null, total: 0 };
@@ -14,24 +14,24 @@ class FakeManagerNotificationsPort implements ManagerNotificationsPort {
     return 0;
   }
 
-  async markRead(token: string, id: string): Promise<void> {
-    this.markReadCalls.push({ token, id });
+  async markRead(id: string): Promise<void> {
+    this.markReadCalls.push({ id });
   }
 
-  async markAllRead(token: string): Promise<void> {
-    this.markAllReadCalls.push(token);
+  async markAllRead(): Promise<void> {
+    this.markAllReadCalls += 1;
   }
 }
 
 describe("MarkManagerNotificationReadUseCase", () => {
-  it("delegates execute() and executeAll() to the port with the given token and id", async () => {
+  it("delegates execute() and executeAll() to the port with the given id", async () => {
     const port = new FakeManagerNotificationsPort();
     const useCase = new MarkManagerNotificationReadUseCase(port);
 
-    await useCase.execute("valid-token", "n-1");
-    await useCase.executeAll("valid-token");
+    await useCase.execute("n-1");
+    await useCase.executeAll();
 
-    expect(port.markReadCalls).toEqual([{ token: "valid-token", id: "n-1" }]);
-    expect(port.markAllReadCalls).toEqual(["valid-token"]);
+    expect(port.markReadCalls).toEqual([{ id: "n-1" }]);
+    expect(port.markAllReadCalls).toBe(1);
   });
 });
