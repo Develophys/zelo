@@ -6,7 +6,7 @@ export function useManagerSignals(sectorIds?: string[]) {
     queryKey: ["manager-signals", sectorIds],
     queryFn: () => getManagerSignalsUseCase.execute(sectorIds),
     // Retrying is pointless (and slows the 401 -> logout redirect) when the
-    // token itself is what's rejected.
+    // session itself is what's rejected.
     retry: false,
     // The aggregation (k-anonymity suppression, reference-week selection) has
     // to stay server-side — it can't be recomputed from cached data without

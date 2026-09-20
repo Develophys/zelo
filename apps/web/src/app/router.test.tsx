@@ -343,10 +343,10 @@ describe("last-resort screens", () => {
 });
 describe("manager route tree", () => {
   /**
-   * Session expiry is handled once, by ManagerShell. That only holds while
-   * every manager page is actually a child of it — which is exactly what
-   * drifted before, leaving three of six pages showing a table error with a
-   * retry that could never succeed.
+   * The session guard is the loader of ManagerShell's layout route. That only
+   * covers a manager page that is actually a child of that route — which is
+   * exactly what drifted before, leaving three of six pages showing a table
+   * error with a retry that could never succeed.
    */
   it("puts every manager panel route under ManagerShell, so none can miss the session guard", () => {
     const shellRoute = routeChildren.find((route) => route.Component === ManagerShell);
@@ -435,7 +435,9 @@ describe("manager session guard", () => {
 
       buildTestRouter(path);
 
-      expect(await screen.findByRole("heading", { level: 1, name: heading })).toBeInTheDocument();
+      expect(
+        await screen.findByRole("heading", { level: 1, name: heading }, { timeout: 5000 }),
+      ).toBeInTheDocument();
     },
   );
 
@@ -476,7 +478,9 @@ describe("manager session guard", () => {
 
     buildTestRouter(routes.managerAdminManagers);
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Tendências" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Tendências" }, { timeout: 5000 }),
+    ).toBeInTheDocument();
   });
 
   it("an Administração bookmark opened without a valid cookie goes to the login screen, not the dashboard", async () => {

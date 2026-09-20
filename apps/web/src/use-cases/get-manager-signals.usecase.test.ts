@@ -34,7 +34,7 @@ describe("GetManagerSignalsUseCase", () => {
     expect(result).toEqual(SAMPLE_RESPONSE);
   });
 
-  it("propagates UnauthorizedManagerError on a rejected token", async () => {
+  it("propagates UnauthorizedManagerError on a rejected session", async () => {
     const useCase = new GetManagerSignalsUseCase(new FakeManagerSignalsPort(new UnauthorizedManagerError()));
 
     await expect(useCase.execute()).rejects.toBeInstanceOf(UnauthorizedManagerError);

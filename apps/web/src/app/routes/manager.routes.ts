@@ -59,8 +59,8 @@ function adminOnlyRoutes(): RouteObject[] {
 }
 
 // ManagerShell stays statically imported even though everything it wraps is
-// lazy: it hosts the session guard, and router.test.tsx finds the panel's
-// layout route by `route.Component === ManagerShell` identity.
+// lazy: router.test.tsx finds the panel's layout route by
+// `route.Component === ManagerShell` identity.
 export function managerRoutes(endSession: (role: SessionRole) => void): RouteObject[] {
   return [
     {
