@@ -49,6 +49,16 @@ function classifyStreamError(): ChatStreamError {
  * token stream and must re-render on every chunk. The spec's "TanStack Query
  * lives in presentation/hooks" rule is honored in spirit — this is still the
  * hooks layer, just using the primitive that actually fits a streaming case.
+ *
+ * React Compiler doesn't optimize this hook today: `runStream`'s
+ * `try/finally` block hits a compiler limitation ("Handle TryStatement with
+ * a finalizer"). Converting to try/catch with an explicit cleanup call
+ * clears that specific error, but reveals a second, deeper one underneath —
+ * the plain `if` statements inside the try block ("Support value blocks...
+ * within a try/catch statement"). Both are real compiler-tooling
+ * limitations, not Rules-of-React violations. Tracked in
+ * docs/conventions/priorities.md, not fixed here; panicThreshold: "none"
+ * means this is a safe, silent bailout, not a build failure.
  */
 export function useChatConversation(conversationId: string) {
   const messages = useChatConversationStore((state) => state.messages);

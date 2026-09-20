@@ -54,7 +54,7 @@ partition.
 
 ## 2. Non-negotiables carried forward
 
-Everything in `docs/superpowers/specs/AGENTS.md`'s Golden Rules still applies, plus
+The Product laws in `CLAUDE.md` still apply, plus
 `identity-and-aggregation.md` §1's two points, restated for this spec's shape:
 
 - **Linking a device to an institution is optional and never gates core functionality.**

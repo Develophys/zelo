@@ -1,5 +1,8 @@
 # Referência de Arquitetura
 
+> **⚠️ Esta tradução não é mantida em sincronia.** A versão em inglês ([architecture-reference.md](architecture-reference.md)) é a normativa desde 2026-09-16.
+> Este arquivo ficou parado em 2026-08-02: para qualquer coisa atual, leia a versão em inglês.
+
 [🇺🇸 English](architecture-reference.md) · 🇧🇷 Português
 
 **Última sincronização:** 2026-08-02, após o merge dos dois planos de implementação de
@@ -104,8 +107,12 @@ existente, não uma reescrita.
 - Frontend: mesma ideia, sufixos ligeiramente diferentes — `*.usecase.ts` (sem hífen antes de
   "case"), `*.port.ts`, `http-*.adapter.ts`, `*.store.ts` para stores Zustand. Sem extensão nos
   imports (resolvido pelo bundler).
-- Sem DI de framework no frontend — `apps/web/src/app/container.ts` é um único arquivo de
-  wiring manual, só `new X(new Y())`. Ele se lê como um grafo de dependências porque é um.
+- Sem DI de framework no frontend — `apps/web/src/app/container/` é wiring manual, só
+  `new X(new Y())`, dividido em 11 arquivos por feature mais um `index.ts` que reexporta
+  (`admin-auth`, `admin-institution`, `assessment`, `chat`, `institution-link`,
+  `manager-admin`, `manager-auth`, `manager-dashboard`, `manager-notifications`,
+  `peer-partner-auth`, `signal-checkin`). Importe de `@/app/container`; não existe mais
+  `container.ts`.
 
 ### Dois tipos de estado no frontend, escolhidos deliberadamente
 
@@ -268,7 +275,7 @@ React de fato exige.
 | `infrastructure/` | Adapters concretos: `http-*.adapter.ts` (fetch), `web-crypto-encryption.adapter.ts`, `indexeddb-assessment-store.adapter.ts`. |
 | `stores/` | Stores Zustand + `persist` — ver §2. |
 | `presentation/` | `pages/`, `hooks/` (wrappers finos de TanStack Query), `layout/` (`PhoneShell`, `Sidebar`, `BottomNav`), `ui/` (primitivos: `Card`, `Button`, `IconBadge`). |
-| `app/` | `router.tsx` (tabela de rotas + loaders), `container.ts` (wiring de DI), CSS global. |
+| `app/` | `router.tsx` (tabela de rotas + loaders), `container/` (wiring de DI), CSS global. |
 
 ### Rotas e guardas
 
@@ -524,7 +531,7 @@ graça na engrenagem existente de teste/revisão/deploy.
 2. `Http*Adapter` em `infrastructure/http/`, use-case em `use-cases/`, os dois testados
    unitariamente (o adapter geralmente não é — passthroughs finos seguem a mesma convenção de
    "não testado" dos repositórios Prisma do backend).
-3. Conecte os dois em `container.ts`.
+3. Conecte os dois no arquivo da feature em `app/container/` (e reexporte em `index.ts`).
 4. Um hook fino `useX` em `presentation/hooks/` envolvendo `useMutation`/`useQuery` ao redor do
    use-case.
 5. Componente de página em `presentation/pages/`, construído a partir dos primitivos existentes

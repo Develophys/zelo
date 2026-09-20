@@ -5,7 +5,7 @@ const sendMock = vi.fn();
 
 vi.mock("resend", () => {
   return {
-    Resend: vi.fn().mockImplementation(() => ({
+    Resend: vi.fn(() => ({
       emails: { send: sendMock },
     })),
   };

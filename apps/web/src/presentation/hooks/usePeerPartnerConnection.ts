@@ -36,6 +36,7 @@ export function usePeerPartnerConnection(token: string | null) {
     const client = new PeerChatSocketClient();
     const socket = client.connect(token);
     socketRef.current = socket;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reports the connection's initial status right after opening it
     setState("connecting");
 
     // Availability is reported by the socket, not assumed at mount. Optimistic

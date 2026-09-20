@@ -1,5 +1,37 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'sha256-gBJ7D6NDgXIcuq6WUssa7q0R5soCDjBs26iMYmigK00='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://zelo-api.fly.dev wss://zelo-api.fly.dev https://zelo-api-dev.fly.dev wss://zelo-api-dev.fly.dev https://api.zelohealth.app wss://api.zelohealth.app https://api-dev.zelohealth.app wss://api-dev.zelohealth.app; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(self), microphone=(), geolocation=(), payment=(), usb=()"
+        }
+      ]
+    }
+  ],
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile --filter=@zelo/web...",
   "buildCommand": "cd ../.. && pnpm turbo run build --filter=@zelo/web...",
   "outputDirectory": "dist"

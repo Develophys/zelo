@@ -31,8 +31,10 @@ export interface CreateManagerParams {
   email: string;
   institutionId: string;
   role: ManagerRole;
-  setPasswordToken: string;
-  setPasswordTokenExpiresAt: Date;
+  // Absent for a SECTOR_MANAGER created without a sector: registration stays
+  // pending until a sector is linked, so there's nothing to invite them to yet.
+  setPasswordToken?: string;
+  setPasswordTokenExpiresAt?: Date;
 }
 
 export interface UpdateManagerParams {

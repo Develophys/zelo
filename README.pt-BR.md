@@ -40,10 +40,10 @@ Veja [`general-documentations/documentacao-produto/prd.md`](general-documentatio
 | | |
 | --- | --- |
 | **Frontend** | React 19 + Vite, TanStack Query, Zustand, Tailwind CSS 4, PWA (instalável, funciona offline) |
-| **Backend** | NestJS 10, Prisma 7 (adapter serverless do Neon Postgres), Groq SDK para inferência de LLM |
+| **Backend** | NestJS 10, Prisma 7 (adapter `pg`; adapter serverless do Neon quando o host é Neon), Groq SDK para inferência de LLM |
 | **Compartilhado** | Schemas de domínio em Zod (`packages/domain`), config base de lint/tsconfig (`packages/config`) |
 | **Ferramental** | Turborepo, workspaces do pnpm, dependency-cruiser para limites de arquitetura, Vitest |
-| **Infra** | Fly.io (API), GitHub Pages (Web), Neon Postgres, Docker Compose para paridade local |
+| **Infra** | Fly.io (API), Vercel (Web), Prisma Postgres, Docker Compose para paridade local |
 
 ## Mapa do repositório
 
@@ -76,7 +76,7 @@ cp apps/api/.env.example apps/api/.env
 pnpm --filter @zelo/api dev
 ```
 
-Veja [`docs/superpowers/plans/2026-07-07-02-backend-foundation.md`](docs/superpowers/plans/2026-07-07-02-backend-foundation.md) (Tarefa 2) para uma configuração manual do Postgres, ou use o ambiente Docker abaixo.
+O container de Postgres do ambiente Docker abaixo é a forma mais rápida de ter um.
 
 ### Frontend (`apps/web`)
 
@@ -117,14 +117,52 @@ Derrube com `docker compose down` (adicione `-v` para também apagar o volume do
 
 ## Deploy
 
-- **`apps/api`** faz deploy no Fly.io (`zelo-api`), com Neon Postgres.
-- **`apps/web`** faz deploy no GitHub Pages.
+Dois ambientes independentes, cada um com seu próprio app no Fly, banco Prisma Postgres e
+projeto na Vercel:
 
-Ambos fazem deploy automático a partir de `main` via `.github/workflows/api.yml` / `web.yml`, condicionados a mudanças no app correspondente mais `packages/domain`/`packages/config`. Migrations **não** rodam no boot do container — aplique manualmente antes de fazer deploy de uma mudança de schema:
+| | Prod | Dev |
+|---|---|---|
+| Deploy a partir de | tag `v*` (veja [`docs/releasing.md`](docs/releasing.md)) | `develop` |
+| API | `zelo-api` (Fly) | `zelo-api-dev` (Fly) |
+| Web | `zelohealth.app` (Vercel) | `dev.zelohealth.app` (Vercel) |
+| Migrations | manuais (veja abaixo) | automáticas na CI |
+
+`main` e `develop` são protegidas — toda mudança entra por PR, e mergear na `main` não faz
+deploy: produção é liberada ao publicar uma tag `vMAJOR.MINOR.PATCH`. O `apps/web` também
+é empacotado como APK Android instalável via Capacitor — veja
+[`docs/android-apk.md`](docs/android-apk.md).
+
+O dev faz deploy a partir da `develop` pelo job `deploy-dev` de `.github/workflows/api.yml`, e a
+integração git da Vercel faz o deploy do web de dev. Prod faz deploy pelo
+`.github/workflows/release.yml` a partir de uma tag: primeiro a API, depois a branch `production`,
+da qual o projeto de prod da Vercel faz o build. Migrations de prod **não** rodam no boot do
+container — aplique manualmente antes de criar a tag de um release que inclua uma:
 
 ```bash
-pnpm --filter @zelo/api exec prisma migrate deploy   # DIRECT_DATABASE_URL deve apontar para o Neon
+pnpm --filter @zelo/api exec prisma migrate deploy   # DIRECT_DATABASE_URL deve apontar para prod (apps/api/.env.production.local)
 ```
+
+Arquivos de env locais do `apps/api`: `.env` (defaults seguros de dev, usado pelo `pnpm dev`
+puro), `.env.development.local` (overrides locais por desenvolvedor, ex.: credenciais do
+Postgres do docker), `.env.production.local` (segredos de prod, carregado só com
+`NODE_ENV=production` — usado pelo comando de migration manual acima) e
+`.env.dev-remote.local` (o banco do ambiente dev implantado, para scripts pontuais).
+
+### Segredos (Fly.io)
+
+`MANAGER_TOKEN_SECRET`, `ADMIN_TOKEN_SECRET` e `PEER_PARTNER_TOKEN_SECRET` assinam os tokens
+de sessão de cada tipo de conta. O `env.validation.ts` derruba o boot em produção
+(`NODE_ENV=production`, declarado no `fly.toml` e no `docker/api.Dockerfile`) se qualquer
+um estiver ausente ou com menos de 32 caracteres — isso rejeita o placeholder de dev local
+(`change-me-in-production`) e qualquer outro valor fraco. Rotacione com três valores
+independentes, nunca um segredo compartilhado:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"   # rode 3x, um por segredo
+fly secrets set MANAGER_TOKEN_SECRET=<valor> ADMIN_TOKEN_SECRET=<valor> PEER_PARTNER_TOKEN_SECRET=<valor> --app zelo-api
+```
+
+O `fly secrets set` dispara um rolling restart automático. Verifique depois com `fly status --app zelo-api` e `curl https://zelo-api.fly.dev/health`.
 
 ### Rollback (Fly.io)
 
@@ -140,7 +178,7 @@ fly deploy --image <previous-image-ref> --app zelo-api         # reimplanta uma 
 - [`general-documentations/documentacao-produto/`](general-documentations/documentacao-produto/) — PRD, personas, lean canvas, OKRs, ADRs, análise competitiva
 - [`general-documentations/jornada-checkpoints/`](general-documentations/jornada-checkpoints) — entregáveis oficiais dos checkpoints da Jornada Incubintech
 - [`docs/superpowers/specs/`](docs/superpowers/specs) — specs de arquitetura técnica
-- [`docs/superpowers/plans/`](docs/superpowers/plans) — planos de implementação passo a passo
+- [`docs/android-apk.md`](docs/android-apk.md) — build, instalação e publicação do APK Android
 
 ---
 

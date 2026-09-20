@@ -35,6 +35,7 @@ export function AssessmentReview({
   // (re)entered, so there's no later render of this same instance to react to.
   useEffect(() => {
     if (focusOnMount) headingRef.current?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only by design, see the comment above this effect
   }, []);
 
   return (

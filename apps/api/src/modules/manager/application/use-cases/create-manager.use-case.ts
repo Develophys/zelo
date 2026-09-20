@@ -45,20 +45,31 @@ export class CreateManagerUseCase {
       }
     }
 
-    const setPasswordToken = randomBytes(SET_PASSWORD_TOKEN_BYTES).toString("hex");
-    const setPasswordTokenExpiresAt = new Date(Date.now() + SET_PASSWORD_TOKEN_TTL_MS);
+    // A SECTOR_MANAGER created without a sector has nothing to manage yet, so
+    // registration stays pending: no token, no invite. The token would expire
+    // (48h TTL) long before an admin gets around to linking a sector, leaving
+    // a dead link — issuing it now would be pointless. The email fires later,
+    // when a sector actually gets linked (see the manager/sector update paths).
+    const isPendingSectorAssignment = input.role === "SECTOR_MANAGER" && sectorIds.length === 0;
+
+    const setPasswordToken = isPendingSectorAssignment ? undefined : randomBytes(SET_PASSWORD_TOKEN_BYTES).toString("hex");
+    const setPasswordTokenExpiresAt = isPendingSectorAssignment ? undefined : new Date(Date.now() + SET_PASSWORD_TOKEN_TTL_MS);
 
     const manager = await this.managerRepository.create({
       name: input.name,
       email: input.email,
       institutionId: input.institutionId,
       role: input.role,
-      setPasswordToken: hashSetPasswordToken(setPasswordToken),
+      setPasswordToken: setPasswordToken ? hashSetPasswordToken(setPasswordToken) : undefined,
       setPasswordTokenExpiresAt,
     });
 
     if (input.role === "SECTOR_MANAGER" && sectorIds.length > 0) {
       await this.sectorRepository.reassignManagerSectors(input.institutionId, manager.id, sectorIds);
+    }
+
+    if (isPendingSectorAssignment) {
+      return { manager };
     }
 
     // The manager row is already committed at this point. Letting a send failure
@@ -69,7 +80,7 @@ export class CreateManagerUseCase {
       () =>
         this.emailPort.send(manager.email, "invite", {
           name: manager.name,
-          setPasswordUrl: buildSetPasswordUrl("manager", setPasswordToken),
+          setPasswordUrl: buildSetPasswordUrl("manager", setPasswordToken!),
         }),
       {
         logger: this.logger,

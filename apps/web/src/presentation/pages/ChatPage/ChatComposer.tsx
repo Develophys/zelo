@@ -1,5 +1,5 @@
 import type { SubmitEvent, KeyboardEvent, MouseEvent, RefObject } from 'react';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ArrowUp, Square } from 'lucide-react';
 import {
   MAX_MESSAGE_LENGTH,
@@ -26,7 +26,9 @@ export const ChatComposer = memo(function ChatComposer({
 }) {
   const [text, setText] = useState('');
   const textRef = useRef(text);
-  textRef.current = text;
+  useLayoutEffect(() => {
+    textRef.current = text;
+  });
 
   useEffect(() => {
     return () => {

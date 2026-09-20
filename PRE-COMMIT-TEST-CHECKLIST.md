@@ -1,5 +1,12 @@
 # Pre-commit test checklist
 
+> **Historical.** Scoped to one working tree as of 2026-08-17 (dark theme + design tokens, chat
+> streaming resilience, the composer rewrite). Not a general pre-commit checklist. For the actual
+> gates a change needs to pass, see `docs/conventions/testing.md` and each app's `package.json`
+> scripts (`lint`, `lint:boundaries`, `test`, `build`).
+
+---
+
 Scope: the uncommitted working tree as of 2026-08-17 — dark theme + design tokens,
 chat streaming resilience (stop / stall / offline / interrupted), composer rewrite
 (textarea + counter), `TextField` extraction across ~20 inputs, `ErrorBoundary`

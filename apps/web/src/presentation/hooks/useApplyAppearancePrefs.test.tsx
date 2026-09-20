@@ -10,7 +10,7 @@ import { useApplyAppearancePrefs } from './useApplyAppearancePrefs';
 import { useManagerPrefsStore } from '@/stores/manager-prefs.store';
 import { useConsentStore } from '@/stores/consent.store';
 import { useManagerSessionStore } from '@/stores/manager-session.store';
-import { routeChildren } from '@/app/router';
+import { createRouteChildren } from '@/app/router';
 
 // Stands in for App.tsx: the root that owns the preferences, wrapped around
 // the real route tree so leaving the panel is a real unmount.
@@ -179,7 +179,7 @@ describe('appearance prefs outlive the manager panel', () => {
     });
 
     const router = createMemoryRouter(
-      [{ id: 'root', path: '/', Component: () => <Outlet />, children: routeChildren }],
+      [{ id: 'root', path: '/', Component: () => <Outlet />, children: createRouteChildren() }],
       { initialEntries: ['/manager/settings'] },
     );
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });

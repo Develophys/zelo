@@ -63,7 +63,7 @@ admin, the role this spec introduces).
 
 ## 2. Non-negotiables carried forward
 
-Everything in `docs/superpowers/specs/AGENTS.md`'s Golden Rules still applies, plus
+The Product laws in `CLAUDE.md` still apply, plus
 `2026-08-02-multi-institution-data-partitioning-design.md` §2's points, restated for the added
 granularity:
 

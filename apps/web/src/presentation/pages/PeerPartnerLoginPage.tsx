@@ -1,5 +1,6 @@
-import { useState, type SubmitEvent } from "react";
-import { Link, useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { PhoneShell } from "@/presentation/layout/PhoneShell";
 import { BackButton } from "@/presentation/ui/BackButton";
 import { Button } from "@/presentation/ui/Button";
@@ -10,26 +11,30 @@ import { usePeerPartnerLogin } from "@/presentation/hooks/usePeerPartnerLogin";
 import { InvalidPeerPartnerCredentialsError } from "@/ports/peer-partner-auth.port";
 import { TextField } from "@/presentation/ui/TextField";
 import { PasswordField } from "@/presentation/ui/PasswordField";
-import { isValidEmail } from "@/presentation/lib/validate-email";
+import { loginFormSchema, type LoginFormValues } from "@/presentation/lib/login-form-schema";
 
 export function PeerPartnerLoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [emailTouched, setEmailTouched] = useState(false);
-  const [password, setPassword] = useState("");
   const login = usePeerPartnerLogin();
 
-  const handleSubmit = (event: SubmitEvent) => {
-    event.preventDefault();
-    login.mutate({ email, password }, { onSuccess: () => navigate(routes.peerPartnerInbox) });
-  };
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginFormSchema),
+    defaultValues: { email: "", password: "" },
+    mode: "onBlur",
+  });
+
+  const onSubmit = form.handleSubmit((values) => {
+    login.mutate(values, { onSuccess: () => navigate(routes.peerPartnerInbox) });
+  });
 
   const errorMessage = login.isError
     ? login.error instanceof InvalidPeerPartnerCredentialsError
       ? "Email ou senha incorretos."
       : "Não foi possível entrar agora. Tente novamente."
     : null;
-  const emailFormatError = emailTouched && email.length > 0 && !isValidEmail(email) ? "Digite um email válido." : null;
+
+  const [emailValue, passwordValue] = form.watch(["email", "password"]);
+  const isSubmitDisabled = !loginFormSchema.safeParse({ email: emailValue, password: passwordValue }).success;
 
   return (
     <PhoneShell centered>
@@ -41,7 +46,7 @@ export function PeerPartnerLoginPage() {
         <h1 className="mb-1.5 mt-4 text-h1 text-ink">Acesso do par anônimo</h1>
         <p className="text-caption text-muted">Entre com seu email e senha de par anônimo.</p>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={onSubmit}>
           <Card className="mt-5">
             <label htmlFor="peer-partner-email" className="text-label font-semibold text-ink-2">
               Email
@@ -50,19 +55,21 @@ export function PeerPartnerLoginPage() {
               id="peer-partner-email"
               type="email"
               required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              onBlur={() => setEmailTouched(true)}
               placeholder="Digite seu email"
               className="mt-2"
-              aria-invalid={emailFormatError || errorMessage ? true : undefined}
+              aria-invalid={form.formState.errors.email || errorMessage ? true : undefined}
               aria-describedby={
-                emailFormatError ? "peer-partner-email-error" : errorMessage ? "peer-partner-login-error" : undefined
+                form.formState.errors.email
+                  ? "peer-partner-email-error"
+                  : errorMessage
+                    ? "peer-partner-login-error"
+                    : undefined
               }
+              {...form.register("email")}
             />
-            {emailFormatError && (
+            {form.formState.errors.email && (
               <p id="peer-partner-email-error" role="alert" className="mt-2 text-label text-danger">
-                {emailFormatError}
+                {form.formState.errors.email.message}
               </p>
             )}
 
@@ -72,12 +79,11 @@ export function PeerPartnerLoginPage() {
             <PasswordField
               id="peer-partner-password"
               required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
               placeholder="Digite sua senha"
               className="mt-2"
               aria-invalid={errorMessage ? true : undefined}
               aria-describedby={errorMessage ? "peer-partner-login-error" : undefined}
+              {...form.register("password")}
             />
 
             {errorMessage && (
@@ -88,12 +94,7 @@ export function PeerPartnerLoginPage() {
           </Card>
 
           <div className="mt-6 px-4.5">
-            <Button
-              type="submit"
-              variant="primary"
-              isLoading={login.isPending}
-              disabled={!isValidEmail(email) || password.trim().length === 0}
-            >
+            <Button type="submit" variant="primary" isLoading={login.isPending} disabled={isSubmitDisabled}>
               Entrar
             </Button>
           </div>

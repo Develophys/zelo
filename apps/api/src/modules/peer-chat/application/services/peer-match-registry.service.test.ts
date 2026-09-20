@@ -47,6 +47,21 @@ describe("PeerMatchRegistry", () => {
     expect(registry.findPendingByMedicoSocketId("other-socket")).toBeUndefined();
   });
 
+  it("medicoSocketIdsWithOpenRequests lists the médico of every pending and active request, and drops them once resolved", () => {
+    const registry = new PeerMatchRegistry();
+    registry.createPending("request-1", "medico-a", "institution-1", undefined, "peer-1");
+    registry.createPending("request-2", "medico-b", "institution-1", undefined, "peer-2");
+    registry.resolvePending("request-2");
+    registry.activate("request-2", "medico-b", "peer-socket-2", "peer-2");
+
+    expect(registry.medicoSocketIdsWithOpenRequests().sort()).toEqual(["medico-a", "medico-b"]);
+
+    registry.endActive("request-2");
+    registry.resolvePending("request-1");
+
+    expect(registry.medicoSocketIdsWithOpenRequests()).toEqual([]);
+  });
+
   it("findPendingByCandidatePeerPartnerId follows the current candidate, not the ones already tried", () => {
     const registry = new PeerMatchRegistry();
     registry.createPending("request-1", "medico-socket", "institution-1", undefined, "peer-1");

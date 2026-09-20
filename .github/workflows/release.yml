@@ -1,0 +1,125 @@
+name: Release
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to (re)deploy, e.g. v1.0.0. Use it to roll back.'
+        required: true
+        type: string
+      dry_run:
+        description: 'Verify the tag only; deploy nothing'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.tag.outputs.sha }}
+    steps:
+      - name: Checkout the tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+          fetch-depth: 0
+
+      - name: Check the tag is a release tag on main
+        id: tag
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::$TAG is not a vMAJOR.MINOR.PATCH tag"
+            exit 1
+          fi
+          sha="$(git rev-parse HEAD)"
+          git fetch --quiet origin main
+          if ! git merge-base --is-ancestor "$sha" origin/main; then
+            echo "::error::$TAG ($sha) is not reachable from main; only commits that landed on main can be released"
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Release $TAG"
+            echo ""
+            echo "- Commit: \`$sha\`"
+            echo "- Dry run: \`${{ inputs.dry_run || false }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-api:
+    needs: verify
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout the tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify.outputs.sha }}
+
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io
+        run: flyctl deploy --remote-only --config fly.toml
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Verify deployment
+        run: curl -sf https://zelo-api.fly.dev/health | grep -q '"status":"ok"'
+
+  deploy-web:
+    needs: [verify, deploy-api]
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify.outputs.sha }}
+
+      - name: Point the production branch at the tag
+        run: |
+          git push --force origin "${{ needs.verify.outputs.sha }}:refs/heads/production"
+          {
+            echo ""
+            echo "The \`production\` branch now points at \`$TAG\`. Vercel deploys the web app from it,"
+            echo "after the API deploy above succeeded."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  publish-release:
+    needs: [verify, deploy-web]
+    if: ${{ !inputs.dry_run && github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify.outputs.sha }}
+
+      - name: Create the GitHub Release if it does not exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "Release $TAG already exists; leaving it as is."
+            exit 0
+          fi
+          notes="docs/releases/${TAG}.md"
+          if [ -f "$notes" ]; then
+            gh release create "$TAG" --title "$TAG" --notes-file "$notes" --verify-tag
+          else
+            gh release create "$TAG" --title "$TAG" --generate-notes --verify-tag
+          fi

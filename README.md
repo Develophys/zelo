@@ -40,10 +40,10 @@ See [`general-documentations/documentacao-produto/prd.md`](general-documentation
 | | |
 | --- | --- |
 | **Frontend** | React 19 + Vite, TanStack Query, Zustand, Tailwind CSS 4, PWA (installable, offline-capable) |
-| **Backend** | NestJS 10, Prisma 7 (Neon serverless Postgres adapter), Groq SDK for LLM inference |
+| **Backend** | NestJS 10, Prisma 7 (`pg` adapter; Neon serverless adapter when the host is Neon), Groq SDK for LLM inference |
 | **Shared** | Zod-based domain schemas (`packages/domain`), shared lint/tsconfig base (`packages/config`) |
 | **Tooling** | Turborepo, pnpm workspaces, dependency-cruiser for architecture boundaries, Vitest |
-| **Infra** | Fly.io (API), GitHub Pages (Web), Neon Postgres, Docker Compose for local parity |
+| **Infra** | Fly.io (API), Vercel (Web), Prisma Postgres, Docker Compose for local parity |
 
 ## Repository map
 
@@ -76,7 +76,7 @@ cp apps/api/.env.example apps/api/.env
 pnpm --filter @zelo/api dev
 ```
 
-See [`docs/superpowers/plans/2026-07-07-02-backend-foundation.md`](docs/superpowers/plans/2026-07-07-02-backend-foundation.md) (Task 2) for a manual Postgres setup, or use the Docker environment below.
+The Postgres container from the Docker environment below is the quickest way to get one.
 
 ### Frontend (`apps/web`)
 
@@ -122,19 +122,21 @@ Vercel project:
 
 | | Prod | Dev |
 |---|---|---|
-| Branch | `main` | `develop` |
+| Deploys from | tag `v*` (see [`docs/releasing.md`](docs/releasing.md)) | `develop` |
 | API | `zelo-api` (Fly) | `zelo-api-dev` (Fly) |
 | Web | `zelohealth.app` (Vercel) | `dev.zelohealth.app` (Vercel) |
 | Migrations | manual (see below) | automatic in CI |
 
-`main` and `develop` are both protected — all changes land via PR. `apps/web` also
+`main` and `develop` are both protected — all changes land via PR, and merging into `main`
+deploys nothing: production is released by pushing a `vMAJOR.MINOR.PATCH` tag. `apps/web` also
 packages as an installable Android APK via Capacitor — see
 [`docs/android-apk.md`](docs/android-apk.md).
 
-Both apps auto-deploy from their branch via `.github/workflows/api.yml` (`deploy` /
-`deploy-dev` jobs); the Vercel projects deploy via Vercel's own git integration, not
-GitHub Actions. Prod migrations are **not** run on container boot — apply them manually
-before deploying a schema change:
+Dev deploys from `develop` via `.github/workflows/api.yml`'s `deploy-dev` job, with Vercel's
+own git integration deploying the dev web app. Prod deploys through
+`.github/workflows/release.yml` on a tag: the API first, then the `production` branch that the
+prod Vercel project builds from. Prod migrations are **not** run on container boot — apply them
+manually before tagging a release that includes one:
 
 ```bash
 pnpm --filter @zelo/api exec prisma migrate deploy   # DIRECT_DATABASE_URL must point at prod (apps/api/.env.production.local)
@@ -177,7 +179,6 @@ fly deploy --image <previous-image-ref> --app zelo-api         # redeploy a spec
 - [`general-documentations/documentacao-produto/`](general-documentations/documentacao-produto/) — PRD, personas, lean canvas, OKRs, ADRs, competitive analysis
 - [`general-documentations/jornada-checkpoints/`](general-documentations/jornada-checkpoints) — official Jornada Incubintech checkpoint deliverables
 - [`docs/superpowers/specs/`](docs/superpowers/specs) — technical architecture specs
-- [`docs/superpowers/plans/`](docs/superpowers/plans) — step-by-step implementation plans
 - [`docs/android-apk.md`](docs/android-apk.md) — building, installing, and publishing the Android APK
 
 ---

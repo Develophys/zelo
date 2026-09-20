@@ -1,7 +1,7 @@
 # 16 — Vincular ao hospital (institution linking)
 
 > Added by `2026-08-02-multi-institution-data-partitioning-design.md`, same category as
-> `screens/14-manager-login.md` and `screens/15-you.md` (a screen the initial `AGENTS.md` build
+> `screens/14-manager-login.md` and `screens/15-you.md` (a screen the original 13-screen build
 > plan didn't anticipate). Lets a médico optionally link their device to their hospital via an
 > invite code, so their anonymous, aggregated self-assessment signals count toward the correct
 > institution's manager dashboard. See `screens/15-you.md`'s "Extended by" note and

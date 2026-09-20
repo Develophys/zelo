@@ -53,6 +53,7 @@ export function PeersPage() {
 
   useEffect(() => {
     if (state !== 'searching') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clears the slow-search flag before a new search's timer starts below
       setSearchIsSlow(false);
       return;
     }

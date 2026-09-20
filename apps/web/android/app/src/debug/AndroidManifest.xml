@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Debug-only: merges into the debug build alone, never release. Needed
+         for Capacitor live-reload (CAP_DEV_SERVER_URL) against a plain-HTTP
+         local dev server — Android blocks cleartext traffic by default from
+         API 28+, and capacitor.config's own `cleartext: true` does not add
+         this manifest permission on its own. -->
+    <application android:usesCleartextTraffic="true" />
+</manifest>

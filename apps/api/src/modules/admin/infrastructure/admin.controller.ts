@@ -25,6 +25,7 @@ import type { IssuedAdminToken } from "../application/services/admin-token.servi
 import { AdminAuthGuard } from "./admin-auth.guard.ts";
 import { SECTOR_REPOSITORY } from "@/modules/sector/application/ports/sector-repository.port.js";
 import type { SectorRepository, AdminSectorRow } from "@/modules/sector/application/ports/sector-repository.port.js";
+import { LoginThrottle } from "@/shared/http/throttling.js";
 
 const LoginRequestSchema = z.object({ email: z.string().email().max(200), password: z.string().min(1).max(200) });
 const CreateInstitutionSchema = z.object({
@@ -60,6 +61,7 @@ export class AdminController {
 
   @Post("login")
   @HttpCode(200)
+  @LoginThrottle()
   async login(@Body() body: unknown): Promise<IssuedAdminToken> {
     const parsed = LoginRequestSchema.safeParse(body);
     if (!parsed.success) {

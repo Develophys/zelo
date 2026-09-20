@@ -70,4 +70,10 @@ describe('the app query client', () => {
   it('returns a real QueryClient', () => {
     expect(createQueryClient()).toBeInstanceOf(QueryClient);
   });
+
+  it('gives every query a 30s staleTime, so an alt-tab refocus does not refire it', () => {
+    const client = createQueryClient();
+
+    expect(client.getDefaultOptions().queries?.staleTime).toBe(30_000);
+  });
 });

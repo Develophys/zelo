@@ -15,6 +15,21 @@ Legenda de escopo: `[Global]` `[Médico]` `[Chat]` `[Autoavaliação]` `[Admin]`
 
 - Tela do Gestor poderia ter ordem dos items de menu customizaveis?
 
+- **`[Admin]` `[Gestor]` `[Médico]` Nomenclatura customizável por instituição**
+  O Gestor da Instituição poderia adaptar os rótulos para organizar as coisas como preferir — por
+  exemplo chamar Setores de "Turmas", "Equipes" ou "Times". A configuração vale para todos os
+  gestores da instituição, o que pede uma entidade de configuração da Instituição que customize a
+  nomenclatura das entidades. Em baixo nível, backend e frontend continuam tratando as entidades
+  como Setores, Gestores e Pares Anônimos; só a apresentação muda, por um rótulo de entrada
+  definido por dois caminhos:
+  - **Admin do sistema**, na criação da instituição, como campos opcionais.
+  - **Gestor da Instituição**, na tela de configurações.
+
+  Termos customizáveis: Gestores, Instituição, Setores, Pares Anônimos. O médico que vincula o
+  dispositivo a uma instituição (que inicialmente vê um nome genérico) passa a ver o termo
+  escolhido para "Setor" e o "Instituição" customizado daquela instituição, quando houver.
+  Relaciona-se com a deriva `hospital` → `institution` em `priorities.md` #23.
+
 ### 1.3 Segurança e identidade
 
 - **`[Global]` Autenticação anônima do médico**
@@ -28,8 +43,17 @@ Legenda de escopo: `[Global]` `[Médico]` `[Chat]` `[Autoavaliação]` `[Admin]`
 
 ## 2. Ajustes no que já existe
 
-*Nenhum ajuste pendente no momento — os dois últimos (paginação do histórico de análises e theme
-toggle nas telas de login/admin) estão em **5. Concluído**.*
+- **`[Global]` Trocar "hospital" por "instituição" em todo o sistema**
+  Todo lugar que ainda diz "hospital" deve passar a dizer "instituição". O escopo e o custo por
+  classe de ocorrência estão em `docs/conventions/priorities.md` #23.
+
+- **`[Gestor]` Gestor de setor gera o QR Code do próprio setor**
+  Hoje apenas o gestor do hospital consegue. O gestor de setor poderia ver a página "Setores"
+  mostrando só o seu setor, sem poder editar nada, apenas baixando o QR Code de vinculação. Lacuna
+  de permissão detalhada em `docs/conventions/priorities.md` #9.
+
+Os dois últimos ajustes já feitos (paginação do histórico de análises e theme toggle nas telas de
+login/admin) estão em **5. Concluído**.
 
 ---
 
@@ -179,6 +203,12 @@ toggle nas telas de login/admin) estão em **5. Concluído**.*
     nunca pode devolver invite codes para quem não está autenticado.
   - **Ressalva de segurança fechada em revisão:** o guard de conflito de invite code (setor vs.
     instituição) tinha duas lacunas cross-table — corrigidas antes do merge.
+
+### Feito (data não registrada)
+
+- [x] **`[Admin]` `[Gestor]`** Cadastrar um gestor inicialmente sem setor vinculado. Ele consta com
+  status de cadastro pendente, e o e-mail para finalizar o cadastro só é disparado quando um setor
+  é vinculado a ele.
 
 ### Já estava implementado (verificado em 2026-09-08, doc estava desatualizado)
 

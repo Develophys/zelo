@@ -37,6 +37,9 @@ class FakeAdminRepository implements AdminRepository {
   async findByEmail(email: string): Promise<AdminRow | null> {
     return this.rows.find((row) => row.email === email) ?? null;
   }
+  async findById(id: string): Promise<AdminRow | null> {
+    return this.rows.find((row) => row.id === id) ?? null;
+  }
 }
 
 class FakeAdminInstitutionRepository implements AdminInstitutionRepository {
@@ -139,7 +142,7 @@ describe("admin controller", () => {
   beforeAll(async () => {
     const passwordService = new AdminPasswordService();
     adminRepository = new FakeAdminRepository();
-    adminRepository.rows = [{ id: "admin-1", name: "Zelo Ops", email: "ops@zelo-demo.local", passwordHash: await passwordService.hash("test-password") }];
+    adminRepository.rows = [{ id: "admin-1", name: "Zelo Ops", email: "ops@zelo-demo.local", passwordHash: await passwordService.hash("test-password"), isActive: true }];
     institutionRepository = new FakeAdminInstitutionRepository();
     sectorRepository = new FakeSectorRepository();
     emailPort = new FakeEmailPort();

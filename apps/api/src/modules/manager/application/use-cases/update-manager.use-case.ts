@@ -3,6 +3,8 @@ import { MANAGER_REPOSITORY, type ManagerRepository, type ManagerRole } from "..
 import { SECTOR_REPOSITORY, type SectorRepository } from "@/modules/sector/application/ports/sector-repository.port.js";
 import { LastActiveHospitalAdminError, ManagerNotFoundError, SectorNotInInstitutionError } from "./manager-admin-errors.ts";
 import { NOTIFICATION_PUBLISHER, type NotificationPublisher } from "@/modules/notification/application/ports/notification.port.js";
+import { SendManagerSetPasswordEmailUseCase } from "./send-manager-set-password-email.use-case.ts";
+import { shouldTriggerPendingManagerInvite } from "./should-trigger-pending-manager-invite.ts";
 
 export interface UpdateManagerInput {
   institutionId: string;
@@ -16,6 +18,7 @@ export class UpdateManagerUseCase {
     @Inject(MANAGER_REPOSITORY) private readonly managerRepository: ManagerRepository,
     @Inject(SECTOR_REPOSITORY) private readonly sectorRepository: SectorRepository,
     @Inject(NOTIFICATION_PUBLISHER) private readonly notifications: NotificationPublisher,
+    @Inject(SendManagerSetPasswordEmailUseCase) private readonly sendManagerSetPasswordEmail: SendManagerSetPasswordEmailUseCase,
   ) {}
 
   async execute(input: UpdateManagerInput): Promise<void> {
@@ -38,6 +41,12 @@ export class UpdateManagerUseCase {
     }
 
     const wasActive = manager.isActive;
+    // Captured before the update() call below: a repository is free to mutate
+    // its own row state as part of persisting the patch (as the in-memory test
+    // double does), so reading these off `manager` afterwards isn't safe.
+    const roleBeforePatch = manager.role;
+    const passwordHashBeforePatch = manager.passwordHash;
+    const setPasswordTokenExpiresAtBeforePatch = manager.setPasswordTokenExpiresAt;
 
     await this.managerRepository.update(input.managerId, {
       isActive: input.patch.isActive,
@@ -67,6 +76,12 @@ export class UpdateManagerUseCase {
         throw new SectorNotInInstitutionError();
       }
       await this.sectorRepository.reassignManagerSectors(input.institutionId, input.managerId, input.patch.sectorIds);
+
+      const effectiveRole = input.patch.role ?? roleBeforePatch;
+      const pending = { role: effectiveRole, passwordHash: passwordHashBeforePatch, setPasswordTokenExpiresAt: setPasswordTokenExpiresAtBeforePatch };
+      if (shouldTriggerPendingManagerInvite(pending, input.patch.sectorIds.length > 0)) {
+        await this.sendManagerSetPasswordEmail.execute({ institutionId: input.institutionId, managerId: input.managerId });
+      }
     }
   }
 }

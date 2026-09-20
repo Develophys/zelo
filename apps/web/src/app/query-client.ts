@@ -21,5 +21,10 @@ export function createQueryClient(): QueryClient {
         toast.error(MUTATION_FAILED);
       },
     }),
+    defaultOptions: {
+      queries: {
+        staleTime: 30_000,
+      },
+    },
   });
 }

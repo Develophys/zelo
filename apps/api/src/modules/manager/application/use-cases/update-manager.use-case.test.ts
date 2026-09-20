@@ -60,47 +60,44 @@ class FakeSectorRepository {
   }
 }
 
+class FakeSendManagerSetPasswordEmailUseCase {
+  public calls: { institutionId: string; managerId: string }[] = [];
+  async execute(input: { institutionId: string; managerId: string }): Promise<void> {
+    this.calls.push(input);
+  }
+}
+
 function managerRow(overrides: Partial<ManagerRow> = {}): ManagerRow {
   return { id: "manager-1", name: "Ana", email: "ana@zelo-demo.local", passwordHash: "hash", setPasswordTokenExpiresAt: null, institutionId: "institution-1", role: "SECTOR_MANAGER", isActive: true, ...overrides };
 }
 
-function buildWithTwoAdmins(options: { managerIsActive?: boolean } = {}) {
+function build(rows: ManagerRow[], options: { activeHospitalAdmins?: number; knownSectorIds?: string[] } = {}) {
   const managerRepository = new FakeManagerRepository();
-  managerRepository.rows = [
-    managerRow({ id: "manager-1", name: "Ana", role: "HOSPITAL_ADMIN", isActive: true }),
-    managerRow({ id: "manager-2", name: "Beatriz", role: "HOSPITAL_ADMIN", isActive: options.managerIsActive ?? true }),
-  ];
-  managerRepository.activeHospitalAdmins = 2;
+  managerRepository.rows = rows;
+  managerRepository.activeHospitalAdmins = options.activeHospitalAdmins ?? 1;
   const sectorRepository = new FakeSectorRepository();
+  sectorRepository.knownSectorIds = new Set(options.knownSectorIds ?? []);
   const notifications = new FakeNotificationPublisher();
-  const useCase = new UpdateManagerUseCase(managerRepository, sectorRepository as never, notifications);
-  return { useCase, notifications };
+  const sendManagerSetPasswordEmail = new FakeSendManagerSetPasswordEmailUseCase();
+  const useCase = new UpdateManagerUseCase(managerRepository, sectorRepository as never, notifications, sendManagerSetPasswordEmail as never);
+  return { useCase, managerRepository, sectorRepository, notifications, sendManagerSetPasswordEmail };
 }
 
 describe("UpdateManagerUseCase", () => {
   it("throws ManagerNotFoundError when the manager doesn't belong to the given institution", async () => {
-    const managerRepository = new FakeManagerRepository();
-    managerRepository.rows = [managerRow({ institutionId: "institution-other" })];
-    const useCase = new UpdateManagerUseCase(managerRepository, new FakeSectorRepository() as never, new FakeNotificationPublisher());
+    const { useCase } = build([managerRow({ institutionId: "institution-other" })]);
 
     await expect(useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { isActive: false } })).rejects.toThrow(ManagerNotFoundError);
   });
 
   it("throws LastActiveHospitalAdminError when deactivating the institution's only active HOSPITAL_ADMIN", async () => {
-    const managerRepository = new FakeManagerRepository();
-    managerRepository.rows = [managerRow({ role: "HOSPITAL_ADMIN" })];
-    managerRepository.activeHospitalAdmins = 1;
-    const useCase = new UpdateManagerUseCase(managerRepository, new FakeSectorRepository() as never, new FakeNotificationPublisher());
+    const { useCase } = build([managerRow({ role: "HOSPITAL_ADMIN" })], { activeHospitalAdmins: 1 });
 
     await expect(useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { isActive: false } })).rejects.toThrow(LastActiveHospitalAdminError);
   });
 
   it("allows deactivating a HOSPITAL_ADMIN when another active HOSPITAL_ADMIN exists, clearing their sectors", async () => {
-    const managerRepository = new FakeManagerRepository();
-    managerRepository.rows = [managerRow({ role: "HOSPITAL_ADMIN" })];
-    managerRepository.activeHospitalAdmins = 2;
-    const sectorRepository = new FakeSectorRepository();
-    const useCase = new UpdateManagerUseCase(managerRepository, sectorRepository as never, new FakeNotificationPublisher());
+    const { useCase, managerRepository, sectorRepository } = build([managerRow({ role: "HOSPITAL_ADMIN" })], { activeHospitalAdmins: 2 });
 
     await useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { isActive: false } });
 
@@ -109,10 +106,7 @@ describe("UpdateManagerUseCase", () => {
   });
 
   it("throws LastActiveHospitalAdminError when demoting the institution's only active HOSPITAL_ADMIN to SECTOR_MANAGER", async () => {
-    const managerRepository = new FakeManagerRepository();
-    managerRepository.rows = [managerRow({ role: "HOSPITAL_ADMIN" })];
-    managerRepository.activeHospitalAdmins = 1;
-    const useCase = new UpdateManagerUseCase(managerRepository, new FakeSectorRepository() as never, new FakeNotificationPublisher());
+    const { useCase, managerRepository } = build([managerRow({ role: "HOSPITAL_ADMIN" })], { activeHospitalAdmins: 1 });
 
     await expect(
       useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { role: "SECTOR_MANAGER" } }),
@@ -121,12 +115,10 @@ describe("UpdateManagerUseCase", () => {
   });
 
   it("allows demoting a HOSPITAL_ADMIN when another active HOSPITAL_ADMIN exists", async () => {
-    const managerRepository = new FakeManagerRepository();
-    managerRepository.rows = [managerRow({ role: "HOSPITAL_ADMIN" })];
-    managerRepository.activeHospitalAdmins = 2;
-    const sectorRepository = new FakeSectorRepository();
-    sectorRepository.knownSectorIds = new Set(["sector-a"]);
-    const useCase = new UpdateManagerUseCase(managerRepository, sectorRepository as never, new FakeNotificationPublisher());
+    const { useCase, managerRepository, sectorRepository } = build([managerRow({ role: "HOSPITAL_ADMIN" })], {
+      activeHospitalAdmins: 2,
+      knownSectorIds: ["sector-a"],
+    });
 
     await useCase.execute({
       institutionId: "institution-1",
@@ -139,10 +131,7 @@ describe("UpdateManagerUseCase", () => {
   });
 
   it("allows re-affirming the HOSPITAL_ADMIN role on the last active hospital admin", async () => {
-    const managerRepository = new FakeManagerRepository();
-    managerRepository.rows = [managerRow({ role: "HOSPITAL_ADMIN" })];
-    managerRepository.activeHospitalAdmins = 1;
-    const useCase = new UpdateManagerUseCase(managerRepository, new FakeSectorRepository() as never, new FakeNotificationPublisher());
+    const { useCase, managerRepository } = build([managerRow({ role: "HOSPITAL_ADMIN" })], { activeHospitalAdmins: 1 });
 
     await useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { role: "HOSPITAL_ADMIN" } });
 
@@ -150,10 +139,7 @@ describe("UpdateManagerUseCase", () => {
   });
 
   it("allows demoting a SECTOR_MANAGER-role manager regardless of the hospital-admin count", async () => {
-    const managerRepository = new FakeManagerRepository();
-    managerRepository.rows = [managerRow({ role: "SECTOR_MANAGER" })];
-    managerRepository.activeHospitalAdmins = 0;
-    const useCase = new UpdateManagerUseCase(managerRepository, new FakeSectorRepository() as never, new FakeNotificationPublisher());
+    const { useCase, managerRepository } = build([managerRow({ role: "SECTOR_MANAGER" })], { activeHospitalAdmins: 0 });
 
     await useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { role: "SECTOR_MANAGER" } });
 
@@ -161,11 +147,7 @@ describe("UpdateManagerUseCase", () => {
   });
 
   it("allows deactivating a SECTOR_MANAGER unconditionally, clearing their sectors", async () => {
-    const managerRepository = new FakeManagerRepository();
-    managerRepository.rows = [managerRow({ role: "SECTOR_MANAGER" })];
-    managerRepository.activeHospitalAdmins = 0; // irrelevant for a non-HOSPITAL_ADMIN
-    const sectorRepository = new FakeSectorRepository();
-    const useCase = new UpdateManagerUseCase(managerRepository, sectorRepository as never, new FakeNotificationPublisher());
+    const { useCase, sectorRepository } = build([managerRow({ role: "SECTOR_MANAGER" })], { activeHospitalAdmins: 0 });
 
     await useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { isActive: false } });
 
@@ -173,11 +155,7 @@ describe("UpdateManagerUseCase", () => {
   });
 
   it("reassigns sectors when sectorIds is provided without deactivating", async () => {
-    const managerRepository = new FakeManagerRepository();
-    managerRepository.rows = [managerRow()];
-    const sectorRepository = new FakeSectorRepository();
-    sectorRepository.knownSectorIds = new Set(["sector-a"]);
-    const useCase = new UpdateManagerUseCase(managerRepository, sectorRepository as never, new FakeNotificationPublisher());
+    const { useCase, sectorRepository } = build([managerRow()], { knownSectorIds: ["sector-a"] });
 
     await useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { sectorIds: ["sector-a"] } });
 
@@ -185,10 +163,7 @@ describe("UpdateManagerUseCase", () => {
   });
 
   it("throws SectorNotInInstitutionError when a provided sectorId doesn't belong to the institution", async () => {
-    const managerRepository = new FakeManagerRepository();
-    managerRepository.rows = [managerRow()];
-    const sectorRepository = new FakeSectorRepository();
-    const useCase = new UpdateManagerUseCase(managerRepository, sectorRepository as never, new FakeNotificationPublisher());
+    const { useCase } = build([managerRow()]);
 
     await expect(
       useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { sectorIds: ["sector-unknown"] } }),
@@ -196,7 +171,7 @@ describe("UpdateManagerUseCase", () => {
   });
 
   it("announces a deactivation with the instant it happened, so a later reactivation is a separate event", async () => {
-    const { useCase, notifications } = buildWithTwoAdmins();
+    const { useCase, notifications } = build([managerRow({ id: "manager-2" })], { activeHospitalAdmins: 2 });
 
     await useCase.execute({ institutionId: "institution-1", managerId: "manager-2", patch: { isActive: false } });
 
@@ -206,7 +181,7 @@ describe("UpdateManagerUseCase", () => {
   });
 
   it("announces a reactivation as its own event", async () => {
-    const { useCase, notifications } = buildWithTwoAdmins({ managerIsActive: false });
+    const { useCase, notifications } = build([managerRow({ id: "manager-2", isActive: false })], { activeHospitalAdmins: 2 });
 
     await useCase.execute({ institutionId: "institution-1", managerId: "manager-2", patch: { isActive: true } });
 
@@ -214,7 +189,7 @@ describe("UpdateManagerUseCase", () => {
   });
 
   it("says nothing when isActive was not part of the patch", async () => {
-    const { useCase, notifications } = buildWithTwoAdmins();
+    const { useCase, notifications } = build([managerRow({ id: "manager-2" })], { activeHospitalAdmins: 2 });
 
     await useCase.execute({ institutionId: "institution-1", managerId: "manager-2", patch: { role: "SECTOR_MANAGER" } });
 
@@ -222,10 +197,49 @@ describe("UpdateManagerUseCase", () => {
   });
 
   it("says nothing when isActive is set to the value it already had", async () => {
-    const { useCase, notifications } = buildWithTwoAdmins();
+    const { useCase, notifications } = build([managerRow({ id: "manager-2" })], { activeHospitalAdmins: 2 });
 
     await useCase.execute({ institutionId: "institution-1", managerId: "manager-2", patch: { isActive: true } });
 
     expect(notifications.events).toEqual([]);
+  });
+
+  it("sends the pending manager's invite email when a sector is linked for the first time", async () => {
+    const pending = managerRow({ passwordHash: null, setPasswordTokenExpiresAt: null });
+    const { useCase, sendManagerSetPasswordEmail } = build([pending], { knownSectorIds: ["sector-a"] });
+
+    await useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { sectorIds: ["sector-a"] } });
+
+    expect(sendManagerSetPasswordEmail.calls).toEqual([{ institutionId: "institution-1", managerId: "manager-1" }]);
+  });
+
+  it("does not send an invite when the manager already has a password", async () => {
+    const { useCase, sendManagerSetPasswordEmail } = build([managerRow({ passwordHash: "hash" })], { knownSectorIds: ["sector-a"] });
+
+    await useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { sectorIds: ["sector-a"] } });
+
+    expect(sendManagerSetPasswordEmail.calls).toEqual([]);
+  });
+
+  it("does not send an invite when sectorIds is set to empty (unassigning)", async () => {
+    const pending = managerRow({ passwordHash: null, setPasswordTokenExpiresAt: null });
+    const { useCase, sendManagerSetPasswordEmail } = build([pending]);
+
+    await useCase.execute({ institutionId: "institution-1", managerId: "manager-1", patch: { sectorIds: [] } });
+
+    expect(sendManagerSetPasswordEmail.calls).toEqual([]);
+  });
+
+  it("uses the patched role, not the stored one, when role and sectorIds change together", async () => {
+    const pending = managerRow({ role: "HOSPITAL_ADMIN", passwordHash: null, setPasswordTokenExpiresAt: null });
+    const { useCase, sendManagerSetPasswordEmail } = build([pending], { activeHospitalAdmins: 2, knownSectorIds: ["sector-a"] });
+
+    await useCase.execute({
+      institutionId: "institution-1",
+      managerId: "manager-1",
+      patch: { role: "SECTOR_MANAGER", sectorIds: ["sector-a"] },
+    });
+
+    expect(sendManagerSetPasswordEmail.calls).toEqual([{ institutionId: "institution-1", managerId: "manager-1" }]);
   });
 });

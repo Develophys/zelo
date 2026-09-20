@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { useHotkeyStore, type HotkeyScope } from "@/stores/hotkey.store";
 
 interface UseHotkeyOptions {
@@ -14,7 +14,9 @@ export function useHotkey(
 ): void {
   const { scope = "page", enabled = true } = options;
   const handlerRef = useRef(handler);
-  handlerRef.current = handler;
+  useLayoutEffect(() => {
+    handlerRef.current = handler;
+  });
 
   const register = useHotkeyStore((state) => state.register);
   const unregister = useHotkeyStore((state) => state.unregister);

@@ -1,0 +1,11 @@
+{
+  "name": "impeccable-detector-deps",
+  "private": true,
+  "description": "Parser modules the Impeccable detector loads for its contrast, palette, font and glow rules. Without these it silently falls back to regex matching and reports an undercount.",
+  "dependencies": {
+    "css-select": "^5.1.0",
+    "css-tree": "^3.0.0",
+    "domutils": "^3.1.0",
+    "htmlparser2": "^9.1.0"
+  }
+}
