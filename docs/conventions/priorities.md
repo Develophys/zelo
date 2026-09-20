@@ -884,7 +884,7 @@ state-changing requests as CSRF defense in depth, and a three-phase rollout (exp
 contract) so `develop`, dev and production keep working after every merge. The 2026-09-14 plan is
 replaced by a new one, written against the code as of v1.1.0.
 
-**Prerequisite, done.** The design keeps `SameSite=Lax` and skips a CSRF token system by putting the
+**Prerequisite, done.** The design uses `SameSite=Strict` and skips a CSRF token system by putting the
 API on the frontend's registrable domain. Prod already was: `api.zelohealth.app` (checked 2026-09-19).
 Dev now is too: `api-dev.zelohealth.app` has a Fly certificate and DNS (2026-09-20) and answers
 `/health`. What is left is pointing the dev Vercel project's `VITE_API_BASE_URL` at it.
@@ -896,7 +896,7 @@ becomes the web app's source of truth. The peer-chat gateway keeps its #8 valida
 `connect-src` (#10) and the React Query client with its `defaultOptions` (#5) are accounted for.
 
 **Not covered: the Android APK.** It serves from `https://localhost`, cross-site to the API, so a
-`SameSite=Lax` cookie is not sent and staff login would fail there. It is not distributed and nothing
+`SameSite=Strict` cookie is not sent and staff login would fail there. It is not distributed and nothing
 in `apps/web/src` gates staff routes by platform. Decide between web-only staff, a Bearer fallback or
 `SameSite=None` with CSRF tokens before it is distributed.
 
