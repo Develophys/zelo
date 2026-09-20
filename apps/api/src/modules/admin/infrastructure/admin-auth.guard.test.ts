@@ -27,6 +27,12 @@ function contextWithHeader(authorization: string | undefined): { context: Execut
   return { context, request };
 }
 
+function contextWithCookie(cookie: string | undefined, authorization?: string): { context: ExecutionContext; request: Partial<Request> } {
+  const request: Partial<Request> = { headers: { cookie, authorization } as Request["headers"] };
+  const context = { switchToHttp: () => ({ getRequest: () => request }) } as unknown as ExecutionContext;
+  return { context, request };
+}
+
 function adminRow(overrides: Partial<AdminRow> = {}): AdminRow {
   return {
     id: "admin-1",
@@ -80,6 +86,47 @@ describe("AdminAuthGuard", () => {
     const guard = buildGuard([]);
     const { token } = tokenService.issue("admin-1", "Zelo Ops");
     const { context } = contextWithHeader(`Bearer ${token}`);
+
+    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
+  });
+
+  it("allows a request whose token is in the admin_session cookie and attaches the admin", async () => {
+    const guard = buildGuard([adminRow()]);
+    const { token } = tokenService.issue("admin-1", "Zelo Ops");
+    const { context, request } = contextWithCookie(`admin_session=${token}`);
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(request.admin).toEqual({ id: "admin-1", name: "Zelo Ops" });
+  });
+
+  it("does not let a Bearer header rescue a cookie that is present but invalid", async () => {
+    const guard = buildGuard([adminRow()]);
+    const { token } = tokenService.issue("admin-1", "Zelo Ops");
+    const { context } = contextWithCookie("admin_session=forged.token", `Bearer ${token}`);
+
+    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
+  });
+
+  it("does not accept another role's cookie", async () => {
+    const guard = buildGuard([adminRow()]);
+    const { token } = tokenService.issue("admin-1", "Zelo Ops");
+    const { context } = contextWithCookie(`manager_session=${token}`);
+
+    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
+  });
+
+  it("rejects a cookie whose admin has since been deactivated", async () => {
+    const guard = buildGuard([adminRow({ isActive: false })]);
+    const { token } = tokenService.issue("admin-1", "Zelo Ops");
+    const { context } = contextWithCookie(`admin_session=${token}`);
+
+    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
+  });
+
+  it("rejects a cookie whose admin row no longer exists", async () => {
+    const guard = buildGuard([]);
+    const { token } = tokenService.issue("admin-1", "Zelo Ops");
+    const { context } = contextWithCookie(`admin_session=${token}`);
 
     await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
   });

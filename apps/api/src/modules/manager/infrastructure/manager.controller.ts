@@ -9,11 +9,12 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
-import type { Request } from "express";
+import type { Request, Response } from "express";
 import { z } from "zod";
 import { LoginManagerUseCase, InvalidManagerCredentialsError } from "../application/use-cases/login-manager.use-case.ts";
 import { GetManagerSignalsUseCase, type ManagerSignalsResponse } from "../application/use-cases/get-manager-signals.use-case.ts";
@@ -27,6 +28,7 @@ import { InsightGenerationFailedError, type ManagerInsightResponse } from "../ap
 import type { IssuedManagerToken } from "../application/services/manager-token.service.ts";
 import { ManagerAuthGuard } from "./manager-auth.guard.ts";
 import { LoginThrottle } from "@/shared/http/throttling.js";
+import { clearSessionCookie, setSessionCookie } from "@/shared/http/session-cookie.js";
 import { passwordSchema } from "@zelo/domain";
 
 const LoginRequestSchema = z.object({ email: z.string().email().max(200), password: z.string().min(1).max(200) });
@@ -70,20 +72,35 @@ export class ManagerController {
   @Post("login")
   @HttpCode(200)
   @LoginThrottle()
-  async login(@Body() body: unknown): Promise<IssuedManagerToken> {
+  async login(@Body() body: unknown, @Res({ passthrough: true }) response: Response): Promise<IssuedManagerToken> {
     const parsed = LoginRequestSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.flatten());
     }
 
     try {
-      return await this.loginManager.execute(parsed.data.email, parsed.data.password);
+      const issued = await this.loginManager.execute(parsed.data.email, parsed.data.password);
+      setSessionCookie(response, "manager", issued.token);
+      return issued;
     } catch (error) {
       if (error instanceof InvalidManagerCredentialsError) {
         throw new UnauthorizedException();
       }
       throw error;
     }
+  }
+
+  @Post("logout")
+  @HttpCode(204)
+  logout(@Res({ passthrough: true }) response: Response): void {
+    clearSessionCookie(response, "manager");
+  }
+
+  @Get("me")
+  @UseGuards(ManagerAuthGuard)
+  me(@Req() request: Request): { name: string; role: NonNullable<Request["manager"]>["role"] } {
+    const manager = request.manager!;
+    return { name: manager.name, role: manager.role };
   }
 
   @Post("finish-setup")

@@ -189,6 +189,55 @@ describe("admin controller", () => {
     expect(response.status).toBe(400);
   });
 
+  function adminCookieOf(response: request.Response): string {
+    const header = response.headers["set-cookie"] as unknown as string[] | undefined;
+    return header?.find((cookie) => cookie.startsWith("admin_session=")) ?? "";
+  }
+
+  it("POST /admin/login also sets the session as an HttpOnly, SameSite=Lax cookie that lasts eight hours", async () => {
+    const response = await request(app.getHttpServer()).post("/admin/login").send({ email: "ops@zelo-demo.local", password: "test-password" });
+
+    const cookie = adminCookieOf(response);
+    expect(cookie).toContain(`admin_session=${response.body.token}`);
+    expect(cookie).toContain("HttpOnly");
+    expect(cookie).toContain("SameSite=Lax");
+    expect(cookie).toContain("Path=/");
+    expect(cookie).toContain("Max-Age=28800");
+    expect(cookie).not.toContain("Domain=");
+  });
+
+  it("GET /admin/me returns the admin's name for a valid session cookie", async () => {
+    const login = await request(app.getHttpServer()).post("/admin/login").send({ email: "ops@zelo-demo.local", password: "test-password" });
+
+    const response = await request(app.getHttpServer()).get("/admin/me").set("Cookie", `admin_session=${login.body.token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ name: "Zelo Ops" });
+  });
+
+  it("GET /admin/me still accepts a Bearer token while the migration is in progress", async () => {
+    const login = await request(app.getHttpServer()).post("/admin/login").send({ email: "ops@zelo-demo.local", password: "test-password" });
+
+    const response = await request(app.getHttpServer()).get("/admin/me").set("Authorization", `Bearer ${login.body.token}`);
+
+    expect(response.status).toBe(200);
+  });
+
+  it("GET /admin/me rejects a request with no session with 401", async () => {
+    const response = await request(app.getHttpServer()).get("/admin/me");
+
+    expect(response.status).toBe(401);
+  });
+
+  it("POST /admin/logout clears the session cookie and answers 204", async () => {
+    const response = await request(app.getHttpServer()).post("/admin/logout");
+
+    expect(response.status).toBe(204);
+    const cookie = adminCookieOf(response);
+    expect(cookie).toContain("admin_session=;");
+    expect(cookie).toContain("Expires=Thu, 01 Jan 1970");
+  });
+
   it("POST /admin/institutions rejects a request with no token", async () => {
     const response = await request(app.getHttpServer()).post("/admin/institutions").send({});
     expect(response.status).toBe(401);

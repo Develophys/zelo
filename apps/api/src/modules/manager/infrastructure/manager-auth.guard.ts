@@ -4,9 +4,8 @@ import type { Request } from "express";
 import { ManagerTokenService } from "../application/services/manager-token.service.ts";
 import { MANAGER_REPOSITORY, type ManagerRepository } from "../application/ports/manager-repository.port.ts";
 import { INSTITUTION_REPOSITORY, type InstitutionRepository } from "@/modules/institution/application/ports/institution-repository.port.js";
+import { readSessionToken } from "@/shared/http/session-cookie.js";
 
-// Verifies a Bearer token, not an HttpOnly cookie — deliberate,
-// see docs/superpowers/specs/technical-debt.md#td-001.
 @Injectable()
 export class ManagerAuthGuard implements CanActivate {
   constructor(
@@ -17,13 +16,11 @@ export class ManagerAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
-    const authHeader = request.headers.authorization;
-
-    if (!authHeader?.startsWith("Bearer ")) {
+    const token = readSessionToken(request, "manager");
+    if (!token) {
       throw new UnauthorizedException();
     }
 
-    const token = authHeader.slice("Bearer ".length);
     const decoded = this.tokenService.verify(token);
     if (!decoded) {
       throw new UnauthorizedException();

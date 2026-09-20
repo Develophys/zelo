@@ -64,6 +64,12 @@ function contextWithHeader(authorization: string | undefined): { context: Execut
   return { context, request };
 }
 
+function contextWithCookie(cookie: string | undefined, authorization?: string): { context: ExecutionContext; request: Partial<Request> } {
+  const request: Partial<Request> = { headers: { cookie, authorization } as Request["headers"] };
+  const context = { switchToHttp: () => ({ getRequest: () => request }) } as unknown as ExecutionContext;
+  return { context, request };
+}
+
 function managerRow(overrides: Partial<ManagerRow> = {}): ManagerRow {
   return {
     id: "manager-1",
@@ -160,5 +166,46 @@ describe("ManagerAuthGuard", () => {
 
     await expect(guard.canActivate(context)).resolves.toBe(true);
     expect(request.manager!.role).toBe("SECTOR_MANAGER");
+  });
+
+  it("allows a request whose token is in the manager_session cookie and attaches the manager", async () => {
+    const guard = buildGuard([managerRow()]);
+    const { token } = tokenService.issue("manager-1", "Ana Konder", "institution-1", "SECTOR_MANAGER");
+    const { context, request } = contextWithCookie(`manager_session=${token}`);
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(request.manager).toEqual({ id: "manager-1", name: "Ana Konder", institutionId: "institution-1", role: "SECTOR_MANAGER" });
+  });
+
+  it("does not let a Bearer header rescue a cookie that is present but invalid", async () => {
+    const guard = buildGuard([managerRow()]);
+    const { token } = tokenService.issue("manager-1", "Ana Konder", "institution-1", "SECTOR_MANAGER");
+    const { context } = contextWithCookie("manager_session=forged.token", `Bearer ${token}`);
+
+    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
+  });
+
+  it("does not accept another role's cookie", async () => {
+    const guard = buildGuard([managerRow()]);
+    const { token } = tokenService.issue("manager-1", "Ana Konder", "institution-1", "SECTOR_MANAGER");
+    const { context } = contextWithCookie(`admin_session=${token}`);
+
+    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
+  });
+
+  it("rejects a cookie whose manager has since been deactivated", async () => {
+    const guard = buildGuard([managerRow({ isActive: false })]);
+    const { token } = tokenService.issue("manager-1", "Ana Konder", "institution-1", "SECTOR_MANAGER");
+    const { context } = contextWithCookie(`manager_session=${token}`);
+
+    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
+  });
+
+  it("rejects a cookie whose institution has since been deactivated", async () => {
+    const guard = buildGuard([managerRow()], [institutionRow({ isActive: false })]);
+    const { token } = tokenService.issue("manager-1", "Ana Konder", "institution-1", "SECTOR_MANAGER");
+    const { context } = contextWithCookie(`manager_session=${token}`);
+
+    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
   });
 });

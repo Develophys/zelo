@@ -5,7 +5,7 @@ declare global {
     interface Request {
       admin?: { id: string; name: string };
       manager?: { id: string; name: string; institutionId: string; role: ManagerRole };
-      peerPartner?: { id: string; name: string; institutionId: string };
+      peerPartner?: { id: string; name: string; institutionId: string; specialty: string };
     }
   }
 }
