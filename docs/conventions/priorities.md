@@ -884,10 +884,20 @@ state-changing requests as CSRF defense in depth, and a three-phase rollout (exp
 contract) so `develop`, dev and production keep working after every merge. The 2026-09-14 plan is
 replaced by a new one, written against the code as of v1.1.0.
 
+**Phase 1 (API expand): merged in #81, validated on dev 2026-09-20.** Every guard, every login and the
+peer-chat handshake accept the session cookie or the Bearer token; the web app is untouched and still
+uses `sessionStorage`. Checked against `api-dev.zelohealth.app` with curl and headless Chrome: the
+`Set-Cookie` carries `HttpOnly; Secure; Path=/`, credentialed CORS works behind helmet's
+`Cross-Origin-Resource-Policy`, and a state-changing request that carries a session cookie with a
+hostile, missing or prod `Origin` is answered 403. The cookie moved from `Lax` to `Strict` after those
+checks showed the two differ only on a cross-site top-level `GET`. Phase 2 (web, one PR per role) and
+phase 3 (contract) are next.
+
 **Prerequisite, done.** The design uses `SameSite=Strict` and skips a CSRF token system by putting the
 API on the frontend's registrable domain. Prod already was: `api.zelohealth.app` (checked 2026-09-19).
 Dev now is too: `api-dev.zelohealth.app` has a Fly certificate and DNS (2026-09-20) and answers
-`/health`. What is left is pointing the dev Vercel project's `VITE_API_BASE_URL` at it.
+`/health`, and the dev Vercel project's `VITE_API_BASE_URL` points at it (the deployed dev bundle
+contains `api-dev.zelohealth.app` and neither the prod API nor a `fly.dev` origin, checked 2026-09-20).
 
 **Folded into the new design.** `AdminAuthGuard` re-reads the row (#7), so the old note that it "trusts
 the token alone" is gone; `PeerPartnerAuthGuard` gets the same re-read because `/peer-partner/me`
@@ -905,6 +915,24 @@ in `apps/web/src` gates staff routes by platform. Decide between web-only staff,
 - **Files:** the design above, plus `apps/web/src/stores/*-session.store.ts`,
   `apps/web/capacitor.config.ts`, the three auth guards and login controllers,
   `apps/api/src/modules/peer-chat/infrastructure/peer-chat.gateway.ts`
+
+## 31. No test forces every route to declare its guard
+
+NestJS's docs default to deny: a global `APP_GUARD` plus a `@Public()` decorator. The Encore guide lists
+a route that forgot its guard as the classic mistake. This repo opts in with `@UseGuards` per route or
+per class, which suits three roles with three different guards, and every route is guarded as intended
+today (all ten controllers read on 2026-09-20). Nothing fails the build when a new route forgets its
+guard.
+
+Add a test that boots the module graph, lists every route with the guards Nest sees on it, and compares
+that against an explicit allowlist of public routes: `login` and `logout` for each role, `finish-setup`
+and `forgot-password` for the manager and the peer partner, `health`, `chat`, `assessments`, the four
+`signals` routes and the two `institutions` lookups. A route that is in neither set fails the test.
+
+- **Effort:** small
+- **Kind:** security
+- **Files:** a new test in `apps/api/src/shared/http/` (route metadata through Nest's `DiscoveryService`
+  and `Reflector`), next to `throttling.test.ts`
 
 ---
 
