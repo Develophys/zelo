@@ -69,8 +69,10 @@ page on the dev site can make a request to the prod API and the browser will att
 
 ### 3. API
 
-- **Shared infrastructure.** Add `cookie-parser`. `enableCors` gains `credentials: true` (its `origin`
-  stays an explicit list, never `*`). The allowed-origins resolver is currently duplicated in `main.ts`
+- **Shared infrastructure.** Read the `Cookie` header with the `cookie` package's `parse`, in one
+  helper used by the guards, the origin check and the gateway; there is no `cookie-parser`
+  middleware, so nothing depends on middleware order. `enableCors` gains `credentials: true` (its
+  `origin` stays an explicit list, never `*`). The allowed-origins resolver is currently duplicated in `main.ts`
   and in `peer-chat.gateway.ts` (`security-privacy.md` §5 warns that both must change together);
   extract it once to `shared/http/allowed-origins.ts` and use it in `main.ts`, the gateway and the
   origin check.
