@@ -59,12 +59,14 @@ Two more things not to build on: the `sessionId` in every token payload is `rand
 at issue time but never persisted and never read back in any `verify()` — there is no session
 table and no "log out everywhere" (confirmed: none of the three `verify()` shape checks above
 reference `payload.sessionId`; no session/revocation model in `schema.prisma`). And
-`PeerPartnerAuthGuard` exists, is unit-tested, and is provided/exported from its module, but is
-wired to zero HTTP routes (`grep -rn "UseGuards(PeerPartnerAuthGuard)" apps/api/src` → no
-matches) — peer-partner authentication happens only in the `peer-chat` gateway's socket handshake,
-which does its own verify-plus-`isActive`-re-read. Don't reach for `PeerPartnerAuthGuard` as "the"
-peer-partner auth point for a new REST route without adding the re-read yourself; as written it
-would accept a deactivated peer partner's token for the rest of its 8h life.
+`PeerPartnerAuthGuard` now protects `GET /peer-partner/me` (`peer-partner.controller.ts:53-54`,
+`@UseGuards(PeerPartnerAuthGuard)`) — it re-reads the peer partner row via
+`PEER_PARTNER_REPOSITORY.findById` and 401s if the row is missing or `isActive` is false
+(`peer-partner-auth.guard.ts:27-30`), the same DB-re-read-and-reject pattern `ManagerAuthGuard`
+and `AdminAuthGuard` use. Peer-partner authentication also still happens independently in the
+`peer-chat` gateway's socket handshake, which does its own verify-plus-`isActive` re-read.
+Deactivating a peer partner takes effect on their very next `/peer-partner/me` call, same as the
+other two roles.
 
 ## 2. Cross-tenant response semantics
 
@@ -148,11 +150,16 @@ sessions alike.
 
 **CORS** is an explicit allowlist read from `CORS_ALLOWED_ORIGINS`, never `origin: true`, `"*"`,
 or an origin-reflecting function — frontend (Vercel) and API (Fly) are never same-origin, so this
-is load-bearing, not incidental. `main.ts:13-19` builds `resolveAllowedOrigins()`, applied at
-`:23` via `app.enableCors({ origin: resolveAllowedOrigins() })`. The WebSocket gateway duplicates
-the same resolver rather than importing it — `peer-chat.gateway.ts:23-27`, applied at `:36` in
-`@WebSocketGateway({ cors: { origin: resolveAllowedOrigins() } })` — so a change to the allowed
-origins has to be made in both files or the socket and the REST API silently disagree.
+is load-bearing, not incidental. `resolveAllowedOrigins()` is defined once, exported from
+`allowed-origins.ts:3-7`, and both HTTP and WebSocket surfaces import that same function instead
+of each building their own list. `configure-app.ts:2,7` imports and calls it, then applies the
+result at `:9` via `app.enableCors({ origin: allowedOrigins, credentials: true })` (`main.ts`'s
+`bootstrap()` invokes this through `configureApp(app)` at `main.ts:17`). `peer-chat.gateway.ts:18`
+imports the identical function, used at `:30` in the `@WebSocketGateway({ cors: { origin:
+resolveAllowedOrigins(), credentials: true } })` decorator and again at `:36` for the
+handshake-time `allowedOrigins` check. A change to `CORS_ALLOWED_ORIGINS` — or to the resolver
+itself — now takes effect on both surfaces from the one place; there is no second copy to keep in
+sync.
 
 **Rate limiting.** `ClientAddressThrottlerGuard` is registered globally in `app.module.ts`, with the
 limits in `shared/http/throttling.ts`: 100 requests/60s per client address (`Fly-Client-IP`, else
@@ -258,9 +265,12 @@ A few concrete boundaries, re-checked against the code:
 
 ## Traps
 
-- Don't copy `ManagerAuthGuard`'s per-request DB re-read as something every guard already has —
-  `AdminAuthGuard` and (for HTTP purposes) `PeerPartnerAuthGuard` don't, and that's a known gap
-  (§1), not a pattern to assume elsewhere.
+- Don't assume a brand-new guard has `ManagerAuthGuard`'s per-request DB re-read without
+  checking — but for the three that exist today it's now safe to assume, not a gap: `AdminAuthGuard`'s
+  predates this migration (`admin-auth.guard.ts:27-30`, landed in #66, well before this migration
+  started) and `PeerPartnerAuthGuard` gained it in this migration's Task 6
+  (`peer-partner-auth.guard.ts:27-30`, commit `88b638d`). Verify it explicitly for any new guard
+  added later rather than taking it as a repo-wide default.
 - Don't widen `findActiveByInstitution`'s `select` to add a field an authenticated caller needs —
   it backs an unauthenticated route. Add a new, narrower-scoped repository method instead (§3).
 - Don't move session tokens into an `HttpOnly` cookie, add `cookie-parser`, `res.cookie`, or
@@ -275,8 +285,9 @@ A few concrete boundaries, re-checked against the code:
 - Don't add a global logging interceptor, a request-body logger, or a bare `logger.error(error)`
   on a chat or assessment path — log event names, ids, counts, and `error.name` only (§6).
 - Don't relax CORS to `origin: true`, `"*"`, or an origin-reflecting callback for a new frontend
-  origin — add it to `CORS_ALLOWED_ORIGINS` and update both `main.ts` and `peer-chat.gateway.ts`
-  (§5), since the resolver is duplicated, not shared.
+  origin — add it to `CORS_ALLOWED_ORIGINS` (§5). No code change is needed in either
+  `configure-app.ts` or `peer-chat.gateway.ts`: the resolver is shared now, not duplicated, so
+  both surfaces pick up the new origin from the one `allowed-origins.ts` export.
 
 ## How to verify
 
