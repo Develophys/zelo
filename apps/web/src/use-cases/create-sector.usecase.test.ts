@@ -27,9 +27,9 @@ describe("CreateSectorUseCase", () => {
     const createSector = vi.fn().mockResolvedValue({ id: "sector-1", name: "UTI" });
     const useCase = new CreateSectorUseCase(makePort({ createSector }));
 
-    const result = await useCase.execute("token", { name: "UTI" });
+    const result = await useCase.execute({ name: "UTI" });
 
-    expect(createSector).toHaveBeenCalledWith("token", { name: "UTI" });
+    expect(createSector).toHaveBeenCalledWith({ name: "UTI" });
     expect(result).toEqual({ id: "sector-1", name: "UTI" });
   });
 
@@ -37,8 +37,8 @@ describe("CreateSectorUseCase", () => {
     const createSector = vi.fn().mockResolvedValue({ id: "sector-1", name: "UTI" });
     const useCase = new CreateSectorUseCase(makePort({ createSector }));
 
-    await useCase.execute("token", { name: "UTI", inviteCode: "uti-2026" });
+    await useCase.execute({ name: "UTI", inviteCode: "uti-2026" });
 
-    expect(createSector).toHaveBeenCalledWith("token", { name: "UTI", inviteCode: "uti-2026" });
+    expect(createSector).toHaveBeenCalledWith({ name: "UTI", inviteCode: "uti-2026" });
   });
 });

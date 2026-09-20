@@ -18,10 +18,7 @@ function renderWithClient<T>(hook: () => T) {
 
 describe("resending a set-password invite", () => {
   beforeEach(() => {
-    useManagerSessionStore.setState({
-      token: "abc.def",
-      expiresAt: new Date(Date.now() + 60_000).toISOString(),
-    });
+    useManagerSessionStore.setState({ loggedIn: true, role: "HOSPITAL_ADMIN", name: "Ana" });
   });
 
   // Resending issues a fresh token server-side, which moves the account's
