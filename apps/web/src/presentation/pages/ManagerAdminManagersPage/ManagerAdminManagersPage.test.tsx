@@ -35,7 +35,7 @@ function renderPage() {
 describe("ManagerAdminManagersPage", () => {
   beforeEach(() => {
     sessionStorage.clear();
-    useManagerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString(), "HOSPITAL_ADMIN", "Ana Konder");
+    useManagerSessionStore.getState().setSession("HOSPITAL_ADMIN", "Ana Konder");
     useToastStore.getState().clear();
     useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
   });
@@ -59,7 +59,7 @@ describe("ManagerAdminManagersPage", () => {
     await user.click(screen.getByRole("button", { name: "Adicionar gestor" }));
 
     await waitFor(() =>
-      expect(container.createManagerAdminUseCase.execute).toHaveBeenCalledWith("token", {
+      expect(container.createManagerAdminUseCase.execute).toHaveBeenCalledWith({
         name: "Paulo",
         email: "paulo@zelo-demo.local",
         role: "SECTOR_MANAGER",
@@ -95,7 +95,7 @@ describe("ManagerAdminManagersPage", () => {
     await user.click(screen.getByRole("button", { name: "Não, criar sem setor" }));
 
     await waitFor(() =>
-      expect(container.createManagerAdminUseCase.execute).toHaveBeenCalledWith("token", {
+      expect(container.createManagerAdminUseCase.execute).toHaveBeenCalledWith({
         name: "Renata",
         email: "renata@zelo-demo.local",
         role: "SECTOR_MANAGER",
@@ -138,7 +138,7 @@ describe("ManagerAdminManagersPage", () => {
     await user.click(screen.getByRole("button", { name: "Criar setor" }));
 
     await waitFor(() =>
-      expect(container.createSectorUseCase.execute).toHaveBeenCalledWith("token", { name: "UTI", inviteCode: undefined }),
+      expect(container.createSectorUseCase.execute).toHaveBeenCalledWith({ name: "UTI", inviteCode: undefined }),
     );
     // Back on the create-gestor form, with the freshly created sector already
     // selected — the whole point of the detour.
@@ -148,7 +148,7 @@ describe("ManagerAdminManagersPage", () => {
     await user.click(screen.getByRole("button", { name: "Adicionar gestor" }));
 
     await waitFor(() =>
-      expect(container.createManagerAdminUseCase.execute).toHaveBeenCalledWith("token", {
+      expect(container.createManagerAdminUseCase.execute).toHaveBeenCalledWith({
         name: "Renata",
         email: "renata@zelo-demo.local",
         role: "SECTOR_MANAGER",
@@ -240,7 +240,7 @@ describe("ManagerAdminManagersPage", () => {
     await user.click(screen.getByRole("button", { name: "Adicionar gestor" }));
 
     await waitFor(() =>
-      expect(container.createManagerAdminUseCase.execute).toHaveBeenCalledWith("token", {
+      expect(container.createManagerAdminUseCase.execute).toHaveBeenCalledWith({
         name: "Ana",
         email: "ana@zelo-demo.local",
         role: "HOSPITAL_ADMIN",
@@ -270,7 +270,7 @@ describe("ManagerAdminManagersPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Redefinir senha" }));
 
-    await waitFor(() => expect(container.sendManagerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("token", "manager-5"));
+    await waitFor(() => expect(container.sendManagerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("manager-5"));
     await waitFor(() =>
       expect(useToastStore.getState().toasts).toEqual([
         expect.objectContaining({ tone: "success", message: "Convite enviado para paulo@zelo-demo.local." }),
@@ -293,7 +293,7 @@ describe("ManagerAdminManagersPage", () => {
 
     // Unlike resetting an active manager's password, resending a pending
     // invite fires right away — there is no account access to protect yet.
-    await waitFor(() => expect(container.sendManagerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("token", "manager-6"));
+    await waitFor(() => expect(container.sendManagerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("manager-6"));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -334,7 +334,7 @@ describe("ManagerAdminManagersPage", () => {
     await user.click(editForm.getByRole("button", { name: "Salvar" }));
 
     await waitFor(() =>
-      expect(container.updateManagerAdminUseCase.execute).toHaveBeenCalledWith("token", "manager-5", {
+      expect(container.updateManagerAdminUseCase.execute).toHaveBeenCalledWith("manager-5", {
         role: "SECTOR_MANAGER",
         sectorIds: ["sector-1", "sector-2"],
       }),
@@ -360,7 +360,7 @@ describe("ManagerAdminManagersPage", () => {
     await user.click(editForm.getByRole("button", { name: "Salvar" }));
 
     await waitFor(() =>
-      expect(container.updateManagerAdminUseCase.execute).toHaveBeenCalledWith("token", "manager-5", {
+      expect(container.updateManagerAdminUseCase.execute).toHaveBeenCalledWith("manager-5", {
         role: "HOSPITAL_ADMIN",
         sectorIds: undefined,
       }),
@@ -573,8 +573,8 @@ describe("ManagerAdminManagersPage", () => {
     await user.click(dialog.getByRole('button', { name: 'Excluir' }));
 
     await waitFor(() => expect(deleteSpy).toHaveBeenCalledTimes(2));
-    expect(deleteSpy).toHaveBeenNthCalledWith(1, 'token', 'm1');
-    expect(deleteSpy).toHaveBeenNthCalledWith(2, 'token', 'm2');
+    expect(deleteSpy).toHaveBeenNthCalledWith(1, 'm1');
+    expect(deleteSpy).toHaveBeenNthCalledWith(2, 'm2');
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
@@ -610,7 +610,7 @@ describe("ManagerAdminManagersPage", () => {
     ]);
     const deleteSpy = vi
       .spyOn(container.deleteManagerAdminUseCase, 'execute')
-      .mockImplementation(async (_token: string, id: string) => {
+      .mockImplementation(async (id: string) => {
         if (id === 'm2') throw new AdminDeleteConflictError('MANAGER_OWNS_SECTORS');
       });
     const user = userEvent.setup();
@@ -634,7 +634,7 @@ describe("ManagerAdminManagersPage", () => {
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' }));
 
     await waitFor(() => expect(deleteSpy).toHaveBeenCalledTimes(1));
-    expect(deleteSpy).toHaveBeenCalledWith('token', 'm2');
+    expect(deleteSpy).toHaveBeenCalledWith('m2');
   });
 
   it('pauses the selected managers and clears the selection on the happy path', async () => {
@@ -652,8 +652,8 @@ describe("ManagerAdminManagersPage", () => {
     await user.click(screen.getByRole('button', { name: 'Pausar' }));
 
     await waitFor(() => expect(updateSpy).toHaveBeenCalledTimes(2));
-    expect(updateSpy).toHaveBeenNthCalledWith(1, 'token', 'm1', { isActive: false });
-    expect(updateSpy).toHaveBeenNthCalledWith(2, 'token', 'm2', { isActive: false });
+    expect(updateSpy).toHaveBeenNthCalledWith(1, 'm1', { isActive: false });
+    expect(updateSpy).toHaveBeenNthCalledWith(2, 'm2', { isActive: false });
     // Selection cleared: the toolbar falls back to its search field.
     await waitFor(() => expect(screen.getByPlaceholderText('Buscar…')).toBeInTheDocument());
   });
@@ -706,7 +706,7 @@ describe("ManagerAdminManagersPage", () => {
       { id: 'm1', name: 'Ana', email: 'ana@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
       { id: 'm2', name: 'Bruno', email: 'bruno@zelo-demo.local', role: 'HOSPITAL_ADMIN', isActive: true, sectorIds: [], sectorNames: [], hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
-    vi.spyOn(container.updateManagerAdminUseCase, 'execute').mockImplementation(async (_token: string, id: string) => {
+    vi.spyOn(container.updateManagerAdminUseCase, 'execute').mockImplementation(async (id: string) => {
       if (id === 'm2') throw new LastActiveHospitalAdminError();
     });
     const user = userEvent.setup();
@@ -904,7 +904,7 @@ describe("ManagerAdminManagersPage", () => {
       fireEvent.keyDown(document, { key: "v" });
 
       await waitFor(() =>
-        expect(updateManager).toHaveBeenCalledWith("token", "1", {
+        expect(updateManager).toHaveBeenCalledWith("1", {
           role: "SECTOR_MANAGER",
           sectorIds: ["sector-1"],
         }),
@@ -923,7 +923,7 @@ describe("ManagerAdminManagersPage", () => {
 
       fireEvent.keyDown(document, { key: "u" });
 
-      await waitFor(() => expect(updateManager).toHaveBeenCalledWith("token", "1", { isActive: false }));
+      await waitFor(() => expect(updateManager).toHaveBeenCalledWith("1", { isActive: false }));
     });
 
     it("activates the selection on 'i'", async () => {
@@ -938,7 +938,7 @@ describe("ManagerAdminManagersPage", () => {
 
       fireEvent.keyDown(document, { key: "i" });
 
-      await waitFor(() => expect(updateManager).toHaveBeenCalledWith("token", "1", { isActive: true }));
+      await waitFor(() => expect(updateManager).toHaveBeenCalledWith("1", { isActive: true }));
     });
 
     it("opens the delete-confirmation modal on 'x', without deleting directly", async () => {

@@ -35,7 +35,7 @@ function renderPage() {
 describe("ManagerAdminPeersPage", () => {
   beforeEach(() => {
     sessionStorage.clear();
-    useManagerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString(), "HOSPITAL_ADMIN", "Ana Konder");
+    useManagerSessionStore.getState().setSession("HOSPITAL_ADMIN", "Ana Konder");
     useToastStore.getState().clear();
     useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
   });
@@ -55,7 +55,7 @@ describe("ManagerAdminPeersPage", () => {
     await user.click(screen.getByRole("button", { name: "Adicionar par" }));
 
     await waitFor(() =>
-      expect(container.createPeerPartnerUseCase.execute).toHaveBeenCalledWith("token", {
+      expect(container.createPeerPartnerUseCase.execute).toHaveBeenCalledWith({
         name: "Dra. Ana",
         email: "ana@zelo-demo.local",
         specialty: "Clínica médica",
@@ -107,7 +107,7 @@ describe("ManagerAdminPeersPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Redefinir senha" }));
 
-    await waitFor(() => expect(container.sendPeerPartnerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("token", "peer-5"));
+    await waitFor(() => expect(container.sendPeerPartnerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("peer-5"));
     await waitFor(() =>
       expect(useToastStore.getState().toasts).toEqual([
         expect.objectContaining({ tone: "success", message: "Convite enviado para paulo@zelo-demo.local." }),
@@ -130,7 +130,7 @@ describe("ManagerAdminPeersPage", () => {
     // Unlike resetting an active peer partner's password, resending a
     // pending invite fires right away — there is no account access to
     // protect yet.
-    await waitFor(() => expect(container.sendPeerPartnerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("token", "peer-6"));
+    await waitFor(() => expect(container.sendPeerPartnerSetPasswordEmailUseCase.execute).toHaveBeenCalledWith("peer-6"));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -147,7 +147,7 @@ describe("ManagerAdminPeersPage", () => {
     const dialog = within(await screen.findByRole("dialog", { name: "Excluir Dr. Paulo?" }));
     await user.click(dialog.getByRole("button", { name: "Excluir" }));
 
-    await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith("token", "peer-5"));
+    await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith("peer-5"));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
@@ -175,7 +175,7 @@ describe("ManagerAdminPeersPage", () => {
     await user.click(editForm.getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() =>
-      expect(container.updatePeerPartnerUseCase.execute).toHaveBeenCalledWith('token', 'peer-5', {
+      expect(container.updatePeerPartnerUseCase.execute).toHaveBeenCalledWith('peer-5', {
         name: 'Dr. Paulo Reis',
         email: 'paulo.reis@zelo-demo.local',
         specialty: 'Cirurgia',
@@ -317,8 +317,8 @@ describe("ManagerAdminPeersPage", () => {
     await user.click(dialog.getByRole('button', { name: 'Excluir' }));
 
     await waitFor(() => expect(deleteSpy).toHaveBeenCalledTimes(2));
-    expect(deleteSpy).toHaveBeenNthCalledWith(1, 'token', 'p1');
-    expect(deleteSpy).toHaveBeenNthCalledWith(2, 'token', 'p2');
+    expect(deleteSpy).toHaveBeenNthCalledWith(1, 'p1');
+    expect(deleteSpy).toHaveBeenNthCalledWith(2, 'p2');
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
@@ -350,7 +350,7 @@ describe("ManagerAdminPeersPage", () => {
     ]);
     const deleteSpy = vi
       .spyOn(container.deletePeerPartnerAdminUseCase, 'execute')
-      .mockImplementation(async (_token: string, id: string) => {
+      .mockImplementation(async (id: string) => {
         if (id === 'p2') throw new AdminDeleteConflictError('UNKNOWN');
       });
     const user = userEvent.setup();
@@ -372,7 +372,7 @@ describe("ManagerAdminPeersPage", () => {
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' }));
 
     await waitFor(() => expect(deleteSpy).toHaveBeenCalledTimes(1));
-    expect(deleteSpy).toHaveBeenCalledWith('token', 'p2');
+    expect(deleteSpy).toHaveBeenCalledWith('p2');
   });
 
   it('pauses the selected peer partners and clears the selection on the happy path', async () => {
@@ -389,8 +389,8 @@ describe("ManagerAdminPeersPage", () => {
     await user.click(screen.getByRole('button', { name: 'Pausar' }));
 
     await waitFor(() => expect(updateSpy).toHaveBeenCalledTimes(2));
-    expect(updateSpy).toHaveBeenNthCalledWith(1, 'token', 'p1', { isActive: false });
-    expect(updateSpy).toHaveBeenNthCalledWith(2, 'token', 'p2', { isActive: false });
+    expect(updateSpy).toHaveBeenNthCalledWith(1, 'p1', { isActive: false });
+    expect(updateSpy).toHaveBeenNthCalledWith(2, 'p2', { isActive: false });
     // Selection cleared: the toolbar falls back to its search field.
     await waitFor(() => expect(screen.getByPlaceholderText('Buscar…')).toBeInTheDocument());
   });
@@ -440,7 +440,7 @@ describe("ManagerAdminPeersPage", () => {
       { id: 'p1', name: 'Ana', email: 'ana@zelo-demo.local', specialty: 'Clínica médica', isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
       { id: 'p2', name: 'Bruno', email: 'bruno@zelo-demo.local', specialty: 'Cirurgia', isActive: true, hasPassword: true, setPasswordTokenExpiresAt: null },
     ]);
-    vi.spyOn(container.updatePeerPartnerUseCase, 'execute').mockImplementation(async (_token: string, id: string) => {
+    vi.spyOn(container.updatePeerPartnerUseCase, 'execute').mockImplementation(async (id: string) => {
       if (id === 'p2') throw new Error('network down');
     });
     const user = userEvent.setup();
@@ -561,7 +561,7 @@ describe("ManagerAdminPeersPage", () => {
       fireEvent.keyDown(document, { key: "v" });
 
       await waitFor(() =>
-        expect(updatePeerPartner).toHaveBeenCalledWith("token", "1", {
+        expect(updatePeerPartner).toHaveBeenCalledWith("1", {
           name: "Dra. Ana",
           email: "ana@zelo-demo.local",
           specialty: "Psiquiatria",
@@ -581,7 +581,7 @@ describe("ManagerAdminPeersPage", () => {
       fireEvent.keyDown(document, { key: "u" });
 
       await waitFor(() =>
-        expect(updatePeerPartner).toHaveBeenCalledWith("token", "1", { isActive: false }),
+        expect(updatePeerPartner).toHaveBeenCalledWith("1", { isActive: false }),
       );
     });
 
@@ -597,7 +597,7 @@ describe("ManagerAdminPeersPage", () => {
       fireEvent.keyDown(document, { key: "i" });
 
       await waitFor(() =>
-        expect(updatePeerPartner).toHaveBeenCalledWith("token", "1", { isActive: true }),
+        expect(updatePeerPartner).toHaveBeenCalledWith("1", { isActive: true }),
       );
     });
 

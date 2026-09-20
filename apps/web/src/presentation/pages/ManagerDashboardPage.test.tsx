@@ -67,7 +67,7 @@ const SIGNALS_RESPONSE = {
 describe("ManagerDashboardPage", () => {
   beforeEach(() => {
     sessionStorage.clear();
-    useManagerSessionStore.setState({ token: "abc.def", expiresAt: new Date(Date.now() + 60_000).toISOString() });
+    useManagerSessionStore.setState({ loggedIn: true, role: "HOSPITAL_ADMIN", name: "Ana" });
     useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
     vi.spyOn(container.getManagerSignalsUseCase, "execute").mockResolvedValue(SIGNALS_RESPONSE);
     // Two sectors (not one — the picker only shows when there's more than one to
@@ -610,7 +610,7 @@ describe("ManagerDashboardPage", () => {
     // first click on any pill look like it did nothing to the sector it
     // named.
     await waitFor(() => {
-      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", ["sector-1"]);
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith(["sector-1"]);
     });
   });
 
@@ -629,7 +629,7 @@ describe("ManagerDashboardPage", () => {
     const pills = within(screen.getByTestId("sector-filter-pills"));
     await user.click(pills.getByRole("button", { name: "UTI" }));
     await waitFor(() =>
-      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", ["sector-1"]),
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith(["sector-1"]),
     );
 
     await user.click(pills.getByRole("button", { name: "Pronto-Socorro" }));
@@ -639,7 +639,7 @@ describe("ManagerDashboardPage", () => {
     // clearing the filter is what dragged an unrelated partial week into the
     // query in an earlier round.
     await waitFor(() =>
-      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", undefined),
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith(undefined),
     );
     expect(pills.getByRole("button", { name: "Todos" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
@@ -652,7 +652,7 @@ describe("ManagerDashboardPage", () => {
     await waitFor(() =>
       expect(within(screen.getByTestId("sector-filter-pills")).getByRole("button", { name: "Todos" })).toBeInTheDocument(),
     );
-    expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", undefined);
+    expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith(undefined);
     expect(screen.getByText("Plantão noturno")).toBeInTheDocument();
   });
   it("sends no sector filter at all once Todos is picked again, rather than an explicit list of every id", async () => {
@@ -666,7 +666,7 @@ describe("ManagerDashboardPage", () => {
 
     await user.click(pills.getByRole("button", { name: "Enfermagem" }));
     await waitFor(() =>
-      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", ["sector-a"]),
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith(["sector-a"]),
     );
 
     await user.click(pills.getByRole("button", { name: "Todos" }));
@@ -675,7 +675,7 @@ describe("ManagerDashboardPage", () => {
     // four ids is what dragged an unrelated partial week into the query and
     // blanked the whole panel.
     await waitFor(() =>
-      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", undefined),
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith(undefined),
     );
   });
 
@@ -692,7 +692,7 @@ describe("ManagerDashboardPage", () => {
     await user.click(pills.getByRole("button", { name: "Enfermagem" }));
 
     await waitFor(() =>
-      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", undefined),
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith(undefined),
     );
     expect(screen.getByTestId("location-search")).toHaveTextContent("");
   });
@@ -733,7 +733,7 @@ describe("ManagerDashboardPage", () => {
     await user.click(pills.getByRole("button", { name: "Enfermagem" }));
     await user.click(pills.getByRole("button", { name: "Enfermagem" }));
 
-    await waitFor(() => expect(execute).toHaveBeenLastCalledWith("abc.def", ["sector-a"]));
+    await waitFor(() => expect(execute).toHaveBeenLastCalledWith(["sector-a"]));
     expect(execute.mock.calls.length).toBe(callsBeforeToggling + 1);
   });
 
@@ -769,7 +769,7 @@ describe("ManagerDashboardPage", () => {
     await waitFor(() =>
       expect(within(screen.getByTestId("sector-filter-pills")).getByRole("button", { name: "Fisioterapia" })).toBeInTheDocument(),
     );
-    expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", ["sector-b"]);
+    expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith(["sector-b"]);
     const pills = within(screen.getByTestId("sector-filter-pills"));
     expect(pills.getByRole("button", { name: "Fisioterapia" })).toHaveAttribute("aria-pressed", "true");
     expect(pills.getByRole("button", { name: "Enfermagem" })).toHaveAttribute("aria-pressed", "false");
@@ -783,7 +783,7 @@ describe("ManagerDashboardPage", () => {
       expect(within(screen.getByTestId("sector-filter-pills")).getByRole("button", { name: "Fisioterapia" })).toBeInTheDocument(),
     );
     await waitFor(() =>
-      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", ["sector-b"]),
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith(["sector-b"]),
     );
   });
 
@@ -796,7 +796,7 @@ describe("ManagerDashboardPage", () => {
     // A dead link should show the panel, not an empty dashboard that reads as
     // "your institution has no data".
     await waitFor(() =>
-      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith("abc.def", undefined),
+      expect(container.getManagerSignalsUseCase.execute).toHaveBeenLastCalledWith(undefined),
     );
     expect(
       within(screen.getByTestId("sector-filter-pills")).getByRole("button", { name: "Todos" }),
