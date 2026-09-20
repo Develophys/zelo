@@ -9,6 +9,7 @@ export type PeerPartnerLoginResult = z.infer<typeof PeerPartnerLoginResultSchema
 
 export class InvalidPeerPartnerCredentialsError extends Error {}
 export class InvalidOrExpiredPeerPartnerSetupTokenError extends Error {}
+export class UnauthorizedPeerPartnerError extends Error {}
 
 export interface PeerPartnerAuthPort {
   login(email: string, password: string): Promise<PeerPartnerLoginResult>;
