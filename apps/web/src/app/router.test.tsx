@@ -3,7 +3,8 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider, Outlet } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createRouteChildren, routeChildren } from "./router";
+import { createRouteChildren, endSession, routeChildren, router } from "./router";
+import { registerSessionCacheClear } from "./session-cache";
 import { handleSessionExpired } from "./handle-session-expired";
 import { clearRoleSession } from "./clear-role-session";
 import type { SessionRole } from "./session-expiry";
@@ -365,6 +366,10 @@ describe("manager route tree", () => {
   });
 });
 describe("manager session guard", () => {
+  afterEach(() => {
+    registerSessionCacheClear(() => {});
+  });
+
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
@@ -434,6 +439,38 @@ describe("manager session guard", () => {
     },
   );
 
+  it("clears the query cache when /me confirms a different person than the flag remembered", async () => {
+    const clear = vi.fn();
+    registerSessionCacheClear(clear);
+    useManagerSessionStore.setState({ loggedIn: true, role: "HOSPITAL_ADMIN", name: "Ana" });
+    vi.spyOn(container.getManagerSessionUseCase, "execute").mockResolvedValue({ name: "Paulo", role: "SECTOR_MANAGER" });
+
+    buildTestRouter("/manager");
+
+    await screen.findByRole("heading", { level: 1, name: "Tendências" }, { timeout: 5000 });
+    await waitFor(() => {
+      expect(useManagerSessionStore.getState()).toMatchObject({ role: "SECTOR_MANAGER", name: "Paulo" });
+    });
+    expect(clear).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the query cache when /me confirms the same person the flag already remembered", async () => {
+    const clear = vi.fn();
+    registerSessionCacheClear(clear);
+    useManagerSessionStore.setState({ loggedIn: true, role: "HOSPITAL_ADMIN", name: "Ana" });
+    const confirm = vi
+      .spyOn(container.getManagerSessionUseCase, "execute")
+      .mockResolvedValue({ name: "Ana", role: "HOSPITAL_ADMIN" });
+
+    buildTestRouter("/manager");
+
+    await screen.findByRole("heading", { level: 1, name: "Tendências" }, { timeout: 5000 });
+    await waitFor(() => expect(confirm).toHaveBeenCalledTimes(1));
+    await confirm.mock.results[0]?.value;
+
+    expect(clear).not.toHaveBeenCalled();
+  });
+
   it("a SECTOR_MANAGER opening an Administração bookmark in a new tab is sent to the dashboard", async () => {
     stubManagerSession("SECTOR_MANAGER");
 
@@ -448,5 +485,20 @@ describe("manager session guard", () => {
     buildTestRouter(routes.managerAdminSectors);
 
     expect(await screen.findByText("Acesso do gestor")).toBeInTheDocument();
+  });
+});
+describe("endSession", () => {
+  afterEach(() => {
+    registerSessionCacheClear(() => {});
+  });
+
+  it("clears the query cache once, so the next person to sign in does not inherit the last one's data", () => {
+    const clear = vi.fn();
+    registerSessionCacheClear(clear);
+    vi.spyOn(router, "navigate").mockResolvedValue(undefined);
+
+    endSession("manager");
+
+    expect(clear).toHaveBeenCalledTimes(1);
   });
 });

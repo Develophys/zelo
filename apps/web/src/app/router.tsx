@@ -8,6 +8,7 @@ import { peerPartnerRoutes } from "./routes/peer-partner.routes";
 import { superAdminRoutes } from "./routes/super-admin.routes";
 import { handleSessionExpired } from "./handle-session-expired";
 import { clearRoleSession } from "./clear-role-session";
+import { clearSessionCache } from "./session-cache";
 import type { SessionRole } from "./session-expiry";
 
 function RootLayout() {
@@ -58,6 +59,7 @@ export const router = createBrowserRouter(
 );
 
 export function endSession(role: SessionRole): void {
+  clearSessionCache();
   handleSessionExpired(role, {
     clearSession: clearRoleSession,
     currentPath: () => router.state.location.pathname,
