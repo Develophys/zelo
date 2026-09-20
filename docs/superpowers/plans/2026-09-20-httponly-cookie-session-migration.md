@@ -14,7 +14,7 @@
 
 ## Global Constraints
 
-- **Cookie contract (spec §2):** names `manager_session`, `admin_session`, `peer_partner_session`; value is the existing HMAC token unchanged; `HttpOnly`; `SameSite=Lax`; `Path=/`; **no `Domain` attribute**; `Max-Age` 28800 seconds (8 h); `Secure` is `true` when `NODE_ENV === "production"` and `false` otherwise.
+- **Cookie contract (spec §2):** names `manager_session`, `admin_session`, `peer_partner_session`; value is the existing HMAC token unchanged; `HttpOnly`; `SameSite=Strict`; `Path=/`; **no `Domain` attribute**; `Max-Age` 28800 seconds (8 h); `Secure` is `true` when `NODE_ENV === "production"` and `false` otherwise.
 - **Origin check (spec §3):** refuse with **403** any `POST`, `PUT`, `PATCH` or `DELETE` that carries a session cookie and whose `Origin` header is missing or not in `CORS_ALLOWED_ORIGINS`. Requests with no session cookie, and all `GET`s, are untouched.
 - **Guards keep their re-reads:** `ManagerAuthGuard` re-reads the manager and the institution; `AdminAuthGuard` re-reads the row through `ADMIN_REPOSITORY.findById`; `PeerPartnerAuthGuard` gains the same `isActive` re-read through `PEER_PARTNER_REPOSITORY.findById`.
 - **`/me` payloads:** manager `{ name, role }`; admin `{ name }`; peer partner `{ name, specialty }`. `POST /<role>/logout` answers 204.
@@ -2803,7 +2803,7 @@ Expected: PASS after Task 13. (Before Task 13 it fails in `http-admin-institutio
 - [ ] **Step 3: The real-browser check** — this script is run by hand, not committed. Save it to the session scratchpad as `cookie-check.cjs` (adapting the headless-Chrome CDP harness already used for the CSP check: a Chrome launched with `--remote-debugging-port`, the `ws` package from `apps/api/node_modules`), pointed at `DEV_WEB=https://dev.zelohealth.app` and `DEV_API=https://api-dev.zelohealth.app`. It does, with credentials read from the environment and never printed:
 
   1. `POST ${DEV_API}/<role>/login` from the page with `credentials: "include"` and the role's e-mail and password.
-  2. `Network.getCookies` for the API host: the `<role>_session` cookie is present with `httpOnly: true`, `secure: true`, `sameSite: "Lax"`, and no `domain` starting with a dot.
+  2. `Network.getCookies` for the API host: the `<role>_session` cookie is present with `httpOnly: true`, `secure: true`, `sameSite: "Strict"`, and no `domain` starting with a dot.
   3. In the page: `document.cookie` does not contain `_session`; `Object.keys(sessionStorage)` holds no value containing the cookie's value.
   4. `fetch(`${DEV_API}/<role>/me`, { credentials: "include" })` answers 200.
   5. A cross-origin `POST`: navigate to `about:blank`, then `fetch(`${DEV_API}/<role>/logout`, { method: "POST", credentials: "include" })` from that origin. Expect a network failure or a 403, never a 204.
@@ -2830,7 +2830,7 @@ git commit -m "test(web): fail the build if an Authorization header or a stored 
 
 - [ ] **Step 3: `CLAUDE.md`** — in the Security rules paragraph, replace "session tokens all sit in `sessionStorage` behind `Authorization: Bearer`" with "session tokens are `HttpOnly` cookies" and keep the ban list and the CSP sentence.
 
-- [ ] **Step 4: `docs/android-apk.md`** — add a warning at the top of the CORS section: staff login (manager, admin, peer partner) does not work in the APK, because it serves from `https://localhost`, which is cross-site to the API, so the `SameSite=Lax` session cookie is not sent. Before the APK is distributed, decide between web-only staff, a Bearer fallback for native, or `SameSite=None` with CSRF tokens. Also fix the stale origins in that file (`zelo-dusky.vercel.app`, `zelo-api.fly.dev`) to `www.zelohealth.app` and `api.zelohealth.app`.
+- [ ] **Step 4: `docs/android-apk.md`** — add a warning at the top of the CORS section: staff login (manager, admin, peer partner) does not work in the APK, because it serves from `https://localhost`, which is cross-site to the API, so the `SameSite=Strict` session cookie is not sent. Before the APK is distributed, decide between web-only staff, a Bearer fallback for native, or `SameSite=None` with CSRF tokens. Also fix the stale origins in that file (`zelo-dusky.vercel.app`, `zelo-api.fly.dev`) to `www.zelohealth.app` and `api.zelohealth.app`.
 
 - [ ] **Step 5: `backend-http.md`, `releasing.md`, `architecture-reference.md`** — mention cookie-based sessions where those files describe auth (the guard sections and any "Bearer" example); in `releasing.md`'s "Versions" paragraph, the cookie cutover is the example of a major or a coordinated minor.
 

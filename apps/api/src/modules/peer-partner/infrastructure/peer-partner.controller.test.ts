@@ -234,13 +234,13 @@ describe("peer partner controller", () => {
     return header?.find((cookie) => cookie.startsWith("peer_partner_session=")) ?? "";
   }
 
-  it("POST /peer-partner/login also sets the session as an HttpOnly, SameSite=Lax cookie that lasts eight hours", async () => {
+  it("POST /peer-partner/login also sets the session as an HttpOnly, SameSite=Strict cookie that lasts eight hours", async () => {
     const response = await request(app.getHttpServer()).post("/peer-partner/login").send({ email: "ana@zelo-demo.local", password: "test-password" });
 
     const cookie = peerCookieOf(response);
     expect(cookie).toContain(`peer_partner_session=${response.body.token}`);
     expect(cookie).toContain("HttpOnly");
-    expect(cookie).toContain("SameSite=Lax");
+    expect(cookie).toContain("SameSite=Strict");
     expect(cookie).toContain("Path=/");
     expect(cookie).toContain("Max-Age=28800");
     expect(cookie).not.toContain("Domain=");

@@ -313,7 +313,7 @@ describe("manager controller", () => {
     return header?.find((cookie) => cookie.startsWith("manager_session=")) ?? "";
   }
 
-  it("POST /manager/login also sets the session as an HttpOnly, SameSite=Lax cookie that lasts eight hours", async () => {
+  it("POST /manager/login also sets the session as an HttpOnly, SameSite=Strict cookie that lasts eight hours", async () => {
     const response = await request(app.getHttpServer())
       .post("/manager/login")
       .send({ email: "ana@zelo-demo.local", password: "test-password" });
@@ -321,7 +321,7 @@ describe("manager controller", () => {
     const cookie = sessionCookieOf(response);
     expect(cookie).toContain(`manager_session=${response.body.token}`);
     expect(cookie).toContain("HttpOnly");
-    expect(cookie).toContain("SameSite=Lax");
+    expect(cookie).toContain("SameSite=Strict");
     expect(cookie).toContain("Path=/");
     expect(cookie).toContain("Max-Age=28800");
     expect(cookie).not.toContain("Domain=");

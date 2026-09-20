@@ -34,26 +34,21 @@ scrypt cost (`DUMMY_PASSWORD_HASH` is a syntactically valid but unusable `"0"*32
 `login-manager.use-case.ts:13`). What differs by role is which failure modes exist to fold: manager
 and peer-partner fold five conditions into one non-disclosing error —
 `!manager || !manager.passwordHash || !isValid || !manager.isActive || !institution?.isActive`
-(`login-manager.use-case.ts:32`, `login-peer-partner.use-case.ts:25`) — while admin folds only
-two, `!admin || !isValid` (`login-admin.use-case.ts:22`), because `SuperAdmin` has no `isActive`
-column and no pending-invite state (confirmed: `apps/api/prisma/schema.prisma:24-32` lists only
-`id, name, email, passwordHash, createdAt`). Do not "restore" the missing three checks on the
-admin path — there is nothing there to check.
+(`login-manager.use-case.ts:32`, `login-peer-partner.use-case.ts:25`) — while admin folds three,
+`!admin || !isValid || !admin.isActive` (`login-admin.use-case.ts:22`), because `SuperAdmin` has an
+`isActive` flag (#7) but no pending-invite state and no institution (`model SuperAdmin` in
+`apps/api/prisma/schema.prisma`: `id, name, email, passwordHash, isActive, createdAt`). Do not add the
+manager-only checks to the admin path — there is nothing there to check.
 
-**The asymmetry that matters most in this file:** `ManagerAuthGuard` re-reads both the manager
-row and the institution row from the database on *every* request and 401s if either is inactive,
-taking `role` from the fetched row rather than the token
-(`manager-auth.guard.ts:38-45`, comment at :32-37). Deactivating a manager, or an entire hospital,
-takes effect on their very next request. `AdminAuthGuard` does none of this — it verifies the
-signature and stops (`admin-auth.guard.ts:10-26`, no repository injected at all) — and, as shown
-above, `SuperAdmin` has no `isActive` column to re-read even if it wanted to. **There is no way
-to revoke a SuperAdmin session.** Deleting the row leaves an already-issued HMAC token valid for
-up to the remaining 8 hours against every institution-management route on the platform — the
-widest-scoped role in the product. This is tracked, not silently accepted: `priorities.md` #7,
-still accurate as of this writing, names `ManagerAuthGuard` as exactly what to copy if this gap
-is ever closed. Treat "add the manager guard's DB re-read to a new role's guard" as the default,
-not an optional hardening step — `AdminAuthGuard` is the one place in the codebase that skipped
-it, and it's a known gap, not a pattern to imitate.
+**The pattern all three guards share:** `ManagerAuthGuard` re-reads both the manager row and the
+institution row from the database on *every* request and 401s if either is inactive, taking `role`
+from the fetched row rather than the token (`manager-auth.guard.ts:35-44`, comment at :29-34).
+Deactivating a manager, or an entire hospital, takes effect on their very next request.
+`AdminAuthGuard` does the same for the SuperAdmin row (`admin-auth.guard.ts:27-30`, through
+`ADMIN_REPOSITORY.findById`), which is how `priorities.md` #7 closed the old gap where a deleted or
+deactivated SuperAdmin's token stayed valid for up to 8 hours against every institution-management
+route. Treat "re-read the row and reject an inactive one" as the default for any new role's guard,
+not an optional hardening step.
 
 Two more things not to build on: the `sessionId` in every token payload is `randomUUID()`-generated
 at issue time but never persisted and never read back in any `verify()` — there is no session
@@ -153,8 +148,8 @@ or an origin-reflecting function — frontend (Vercel) and API (Fly) are never s
 is load-bearing, not incidental. `resolveAllowedOrigins()` is defined once, exported from
 `allowed-origins.ts:3-7`, and both HTTP and WebSocket surfaces import that same function instead
 of each building their own list. `configure-app.ts:2,7` imports and calls it, then applies the
-result at `:9` via `app.enableCors({ origin: allowedOrigins, credentials: true })` (`main.ts`'s
-`bootstrap()` invokes this through `configureApp(app)` at `main.ts:17`). `peer-chat.gateway.ts:18`
+result at `:17` via `app.enableCors({ origin: allowedOrigins, credentials: true })` (`main.ts`'s
+`bootstrap()` invokes this through `configureApp(app)` at `main.ts:9`). `peer-chat.gateway.ts:18`
 imports the identical function, used at `:30` in the `@WebSocketGateway({ cors: { origin:
 resolveAllowedOrigins(), credentials: true } })` decorator and again at `:36` for the
 handshake-time `allowedOrigins` check. A change to `CORS_ALLOWED_ORIGINS` — or to the resolver
@@ -273,12 +268,17 @@ A few concrete boundaries, re-checked against the code:
   added later rather than taking it as a repo-wide default.
 - Don't widen `findActiveByInstitution`'s `select` to add a field an authenticated caller needs —
   it backs an unauthenticated route. Add a new, narrower-scoped repository method instead (§3).
-- Don't move session tokens into an `HttpOnly` cookie, add `cookie-parser`, `res.cookie`, or
-  `credentials: "include"` because it's the ecosystem-correct thing to do. The migration is fully
-  designed but deliberately not landed — it needs custom API domains attached to the Fly apps
-  first, or the cookie is cross-site and needs `SameSite=None` plus a CSRF system this repo
-  doesn't have. Check which branch/worktree you're in before touching this: an in-progress
-  migration worktree may already carry step one of it.
+- Don't add `cookie-parser`, and don't send `credentials: "include"` from `apps/web` outside the planned
+  migration PRs. The session cookie is live on the API (phase 1, #81): `session-cookie.ts` in
+  `shared/http/` is the only code that reads or writes it, parsing the `Cookie` header with the `cookie`
+  package so the guards, the origin check and the peer-chat handshake share one parser. The web app still
+  holds tokens in `sessionStorage` until the web phases land (`priorities.md` #30). Don't loosen the
+  cookie: it is `HttpOnly`, `SameSite=Strict`, host-only and `Secure` whenever `NODE_ENV` is `production`,
+  and it only works because the API sits on the frontend's own registrable domain.
+- Don't expect the cookie login to work in Safari through the Docker stack. `docker/api.Dockerfile:22`
+  sets `NODE_ENV=production` and `docker/.env.example` does not override it, so the API sends `Secure`
+  cookies to `http://localhost:8080`; Chrome and Firefox store them on `localhost`, Safari does not. A plain
+  `pnpm dev` leaves `NODE_ENV` unset and sends none.
 - Don't replace the hand-rolled HMAC token with a JWT library, or swap `scrypt` for `bcrypt`/`argon2`
   in any of the three password services (§1) — both would break the shared verification shape all
   three roles depend on.

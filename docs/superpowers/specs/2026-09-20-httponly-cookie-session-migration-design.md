@@ -46,12 +46,12 @@ a CSRF token system that does not exist here. Instead the API lives on the front
 | Local | `localhost:5173` | `localhost:3000` (same site, ports do not matter) |
 | Docker | `localhost:8080` | `localhost:3000` |
 
-All of `zelohealth.app` is one site, so `SameSite=Lax` is valid everywhere. The `*.fly.dev` origins
+All of `zelohealth.app` is one site, so `SameSite=Strict` is valid everywhere. The `*.fly.dev` origins
 remain reachable but stop being the canonical ones.
 
 **Consequence of a shared site.** `dev.zelohealth.app` and `api.zelohealth.app` are also same-site. A
 page on the dev site can make a request to the prod API and the browser will attach the prod cookie.
-`SameSite=Lax` does not stop that, so the `Origin` check below is required, not optional, and the prod
+`SameSite` does not stop that, so the `Origin` check below is required, not optional, and the prod
 `CORS_ALLOWED_ORIGINS` must never list a dev origin.
 
 ### 2. The cookie
@@ -61,8 +61,8 @@ page on the dev site can make a request to the prod API and the browser will att
 | Name | `manager_session`, `admin_session`, `peer_partner_session` | One per role, so a person who holds two roles in one browser keeps both sessions. |
 | Value | The existing HMAC token, unchanged | No new token format; guards keep verifying it the same way. |
 | `HttpOnly` | yes | The point of the migration. |
-| `Secure` | in production and on deployed dev; off only when `NODE_ENV` is not `production` | `localhost` over plain HTTP must work. |
-| `SameSite` | `Lax` | Blocks cross-site state-changing requests from other sites. |
+| `Secure` | whenever `NODE_ENV` is `production`: deployed prod, deployed dev and the Docker stack, whose image fixes it. Off only in a plain local `pnpm dev`. | Chrome and Firefox store a `Secure` cookie on `http://localhost`; Safari does not, so the Docker stack cannot log in on Safari. |
+| `SameSite` | `Strict` | The web app only reaches the API from its own site, so nothing legitimate is lost, and the cookie is never sent on a cross-site request. Measured in headless Chrome against dev on 2026-09-20: sent from `dev.zelohealth.app` to `api-dev.zelohealth.app`, blocked on a cross-site `POST`; the only difference from `Lax` is a cross-site top-level `GET` navigation. |
 | `Path` | `/` | |
 | `Domain` | not set | The cookie stays scoped to the API host and is not shared with every `*.zelohealth.app`. |
 | `Max-Age` | 28800 (8 h) | Matches the token's `expiresAtEpoch`. |
@@ -197,7 +197,7 @@ again. Sessions are 8 hours long and traffic is low, so this is accepted.
   the route guard covers flag set, flag absent with `/me` 200, and flag absent with `/me` 401; nothing
   in `apps/web` reads `token` from a store.
 - **Real browser, headless Chrome against dev** (the same approach used for the CSP): after login the
-  cookie is `HttpOnly`, `Secure`, `SameSite=Lax`; `document.cookie` does not contain it;
+  cookie is `HttpOnly`, `Secure`, `SameSite=Strict`; `document.cookie` does not contain it;
   `sessionStorage` holds no token; a cross-origin `POST` that carries the cookie is answered 403; and a
   new tab reaches the panel without a login. This is the check the unit tests cannot give.
 - **End to end on dev** (`dev.zelohealth.app` with `api-dev.zelohealth.app`): each role logs in, loads
@@ -209,7 +209,7 @@ again. Sessions are 8 hours long and traffic is low, so this is accepted.
 - **A session table and "log out everywhere".** Sessions stay stateless HMAC tokens with the
   per-request re-reads. A token that leaked before logout is valid until expiry or deactivation.
 - **The Android APK.** It serves from `https://localhost`, which is cross-site to the API, so a
-  `SameSite=Lax` cookie would not be sent and staff login would fail there. The APK is not distributed
+  `SameSite=Strict` cookie would not be sent and staff login would fail there. The APK is not distributed
   and nothing in `apps/web/src` gates staff routes by platform. **Before the APK is distributed**, decide
   between web-only staff (redirecting the staff routes to the site), a Bearer fallback for native, or
   `SameSite=None` with CSRF tokens; `docs/android-apk.md` records this warning in the meantime.
