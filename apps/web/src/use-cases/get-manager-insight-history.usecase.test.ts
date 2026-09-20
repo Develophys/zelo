@@ -11,21 +11,21 @@ const PAGE: ManagerInsightHistoryPage = {
 };
 
 class FakeManagerInsightHistoryPort implements ManagerInsightHistoryPort {
-  fetchPageCalls: { token: string; query: { cursor?: string | null; limit?: number } }[] = [];
-  async fetchPage(token: string, query: { cursor?: string | null; limit?: number }): Promise<ManagerInsightHistoryPage> {
-    this.fetchPageCalls.push({ token, query });
+  fetchPageCalls: { query: { cursor?: string | null; limit?: number } }[] = [];
+  async fetchPage(query: { cursor?: string | null; limit?: number }): Promise<ManagerInsightHistoryPage> {
+    this.fetchPageCalls.push({ query });
     return PAGE;
   }
 }
 
 describe("GetManagerInsightHistoryUseCase", () => {
-  it("delegates to the port with the given token and query, returning its page unchanged", async () => {
+  it("delegates to the port with the given query, returning its page unchanged", async () => {
     const port = new FakeManagerInsightHistoryPort();
     const useCase = new GetManagerInsightHistoryUseCase(port);
 
-    const result = await useCase.execute("valid-token", { cursor: "id-9", limit: 25 });
+    const result = await useCase.execute({ cursor: "id-9", limit: 25 });
 
     expect(result).toBe(PAGE);
-    expect(port.fetchPageCalls).toEqual([{ token: "valid-token", query: { cursor: "id-9", limit: 25 } }]);
+    expect(port.fetchPageCalls).toEqual([{ query: { cursor: "id-9", limit: 25 } }]);
   });
 });

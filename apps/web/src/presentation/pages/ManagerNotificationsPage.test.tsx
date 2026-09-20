@@ -42,9 +42,7 @@ function renderPage() {
 
 beforeEach(() => {
   sessionStorage.clear();
-  useManagerSessionStore
-    .getState()
-    .setSession("token", new Date(Date.now() + 60_000).toISOString(), "HOSPITAL_ADMIN", "Ana Konder");
+  useManagerSessionStore.getState().setSession("HOSPITAL_ADMIN", "Ana Konder");
   useToastStore.getState().clear();
   useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
   vi.restoreAllMocks();
@@ -162,7 +160,7 @@ describe("ManagerNotificationsPage", () => {
     const resend = await screen.findByRole("button", { name: "Reenviar convite" });
     await user.click(resend);
 
-    await waitFor(() => expect(resendSpy).toHaveBeenCalledWith("token", "peer-9"));
+    await waitFor(() => expect(resendSpy).toHaveBeenCalledWith("peer-9"));
     await waitFor(() =>
       expect(useToastStore.getState().toasts).toEqual([
         expect.objectContaining({ tone: "success", message: "Convite reenviado para paulo@zelo-demo.local." }),
@@ -195,7 +193,7 @@ describe("ManagerNotificationsPage", () => {
     const resend = await screen.findByRole("button", { name: "Reenviar convite" });
     await user.click(resend);
 
-    await waitFor(() => expect(resendSpy).toHaveBeenCalledWith("token", "manager-9"));
+    await waitFor(() => expect(resendSpy).toHaveBeenCalledWith("manager-9"));
   });
 
   it("offers no resend action for a notification that predates the id being tracked", async () => {
@@ -258,7 +256,7 @@ describe("ManagerNotificationsPage", () => {
 
     await user.click(await screen.findByRole("button", { name: /Convite aceito/ }));
 
-    await waitFor(() => expect(markRead).toHaveBeenCalledWith("token", "n-1"));
+    await waitFor(() => expect(markRead).toHaveBeenCalledWith("n-1"));
   });
 
   it("refetches on Atualizar, which is the manual stand-in for push", async () => {
@@ -297,7 +295,7 @@ describe("ManagerNotificationsPage", () => {
     expect(button).toBeEnabled();
     await user.click(button);
 
-    await waitFor(() => expect(markAllRead).toHaveBeenCalledWith("token"));
+    await waitFor(() => expect(markAllRead).toHaveBeenCalledWith());
   });
 
   it("does not offer Marcar todas como lidas when nothing is unread", async () => {
@@ -407,7 +405,7 @@ describe("ManagerNotificationsPage", () => {
 
     await waitFor(() => {
       for (const item of repeatedFailure) {
-        expect(markRead).toHaveBeenCalledWith("token", item.id);
+        expect(markRead).toHaveBeenCalledWith(item.id);
       }
     });
   });
@@ -440,7 +438,7 @@ describe("ManagerNotificationsPage", () => {
 
     await waitFor(() => {
       for (const item of repeated) {
-        expect(markRead).toHaveBeenCalledWith("token", item.id);
+        expect(markRead).toHaveBeenCalledWith(item.id);
       }
     });
   });
@@ -562,7 +560,7 @@ describe("hotkeys", () => {
 
     fireEvent.keyDown(document, { key: "l" });
 
-    await waitFor(() => expect(markAllRead).toHaveBeenCalledWith("token"));
+    await waitFor(() => expect(markAllRead).toHaveBeenCalledWith());
   });
 
   it("does nothing on 'l' when there is nothing unread", async () => {

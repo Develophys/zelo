@@ -18,5 +18,5 @@ export const ManagerInsightHistoryPageSchema = z.object({
 export type ManagerInsightHistoryPage = z.infer<typeof ManagerInsightHistoryPageSchema>;
 
 export interface ManagerInsightHistoryPort {
-  fetchPage(token: string, query: { cursor?: string | null; limit?: number }): Promise<ManagerInsightHistoryPage>;
+  fetchPage(query: { cursor?: string | null; limit?: number }): Promise<ManagerInsightHistoryPage>;
 }

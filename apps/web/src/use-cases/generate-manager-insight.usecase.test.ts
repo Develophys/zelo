@@ -17,7 +17,7 @@ describe("GenerateManagerInsightUseCase", () => {
       new FakeManagerInsightPort({ interpretation: "texto", suggestedActions: ["ação 1"] }),
     );
 
-    const result = await useCase.execute("valid-token");
+    const result = await useCase.execute();
 
     expect(result).toEqual({ interpretation: "texto", suggestedActions: ["ação 1"] });
   });
@@ -25,6 +25,6 @@ describe("GenerateManagerInsightUseCase", () => {
   it("propagates InsightGenerationFailedError", async () => {
     const useCase = new GenerateManagerInsightUseCase(new FakeManagerInsightPort(new InsightGenerationFailedError()));
 
-    await expect(useCase.execute("valid-token")).rejects.toBeInstanceOf(InsightGenerationFailedError);
+    await expect(useCase.execute()).rejects.toBeInstanceOf(InsightGenerationFailedError);
   });
 });

@@ -8,13 +8,13 @@ import { usePeerPartnerSessionStore } from "@/stores/peer-partner-session.store"
 const EXPIRES_AT = "2999-01-01T00:00:00.000Z";
 
 const SIGNED_IN = {
-  manager: { token: "m-token", expiresAt: EXPIRES_AT, role: "SECTOR_MANAGER", name: "Ana" },
+  manager: { loggedIn: true, role: "SECTOR_MANAGER", name: "Ana" },
   admin: { token: "a-token", expiresAt: EXPIRES_AT },
   peerPartner: { token: "p-token", expiresAt: EXPIRES_AT, peerPartnerName: "Bia" },
 } as const;
 
 const CLEARED = {
-  manager: { token: null, expiresAt: null, role: null, name: null },
+  manager: { loggedIn: false, role: null, name: null },
   admin: { token: null, expiresAt: null },
   peerPartner: { token: null, expiresAt: null, peerPartnerName: null },
 } as const;

@@ -1,50 +1,48 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { useManagerSessionStore } from "./manager-session.store";
 
-describe("useManagerSessionStore", () => {
+describe("manager session store", () => {
   beforeEach(() => {
     sessionStorage.clear();
-    useManagerSessionStore.setState({ token: null, expiresAt: null, role: null, name: null });
+    useManagerSessionStore.setState({ loggedIn: false, role: null, name: null });
   });
 
-  it("starts with no session", () => {
-    expect(useManagerSessionStore.getState().token).toBeNull();
-    expect(useManagerSessionStore.getState().isValid()).toBe(false);
+  it("starts logged out", () => {
+    expect(useManagerSessionStore.getState()).toMatchObject({ loggedIn: false, role: null, name: null });
   });
 
-  it("setSession stores a token, persisted to sessionStorage", () => {
-    const future = new Date(Date.now() + 60_000).toISOString();
-    useManagerSessionStore.getState().setSession("abc.def", future, "HOSPITAL_ADMIN", "Ana Konder");
+  it("setSession records the role and name and marks the person logged in", () => {
+    useManagerSessionStore.getState().setSession("HOSPITAL_ADMIN", "Ana");
 
-    expect(useManagerSessionStore.getState().token).toBe("abc.def");
-    expect(useManagerSessionStore.getState().isValid()).toBe(true);
-
-    const persisted = JSON.parse(sessionStorage.getItem("zelo.manager-session")!);
-    expect(persisted.state.token).toBe("abc.def");
+    expect(useManagerSessionStore.getState()).toMatchObject({ loggedIn: true, role: "HOSPITAL_ADMIN", name: "Ana" });
   });
 
-  it("isValid() returns false once expiresAt is in the past", () => {
-    const past = new Date(Date.now() - 60_000).toISOString();
-    useManagerSessionStore.getState().setSession("abc.def", past, "HOSPITAL_ADMIN", "Ana Konder");
+  it("clearSession returns to logged out", () => {
+    useManagerSessionStore.getState().setSession("HOSPITAL_ADMIN", "Ana");
 
-    expect(useManagerSessionStore.getState().isValid()).toBe(false);
-  });
-
-  it("clearSession() removes the token", () => {
-    useManagerSessionStore.getState().setSession("abc.def", new Date(Date.now() + 60_000).toISOString(), "HOSPITAL_ADMIN", "Ana Konder");
     useManagerSessionStore.getState().clearSession();
 
-    expect(useManagerSessionStore.getState().token).toBeNull();
-    expect(useManagerSessionStore.getState().isValid()).toBe(false);
+    expect(useManagerSessionStore.getState()).toMatchObject({ loggedIn: false, role: null, name: null });
   });
 
-  it("stores and exposes the manager's role", () => {
-    useManagerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString(), "SECTOR_MANAGER", "Paulo Reis");
-    expect(useManagerSessionStore.getState().role).toBe("SECTOR_MANAGER");
+  it("holds no token, no expiry and nothing that authenticates", () => {
+    const state = useManagerSessionStore.getState() as unknown as Record<string, unknown>;
+
+    expect(state).not.toHaveProperty("token");
+    expect(state).not.toHaveProperty("expiresAt");
   });
 
-  it("stores and exposes the manager's name", () => {
-    useManagerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString(), "SECTOR_MANAGER", "Paulo Reis");
-    expect(useManagerSessionStore.getState().name).toBe("Paulo Reis");
+  it("drops a token left in sessionStorage by an older version of the app when it rehydrates", async () => {
+    sessionStorage.setItem(
+      "zelo.manager-session",
+      JSON.stringify({ state: { token: "leaked.token", expiresAt: "2099-01-01T00:00:00.000Z", role: "HOSPITAL_ADMIN", name: "Ana" }, version: 0 }),
+    );
+
+    await useManagerSessionStore.persist.rehydrate();
+
+    const state = useManagerSessionStore.getState() as unknown as Record<string, unknown>;
+    expect(state).not.toHaveProperty("token");
+    expect(state.loggedIn).toBe(false);
+    expect(sessionStorage.getItem("zelo.manager-session")).not.toContain("leaked.token");
   });
 });

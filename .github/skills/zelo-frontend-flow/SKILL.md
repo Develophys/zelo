@@ -46,9 +46,12 @@ one silent cross-cutting error convention that nothing points you to unless you 
 - **401 handling:** every `http-manager-*.adapter.ts` method must check
   `response.status === 401` and `throw new UnauthorizedManagerError()` (from
   `ports/manager-signals.port.ts`) before a generic `Error` for other statuses — copy
-  `http-manager-admin.adapter.ts`. Skipping this silently opts the new endpoint out of
-  `useManagerSessionExpiry`'s app-wide forced logout; a manager whose session expires mid-flow
-  gets stuck on a dead error state instead of bouncing to login.
+  `http-manager-notifications.adapter.ts`. A 401 must map to `Unauthorized<Role>Error` (manager:
+  `UnauthorizedManagerError`, admin: `UnauthorizedAdminError`, peer partner:
+  `UnauthorizedPeerPartnerError`) because `createQueryClient`'s central handler
+  (`sessionRoleOfError`) is what ends the session; a plain `Error` on a 401 leaves the person on a
+  retry button that cannot succeed. Existing manager sectors and manager-admin adapter methods do
+  not all map it yet (`docs/conventions/priorities.md` #32), so do not copy their 401 handling.
 - **List chrome:** for a read-oriented list, reuse `presentation/ui/DataTable/{DataTableShell,
   DataTableToolbar, DataTableEmpty, DataTableError}` the way `ManagerInsightHistoryPage.tsx` does
   (`DataTableToolbar`'s `selection` prop is optional — omit it for a list with no bulk actions).

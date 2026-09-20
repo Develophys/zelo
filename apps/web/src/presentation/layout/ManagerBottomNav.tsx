@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router';
 import { ChevronUp, LogOut } from 'lucide-react';
 import { routes } from '@/presentation/lib/routes';
 import { useManagerSessionStore } from '@/stores/manager-session.store';
+import { useManagerLogout } from '@/presentation/hooks/useManagerLogout';
 import { useManagerUnreadCount } from '@/presentation/hooks/useManagerNotifications';
 import { ManagerUnreadBadge } from './ManagerUnreadBadge';
 import { BottomSheetMenu, type BottomSheetMenuGroup } from './BottomSheetMenu';
@@ -33,7 +34,7 @@ export function ManagerBottomNav({ className = '' }: ManagerBottomNavProps) {
   const [open, setOpen] = useState(false);
   const moreRef = useRef<HTMLButtonElement>(null);
   const unread = useManagerUnreadCount();
-  const clearSession = useManagerSessionStore((state) => state.clearSession);
+  const logout = useManagerLogout();
   const role = useManagerSessionStore((state) => state.role);
   const nav = managerNavFor(role);
   const isMoreActive = [
@@ -54,7 +55,7 @@ export function ManagerBottomNav({ className = '' }: ManagerBottomNavProps) {
           icon: LogOut,
           danger: true,
           onSelect: () => {
-            clearSession();
+            logout.mutate();
             navigate(routes.home, { replace: true });
           },
         },

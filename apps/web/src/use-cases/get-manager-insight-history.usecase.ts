@@ -3,7 +3,7 @@ import type { ManagerInsightHistoryPage, ManagerInsightHistoryPort } from "@/por
 export class GetManagerInsightHistoryUseCase {
   constructor(private readonly historyPort: ManagerInsightHistoryPort) {}
 
-  async execute(token: string, query: { cursor?: string | null; limit?: number } = {}): Promise<ManagerInsightHistoryPage> {
-    return this.historyPort.fetchPage(token, query);
+  async execute(query: { cursor?: string | null; limit?: number } = {}): Promise<ManagerInsightHistoryPage> {
+    return this.historyPort.fetchPage(query);
   }
 }

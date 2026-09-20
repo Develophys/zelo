@@ -89,7 +89,7 @@ figure, re-verified directly:
 - Of the 14 that don't, **12 are legitimate abstentions that touch no network by design**, not
   violations: `useApplyAppearancePrefs`, `useDebouncedSearch`, `useDocumentTitle`, `useHasCamera`,
   `useHotkey`, `useInlineConfirm`, `useInstallPrompt`, `useLinkInstitutionFlow`,
-  `useManagerSessionExpiry`, `useOnline`, `useStickToBottom`, `useTypewriter`.
+  `useOnline`, `useStickToBottom`, `useTypewriter`.
 - The remaining **2 are the real violations** — `usePeerPartnerConnection.ts` and
   `usePeerRequest.ts` both `import { PeerChatSocketClient } from
   "@/infrastructure/websocket/peer-chat-socket.client"` and `new` it directly. This is the
@@ -107,13 +107,27 @@ compliant would miss the one real gap.
 Every auth/consent/role guard is a react-router `loader` on the route object, reading a session
 or consent store via `.getState()` and returning `redirect(routes.y)` or `null` — never a
 `<RequireAuth>` wrapper, a `<Navigate>` in render, or a `useEffect` redirect for this purpose.
-The manager panel splits the guard from the chrome across two different files, and copying only
-one half reproduces a bug that already shipped once: the **layout route object** in
-`apps/web/src/app/router.tsx:128-147` owns the session guard (`loader: () =>
-useManagerSessionStore.getState().isValid() ? null : redirect(routes.managerLogin)`), while
-`ManagerShell.tsx` (the `Component` on that same route) owns only `useManagerSessionExpiry()`
-plus the chrome — its own comment records that the expiry effect was previously copied onto 3 of
-6 manager pages and missing from the other 3, leaving an expired session on a dead retry button.
+The manager panel's guard is the `loader` of its layout route, `requireSession(...)` from
+`app/routes/require-session.ts`, built in `apps/web/src/app/routes/manager.routes.ts:96-108` —
+more than a store read: the local `loggedIn` flag is only a hint and `/me` is the truth. Flag set,
+the route renders at once and confirms in the background; flag absent, it waits for `/me`,
+redirects to the login on a rejection, and lets a network failure reach the route error boundary.
+A rejected session ends through `endSession(role)` (exported from `app/router.tsx`, handed to the
+route files as a parameter because a route file must not import `router.tsx`), which clears the
+flag and the query cache and sends the person to that role's login with `state: { reason:
+"expired" }`. A data 401 reaches the same function through `createQueryClient({ onSessionExpired })`,
+provided the adapter maps a 401 to `Unauthorized<Role>Error`. `ManagerShell.tsx` (the `Component`
+on that same route) now owns only the chrome. A manager page outside that layout route would miss
+the guard, which already happened once (the expiry effect sat on 3 of 6 pages); `router.test.tsx`'s
+"manager route tree" case pins that every panel route is its child.
+
+Clear the query cache wherever a session identity ends or changes: the login and logout hooks call
+`queryClient.clear()`; `endSession` clears it once the redirect has settled (`clearSessionCache()`,
+registered from `App.tsx`); and a role's guard `onConfirmed` calls `resetSessionCache()` (a reset
+that refetches what is on screen, because a page that is already mounted holds the previous
+person's data) when the confirmed profile differs from the store's. The manager guard does; the
+peer-partner and SuperAdmin guards get it in their own migration PRs. Query keys no longer carry a
+token, so nothing else separates one person's cached data from the next.
 
 A route path is always a `routes.*` constant in `to=`, `navigate()` and `redirect()` — never a
 literal string (`routes.test.ts` pins the full 35-key object, and there's exactly one surviving

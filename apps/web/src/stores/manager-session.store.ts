@@ -1,36 +1,30 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-// sessionStorage + Bearer token, not an HttpOnly cookie — deliberate,
-// see docs/superpowers/specs/technical-debt.md#td-001.
-
 export type ManagerRole = "HOSPITAL_ADMIN" | "SECTOR_MANAGER";
 
 interface ManagerSessionState {
-  token: string | null;
-  expiresAt: string | null;
+  loggedIn: boolean;
   role: ManagerRole | null;
   name: string | null;
-  setSession: (token: string, expiresAt: string, role: ManagerRole, name: string) => void;
+  setSession: (role: ManagerRole, name: string) => void;
   clearSession: () => void;
-  isValid: () => boolean;
 }
+
+const LOGGED_OUT = { loggedIn: false, role: null, name: null } as const;
 
 export const useManagerSessionStore = create<ManagerSessionState>()(
   persist(
-    (set, get) => ({
-      token: null,
-      expiresAt: null,
-      role: null,
-      name: null,
-      setSession: (token, expiresAt, role, name) => set({ token, expiresAt, role, name }),
-      clearSession: () => set({ token: null, expiresAt: null, role: null, name: null }),
-      isValid: () => {
-        const { token, expiresAt } = get();
-        if (!token || !expiresAt) return false;
-        return new Date(expiresAt).getTime() > Date.now();
-      },
+    (set) => ({
+      ...LOGGED_OUT,
+      setSession: (role, name) => set({ loggedIn: true, role, name }),
+      clearSession: () => set({ ...LOGGED_OUT }),
     }),
-    { name: "zelo.manager-session", storage: createJSONStorage(() => sessionStorage) },
+    {
+      name: "zelo.manager-session",
+      storage: createJSONStorage(() => sessionStorage),
+      version: 1,
+      migrate: () => ({ ...LOGGED_OUT }),
+    },
   ),
 );
