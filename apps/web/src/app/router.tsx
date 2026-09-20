@@ -6,6 +6,9 @@ import { doctorRoutes } from "./routes/doctor.routes";
 import { managerRoutes } from "./routes/manager.routes";
 import { peerPartnerRoutes } from "./routes/peer-partner.routes";
 import { superAdminRoutes } from "./routes/super-admin.routes";
+import { handleSessionExpired } from "./handle-session-expired";
+import { clearRoleSession } from "./clear-role-session";
+import type { SessionRole } from "./session-expiry";
 
 function RootLayout() {
   useDocumentTitle();
@@ -53,3 +56,11 @@ export const router = createBrowserRouter(
   // for the Vercel deployment and correct for the Pages deployment.
   { basename: import.meta.env.BASE_URL },
 );
+
+export function endSession(role: SessionRole): void {
+  handleSessionExpired(role, {
+    clearSession: clearRoleSession,
+    currentPath: () => router.state.location.pathname,
+    navigate: (to, options) => void router.navigate(to, options),
+  });
+}
