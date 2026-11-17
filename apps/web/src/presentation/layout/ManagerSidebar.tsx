@@ -5,6 +5,7 @@ import { SidebarHeader } from './SidebarHeader';
 import { routes } from '@/presentation/lib/routes';
 import { useManagerPrefsStore } from '@/stores/manager-prefs.store';
 import { useManagerSessionStore } from '@/stores/manager-session.store';
+import { useManagerLogout } from '@/presentation/hooks/useManagerLogout';
 import { useManagerUnreadCount } from '@/presentation/hooks/useManagerNotifications';
 import { useManagerSectors } from '@/presentation/hooks/useManagerSectors';
 import { ManagerUnreadBadge } from './ManagerUnreadBadge';
@@ -87,7 +88,7 @@ export function ManagerSidebar({ className = '' }: ManagerSidebarProps) {
   const role = useManagerSessionStore((state) => state.role);
   const managerName = useManagerSessionStore((state) => state.name);
   const nav = managerNavFor(role);
-  const clearSession = useManagerSessionStore((state) => state.clearSession);
+  const logout = useManagerLogout();
   const unread = useManagerUnreadCount();
   const sectorsQuery = useManagerSectors({ enabled: role === 'SECTOR_MANAGER' });
   const soleSectorName = sectorsQuery.data?.length === 1 ? sectorsQuery.data[0]!.name : undefined;
@@ -178,7 +179,7 @@ export function ManagerSidebar({ className = '' }: ManagerSidebarProps) {
         <SignOut
           collapsed={collapsed}
           onSignOut={() => {
-            clearSession();
+            logout.mutate();
             navigate(routes.home, { replace: true });
           }}
         />

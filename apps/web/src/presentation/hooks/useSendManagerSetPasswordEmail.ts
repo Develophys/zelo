@@ -1,12 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { sendManagerSetPasswordEmailUseCase } from "@/app/container";
-import { useManagerSessionStore } from "@/stores/manager-session.store";
 
 export function useSendManagerSetPasswordEmail() {
-  const token = useManagerSessionStore((state) => state.token);
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => sendManagerSetPasswordEmailUseCase.execute(token!, id),
+    mutationFn: (id: string) => sendManagerSetPasswordEmailUseCase.execute(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-managers"] });
     },

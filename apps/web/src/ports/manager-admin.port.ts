@@ -122,18 +122,18 @@ export interface UpdateManagerParams {
 }
 
 export interface ManagerAdminPort {
-  listSectors(token: string): Promise<AdminSector[]>;
-  createSector(token: string, params: { name: string; inviteCode?: string }): Promise<{ id: string; name: string }>;
-  updateSector(token: string, id: string, patch: UpdateSectorParams): Promise<void>;
-  listManagers(token: string): Promise<ManagerSummary[]>;
-  createManager(token: string, params: CreateManagerParams): Promise<CreateManagerResult>;
-  updateManager(token: string, id: string, patch: UpdateManagerParams): Promise<void>;
-  sendManagerSetPasswordEmail(token: string, id: string): Promise<void>;
-  listPeerPartners(token: string): Promise<PeerPartnerSummary[]>;
-  createPeerPartner(token: string, params: CreatePeerPartnerParams): Promise<CreatePeerPartnerResult>;
-  updatePeerPartner(token: string, id: string, patch: UpdatePeerPartnerParams): Promise<void>;
-  sendPeerPartnerSetPasswordEmail(token: string, id: string): Promise<void>;
-  deleteManager(token: string, id: string): Promise<void>;
-  deleteSector(token: string, id: string): Promise<void>;
-  deletePeerPartner(token: string, id: string): Promise<void>;
+  listSectors(): Promise<AdminSector[]>;
+  createSector(params: { name: string; inviteCode?: string }): Promise<{ id: string; name: string }>;
+  updateSector(id: string, patch: UpdateSectorParams): Promise<void>;
+  listManagers(): Promise<ManagerSummary[]>;
+  createManager(params: CreateManagerParams): Promise<CreateManagerResult>;
+  updateManager(id: string, patch: UpdateManagerParams): Promise<void>;
+  sendManagerSetPasswordEmail(id: string): Promise<void>;
+  listPeerPartners(): Promise<PeerPartnerSummary[]>;
+  createPeerPartner(params: CreatePeerPartnerParams): Promise<CreatePeerPartnerResult>;
+  updatePeerPartner(id: string, patch: UpdatePeerPartnerParams): Promise<void>;
+  sendPeerPartnerSetPasswordEmail(id: string): Promise<void>;
+  deleteManager(id: string): Promise<void>;
+  deleteSector(id: string): Promise<void>;
+  deletePeerPartner(id: string): Promise<void>;
 }

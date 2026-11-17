@@ -1,14 +1,14 @@
 import type { ManagerInsightPort, ManagerInsightResult } from "@/ports/manager-insight.port";
 import { ManagerInsightResultSchema, InsightGenerationFailedError } from "@/ports/manager-insight.port";
 import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
-import { API_BASE_URL } from './api-base-url';
+import { apiFetch } from "./api-fetch";
 
 
 export class HttpManagerInsightAdapter implements ManagerInsightPort {
-  async generateInsight(token: string): Promise<ManagerInsightResult> {
-    const response = await fetch(`${API_BASE_URL}/manager/insights`, {
+  async generateInsight(): Promise<ManagerInsightResult> {
+    const response = await apiFetch("/manager/insights", {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { "Content-Type": "application/json" },
     });
 
     if (response.status === 401) {

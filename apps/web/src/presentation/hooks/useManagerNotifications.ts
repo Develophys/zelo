@@ -3,19 +3,15 @@ import {
   listManagerNotificationsUseCase,
   markManagerNotificationReadUseCase,
 } from "@/app/container";
-import { useManagerSessionStore } from "@/stores/manager-session.store";
 
 const LIST_KEY = "manager-notifications";
 const COUNT_KEY = "manager-notifications-unread";
 
 /** The badge lives on every panel screen, so it gets its own light query. */
 export function useManagerUnreadCount(): number {
-  const token = useManagerSessionStore((state) => state.token);
-
   const { data } = useQuery({
-    queryKey: [COUNT_KEY, token],
-    queryFn: () => listManagerNotificationsUseCase.unreadCount(token!),
-    enabled: token !== null,
+    queryKey: [COUNT_KEY],
+    queryFn: () => listManagerNotificationsUseCase.unreadCount(),
     retry: false,
   });
 
@@ -23,36 +19,34 @@ export function useManagerUnreadCount(): number {
 }
 
 export function useManagerNotifications() {
-  const token = useManagerSessionStore((state) => state.token);
   const queryClient = useQueryClient();
 
   const invalidateBoth = () => {
-    void queryClient.invalidateQueries({ queryKey: [LIST_KEY, token] });
-    void queryClient.invalidateQueries({ queryKey: [COUNT_KEY, token] });
+    void queryClient.invalidateQueries({ queryKey: [LIST_KEY] });
+    void queryClient.invalidateQueries({ queryKey: [COUNT_KEY] });
   };
 
   const list = useQuery({
-    queryKey: [LIST_KEY, token],
-    queryFn: () => listManagerNotificationsUseCase.execute(token!),
-    enabled: token !== null,
+    queryKey: [LIST_KEY],
+    queryFn: () => listManagerNotificationsUseCase.execute(),
     retry: false,
   });
 
   const markRead = useMutation({
-    mutationFn: (id: string) => markManagerNotificationReadUseCase.execute(token!, id),
+    mutationFn: (id: string) => markManagerNotificationReadUseCase.execute(id),
     // Optimistic: the row and the badge both settle before the round trip, and
     // both roll back together if it fails.
     onMutate: async (id: string) => {
-      await queryClient.cancelQueries({ queryKey: [LIST_KEY, token] });
-      await queryClient.cancelQueries({ queryKey: [COUNT_KEY, token] });
-      const previousList = queryClient.getQueryData([LIST_KEY, token]);
-      const previousCount = queryClient.getQueryData([COUNT_KEY, token]);
+      await queryClient.cancelQueries({ queryKey: [LIST_KEY] });
+      await queryClient.cancelQueries({ queryKey: [COUNT_KEY] });
+      const previousList = queryClient.getQueryData([LIST_KEY]);
+      const previousCount = queryClient.getQueryData([COUNT_KEY]);
 
       const previousItems = (previousList as { items: { id: string; readAt: string | null }[] } | undefined)
         ?.items;
       const wasUnread = previousItems?.some((item) => item.id === id && item.readAt === null) ?? false;
 
-      queryClient.setQueryData([LIST_KEY, token], (page: unknown) => {
+      queryClient.setQueryData([LIST_KEY], (page: unknown) => {
         const typed = page as { items: { id: string; readAt: string | null }[] } | undefined;
         if (!typed) return page;
         return {
@@ -63,7 +57,7 @@ export function useManagerNotifications() {
         };
       });
       if (wasUnread) {
-        queryClient.setQueryData([COUNT_KEY, token], (count: unknown) =>
+        queryClient.setQueryData([COUNT_KEY], (count: unknown) =>
           typeof count === "number" ? Math.max(0, count - 1) : count,
         );
       }
@@ -71,14 +65,14 @@ export function useManagerNotifications() {
       return { previousList, previousCount };
     },
     onError: (_error, _id, context) => {
-      queryClient.setQueryData([LIST_KEY, token], context?.previousList);
-      queryClient.setQueryData([COUNT_KEY, token], context?.previousCount);
+      queryClient.setQueryData([LIST_KEY], context?.previousList);
+      queryClient.setQueryData([COUNT_KEY], context?.previousCount);
     },
     onSettled: invalidateBoth,
   });
 
   const markAllRead = useMutation({
-    mutationFn: () => markManagerNotificationReadUseCase.executeAll(token!),
+    mutationFn: () => markManagerNotificationReadUseCase.executeAll(),
     onSettled: invalidateBoth,
   });
 

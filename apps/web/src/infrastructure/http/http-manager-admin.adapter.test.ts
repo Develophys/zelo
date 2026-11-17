@@ -13,7 +13,7 @@ describe("HttpManagerAdminAdapter createSector", () => {
     );
 
     const adapter = new HttpManagerAdminAdapter();
-    await adapter.createSector("token", { name: "UTI", inviteCode: "uti-2026" });
+    await adapter.createSector({ name: "UTI", inviteCode: "uti-2026" });
 
     expect(fetchSpy).toHaveBeenCalledWith(
       expect.stringContaining("/manager/admin/sectors"),
@@ -28,7 +28,7 @@ describe("HttpManagerAdminAdapter createSector", () => {
 
     const adapter = new HttpManagerAdminAdapter();
     await expect(
-      adapter.createSector("token", { name: "PS", inviteCode: "shared" }),
+      adapter.createSector({ name: "PS", inviteCode: "shared" }),
     ).rejects.toThrow(SectorInviteCodeConflictError);
   });
 
@@ -38,7 +38,7 @@ describe("HttpManagerAdminAdapter createSector", () => {
     );
 
     const adapter = new HttpManagerAdminAdapter();
-    await expect(adapter.createSector("token", { name: "Duplicada" })).rejects.toThrow(
+    await expect(adapter.createSector({ name: "Duplicada" })).rejects.toThrow(
       SectorNameConflictError,
     );
   });
@@ -49,7 +49,7 @@ describe("HttpManagerAdminAdapter updateSector", () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 204 }));
 
     const adapter = new HttpManagerAdminAdapter();
-    await adapter.updateSector("token", "sector-1", { inviteCode: "uti-2026" });
+    await adapter.updateSector("sector-1", { inviteCode: "uti-2026" });
 
     expect(fetchSpy).toHaveBeenCalledWith(
       expect.stringContaining("/manager/admin/sectors/sector-1"),
@@ -64,7 +64,7 @@ describe("HttpManagerAdminAdapter updateSector", () => {
 
     const adapter = new HttpManagerAdminAdapter();
     await expect(
-      adapter.updateSector("token", "sector-1", { inviteCode: "shared" }),
+      adapter.updateSector("sector-1", { inviteCode: "shared" }),
     ).rejects.toThrow(SectorInviteCodeConflictError);
   });
 
@@ -75,7 +75,7 @@ describe("HttpManagerAdminAdapter updateSector", () => {
 
     const adapter = new HttpManagerAdminAdapter();
     await expect(
-      adapter.updateSector("token", "sector-1", { inviteCode: "shared" }),
+      adapter.updateSector("sector-1", { inviteCode: "shared" }),
     ).rejects.toThrow(SectorNameConflictError);
   });
 });

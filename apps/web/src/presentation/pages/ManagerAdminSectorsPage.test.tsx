@@ -39,7 +39,7 @@ function renderPage() {
 describe("ManagerAdminSectorsPage", () => {
   beforeEach(() => {
     sessionStorage.clear();
-    useManagerSessionStore.getState().setSession("token", new Date(Date.now() + 60_000).toISOString(), "HOSPITAL_ADMIN", "Ana Konder");
+    useManagerSessionStore.getState().setSession("HOSPITAL_ADMIN", "Ana Konder");
     useToastStore.getState().clear();
     useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
   });
@@ -56,7 +56,7 @@ describe("ManagerAdminSectorsPage", () => {
     await user.click(screen.getByRole("button", { name: "Salvar" }));
 
     await waitFor(() =>
-      expect(container.createSectorUseCase.execute).toHaveBeenCalledWith("token", { name: "UTI" }),
+      expect(container.createSectorUseCase.execute).toHaveBeenCalledWith({ name: "UTI" }),
     );
   });
 
@@ -77,7 +77,7 @@ describe("ManagerAdminSectorsPage", () => {
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Salvar" }));
 
     await waitFor(() =>
-      expect(container.updateSectorUseCase.execute).toHaveBeenCalledWith("token", "sector-1", { managerId: "manager-5" }),
+      expect(container.updateSectorUseCase.execute).toHaveBeenCalledWith("sector-1", { managerId: "manager-5" }),
     );
   });
 
@@ -98,7 +98,7 @@ describe("ManagerAdminSectorsPage", () => {
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Salvar" }));
 
     await waitFor(() =>
-      expect(container.updateSectorUseCase.execute).toHaveBeenCalledWith("token", "sector-1", { managerId: null }),
+      expect(container.updateSectorUseCase.execute).toHaveBeenCalledWith("sector-1", { managerId: null }),
     );
   });
 
@@ -119,7 +119,7 @@ describe("ManagerAdminSectorsPage", () => {
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Salvar" }));
 
     await waitFor(() =>
-      expect(container.updateSectorUseCase.execute).toHaveBeenCalledWith("token", "sector-1", {
+      expect(container.updateSectorUseCase.execute).toHaveBeenCalledWith("sector-1", {
         managerId: null,
         inviteCode: "uti-2026",
       }),
@@ -157,7 +157,7 @@ describe("ManagerAdminSectorsPage", () => {
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Salvar" }));
 
     await waitFor(() =>
-      expect(container.updateSectorUseCase.execute).toHaveBeenCalledWith("token", "sector-1", {
+      expect(container.updateSectorUseCase.execute).toHaveBeenCalledWith("sector-1", {
         managerId: "manager-5",
       }),
     );
@@ -219,9 +219,9 @@ describe("ManagerAdminSectorsPage", () => {
     await user.selectOptions(screen.getByLabelText('Gestor responsável'), 'm1');
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
-    await waitFor(() => expect(createSector).toHaveBeenCalledWith('token', { name: 'UTI' }));
+    await waitFor(() => expect(createSector).toHaveBeenCalledWith({ name: 'UTI' }));
     await waitFor(() =>
-      expect(updateSector).toHaveBeenCalledWith('token', 's1', { managerId: 'm1' }),
+      expect(updateSector).toHaveBeenCalledWith('s1', { managerId: 'm1' }),
     );
   });
 
@@ -240,7 +240,7 @@ describe("ManagerAdminSectorsPage", () => {
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() =>
-      expect(createSector).toHaveBeenCalledWith('token', { name: 'UTI', inviteCode: 'uti-2026' }),
+      expect(createSector).toHaveBeenCalledWith({ name: 'UTI', inviteCode: 'uti-2026' }),
     );
   });
 
@@ -350,8 +350,8 @@ describe("ManagerAdminSectorsPage", () => {
     await user.click(dialog.getByRole('button', { name: 'Excluir' }));
 
     await waitFor(() => expect(deleteSpy).toHaveBeenCalledTimes(2));
-    expect(deleteSpy).toHaveBeenNthCalledWith(1, 'token', 'sector-1');
-    expect(deleteSpy).toHaveBeenNthCalledWith(2, 'token', 'sector-2');
+    expect(deleteSpy).toHaveBeenNthCalledWith(1, 'sector-1');
+    expect(deleteSpy).toHaveBeenNthCalledWith(2, 'sector-2');
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
@@ -387,7 +387,7 @@ describe("ManagerAdminSectorsPage", () => {
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
     const deleteSpy = vi
       .spyOn(container.deleteSectorAdminUseCase, 'execute')
-      .mockImplementation(async (_token: string, id: string) => {
+      .mockImplementation(async (id: string) => {
         if (id === 'sector-2') throw new AdminDeleteConflictError('SECTOR_HAS_HISTORY');
       });
     const user = userEvent.setup();
@@ -411,7 +411,7 @@ describe("ManagerAdminSectorsPage", () => {
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' }));
 
     await waitFor(() => expect(deleteSpy).toHaveBeenCalledTimes(1));
-    expect(deleteSpy).toHaveBeenCalledWith('token', 'sector-2');
+    expect(deleteSpy).toHaveBeenCalledWith('sector-2');
   });
 
   it('pauses the selected sectors and clears the selection on the happy path', async () => {
@@ -429,8 +429,8 @@ describe("ManagerAdminSectorsPage", () => {
     await user.click(screen.getByRole('button', { name: 'Pausar' }));
 
     await waitFor(() => expect(updateSpy).toHaveBeenCalledTimes(2));
-    expect(updateSpy).toHaveBeenNthCalledWith(1, 'token', 'sector-1', { isActive: false });
-    expect(updateSpy).toHaveBeenNthCalledWith(2, 'token', 'sector-2', { isActive: false });
+    expect(updateSpy).toHaveBeenNthCalledWith(1, 'sector-1', { isActive: false });
+    expect(updateSpy).toHaveBeenNthCalledWith(2, 'sector-2', { isActive: false });
     // Selection cleared: the toolbar falls back to its search field.
     await waitFor(() => expect(screen.getByPlaceholderText('Buscar…')).toBeInTheDocument());
   });
@@ -483,7 +483,7 @@ describe("ManagerAdminSectorsPage", () => {
       { id: 'sector-2', name: 'Pronto-Socorro', isActive: true, managerId: null, managerName: null, inviteCode: null },
     ]);
     vi.spyOn(container.listManagersUseCase, 'execute').mockResolvedValue([]);
-    vi.spyOn(container.updateSectorUseCase, 'execute').mockImplementation(async (_token: string, id: string) => {
+    vi.spyOn(container.updateSectorUseCase, 'execute').mockImplementation(async (id: string) => {
       if (id === 'sector-2') throw new Error('network down');
     });
     const user = userEvent.setup();
@@ -633,7 +633,7 @@ describe("ManagerAdminSectorsPage", () => {
       fireEvent.keyDown(document, { key: "v" });
 
       await waitFor(() =>
-        expect(updateSector).toHaveBeenCalledWith("token", "1", { managerId: "manager-1" }),
+        expect(updateSector).toHaveBeenCalledWith("1", { managerId: "manager-1" }),
       );
     });
 
@@ -650,7 +650,7 @@ describe("ManagerAdminSectorsPage", () => {
       fireEvent.keyDown(document, { key: "u" });
 
       await waitFor(() =>
-        expect(updateSector).toHaveBeenCalledWith("token", "1", { isActive: false }),
+        expect(updateSector).toHaveBeenCalledWith("1", { isActive: false }),
       );
     });
 
@@ -667,7 +667,7 @@ describe("ManagerAdminSectorsPage", () => {
       fireEvent.keyDown(document, { key: "i" });
 
       await waitFor(() =>
-        expect(updateSector).toHaveBeenCalledWith("token", "1", { isActive: true }),
+        expect(updateSector).toHaveBeenCalledWith("1", { isActive: true }),
       );
     });
 

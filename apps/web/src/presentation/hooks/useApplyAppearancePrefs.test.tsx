@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, act } from '@testing-library/react';
 import { createMemoryRouter, Outlet, RouterProvider } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -11,6 +11,7 @@ import { useManagerPrefsStore } from '@/stores/manager-prefs.store';
 import { useConsentStore } from '@/stores/consent.store';
 import { useManagerSessionStore } from '@/stores/manager-session.store';
 import { createRouteChildren } from '@/app/router';
+import * as container from '@/app/container';
 
 // Stands in for App.tsx: the root that owns the preferences, wrapped around
 // the real route tree so leaving the panel is a real unmount.
@@ -166,11 +167,8 @@ describe('manager prefs store', () => {
 describe('appearance prefs outlive the manager panel', () => {
   it('keeps the corner choice on <html> after the doctor leaves the panel', async () => {
     useConsentStore.setState({ hasConsented: true, consentedAt: '2026-01-01T00:00:00.000Z' });
-    useManagerSessionStore.setState({
-      token: 'abc.def',
-      expiresAt: new Date('2099-01-01T00:00:00.000Z').toISOString(),
-      role: 'HOSPITAL_ADMIN',
-    });
+    useManagerSessionStore.setState({ loggedIn: true, role: 'HOSPITAL_ADMIN', name: 'Ana' });
+    vi.spyOn(container.getManagerSessionUseCase, 'execute').mockResolvedValue({ name: 'Ana', role: 'HOSPITAL_ADMIN' });
     useManagerPrefsStore.setState({
       density: 'comfortable',
       accent: 'clay',

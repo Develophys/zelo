@@ -29,15 +29,15 @@ describe("GetManagerSignalsUseCase", () => {
   it("returns the signals response on success", async () => {
     const useCase = new GetManagerSignalsUseCase(new FakeManagerSignalsPort(SAMPLE_RESPONSE));
 
-    const result = await useCase.execute("valid-token");
+    const result = await useCase.execute();
 
     expect(result).toEqual(SAMPLE_RESPONSE);
   });
 
-  it("propagates UnauthorizedManagerError on a rejected token", async () => {
+  it("propagates UnauthorizedManagerError on a rejected session", async () => {
     const useCase = new GetManagerSignalsUseCase(new FakeManagerSignalsPort(new UnauthorizedManagerError()));
 
-    await expect(useCase.execute("expired-token")).rejects.toBeInstanceOf(UnauthorizedManagerError);
+    await expect(useCase.execute()).rejects.toBeInstanceOf(UnauthorizedManagerError);
   });
 
   it("forwards sectorIds to the port", async () => {
@@ -45,8 +45,8 @@ describe("GetManagerSignalsUseCase", () => {
     const spy = vi.spyOn(port, "fetchSignals");
     const useCase = new GetManagerSignalsUseCase(port);
 
-    await useCase.execute("valid-token", ["sector-1"]);
+    await useCase.execute(["sector-1"]);
 
-    expect(spy).toHaveBeenCalledWith("valid-token", ["sector-1"]);
+    expect(spy).toHaveBeenCalledWith(["sector-1"]);
   });
 });

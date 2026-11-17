@@ -3,6 +3,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "react-router";
 import { endSession, router } from "./router";
 import { createQueryClient } from "./query-client";
+import { registerSessionCache } from "./session-cache";
 import { watchSystemTheme } from "@/presentation/lib/theme";
 import { useThemeStore } from "@/stores/theme.store";
 import { ToastViewport } from "@/presentation/ui/ToastViewport";
@@ -11,6 +12,7 @@ import { HotkeyHelpModal } from "@/presentation/components/HotkeyHelpModal";
 import { useApplyAppearancePrefs } from "@/presentation/hooks/useApplyAppearancePrefs";
 
 const queryClient = createQueryClient({ onSessionExpired: endSession });
+registerSessionCache({ clear: () => queryClient.clear(), reset: () => void queryClient.resetQueries() });
 
 export function App() {
   const syncSystemTheme = useThemeStore((state) => state.syncSystemTheme);
