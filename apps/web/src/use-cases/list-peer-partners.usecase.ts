@@ -2,7 +2,7 @@ import type { ManagerAdminPort, PeerPartnerSummary } from "@/ports/manager-admin
 
 export class ListPeerPartnersUseCase {
   constructor(private readonly port: ManagerAdminPort) {}
-  async execute(token: string): Promise<PeerPartnerSummary[]> {
-    return this.port.listPeerPartners(token);
+  async execute(): Promise<PeerPartnerSummary[]> {
+    return this.port.listPeerPartners();
   }
 }

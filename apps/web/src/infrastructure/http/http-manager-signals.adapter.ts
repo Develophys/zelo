@@ -1,14 +1,12 @@
 import type { ManagerSignalsPort, ManagerSignalsResponse } from "@/ports/manager-signals.port";
 import { ManagerSignalsResponseSchema, UnauthorizedManagerError } from "@/ports/manager-signals.port";
-import { API_BASE_URL } from './api-base-url';
+import { apiFetch } from "./api-fetch";
 
 
 export class HttpManagerSignalsAdapter implements ManagerSignalsPort {
-  async fetchSignals(token: string, sectorIds?: string[]): Promise<ManagerSignalsResponse> {
+  async fetchSignals(sectorIds?: string[]): Promise<ManagerSignalsResponse> {
     const query = sectorIds !== undefined ? `?sectorIds=${sectorIds.map(encodeURIComponent).join(",")}` : "";
-    const response = await fetch(`${API_BASE_URL}/manager/signals${query}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const response = await apiFetch(`/manager/signals${query}`);
 
     if (response.status === 401) {
       throw new UnauthorizedManagerError();

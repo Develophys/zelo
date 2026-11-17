@@ -60,11 +60,7 @@ function deferred<T>() {
 describe("useManagerNotifications", () => {
   beforeEach(() => {
     sessionStorage.clear();
-    useManagerSessionStore.setState({
-      token: "abc.def",
-      expiresAt: new Date(Date.now() + 60_000).toISOString(),
-      role: "SECTOR_MANAGER",
-    });
+    useManagerSessionStore.setState({ loggedIn: true, role: "SECTOR_MANAGER", name: "Ana" });
     vi.spyOn(container.listManagerNotificationsUseCase, "execute").mockResolvedValue(PAGE);
     vi.spyOn(container.listManagerNotificationsUseCase, "unreadCount").mockResolvedValue(1);
   });

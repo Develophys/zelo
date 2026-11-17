@@ -3,7 +3,7 @@ import type { ManagerInsightPort, ManagerInsightResult } from "@/ports/manager-i
 export class GenerateManagerInsightUseCase {
   constructor(private readonly insightPort: ManagerInsightPort) {}
 
-  async execute(token: string): Promise<ManagerInsightResult> {
-    return this.insightPort.generateInsight(token);
+  async execute(): Promise<ManagerInsightResult> {
+    return this.insightPort.generateInsight();
   }
 }

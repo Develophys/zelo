@@ -64,7 +64,7 @@ const HISTORY_RESPONSE: StoredManagerInsight[] = [
 describe("ManagerInsightHistoryPage", () => {
   beforeEach(() => {
     sessionStorage.clear();
-    useManagerSessionStore.setState({ token: "abc.def", expiresAt: new Date(Date.now() + 60_000).toISOString() });
+    useManagerSessionStore.setState({ loggedIn: true, role: "HOSPITAL_ADMIN", name: "Ana" });
     useHotkeyStore.setState({ entries: new Map(), helpOpen: false });
     vi.spyOn(container.getManagerInsightHistoryUseCase, "execute").mockResolvedValue(page(HISTORY_RESPONSE));
   });
@@ -377,7 +377,7 @@ describe("ManagerInsightHistoryPage", () => {
       await user.click(loadMoreButtons[0]!);
 
       await waitFor(() => {
-        expect(historySpy).toHaveBeenCalledWith("abc.def", { cursor: "cursor-2" });
+        expect(historySpy).toHaveBeenCalledWith({ cursor: "cursor-2" });
       });
       const rows = await screen.findByTestId("insight-row-list");
       await waitFor(() => {
@@ -433,7 +433,7 @@ describe("hotkeys", () => {
 
     fireEvent.keyDown(document, { key: "l" });
 
-    await waitFor(() => expect(historySpy).toHaveBeenCalledWith("abc.def", { cursor: "cursor-1" }));
+    await waitFor(() => expect(historySpy).toHaveBeenCalledWith({ cursor: "cursor-1" }));
     await waitFor(() => expect(within(rows).getByText("resumo 2")).toBeInTheDocument());
   });
 });

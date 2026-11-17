@@ -2,7 +2,7 @@ import type { ManagerAdminPort, UpdateManagerParams } from "@/ports/manager-admi
 
 export class UpdateManagerUseCase {
   constructor(private readonly port: ManagerAdminPort) {}
-  async execute(token: string, id: string, patch: UpdateManagerParams): Promise<void> {
-    return this.port.updateManager(token, id, patch);
+  async execute(id: string, patch: UpdateManagerParams): Promise<void> {
+    return this.port.updateManager(id, patch);
   }
 }

@@ -29,7 +29,7 @@ describe("HttpManagerSignalsAdapter", () => {
     const fetchSpy = stubFetchOk();
     const adapter = new HttpManagerSignalsAdapter();
 
-    await adapter.fetchSignals("token-1");
+    await adapter.fetchSignals();
 
     const requestedUrl = fetchSpy.mock.calls[0]?.[0] as string;
     expect(requestedUrl).not.toContain("sectorIds");
@@ -39,7 +39,7 @@ describe("HttpManagerSignalsAdapter", () => {
     const fetchSpy = stubFetchOk();
     const adapter = new HttpManagerSignalsAdapter();
 
-    await adapter.fetchSignals("token-1", []);
+    await adapter.fetchSignals([]);
 
     const requestedUrl = fetchSpy.mock.calls[0]?.[0] as string;
     expect(requestedUrl).toContain("?sectorIds=");
@@ -51,7 +51,7 @@ describe("HttpManagerSignalsAdapter", () => {
     const fetchSpy = stubFetchOk();
     const adapter = new HttpManagerSignalsAdapter();
 
-    await adapter.fetchSignals("token-1", ["sector-a", "sector-b"]);
+    await adapter.fetchSignals(["sector-a", "sector-b"]);
 
     const requestedUrl = fetchSpy.mock.calls[0]?.[0] as string;
     expect(requestedUrl).toContain("?sectorIds=sector-a,sector-b");

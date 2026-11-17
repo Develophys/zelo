@@ -28,8 +28,8 @@ export const ManagerNotificationsPageSchema = z.object({
 export type ManagerNotificationsPage = z.infer<typeof ManagerNotificationsPageSchema>;
 
 export interface ManagerNotificationsPort {
-  fetchPage(token: string, query: { cursor?: string | null; limit?: number }): Promise<ManagerNotificationsPage>;
-  fetchUnreadCount(token: string): Promise<number>;
-  markRead(token: string, id: string): Promise<void>;
-  markAllRead(token: string): Promise<void>;
+  fetchPage(query: { cursor?: string | null; limit?: number }): Promise<ManagerNotificationsPage>;
+  fetchUnreadCount(): Promise<number>;
+  markRead(id: string): Promise<void>;
+  markAllRead(): Promise<void>;
 }

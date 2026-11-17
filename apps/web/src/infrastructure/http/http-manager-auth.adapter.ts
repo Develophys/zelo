@@ -1,11 +1,13 @@
-import type { ManagerAuthPort, ManagerLoginResult } from "@/ports/manager-auth.port";
+import type { ManagerAuthPort, ManagerLoginResult, ManagerProfile } from "@/ports/manager-auth.port";
 import { ManagerLoginResultSchema, InvalidManagerCredentialsError, InvalidOrExpiredManagerSetupTokenError } from "@/ports/manager-auth.port";
+import { UnauthorizedManagerError } from "@/ports/manager-signals.port";
 import { API_BASE_URL } from './api-base-url';
+import { apiFetch } from "./api-fetch";
 
 
 export class HttpManagerAuthAdapter implements ManagerAuthPort {
   async login(email: string, password: string): Promise<ManagerLoginResult> {
-    const response = await fetch(`${API_BASE_URL}/manager/login`, {
+    const response = await apiFetch("/manager/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -19,6 +21,27 @@ export class HttpManagerAuthAdapter implements ManagerAuthPort {
     }
 
     return ManagerLoginResultSchema.parse(await response.json());
+  }
+
+  async me(): Promise<ManagerProfile> {
+    const response = await apiFetch("/manager/me");
+
+    if (response.status === 401) {
+      throw new UnauthorizedManagerError();
+    }
+    if (!response.ok) {
+      throw new Error(`manager me failed with status ${response.status}`);
+    }
+
+    return ManagerLoginResultSchema.parse(await response.json());
+  }
+
+  async logout(): Promise<void> {
+    const response = await apiFetch("/manager/logout", { method: "POST" });
+
+    if (!response.ok) {
+      throw new Error(`manager logout failed with status ${response.status}`);
+    }
   }
 
   async finishSetup(token: string, password: string): Promise<void> {

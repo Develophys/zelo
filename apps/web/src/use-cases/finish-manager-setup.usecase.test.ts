@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { FinishManagerSetupUseCase } from "./finish-manager-setup.usecase";
-import type { ManagerAuthPort, ManagerLoginResult } from "@/ports/manager-auth.port";
+import type { ManagerAuthPort, ManagerLoginResult, ManagerProfile } from "@/ports/manager-auth.port";
 
 class FakeManagerAuthPort implements ManagerAuthPort {
   public lastArgs: { token: string; password: string } | null = null;
   async login(): Promise<ManagerLoginResult> {
+    throw new Error("not used in this test");
+  }
+  async me(): Promise<ManagerProfile> {
+    throw new Error("not used in this test");
+  }
+  async logout(): Promise<void> {
     throw new Error("not used in this test");
   }
   async finishSetup(token: string, password: string): Promise<void> {

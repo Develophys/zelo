@@ -8,17 +8,17 @@ afterEach(() => {
 });
 
 describe("HttpManagerAdminAdapter deletes", () => {
-  it("sends DELETE with the bearer token", async () => {
+  it("sends DELETE with the session cookie", async () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValue(new Response(null, { status: 204 }));
 
-    await new HttpManagerAdminAdapter().deleteManager("token", "m1");
+    await new HttpManagerAdminAdapter().deleteManager("m1");
 
     const [url, init] = fetchSpy.mock.calls[0]!;
     expect(String(url)).toContain("/manager/admin/managers/m1");
     expect(init!.method).toBe("DELETE");
-    expect((init!.headers as Record<string, string>).Authorization).toBe("Bearer token");
+    expect(fetchSpy.mock.calls[0]?.[1]).toMatchObject({ credentials: "include" });
   });
 
   it.each([
@@ -29,7 +29,7 @@ describe("HttpManagerAdminAdapter deletes", () => {
       new Response(JSON.stringify({ message: reason }), { status: 409 }),
     );
 
-    await expect(new HttpManagerAdminAdapter().deleteManager("token", "m1")).rejects.toMatchObject({
+    await expect(new HttpManagerAdminAdapter().deleteManager("m1")).rejects.toMatchObject({
       reason,
     });
   });
@@ -37,7 +37,7 @@ describe("HttpManagerAdminAdapter deletes", () => {
   it("raises a conflict with UNKNOWN when the body carries no recognised reason", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 409 }));
 
-    await expect(new HttpManagerAdminAdapter().deleteSector("token", "s1")).rejects.toMatchObject({
+    await expect(new HttpManagerAdminAdapter().deleteSector("s1")).rejects.toMatchObject({
       reason: "UNKNOWN",
     });
   });
@@ -45,7 +45,7 @@ describe("HttpManagerAdminAdapter deletes", () => {
   it("raises UnauthorizedManagerError on a 401, like every other call on this port", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 401 }));
 
-    await expect(new HttpManagerAdminAdapter().deletePeerPartner("token", "p1")).rejects.toThrow(
+    await expect(new HttpManagerAdminAdapter().deletePeerPartner("p1")).rejects.toThrow(
       UnauthorizedManagerError,
     );
   });
@@ -55,8 +55,8 @@ describe("HttpManagerAdminAdapter deletes", () => {
       .spyOn(globalThis, "fetch")
       .mockResolvedValue(new Response(null, { status: 204 }));
 
-    await new HttpManagerAdminAdapter().deleteSector("token", "s1");
-    await new HttpManagerAdminAdapter().deletePeerPartner("token", "p1");
+    await new HttpManagerAdminAdapter().deleteSector("s1");
+    await new HttpManagerAdminAdapter().deletePeerPartner("p1");
 
     expect(String(fetchSpy.mock.calls[0]![0])).toContain("/manager/admin/sectors/s1");
     expect(String(fetchSpy.mock.calls[1]![0])).toContain("/manager/admin/peer-partners/p1");

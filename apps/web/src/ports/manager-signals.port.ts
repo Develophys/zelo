@@ -25,5 +25,5 @@ export type ManagerSignalsResponse = z.infer<typeof ManagerSignalsResponseSchema
 export class UnauthorizedManagerError extends Error {}
 
 export interface ManagerSignalsPort {
-  fetchSignals(token: string, sectorIds?: string[]): Promise<ManagerSignalsResponse>;
+  fetchSignals(sectorIds?: string[]): Promise<ManagerSignalsResponse>;
 }
